@@ -1,11 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  downloadTrajectoryAsText,
-  downloadTrajectory,
-  loadTrajectoryFromFile,
-  updateRobotImageDisplay,
-} from "../utils/file";
+import { downloadTrajectory, loadTrajectoryFromFile } from "../utils/file";
 import type { Point, Line, Shape, SequenceItem, Settings } from "../types";
 
 describe("File Utils", () => {
@@ -88,21 +83,6 @@ describe("File Utils", () => {
     expect(blobCall.type).toBe(mimeType);
   };
 
-  describe("downloadTrajectoryAsText", () => {
-    it("should create a text file download with correct parameters", () => {
-      downloadTrajectoryAsText(
-        mockStartPoint,
-        mockLines,
-        mockShapes,
-        mockSequence,
-        undefined,
-        "custom_name.txt",
-      );
-
-      expectDownload("custom_name.txt", "text/plain");
-    });
-  });
-
   describe("downloadTrajectory", () => {
     it("should create a .turt file download with correct parameters", () => {
       downloadTrajectory(mockStartPoint, mockLines, mockShapes, mockSequence);
@@ -112,7 +92,7 @@ describe("File Utils", () => {
   });
 
   describe("loadTrajectoryFromFile", () => {
-    it("should parse a valid .turt file correctly", () => {
+    it("should parse a valid .turt file correctly", async () => {
       const fileContent = JSON.stringify({
         startPoint: mockStartPoint,
         lines: mockLines,
@@ -135,52 +115,13 @@ describe("File Utils", () => {
       const onError = vi.fn();
 
       loadTrajectoryFromFile(event, onSuccess, onError);
-    });
-  });
 
-  describe("updateRobotImageDisplay", () => {
-    let getItemSpy: any;
-
-    beforeEach(() => {
-      document.body.innerHTML = "";
-      getItemSpy = vi.spyOn(Storage.prototype, "getItem");
-    });
-
-    afterEach(() => {
-      document.body.innerHTML = "";
-    });
-
-    it("should update robot image src if image and stored string exist", () => {
-      document.body.innerHTML = '<img alt="Robot" src="old-src.png" />';
-      getItemSpy.mockReturnValue("new-robot.png");
-
-      updateRobotImageDisplay();
-
-      const img = document.querySelector(
-        'img[alt="Robot"]',
-      ) as HTMLImageElement;
-      expect(img.src).toContain("new-robot.png");
-      expect(getItemSpy).toHaveBeenCalledWith("robot.png");
-    });
-
-    it("should do nothing if stored image does not exist", () => {
-      document.body.innerHTML = '<img alt="Robot" src="old-src.png" />';
-      getItemSpy.mockReturnValue(null);
-
-      updateRobotImageDisplay();
-
-      const img = document.querySelector(
-        'img[alt="Robot"]',
-      ) as HTMLImageElement;
-      expect(img.src).toContain("old-src.png");
-    });
-
-    it("should not throw if robot image does not exist in DOM", () => {
-      getItemSpy.mockReturnValue("new-robot.png");
-
-      expect(() => {
-        updateRobotImageDisplay();
-      }).not.toThrow();
+      await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      expect(onSuccess.mock.calls[0][0]).toMatchObject({
+        startPoint: mockStartPoint,
+        lines: mockLines,
+      });
+      expect(onError).not.toHaveBeenCalled();
     });
   });
 });

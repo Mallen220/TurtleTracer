@@ -1,12 +1,9 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// Utility to export the current Two.js view / animation as a GIF or APNG.
-// Uses gif.js for GIFs and upng-js for APNGs.
+// Exports the field view as a still image (PNG/JPEG/SVG) or the path
+// animation as a GIF (via gif.js) or APNG (via upng-js).
 
-import GIF from "gif.js";
-// Vite: import worker script URL so gif.js can spawn workers correctly
-import gifWorkerUrl from "gif.js/dist/gif.worker.js?url";
-import * as UPNG from "upng-js";
 import type Two from "two.js";
+import type { AnimationController } from "./animation";
 
 function makeAbortError() {
   const e = new Error("Aborted");
@@ -16,7 +13,7 @@ function makeAbortError() {
 
 export interface ExportAnimationOptions {
   two: Two; // Two.js instance
-  animationController: any; // controller from createAnimationController
+  animationController: AnimationController;
   durationSec: number; // total duration in seconds
   fps?: number; // frames per second
   scale?: number; // resolution scale (0.1 to 1.0+)
@@ -37,9 +34,6 @@ export interface ExportAnimationOptions {
     heading: number;
   };
 }
-
-// For backward compatibility alias
-export type ExportGifOptions = ExportAnimationOptions;
 
 export interface ExportImageOptions {
   two: Two;
@@ -186,52 +180,29 @@ async function renderFrameToCanvas(
   });
 }
 
+/** Loads an image, resolving to null if it can't be loaded. */
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 async function prepareResources(
   options: ExportAnimationOptions | ExportImageOptions,
 ) {
-  // Optionally preload a background image (field map)
-  let backgroundImage: HTMLImageElement | null = null;
-  if (options.backgroundImageSrc) {
-    backgroundImage = new Image();
-    backgroundImage.crossOrigin = "anonymous";
-    backgroundImage.src = options.backgroundImageSrc;
+  const { backgroundImageSrc, robotImageSrc } = options;
+  // "none" and "turtle" are built-in robot styles, not image URLs.
+  const hasRobotImage =
+    !!robotImageSrc && robotImageSrc !== "none" && robotImageSrc !== "turtle";
 
-    try {
-      await new Promise<void>((resolve) => {
-        backgroundImage!.onload = () => resolve();
-        backgroundImage!.onerror = () => {
-          backgroundImage = null;
-          resolve();
-        };
-      });
-    } catch {
-      backgroundImage = null;
-    }
-  }
-
-  // Optionally preload the robot overlay image
-  let robotImage: HTMLImageElement | null = null;
-  if (
-    options.robotImageSrc &&
-    options.robotImageSrc !== "none" &&
-    options.robotImageSrc !== "turtle"
-  ) {
-    robotImage = new Image();
-    robotImage.crossOrigin = "anonymous";
-    robotImage.src = options.robotImageSrc;
-
-    try {
-      await new Promise<void>((resolve) => {
-        robotImage!.onload = () => resolve();
-        robotImage!.onerror = () => {
-          robotImage = null;
-          resolve();
-        };
-      });
-    } catch {
-      robotImage = null;
-    }
-  }
+  const [backgroundImage, robotImage] = await Promise.all([
+    backgroundImageSrc ? loadImage(backgroundImageSrc) : null,
+    hasRobotImage ? loadImage(robotImageSrc) : null,
+  ]);
   return { backgroundImage, robotImage };
 }
 
@@ -265,7 +236,7 @@ export async function exportPathToImage(
   const { backgroundImage, robotImage } = await prepareResources(options);
 
   // Get SVG dimensions
-  const svgEl = (two.renderer as any).domElement as SVGElement;
+  const svgEl = getSvgElement(two);
   const rect = svgEl.getBoundingClientRect();
   const width = Math.round(rect.width * scale);
   const height = Math.round(rect.height * scale);
@@ -327,14 +298,14 @@ export async function exportPathToImage(
         const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading})`;
         const arrowTransform = `translate(-12, -12)`;
 
-        const robotSvg = `
-          <g transform="${transform}">
+        // No leading whitespace: the first child of the parsed markup is what
+        // gets added to the SVG, and it has to be the <g>, not a text node.
+        const robotSvg = `<g transform="${transform}">
             <rect x="${-rw / 2}" y="${-rh / 2}" width="${rw}" height="${rh}" fill="rgba(34, 197, 94, 0.10)" stroke="#16a34a" stroke-width="2" rx="8" />
             <g transform="${arrowTransform}">
               <path stroke="rgba(34, 197, 94, 1.0)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M8.25 4.5l7.5 7.5-7.5 7.5" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));" />
             </g>
-          </g>
-        `;
+          </g>`;
         const robotFragment = parser.parseFromString(
           `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
           "image/svg+xml",
@@ -380,260 +351,67 @@ export async function exportPathToImage(
   });
 }
 
-export async function exportPathToGif(
-  options: ExportAnimationOptions,
-): Promise<Blob> {
-  const {
-    two,
-    animationController,
-    durationSec,
-    fps = 15,
-    scale = 1,
-    quality = 20,
-    onProgress,
-  } = options;
-
-  const prevPlaying = animationController.isPlaying?.() ?? false;
-  const prevPercent = animationController.getPercent?.() ?? 0;
-  if (animationController.pause) animationController.pause();
-
-  const svgEl = (two.renderer as any).domElement as SVGElement;
-  const rect = svgEl.getBoundingClientRect();
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(rect.width * scale);
-  canvas.height = Math.round(rect.height * scale);
-  const ctx = canvas.getContext("2d")!;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-
-  const { backgroundImage, robotImage } = await prepareResources(options);
-
-  const gif = new GIF({
-    workers: 2,
-    quality: quality,
-    width: canvas.width,
-    height: canvas.height,
-    workerScript: gifWorkerUrl,
-  });
-
-  if (onProgress) {
-    gif.on("progress", (p: number) => {
-      onProgress(0.5 + p * 0.5);
-    });
+/** Splits `total` into `parts` whole numbers that add up to exactly `total`. */
+function splitEvenly(total: number, parts: number): number[] {
+  const result: number[] = [];
+  let assigned = 0;
+  for (let i = 1; i <= parts; i++) {
+    const next = Math.round((i * total) / parts);
+    result.push(next - assigned);
+    assigned = next;
   }
-
-  const calculatedFrames = Math.ceil(durationSec * fps);
-  const frames = Math.max(2, calculatedFrames);
-
-  // For GIFs, delays are stored in centiseconds (10ms) granularity; to maintain
-  const totalCentis = Math.round(durationSec * 100); // total 1/100s
-  const baseCs = Math.floor(totalCentis / frames);
-  const remainder = totalCentis - baseCs * frames;
-  const frameCs: number[] = new Array(frames);
-  // Distribute remainder as evenly as possible across frames
-  let acc = 0;
-  for (let i = 0; i < frames; i++) {
-    acc += remainder;
-    if (acc >= frames) {
-      frameCs[i] = baseCs + 1;
-      acc -= frames;
-    } else {
-      frameCs[i] = baseCs;
-    }
-  }
-
-  const framesDataURLs: string[] = [];
-
-  // Frame capture loop
-  for (let i = 0; i < frames; i++) {
-    if (options.signal?.aborted) throw makeAbortError();
-    const percent = (i / (frames - 1)) * 100;
-    if (animationController.seekToPercent)
-      animationController.seekToPercent(percent);
-    two.update();
-
-    await renderFrameToCanvas(
-      ctx,
-      canvas,
-      svgEl,
-      percent,
-      options,
-      backgroundImage,
-      robotImage,
-      scale,
-    );
-
-    // Capture fallback data
-    try {
-      framesDataURLs.push(canvas.toDataURL("image/png"));
-    } catch {}
-
-    try {
-      // Use distributed centiseconds delays (converted to ms)
-      const delay = (frameCs[i] || 0) * 10;
-      gif.addFrame(ctx, { copy: true, delay });
-    } catch {}
-
-    if (onProgress) {
-      onProgress(((i + 1) / frames) * 0.5);
-    }
-  }
-
-  // Restore before encoding stage
-  if (animationController.seekToPercent)
-    animationController.seekToPercent(prevPercent);
-  if (prevPlaying && animationController.play) animationController.play();
-
-  const p = new Promise<Blob>((resolve, reject) => {
-    let encodeStarted = false;
-
-    const rejectError = (reason: unknown) =>
-      reject(reason instanceof Error ? reason : new Error(String(reason)));
-
-    const onAbort = () => {
-      try {
-        (gif as any).abort?.();
-      } catch {}
-      reject(makeAbortError());
-    };
-
-    if (options.signal) {
-      if (options.signal.aborted) return reject(makeAbortError());
-      options.signal.addEventListener("abort", onAbort);
-    }
-
-    const fallbackTimeout = setTimeout(async () => {
-      if (!encodeStarted) {
-        console.warn(
-          "Worker encoding not detected — falling back to main-thread encode",
-        );
-        try {
-          const gif2 = new GIF({
-            workers: 0,
-            quality: quality,
-            width: canvas.width,
-            height: canvas.height,
-          });
-          if (onProgress) onProgress(0.5);
-          if (onProgress) {
-            gif2.on("progress", (p: number) => onProgress(0.5 + p * 0.5));
-          }
-
-          for (let i = 0; i < framesDataURLs.length; i++) {
-            if (options.signal?.aborted) return reject(makeAbortError());
-            const dataUrl = framesDataURLs[i];
-            await new Promise<void>((res, rej) => {
-              const im = new Image();
-              im.onload = () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
-                try {
-                  const delay = (frameCs[i] || 0) * 10;
-                  gif2.addFrame(ctx, { copy: true, delay });
-                } catch {}
-                res();
-              };
-              im.onerror = () =>
-                rej(new Error("Failed to load GIF frame image"));
-              im.src = dataUrl;
-            });
-          }
-          gif2.on("finished", (blobObj: Blob) => resolve(blobObj));
-          gif2.on("error", (err: any) => rejectError(err));
-          gif2.render();
-        } catch (err) {
-          rejectError(err);
-        }
-      }
-    }, 3000);
-
-    gif.on("finished", (blobObj: Blob) => {
-      if (options.signal) options.signal.removeEventListener("abort", onAbort);
-      clearTimeout(fallbackTimeout);
-      resolve(blobObj);
-    });
-    gif.on("error", (err: any) => {
-      if (options.signal) options.signal.removeEventListener("abort", onAbort);
-      clearTimeout(fallbackTimeout);
-      rejectError(err);
-    });
-    gif.on("progress", () => {
-      encodeStarted = true;
-    });
-
-    try {
-      gif.render();
-    } catch (err) {
-      clearTimeout(fallbackTimeout);
-      rejectError(err);
-    }
-  });
-
-  return await p.finally(() => {
-    // Ensure animation state is restored even on abort
-    if (animationController.seekToPercent)
-      animationController.seekToPercent(prevPercent);
-    if (prevPlaying && animationController.play) animationController.play();
-  });
+  return result;
 }
 
-export async function exportPathToApng(
+function getFrameCount({ durationSec, fps = 15 }: ExportAnimationOptions) {
+  return Math.max(2, Math.ceil(durationSec * fps));
+}
+
+function getCanvasSize({ two, scale = 1 }: ExportAnimationOptions) {
+  const rect = getSvgElement(two).getBoundingClientRect();
+  return {
+    width: Math.round(rect.width * scale),
+    height: Math.round(rect.height * scale),
+  };
+}
+
+function getSvgElement(two: Two): SVGElement {
+  return two.renderer.domElement as SVGElement;
+}
+
+/**
+ * Steps the animation from start to finish, drawing each frame onto a canvas
+ * and handing it to `onFrame`. The animation is put back where it was
+ * afterwards. Progress is reported from 0 up to `progressShare`.
+ */
+async function captureFrames(
   options: ExportAnimationOptions,
-): Promise<Blob> {
-  const {
-    two,
-    animationController,
-    durationSec,
-    fps = 15,
-    scale = 1,
-    quality = 10,
-    onProgress,
-  } = options;
+  progressShare: number,
+  onFrame: (ctx: CanvasRenderingContext2D, index: number) => void,
+): Promise<void> {
+  const { two, animationController, scale = 1, onProgress, signal } = options;
+  const frameCount = getFrameCount(options);
 
-  const prevPlaying = animationController.isPlaying?.() ?? false;
-  const prevPercent = animationController.getPercent?.() ?? 0;
-  if (animationController.pause) animationController.pause();
-
-  const svgEl = (two.renderer as any).domElement as SVGElement;
-  const rect = svgEl.getBoundingClientRect();
+  const svgEl = getSvgElement(two);
+  const { width, height } = getCanvasSize(options);
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(rect.width * scale);
-  canvas.height = Math.round(rect.height * scale);
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d")!;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  const { backgroundImage, robotImage } = await prepareResources(options);
-
-  const calculatedFrames = Math.ceil(durationSec * fps);
-
-  const frames = Math.max(2, calculatedFrames);
-
-  // Precise timing calculation:
-  // Distribute error accumulation
-  const targetTotalMs = durationSec * 1000;
-  const delays: number[] = [];
-  let accumulatedTime = 0;
-
-  for (let i = 0; i < frames; i++) {
-    // Calculate perfect end time for this frame
-    const targetEndTime = ((i + 1) / frames) * targetTotalMs;
-    // Calculate integer delay for this frame to reach that time
-    const delay = Math.round(targetEndTime - accumulatedTime);
-    delays.push(delay);
-    accumulatedTime += delay;
-  }
-
-  const buffers: ArrayBuffer[] = [];
+  const wasPlaying = animationController.isPlaying();
+  const startPercent = animationController.getPercent();
+  animationController.pause();
 
   try {
-    for (let i = 0; i < frames; i++) {
-      if (options.signal?.aborted) throw makeAbortError();
-      const percent = (i / (frames - 1)) * 100;
-      if (animationController.seekToPercent)
-        animationController.seekToPercent(percent);
+    const { backgroundImage, robotImage } = await prepareResources(options);
+    for (let i = 0; i < frameCount; i++) {
+      if (signal?.aborted) throw makeAbortError();
+      const percent = (i / (frameCount - 1)) * 100;
+      animationController.seekToPercent(percent);
       two.update();
-
       await renderFrameToCanvas(
         ctx,
         canvas,
@@ -644,43 +422,85 @@ export async function exportPathToApng(
         robotImage,
         scale,
       );
-
-      // Get buffer for UPNG
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      buffers.push(imageData.data.buffer);
-
-      if (onProgress) {
-        onProgress(((i + 1) / frames) * 0.9);
-      }
+      onFrame(ctx, i);
+      onProgress?.(((i + 1) / frameCount) * progressShare);
     }
-
-    // Restore
-    if (animationController.seekToPercent)
-      animationController.seekToPercent(prevPercent);
-    if (prevPlaying && animationController.play) animationController.play();
-
-    if (onProgress) onProgress(0.95);
-
-    // Encode APNG
-    // cnum = 0 means lossless. >0 means palette size.
-    // Mapping: Quality 1-9 => Lossless (0), Quality >= 10 => 256 colors
-    const cnum = quality <= 9 ? 0 : 256;
-
-    const apngBuffer = UPNG.encode(
-      buffers,
-      canvas.width,
-      canvas.height,
-      cnum,
-      delays,
-    );
-
-    if (onProgress) onProgress(1);
-
-    return new Blob([apngBuffer], { type: "image/png" });
   } finally {
-    // Ensure animation state is restored even on abort
-    if (animationController.seekToPercent)
-      animationController.seekToPercent(prevPercent);
-    if (prevPlaying && animationController.play) animationController.play();
+    animationController.seekToPercent(startPercent);
+    if (wasPlaying) animationController.play();
   }
+}
+
+export async function exportPathToGif(
+  options: ExportAnimationOptions,
+): Promise<Blob> {
+  const { durationSec, quality = 20, onProgress, signal } = options;
+  const { width, height } = getCanvasSize(options);
+  // The encoders are only needed when exporting, so they load on demand.
+  const [{ default: GIF }, { default: gifWorkerUrl }] = await Promise.all([
+    import("gif.js"),
+    // Vite: import worker script URL so gif.js can spawn workers correctly
+    import("gif.js/dist/gif.worker.js?url"),
+  ]);
+  const gif = new GIF({
+    workers: 2,
+    quality,
+    width,
+    height,
+    workerScript: gifWorkerUrl,
+  });
+
+  // GIF frame delays are stored in hundredths of a second.
+  const delaysCs = splitEvenly(
+    Math.round(durationSec * 100),
+    getFrameCount(options),
+  );
+
+  // Capturing is the first half of the progress bar, encoding the second.
+  await captureFrames(options, 0.5, (ctx, i) => {
+    gif.addFrame(ctx, { copy: true, delay: delaysCs[i] * 10 });
+  });
+
+  return new Promise<Blob>((resolve, reject) => {
+    if (signal?.aborted) return reject(makeAbortError());
+
+    const onAbort = () => {
+      gif.abort();
+      reject(makeAbortError());
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    gif.on("progress", (p: number) => onProgress?.(0.5 + p * 0.5));
+    gif.on("finished", (blob: Blob) => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve(blob);
+    });
+    gif.render();
+  });
+}
+
+export async function exportPathToApng(
+  options: ExportAnimationOptions,
+): Promise<Blob> {
+  const { durationSec, quality = 10, onProgress } = options;
+  const { width, height } = getCanvasSize(options);
+  const delaysMs = splitEvenly(
+    Math.round(durationSec * 1000),
+    getFrameCount(options),
+  );
+
+  const buffers: ArrayBuffer[] = [];
+  await captureFrames(options, 0.9, (ctx) => {
+    buffers.push(ctx.getImageData(0, 0, width, height).data.buffer);
+  });
+
+  onProgress?.(0.95);
+  // A colour count of 0 means lossless; otherwise the image is reduced to
+  // a 256 colour palette, which is much smaller.
+  const colourCount = quality <= 9 ? 0 : 256;
+  const UPNG = await import("upng-js");
+  const apng = UPNG.encode(buffers, width, height, colourCount, delaysMs);
+  onProgress?.(1);
+
+  return new Blob([apng], { type: "image/png" });
 }

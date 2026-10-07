@@ -116,7 +116,7 @@ export function findPointsInBox(
       }
     });
 
-    line.eventMarkers?.forEach((em: any, eIdx: number) => {
+    line.eventMarkers?.forEach((em, eIdx) => {
       if (
         em.type === "pose" &&
         em.poseX !== undefined &&

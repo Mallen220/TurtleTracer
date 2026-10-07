@@ -1,76 +1,230 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import prettier from "prettier";
-import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
-import { getLineStartHeading } from "../../utils/math";
-import pkg from "../../../package.json";
 import { actionRegistry } from "../../lib/actionRegistry";
-import { generateTrackerEventRegistrationCode } from "./eventMarkerUtils";
-import {
-  toUser,
-  toUserHeading,
-  type CoordinateSystem,
-} from "../../utils/coordinates";
+import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
+import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
+import { type CoordinateSystem } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
+import {
+  formatJava,
+  flattenMacros,
+  poseCode,
+  angleCode,
+  headingMethodCode,
+  chainGlobalHeading,
+  groupChains,
+  uniqueNames,
+  identifierFor,
+  AUTO_GENERATED_FILE_WARNING_MESSAGE,
+  type FormatOptions,
+  type HeadingConfig,
+} from "./javaFormat";
+
+/** A Java identifier for each line, based on its name and made unique. */
+function uniqueVariableNames(lines: Line[]): string[] {
+  return uniqueNames(
+    lines.map((line, idx) => identifierFor(line.name, `line${idx + 1}`)),
+  );
+}
+
+/** Interpolator arguments with every angle and target written out. */
+function literalArgs(opts: FormatOptions) {
+  return (h: HeadingConfig): string => {
+    switch (h.heading) {
+      case "constant":
+        return angleCode(h.degrees || 0, opts);
+      case "linear":
+        return `${angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`;
+      case "facingPoint":
+        return poseCode({ x: h.targetX || 0, y: h.targetY || 0 }, opts);
+      default:
+        return "";
+    }
+  };
+}
 
 /**
- * Generate Java code from path data
+ * The statements in the Paths constructor that build each path. Chained
+ * lines are combined into a single path(...) call.
  */
+function pathConstructionCode(
+  startPoint: Point,
+  lines: Line[],
+  names: string[],
+  opts: FormatOptions,
+): string {
+  const segments = lines.map((line, idx) => {
+    const start = poseCode(
+      idx === 0 ? startPoint : lines[idx - 1].endPoint,
+      opts,
+    );
+    const end = poseCode(line.endPoint, opts);
+    const call =
+      line.controlPoints.length === 0
+        ? `line(\n          ${start},\n          ${end}\n        )`
+        : `curve(\n          ${start},\n          ${line.controlPoints.map((cp) => poseCode(cp, opts)).join(",\n")},${end}\n        )`;
 
-const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
-/* ============================================================= *
- *                 Turtle Tracer — Auto-Generated                *
- *                                                               *
- *  Version: ${pkg.version}.                                              *
- *  Copyright (c) ${new Date().getFullYear()} Matthew Allen                             *
- *                                                               *
- *  THIS FILE IS AUTO-GENERATED — DO NOT EDIT MANUALLY.          *
- *  Changes will be overwritten when regenerated.                *
- * ============================================================= */
-`;
+    const global = chainGlobalHeading(lines, idx);
+    return {
+      line,
+      name: names[idx],
+      call,
+      heading: global
+        ? ""
+        : headingMethodCode(line.endPoint, literalArgs(opts)),
+      chainHeading:
+        global && !line.isChain
+          ? `\n        ${headingMethodCode(global, literalArgs(opts))}`
+          : "",
+    };
+  });
+
+  const blocks = groupChains(lines, segments).map((members) => {
+    const root = members[0];
+    if (members.length === 1)
+      return `${root.name} = ${root.call}${root.heading};`;
+    const calls = members.map((m) => `        ${m.call}${m.heading}`);
+    return `${root.name} = path(\n${calls.join(",\n")}\n      )${root.chainHeading};`;
+  });
+  return blocks.join("\n\n      ");
+}
+
+/**
+ * The OpMode's autonomousPathUpdate() switch cases. Each path takes two
+ * states: start following it, then wait until the follower is done.
+ */
+function stateMachineCode(
+  sequence: SequenceItem[],
+  lines: Line[],
+  names: string[],
+  trackEvents: boolean,
+  opts: FormatOptions,
+): string {
+  let code = "";
+  let state = 0;
+  const lineIndexById = (id: string) =>
+    lines.findIndex((l, i) => (l.id || `line-${i + 1}`) === id);
+
+  for (const item of sequence) {
+    const action = actionRegistry.get(item.kind);
+    if (action?.toJavaCode) {
+      const res = action.toJavaCode(item, { stateStep: state });
+      code += res.code;
+      state += res.stepsUsed;
+      continue;
+    }
+
+    code += `\n        case ${state}:`;
+    if (item.kind !== "path") continue;
+
+    const idx = lineIndexById(item.lineId);
+    if (idx === -1 || lines[idx].isChain) {
+      // Chained lines are followed as part of the path before them.
+      if (idx !== -1) code += `\n          // Handled by previous chained path`;
+      code += `\n          setPathState(${state + 1});\n          break;`;
+      state += 1;
+      continue;
+    }
+
+    const path = `paths.${names[idx]}`;
+    code += `\n          follower.follow(${path});`;
+    if (trackEvents) {
+      // The tracker watches one path at a time, so it gets this path's
+      // markers (and none of the others') when the path starts.
+      const registrations = chainMarkerRegistrationCode(lines, idx, {
+        indent: "          ",
+        ...opts,
+      });
+      code += `\n          tracker.clearPathEvents();${registrations}`;
+      code += `\n          tracker.setCurrentPath(${path});`;
+    }
+    code += `\n          setPathState(${state + 1});\n          break;`;
+    code += `\n        case ${state + 1}:`;
+    code += `\n          if(!follower.isBusy()) {\n            setPathState(${state + 2});\n          }\n          break;`;
+    state += 2;
+  }
+
+  code += `\n        case ${state}:`;
+  code += `\n          requestOpModeStop();\n          pathState = -1;\n          break;`;
+  return code;
+}
+
+type TelemetryImpl = "Standard" | "Dashboard" | "Panels" | "None";
+
+/** Code for each telemetry option: imports, field, init() and loop() lines. */
+const TELEMETRY_CODE: Record<
+  TelemetryImpl,
+  { imports: string; field: string; init: string; loop: string }
+> = {
+  Panels: {
+    imports: `
+    import com.bylazar.configurables.annotations.Configurable;
+    import com.bylazar.telemetry.TelemetryManager;
+    import com.bylazar.telemetry.PanelsTelemetry;`,
+    field:
+      "private TelemetryManager panelsTelemetry; // Panels Telemetry instance",
+    init: `
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        // ...
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);`,
+    loop: `
+        // Log values to Panels and Driver Station
+        panelsTelemetry.debug("Path State", pathState);
+        panelsTelemetry.debug("X", follower.pose().x());
+        panelsTelemetry.debug("Y", follower.pose().y());
+        panelsTelemetry.debug("Heading", follower.pose().heading());
+        panelsTelemetry.update(telemetry);`,
+  },
+  Dashboard: {
+    imports: `
+    import com.acmerobotics.dashboard.FtcDashboard;
+    import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+    import org.firstinspires.ftc.robotcore.external.Telemetry;`,
+    field: "private Telemetry telemetryA;",
+    init: `
+        telemetryA = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetryA.addData("Status", "Initialized");
+        telemetryA.update();`,
+    loop: `
+        // Log values to Dashboard and Driver Station
+        telemetryA.addData("Path State", pathState);
+        telemetryA.addData("X", follower.pose().x());
+        telemetryA.addData("Y", follower.pose().y());
+        telemetryA.addData("Heading", follower.pose().heading());
+        telemetryA.update();`,
+  },
+  Standard: {
+    imports: "",
+    field: "",
+    init: `
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();`,
+    loop: `
+        // Log values to Driver Station
+        telemetry.addData("Path State", pathState);
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", follower.pose().heading());
+        telemetry.update();`,
+  },
+  None: { imports: "", field: "", init: "", loop: "" },
+};
+
+/** Generates the Pedro Pathing Java class for the project. */
 export async function generateJavaCode(
   startPoint: Point,
   lines: Line[],
   exportFullCode: boolean,
   sequence?: SequenceItem[],
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
-  telemetryImpl: "Standard" | "Dashboard" | "Panels" | "None" = "Panels",
+  telemetryImpl: TelemetryImpl = "Panels",
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
 ): Promise<string> {
-  const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
-    const result: SequenceItem[] = [];
-    seq.forEach((item) => {
-      if (item.kind === "macro") {
-        if (item.sequence && item.sequence.length > 0) {
-          result.push(...flattenSequence(item.sequence));
-        }
-      } else {
-        result.push(item);
-      }
-    });
-    return result;
-  };
-
-  const pathChainNames: string[] = [];
-  const usedPathNames = new Map<string, number>();
-
-  // First pass: generate unique variable names for all lines
-  lines.forEach((line, idx) => {
-    let baseName = line.name
-      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
-      : `line${idx + 1}`;
-
-    if (usedPathNames.has(baseName)) {
-      const count = usedPathNames.get(baseName)!;
-      usedPathNames.set(baseName, count + 1);
-      baseName = `${baseName}_${count}`;
-    } else {
-      usedPathNames.set(baseName, 1);
-    }
-    pathChainNames.push(baseName);
-  });
+  const pathChainNames = uniqueVariableNames(lines);
+  const opts: FormatOptions = { coordinateSystem, codeUnits };
 
   let pathsClass = `
   public static class Paths {
@@ -84,268 +238,7 @@ export async function generateJavaCode(
       .join("\n")}
 
     public Paths(Follower follower) {
-      ${(() => {
-        const pathData = lines.map((line, idx) => {
-          const variableName = pathChainNames[idx];
-
-          let startCode, controlPointsCode, endCode;
-
-          if (coordinateSystem === "FTC") {
-            // Helper to format buildPose call
-            const formatPose = (
-              pt: { x: number; y: number },
-              h: number = 0,
-            ) => {
-              const u = toUser(pt, "FTC");
-              const uh = toUserHeading(h, "FTC");
-              const px =
-                codeUnits === "metric"
-                  ? `cmToInches(${(u.x * 2.54).toFixed(3)})`
-                  : u.x.toFixed(3);
-              const py =
-                codeUnits === "metric"
-                  ? `cmToInches(${(u.y * 2.54).toFixed(3)})`
-                  : u.y.toFixed(3);
-              return `buildPose(${px}, ${py}, ${uh.toFixed(3)})`;
-            };
-
-            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-
-            startCode = formatPose(startPt, 0);
-
-            controlPointsCode =
-              line.controlPoints.length > 0
-                ? `${line.controlPoints
-                    .map((point) => formatPose(point, 0))
-                    .join(",\n")},`
-                : "";
-
-            endCode = formatPose(line.endPoint, 0);
-          } else {
-            // Standard Pedro (0-144)
-            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-            const sx =
-              codeUnits === "metric"
-                ? `cmToInches(${(startPt.x * 2.54).toFixed(3)})`
-                : startPt.x.toFixed(3);
-            const sy =
-              codeUnits === "metric"
-                ? `cmToInches(${(startPt.y * 2.54).toFixed(3)})`
-                : startPt.y.toFixed(3);
-            startCode = `p.of(${sx}, ${sy}, 0.0)`;
-
-            controlPointsCode =
-              line.controlPoints.length > 0
-                ? `${line.controlPoints
-                    .map((point) => {
-                      const px =
-                        codeUnits === "metric"
-                          ? `cmToInches(${(point.x * 2.54).toFixed(3)})`
-                          : point.x.toFixed(3);
-                      const py =
-                        codeUnits === "metric"
-                          ? `cmToInches(${(point.y * 2.54).toFixed(3)})`
-                          : point.y.toFixed(3);
-                      return `p.of(${px}, ${py}, 0.0)`;
-                    })
-                    .join(",\n")},`
-                : "";
-
-            const ex =
-              codeUnits === "metric"
-                ? `cmToInches(${(line.endPoint.x * 2.54).toFixed(3)})`
-                : line.endPoint.x.toFixed(3);
-            const ey =
-              codeUnits === "metric"
-                ? `cmToInches(${(line.endPoint.y * 2.54).toFixed(3)})`
-                : line.endPoint.y.toFixed(3);
-            endCode = `p.of(${ex}, ${ey}, 0.0)`;
-          }
-
-          const pathCall =
-            line.controlPoints.length === 0
-              ? `line(\n          ${startCode},\n          ${endCode}\n        )`
-              : `curve(\n          ${startCode},\n          ${controlPointsCode}${endCode}\n        )`;
-
-          let headingMethodCode = "";
-          let globalHeadingCode = "";
-
-          const generateInterpolatorString = (pointDef: any) => {
-            let config = "";
-            if (coordinateSystem === "FTC") {
-              if (pointDef.heading === "constant") {
-                const uh = toUserHeading(pointDef.degrees || 0, "FTC");
-                config = `Math.toRadians(${uh.toFixed(3)})`;
-              } else if (pointDef.heading === "linear") {
-                const uhStart = toUserHeading(pointDef.startDeg || 0, "FTC");
-                const uhEnd = toUserHeading(pointDef.endDeg || 0, "FTC");
-                config = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
-              } else if (pointDef.heading === "facingPoint") {
-                const uTarget = toUser(
-                  { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
-                  "FTC",
-                );
-                config = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
-              }
-            } else if (pointDef.heading === "constant") {
-              config = `Math.toRadians(${pointDef.degrees || 0})`;
-            } else if (pointDef.heading === "linear") {
-              config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
-            } else if (pointDef.heading === "facingPoint") {
-              const hx =
-                codeUnits === "metric"
-                  ? `cmToInches(${((pointDef.targetX || 0) * 2.54).toFixed(3)})`
-                  : (pointDef.targetX || 0).toFixed(3);
-              const hy =
-                codeUnits === "metric"
-                  ? `cmToInches(${((pointDef.targetY || 0) * 2.54).toFixed(3)})`
-                  : (pointDef.targetY || 0).toFixed(3);
-              config = `p.of(${hx}, ${hy}, 0.0)`;
-            }
-
-            let baseName = "";
-            if (pointDef.heading === "constant") {
-              baseName = `Interpolator.constant(${config})`;
-            } else if (pointDef.heading === "linear") {
-              baseName = `Interpolator.linear(${config})`;
-            } else if (pointDef.heading === "tangential") {
-              baseName = `Interpolator.tangent`;
-            } else if (pointDef.heading === "facingPoint") {
-              baseName = `Interpolator.facingPoint(${config})`;
-            }
-
-            if (pointDef.reverse) {
-              if (pointDef.heading === "tangential")
-                return "Interpolator.tangent.reverse()";
-              if (pointDef.heading === "linear")
-                return `Interpolator.linear(${config}).reverse()`;
-              if (pointDef.heading === "constant")
-                return `Interpolator.constant(${config}).reverse()`;
-              if (pointDef.heading === "facingPoint")
-                return `Interpolator.facingPoint(${config}).reverse()`;
-            }
-            return baseName;
-          };
-
-          const constructHeadingMethod = (targetConfig: any) => {
-            if (targetConfig.heading === "piecewise") {
-              const segs = targetConfig.segments || [];
-              if (segs.length === 0) {
-                return ".tangent()";
-              }
-              const segmentsStr = segs
-                .map((seg: any) => {
-                  const interpStr = generateInterpolatorString(seg);
-                  return `.until(${seg.tEnd}, ${interpStr})`;
-                })
-                .join("\n          ");
-              if (targetConfig.reverse) {
-                return `.heading(Interpolator.piecewise()\n          ${segmentsStr}\n          .reverse())`;
-              }
-              return `.heading(Interpolator.piecewise()\n          ${segmentsStr}\n        )`;
-            }
-
-            let hConfig = generateInterpolatorString(targetConfig);
-            let args = "";
-            if (hConfig.includes("(") && !hConfig.endsWith(".reverse()")) {
-              args = hConfig.slice(
-                hConfig.indexOf("(") + 1,
-                hConfig.lastIndexOf(")"),
-              );
-            }
-
-            if (targetConfig.reverse) {
-              if (targetConfig.heading === "constant") {
-                return `.heading(${hConfig})`;
-              } else if (targetConfig.heading === "linear") {
-                return `.heading(${hConfig})`;
-              } else if (targetConfig.heading === "tangential") {
-                return `.reverseTangent()`;
-              } else if (targetConfig.heading === "facingPoint") {
-                return `.heading(${hConfig})`;
-              }
-            } else if (targetConfig.heading === "constant") {
-              return `.constant(${args})`;
-            } else if (targetConfig.heading === "linear") {
-              return `.linear(${args})`;
-            } else if (targetConfig.heading === "tangential") {
-              return `.tangent()`;
-            } else if (targetConfig.heading === "facingPoint") {
-              return `.facingPoint(${args})`;
-            }
-            return "";
-          };
-
-          let hasGlobalHeading = false;
-          let tempIdx = idx;
-          let rootLine = line;
-          while (rootLine.isChain && tempIdx > 0) {
-            tempIdx--;
-            rootLine = lines[tempIdx];
-          }
-          if (
-            rootLine.globalHeading &&
-            rootLine.globalHeading !== ("none" as any)
-          ) {
-            hasGlobalHeading = true;
-            if (!line.isChain) {
-              const globalConfig = {
-                heading: rootLine.globalHeading,
-                reverse: rootLine.globalReverse,
-                degrees: rootLine.globalDegrees,
-                startDeg: rootLine.globalStartDeg,
-                endDeg: rootLine.globalEndDeg,
-                targetX: rootLine.globalTargetX,
-                targetY: rootLine.globalTargetY,
-                segments: rootLine.globalSegments,
-              };
-              globalHeadingCode = `\n        ${constructHeadingMethod(globalConfig)}`;
-            }
-          }
-
-          if (!hasGlobalHeading) {
-            headingMethodCode = constructHeadingMethod(line.endPoint);
-          }
-
-          return {
-            line,
-            variableName,
-            pathCall,
-            headingMethodCode,
-            globalHeadingCode,
-          };
-        });
-
-        // Consolidate chained paths
-        const consolidatedBlocks: string[] = [];
-        let i = 0;
-        while (i < pathData.length) {
-          const rootPd = pathData[i];
-          const chainMembers = [rootPd];
-          let j = i + 1;
-          while (j < pathData.length && pathData[j].line.isChain) {
-            chainMembers.push(pathData[j]);
-            j++;
-          }
-
-          if (chainMembers.length === 1) {
-            consolidatedBlocks.push(
-              `${rootPd.variableName} = ${rootPd.pathCall}${rootPd.headingMethodCode};`,
-            );
-          } else {
-            const childCalls = chainMembers.map((m) => {
-              return `        ${m.pathCall}${m.headingMethodCode}`;
-            });
-            consolidatedBlocks.push(
-              `${rootPd.variableName} = path(\n${childCalls.join(",\n")}\n      )${rootPd.globalHeadingCode};`,
-            );
-          }
-
-          i = j;
-        }
-
-        return consolidatedBlocks.join("\n\n      ");
-      })()}
+      ${pathConstructionCode(startPoint, lines, pathChainNames, opts)}
     }
 
     ${
@@ -369,193 +262,38 @@ export async function generateJavaCode(
   }
   `;
 
-  // Add NamedCommands registration instructions
-  let namedCommandsSection = "";
-
-  const hasEventMarkers = lines.some(
-    (line) => line.eventMarkers && line.eventMarkers.length > 0,
-  );
-
-  // Generate state machine logic
-  let stateMachineCode = "";
-  let stateStep = 0;
-
-  const rawSequence =
-    sequence && sequence.length > 0
+  const hasEventMarkers = lines.some((line) => line.eventMarkers?.length);
+  const sequenceToExport = flattenMacros(
+    sequence?.length
       ? sequence
       : lines.map(
-          (line, i) =>
-            ({
-              kind: "path",
-              lineId: line.id || `line-${i + 1}`,
-            }) as any,
-        );
-
-  const targetSequence = flattenSequence(rawSequence);
-
-  targetSequence.forEach((item) => {
-    // Check Registry
-    const action = actionRegistry.get(item.kind);
-    if (action?.toJavaCode) {
-      const res = action.toJavaCode(item, { stateStep });
-      stateMachineCode += res.code;
-      stateStep += res.stepsUsed;
-      return;
-    }
-
-    stateMachineCode += `\n        case ${stateStep}:`;
-
-    if (item.kind === "path") {
-      const lineIndex = lines.findIndex(
-        (l) =>
-          (l.id || `line-${lines.indexOf(l) + 1}`) === (item as any).lineId,
-      );
-
-      const idx = lineIndex === -1 ? -1 : lineIndex;
-
-      if (idx === -1) {
-        stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-        stateMachineCode += `\n          break;`;
-        stateStep += 1;
-      } else {
-        const line = lines[idx];
-        if (line.isChain) {
-          // Chained paths don't get their own follow command in the state machine,
-          // they are executed as part of the root chain path before them.
-          stateMachineCode += `\n          // Handled by previous chained path`;
-          stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-          stateMachineCode += `\n          break;`;
-          stateStep += 1;
-        } else {
-          stateMachineCode += `\n          follower.follow(paths.${pathChainNames[idx]});`;
-          if (hasEventMarkers) {
-            stateMachineCode += `\n          tracker.setCurrentPath(paths.${pathChainNames[idx]});`;
-          }
-          stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-          stateMachineCode += `\n          break;`;
-
-          stateMachineCode += `\n        case ${stateStep + 1}:`;
-          stateMachineCode += `\n          if(!follower.isBusy()) {`;
-          stateMachineCode += `\n            setPathState(${stateStep + 2});`;
-          stateMachineCode += `\n          }`;
-          stateMachineCode += `\n          break;`;
-          stateStep += 2;
-        }
-      }
-    }
-  });
-
-  stateMachineCode += `\n        case ${stateStep}:`;
-  stateMachineCode += `\n          requestOpModeStop();`;
-  stateMachineCode += `\n          pathState = -1;`;
-  stateMachineCode += `\n          break;`;
+          (line, i): SequenceItem => ({
+            kind: "path",
+            lineId: line.id || `line-${i + 1}`,
+          }),
+        ),
+  );
+  const stateCases = stateMachineCode(
+    sequenceToExport,
+    lines,
+    pathChainNames,
+    hasEventMarkers,
+    opts,
+  );
 
   let file = "";
   if (exportFullCode) {
-    // Determine imports based on telemetry implementation
-    let extraImports = "";
-    if (telemetryImpl === "Panels") {
-      extraImports = `
-    import com.bylazar.configurables.annotations.Configurable;
-    import com.bylazar.telemetry.TelemetryManager;
-    import com.bylazar.telemetry.PanelsTelemetry;`;
-    } else if (telemetryImpl === "Dashboard") {
-      extraImports = `
-    import com.acmerobotics.dashboard.FtcDashboard;
-    import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-    import org.firstinspires.ftc.robotcore.external.Telemetry;`;
-    }
-
+    const telemetry = TELEMETRY_CODE[telemetryImpl];
     const namedCommandsImport = hasEventMarkers
       ? "import com.turtletracerlib.pathing.NamedCommands;\nimport com.turtletracerlib.pathing.ProgressTracker;\n"
       : "";
-
     const classAnnotations =
       telemetryImpl === "Panels" ? "@Configurable // Panels" : "";
-
-    let telemetryField = "";
-    if (telemetryImpl === "Panels") {
-      telemetryField =
-        "private TelemetryManager panelsTelemetry; // Panels Telemetry instance";
-    } else if (telemetryImpl === "Dashboard") {
-      telemetryField = "private Telemetry telemetryA;";
-    }
-
-    let telemetryInit = "";
-    if (telemetryImpl === "Panels") {
-      telemetryInit = `
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
-        // ...
-        panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);`;
-    } else if (telemetryImpl === "Dashboard") {
-      telemetryInit = `
-        telemetryA = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
-        telemetryA.addData("Status", "Initialized");
-        telemetryA.update();`;
-    } else if (telemetryImpl === "Standard") {
-      telemetryInit = `
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();`;
-    }
-
-    let telemetryLoop = "";
-    if (telemetryImpl === "Panels") {
-      telemetryLoop = `
-        // Log values to Panels and Driver Station
-        panelsTelemetry.debug("Path State", pathState);
-        panelsTelemetry.debug("X", follower.pose().x());
-        panelsTelemetry.debug("Y", follower.pose().y());
-        panelsTelemetry.debug("Heading", follower.pose().heading());
-        panelsTelemetry.update(telemetry);`;
-    } else if (telemetryImpl === "Dashboard") {
-      telemetryLoop = `
-        // Log values to Dashboard and Driver Station
-        telemetryA.addData("Path State", pathState);
-        telemetryA.addData("X", follower.pose().x());
-        telemetryA.addData("Y", follower.pose().y());
-        telemetryA.addData("Heading", follower.pose().heading());
-        telemetryA.update();`;
-    } else if (telemetryImpl === "Standard") {
-      telemetryLoop = `
-        // Log values to Driver Station
-        telemetry.addData("Path State", pathState);
-        telemetry.addData("X", follower.pose().x());
-        telemetry.addData("Y", follower.pose().y());
-        telemetry.addData("Heading", follower.pose().heading());
-        telemetry.update();`;
-    }
-
-    // compute heading used in exported Java before building the file template
-    const startDegForExport = ((): number => {
-      if (
-        lines &&
-        lines.length > 0 &&
-        lines[0].endPoint.heading === "tangential"
-      ) {
-        return getLineStartHeading(lines[0], startPoint);
-      }
-
-      if (
-        startPoint.heading === "constant" &&
-        typeof (startPoint as any).degrees === "number"
-      ) {
-        return (startPoint as any).degrees;
-      }
-
-      if (lines && lines.length > 0) {
-        return getLineStartHeading(lines[0], startPoint);
-      }
-
-      if (
-        startPoint.heading === "linear" &&
-        typeof (startPoint as any).startDeg === "number"
-      ) {
-        return (startPoint as any).startDeg;
-      }
-
-      return (startPoint as any).degrees ?? 90;
-    })();
+    const startPose = poseCode(
+      startPoint,
+      opts,
+      startingHeading(startPoint, lines, sequence),
+    );
 
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
@@ -564,8 +302,8 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
-    import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
-    ${namedCommandsImport}${extraImports}
+    import org.firstinspires.ftc.teamcode.pedro.Constants;
+    ${namedCommandsImport}${telemetry.imports}
     import com.pedropathing.api.PoseFactory;
     import com.pedropathing.follower.Follower;
     import com.pedropathing.paths.Path;
@@ -578,7 +316,7 @@ export async function generateJavaCode(
     @Autonomous(name = "Turtle Tracer Autonomous", group = "Autonomous")
     ${classAnnotations}
     public class TurtleTracerAutonomous extends OpMode {
-      ${telemetryField}
+      ${telemetry.field}
       public Follower follower; // Pathing follower instance
       private final PoseFactory p = PoseFactory.degrees();
       ${hasEventMarkers ? "private ProgressTracker tracker; // Progress tracker instance for event markers\n      " : ""}private int pathState; // Current autonomous path state (state machine)
@@ -587,43 +325,16 @@ export async function generateJavaCode(
       
       @Override
       public void init() {
-        ${telemetryInit}
+        ${telemetry.init}
 
-        follower = PedroConstants.createFollower(hardwareMap);
-        // Determine starting heading: prefer geometric heading when a path exists, otherwise fall back to explicit startPoint values
-        ${
-          coordinateSystem === "FTC"
-            ? (() => {
-                const uStart = toUser(startPoint, "FTC");
-                const uHead = toUserHeading(startDegForExport, "FTC");
-                const px =
-                  codeUnits === "metric"
-                    ? `cmToInches(${(uStart.x * 2.54).toFixed(3)})`
-                    : uStart.x.toFixed(3);
-                const py =
-                  codeUnits === "metric"
-                    ? `cmToInches(${(uStart.y * 2.54).toFixed(3)})`
-                    : uStart.y.toFixed(3);
-                return `follower.setPose(buildPose(${px}, ${py}, ${uHead.toFixed(3)}));`;
-              })()
-            : (() => {
-                const px =
-                  codeUnits === "metric"
-                    ? `cmToInches(${(startPoint.x * 2.54).toFixed(3)})`
-                    : startPoint.x.toFixed(3);
-                const py =
-                  codeUnits === "metric"
-                    ? `cmToInches(${(startPoint.y * 2.54).toFixed(3)})`
-                    : startPoint.y.toFixed(3);
-                return `follower.setPose(p.of(${px}, ${py}, ${startDegForExport.toFixed(3)}));`;
-              })()
-        }
+        follower = Constants.create(hardwareMap);
+        follower.setPose(${startPose});
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
         ${
           hasEventMarkers
-            ? `\n        tracker = new ProgressTracker(follower, telemetry);${generateTrackerEventRegistrationCode(lines, "        ", coordinateSystem, codeUnits)}`
+            ? `\n        tracker = new ProgressTracker(follower, telemetry);`
             : ""
         }
       }
@@ -633,7 +344,7 @@ export async function generateJavaCode(
         follower.update(); // Update follower
         ${hasEventMarkers ? "tracker.update(); // Update tracker\n        " : ""}pathState = autonomousPathUpdate(); // Update autonomous state machine
 
-        ${telemetryLoop}
+        ${telemetry.loop}
       }
 
       ${pathsClass}
@@ -659,7 +370,7 @@ export async function generateJavaCode(
 
       public int autonomousPathUpdate() {
         switch (pathState) {
-          ${stateMachineCode}
+          ${stateCases}
         }
         return pathState;
       }
@@ -668,25 +379,13 @@ export async function generateJavaCode(
         pathState = pState;
         pathTimer.reset();
       }
-      
-      ${namedCommandsSection}
     }
     `;
   } else {
-    file =
-      AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass + namedCommandsSection;
+    file = AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass;
   }
 
-  try {
-    const formattedCode = await prettier.format(file, {
-      parser: "java",
-      plugins: [prettierJavaPlugin],
-    });
-    return formattedCode;
-  } catch (error) {
-    console.error("Code formatting error:", error);
-    return file;
-  }
+  return formatJava(file);
 }
 
 exporterRegistry.register({

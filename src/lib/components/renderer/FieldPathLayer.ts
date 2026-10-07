@@ -1,23 +1,63 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import Two from "two.js";
 import { LINE_WIDTH } from "../../../config";
-import type { Line, Point } from "../../../types";
-import { generatePathElements } from "./PathGenerator";
+import type { Line, Point, TimePrediction } from "../../../types";
+import { generatePathElements, type PathElement } from "./PathGenerator";
 import type { RenderContext } from "./GeneratorUtils";
+import type { ElementCache } from "./ElementCache";
 
 export interface StandardPathParams {
-  effectiveTimePrediction: any;
+  effectiveTimePrediction: TimePrediction | null;
   lines: Line[];
   sequencedLines: Line[];
   startPoint: Point;
   isDiffMode: boolean;
   selectedLineId: string | null;
   ctx: RenderContext;
+  /** Reuses the shapes of lines that haven't changed since the last call. */
+  cache?: ElementCache<PathElement[]>;
+}
+
+/** Most points used to draw one recovery path. */
+const RECOVERY_DRAW_POINTS = 32;
+
+/**
+ * Dashed lines for where the robot goes when it leaves a path at a sharp
+ * chained corner, between the two paths.
+ */
+function buildRecoveryElements(
+  timeline: TimePrediction["timeline"],
+  ctx: RenderContext,
+) {
+  return timeline.flatMap((ev, idx) => {
+    if (ev.type !== "recovery" || !ev.trace || ev.trace.time.length < 2) {
+      return [];
+    }
+    // Drawing every sample of a long recovery makes redrawing slow (each one
+    // is a Two.js anchor, rebuilt on every redraw), and a few dozen points
+    // trace the same curve.
+    const { x, y } = ev.trace;
+    const count = Math.min(x.length, RECOVERY_DRAW_POINTS);
+    const anchors = Array.from({ length: count }, (_, i) => {
+      const at = Math.round((i * (x.length - 1)) / (count - 1));
+      return new Two.Anchor(ctx.x(x[at]), ctx.y(y[at]));
+    });
+    const path = new Two.Path(anchors, false, false);
+    path.noFill();
+    path.stroke = "#eab308";
+    path.linewidth = ctx.uiLength(LINE_WIDTH);
+    path.dashes = [ctx.uiLength(1.5), ctx.uiLength(1.5)];
+    path.cap = "round";
+    path.join = "round";
+    path.id = `recovery-path-${idx}`;
+    return [path];
+  });
 }
 
 /**
  * Builds Two.js elements for standard simulation or fallback path rendering.
  */
-export function buildStandardPathElements(params: StandardPathParams): any[] {
+export function buildStandardPathElements(params: StandardPathParams) {
   const {
     effectiveTimePrediction,
     lines,
@@ -26,6 +66,7 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
     isDiffMode,
     selectedLineId,
     ctx,
+    cache,
   } = params;
 
   if (isDiffMode) return [];
@@ -33,13 +74,11 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
   // Start with standard lines for the basic "lines" array.
   // To include macro/bridge lines, iterate timeline travel events directly when available.
   if (effectiveTimePrediction?.timeline) {
-    const paths: any[] = [];
-
     const travelEvents = effectiveTimePrediction.timeline.filter(
-      (e: any) => e.type === "travel" && e.line,
+      (e) => e.type === "travel" && e.line,
     );
 
-    travelEvents.forEach((ev: any, idx: number) => {
+    const paths = travelEvents.flatMap((ev, idx) => {
       const line = ev.line!;
       const start = ev.prevPoint!;
 
@@ -49,23 +88,29 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
         ? ctx.uiLength(LINE_WIDTH * 2.5)
         : ctx.uiLength(LINE_WIDTH);
 
-      const elems = generatePathElements(
+      // The heatmap shows how fast the robot drives this stretch, which is
+      // this event's own profile. Macro paths aren't coloured.
+      return generatePathElements(
         [line],
         start,
         (l) => l.color || "#60a5fa",
         () => width,
         `timeline-path-${idx}`,
         ctx,
-        isMainLine,
+        isMainLine ? () => ev : undefined,
+        cache,
       );
-      paths.push(...elems);
     });
-
-    return paths;
+    cache?.sweep();
+    return [
+      ...paths,
+      ...buildRecoveryElements(effectiveTimePrediction.timeline, ctx),
+    ];
   }
 
-  // Fallback if no simulation (e.g. initial load or error)
-  return generatePathElements(
+  // Fallback if no simulation (e.g. initial load, an error, or while
+  // dragging). Without a timeline there are no speeds for a heatmap.
+  const paths = generatePathElements(
     sequencedLines,
     startPoint,
     (l) => l.color,
@@ -75,8 +120,11 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
         : ctx.uiLength(LINE_WIDTH),
     "",
     ctx,
-    true,
+    undefined,
+    cache,
   );
+  cache?.sweep();
+  return paths;
 }
 
 export interface DiffPathParams {
@@ -91,7 +139,7 @@ export interface DiffPathParams {
 /**
  * Builds Two.js elements for diff mode (old committed paths vs current paths).
  */
-export function buildDiffPathElements(params: DiffPathParams): any[] {
+export function buildDiffPathElements(params: DiffPathParams) {
   const { isDiffMode, oldData, sequencedLines, startPoint, diffData, ctx } =
     params;
 
@@ -106,7 +154,6 @@ export function buildDiffPathElements(params: DiffPathParams): any[] {
         () => ctx.uiLength(LINE_WIDTH),
         "diff-old",
         ctx,
-        false,
       )
     : [];
 
@@ -122,7 +169,6 @@ export function buildDiffPathElements(params: DiffPathParams): any[] {
     () => ctx.uiLength(LINE_WIDTH),
     "diff-new",
     ctx,
-    false,
   );
 
   return [...committedPaths, ...currentPaths];

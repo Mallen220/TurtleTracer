@@ -1,71 +1,33 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
-// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { app, BrowserWindow, dialog, Menu, shell } from "electron";
+import { app, BrowserWindow, Menu, shell } from "electron";
 import path from "node:path";
 import express from "express";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
-import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
+import AppUpdater from "./updater.js";
+import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
+import { registerIpcHandlers } from "./ipc/index.js";
 
-// Handle __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Replace single mainWindow with a Set of windows
 const windows = new Set();
 let server;
 let serverPort = 17218;
 let appUpdater;
 
-// Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
+// Keep menus referenced globally; otherwise they can be garbage collected on
+// macOS while still in use.
 globalThis.appMenu = null;
 globalThis.dockMenu = null;
 
-// Track if we've already cleared the default session storage/cache once
-let sessionCleared = false;
+// Stale service worker caches from a previous version can stop the UI from
+// loading, so they're cleared once per launch.
+let cachesCleared = false;
 
-// Wait for the local server to become ready (useful when creating windows rapidly)
-const waitForServerReady = async (timeoutMs = 5000) => {
-  const start = Date.now();
-  // Quick shortcut if node server object reports listening
-  if (server?.listening) return;
-
-  while (Date.now() - start < timeoutMs) {
-    // If server object exists and is listening, we're done
-    if (server?.listening) return;
-
-    // Try a small HTTP GET to be certain the app is serving
-    try {
-      await new Promise((resolve, reject) => {
-        const req = http.get(
-          { hostname: "127.0.0.1", port: serverPort, path: "/", timeout: 2000 },
-          (res) => {
-            // Drain the response and resolve
-            res.resume();
-            resolve(true);
-          },
-        );
-        req.on("error", reject);
-        req.on("timeout", () => {
-          req.destroy(new Error("timeout"));
-        });
-      });
-      return;
-    } catch {
-      // Ignore and retry
-    }
-
-    // Small backoff
-    await new Promise((r) => setTimeout(r, 100));
-  }
-
-  throw new Error("Server did not become ready within timeout");
-};
-// Variable to store the pending file path if opened before renderer is ready
+// A file the OS asked us to open before a window was ready to receive it.
 let pendingFilePath = null;
 
 // Handle macOS open-file event (triggered when app is launching or running)
@@ -74,8 +36,7 @@ app.on("open-file", (event, path) => {
   handleOpenedFile(path);
 });
 
-// Single Instance Lock
-// Fix for Microsoft Store updates wiping LocalCache
+// Microsoft Store updates wipe LocalCache, so keep user data in LocalState.
 if (process.windowsStore) {
   const oldUserDataPath = app.getPath("userData");
   if (oldUserDataPath.includes("LocalCache")) {
@@ -117,10 +78,10 @@ if (gotTheLock) {
           if (last.isMinimized()) last.restore();
           last.focus();
         } else {
-          createWindow();
+          openWindow();
         }
       } else {
-        createWindow();
+        openWindow();
       }
 
       // Check for file arguments in the second instance command line
@@ -131,7 +92,7 @@ if (gotTheLock) {
       }
     } catch (err) {
       console.error("Error in second-instance handler:", err);
-      createWindow();
+      openWindow();
     }
   });
 
@@ -146,11 +107,12 @@ if (gotTheLock) {
     }
 
     await startServer();
-    createWindow();
+    openWindow();
     createMenu();
     updateDockMenu();
     updateJumpList();
-    ensureDefaultPlugins();
+    // Logs its own failures.
+    void ensureDefaultPlugins();
 
     // Check for updates (only once)
     setTimeout(() => {
@@ -190,83 +152,62 @@ function handleOpenedFile(filePath) {
 }
 
 /**
- * Try to start the HTTP server on `serverPort`, and if it's already in use
- * try subsequent ports up to `maxAttempts` times. When successful, set the
- * global `server` and `serverPort` to the listening instance/port.
+ * Serves the built UI from dist/ on localhost. If the preferred port is taken,
+ * tries the following ports until one is free.
  */
 const startServer = async () => {
   const expressApp = express();
+  const distPath = path.join(__dirname, "../dist");
 
-  const limiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 100, // Limit to 100 requests per windowMs
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: "Too many requests from this client, please try again later.",
-  });
-
-  let distPath;
-
-  distPath = path.join(__dirname, "../dist");
-
-  console.log("Serving static files from:", distPath);
-  console.log("__dirname:", __dirname);
-  try {
-    const files = await fs.readdir(distPath);
-    console.log("Files in distPath:", files);
-  } catch (e) {
-    console.error("Error reading distPath:", e);
-  }
-
-  // Serve static files
   expressApp.use(express.static(distPath));
 
-  // SPA fallback
+  // Everything else gets the single-page app.
+  const limiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
   expressApp.get("*", limiter, (req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
   });
 
-  // Helper to attempt listening on ports starting at `startPort`.
-  const tryListenOnPortRange = (startPort, maxAttempts = 50) => {
-    return new Promise((resolve, reject) => {
-      let attempt = 0;
-      let port = startPort;
+  const maxAttempts = 100;
+  await new Promise((resolve, reject) => {
+    let attempt = 0;
+    let port = serverPort;
 
-      const handleError = (err) => {
+    const tryListen = () => {
+      attempt += 1;
+      // Use a fresh server for each attempt so a failed listen doesn't linger.
+      const candidate = http.createServer(expressApp);
+      candidate.once("error", (err) => {
         if (err?.code === "EADDRINUSE" && attempt < maxAttempts) {
-          console.warn(`Port ${port} in use, trying ${port + 1}`);
           port += 1;
-          // Give a tiny delay to avoid busy-looping
-          setTimeout(attemptListen, 10);
+          setTimeout(tryListen, 10);
         } else {
           reject(err);
         }
-      };
-
-      const handleListening = (candidate) => {
+      });
+      candidate.once("listening", () => {
         server = candidate;
         serverPort = port;
-        console.log(`Local server running on port ${serverPort}`);
         resolve();
-      };
+      });
+      candidate.listen(port, "127.0.0.1");
+    };
 
-      const attemptListen = () => {
-        attempt += 1;
-        // Create a new server instance for each attempt so errors don't persist
-        const candidate = http.createServer(expressApp);
+    tryListen();
+  });
+};
 
-        candidate.once("error", handleError);
-        candidate.once("listening", () => handleListening(candidate));
-
-        candidate.listen(port, "127.0.0.1");
-      };
-
-      attemptListen();
-    });
-  };
-
-  // Try to listen, allowing fallback ports if needed
-  await tryListenOnPortRange(serverPort, 100);
+const isWebUrl = (url) => {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 };
 
 const createWindow = async () => {
@@ -275,50 +216,45 @@ const createWindow = async () => {
     height: 800,
     title: "Turtle Tracer",
     webPreferences: {
-      nodeIntegration: false, // Security: Sandbox the web code
-      contextIsolation: true, // Security: Sandbox the web code
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
 
   windows.add(newWindow);
 
-  // Only clear cache/storage once to avoid unexpected race conditions when
-  // rapidly creating new windows. Clearing on every new window can interfere
-  // with the service worker / static asset caching and cause intermittent
-  // load failures.
-  if (!sessionCleared) {
-    try {
-      await newWindow.webContents.session.clearCache();
-      await newWindow.webContents.session.clearStorageData();
-      sessionCleared = true;
-    } catch (err) {
-      console.warn("Failed to clear session data for new window:", err);
-    }
-  }
+  // The preload script exposes file system access, so this window must only
+  // ever show our own UI. Links to anywhere else open in the user's browser.
+  const appOrigin = `http://localhost:${serverPort}`;
+  newWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isWebUrl(url)) openInBrowser(url);
+    return { action: "deny" };
+  });
+  newWindow.webContents.on("will-navigate", (event, url) => {
+    if (url.startsWith(`${appOrigin}/`) || url === appOrigin) return;
+    event.preventDefault();
+    if (isWebUrl(url)) openInBrowser(url);
+  });
 
-  // Ensure our local server is actually ready before trying to load the UI.
-  // This prevents creating windows that immediately fail to load because the
-  // server hasn't bound yet (a common race when creating windows quickly).
-  try {
-    await waitForServerReady(5000);
-  } catch (err) {
-    console.error("Server not ready when creating window:", err);
+  if (!cachesCleared) {
     try {
-      const focused = BrowserWindow.getFocusedWindow() || newWindow;
-      dialog.showMessageBox(focused, {
-        type: "error",
-        title: "Load Error",
-        message:
-          "The local app server did not start in time. The window will attempt to load; if it fails, please try again.",
+      const { session } = newWindow.webContents;
+      await session.clearCache();
+      // Only caches: localStorage holds robot profiles and other user data.
+      await session.clearStorageData({
+        storages: ["serviceworkers", "cachestorage"],
       });
-    } catch (dialogErr) {
-      console.warn("Failed to show load error dialog:", dialogErr);
+      cachesCleared = true;
+    } catch (err) {
+      console.warn("Failed to clear cached app data:", err);
     }
   }
 
-  // Load the app from the local server (retry logic is handled above)
-  newWindow.loadURL(`http://localhost:${serverPort}`);
+  newWindow.loadURL(appOrigin).catch((err) => {
+    console.error("Failed to load the app window:", err);
+  });
 
   // Disable certain Chromium keyboard shortcuts that interfere with app UX (reload, close, devtools)
   newWindow.webContents.on("before-input-event", (event, input) => {
@@ -357,30 +293,11 @@ const createWindow = async () => {
     }
   });
 
-  // Handle "Save As" dialog native behavior
-  newWindow.webContents.session.on(
-    "will-download",
-    (event, item, _webContents) => {
-      item.on("updated", (event, state) => {
-        if (state === "interrupted") {
-          console.log("Download is interrupted but can be resumed");
-        }
-      });
-    },
-  );
-
-  // Intercept close event to handle unsaved changes
+  // Let the renderer check for unsaved changes first. It replies through the
+  // "app-close-approved" IPC handler, which sets isCloseApproved.
   newWindow.on("close", (e) => {
-    // If approved the close, let it proceed
-    if (newWindow.isCloseApproved) {
-      return;
-    }
-
-    // Prevent default closing behavior
+    if (newWindow.isCloseApproved) return;
     e.preventDefault();
-
-    // Ask the renderer if it's okay to close (check for unsaved changes)
-    // send this to the specific window trying to close
     newWindow.webContents.send("app-close-requested");
   });
 
@@ -390,13 +307,28 @@ const createWindow = async () => {
   });
 };
 
+/** Opens a link in the user's browser. A failure is logged, not thrown. */
+const openInBrowser = (url) => {
+  shell.openExternal(url).catch((err) => {
+    console.error("Failed to open link:", url, err);
+  });
+};
+
+/**
+ * Opens a window from code that can't wait for it. A failure is logged here,
+ * so callers get nothing back to handle.
+ */
+const openWindow = () => {
+  createWindow().catch((err) => console.error("Failed to create window:", err));
+};
+
 const updateDockMenu = () => {
   if (process.platform === "darwin") {
     globalThis.dockMenu = Menu.buildFromTemplate([
       {
         label: "New Window",
         click() {
-          createWindow();
+          openWindow();
         },
       },
     ]);
@@ -419,19 +351,12 @@ const updateJumpList = () => {
   }
 };
 
-// Helper to send menu action to the focused window
+// Menu clicks go to the focused window, or the only window if none has focus.
 const sendToFocusedWindow = (channel, ...args) => {
-  const win = BrowserWindow.getFocusedWindow();
-  if (win) {
-    win.webContents.send(channel, ...args);
-  } else if (windows.size === 1) {
-    // Fallback: if only one window, send to it?
-    // Or if no window is focused (rare when clicking menu), send to most recently created?
-    // Usually Menu click focuses the app, so a window should be focused or last active.
-    // Try to find the last active one if getFocusedWindow is null.
-    const first = windows.values().next().value;
-    if (first) first.webContents.send(channel, ...args);
-  }
+  const win =
+    BrowserWindow.getFocusedWindow() ??
+    (windows.size === 1 ? windows.values().next().value : null);
+  win?.webContents.send(channel, ...args);
 };
 
 const createMenu = () => {
@@ -469,7 +394,7 @@ const createMenu = () => {
         {
           label: "New Window",
           accelerator: "CmdOrCtrl+Shift+N",
-          click: () => createWindow(),
+          click: () => openWindow(),
         },
         {
           label: "Open...",
@@ -607,7 +532,7 @@ const createMenu = () => {
   Menu.setApplicationMenu(globalThis.appMenu);
 };
 
-// CRITICAL: Satisfies "when the project closes it should auto close"
+// Quit when the last window closes, on every platform (including macOS).
 app.on("window-all-closed", () => {
   app.quit();
 });
@@ -618,13 +543,6 @@ app.on("will-quit", () => {
   }
 });
 
-// Add these functions at the top, after the imports
-
-// Add handler for renderer ready signal
-
-import { registerIpcHandlers } from "./ipc/index.js";
-
-// Call registerIpcHandlers with the needed state
 registerIpcHandlers({
   windows,
   get pendingFilePath() {
@@ -641,6 +559,7 @@ registerIpcHandlers({
   },
 });
 
+/** Copies the bundled plugins into the user's plugins folder if missing. */
 async function ensureDefaultPlugins() {
   const pluginsDir = getPluginsDirectory();
   try {

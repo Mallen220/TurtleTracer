@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { diskPathOf } from "./platform";
 
 describe("platform", () => {
   let originalNavigatorPlatform: any;
@@ -161,5 +162,26 @@ describe("platform", () => {
       globalThis.process = origProcess;
       globalThis.navigator = origNavigator;
     }
+  });
+});
+
+describe("diskPathOf", () => {
+  const original = (globalThis as any).electronAPI;
+  afterEach(() => {
+    (globalThis as any).electronAPI = original;
+  });
+
+  it("asks Electron for the path when File.path isn't set", () => {
+    (globalThis as any).electronAPI = {
+      getPathForFile: vi.fn(() => "/projects/auto.turt"),
+    };
+    expect(diskPathOf(new File(["{}"], "auto.turt"))).toBe(
+      "/projects/auto.turt",
+    );
+  });
+
+  it("returns undefined in the browser", () => {
+    (globalThis as any).electronAPI = undefined;
+    expect(diskPathOf(new File(["{}"], "auto.turt"))).toBeUndefined();
   });
 });

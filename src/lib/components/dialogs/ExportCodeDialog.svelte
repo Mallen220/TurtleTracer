@@ -1,6 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, SequenceItem, Shape } from "../../../types/index";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Shape,
+    CommandLibraryId,
+  } from "../../../types/index";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
   import json from "svelte-highlight/languages/json";
@@ -19,12 +25,20 @@
   } from "../icons/index";
   import { currentFilePath, notification } from "../../../stores";
   import { exporterRegistry } from "../../exporters";
+  import {
+    COMMAND_LIBRARIES,
+    getCommandLibrary,
+  } from "../../exporters/commandLibraries";
   import { tick } from "svelte";
   import { get } from "svelte/store";
 
   import { customExportersStore } from "../../pluginsStore";
-  import { exportAsProjectFile } from "../../../utils/fileHandlers";
-  import pkg from "../../../../package.json";
+  import {
+    exportAsProjectFile,
+    projectFileJson,
+  } from "../../../utils/fileHandlers";
+  import { triggerDownload } from "../../../utils/file";
+  import { getElectronAPI } from "../../../utils/platform";
   import { settingsStore } from "../../projectStore";
 
   interface Props {
@@ -47,6 +61,28 @@
     $state("java");
   let customExporterName: string | null = $state(null);
   let sequentialClassName = $state("AutoPath");
+  let selectedLibrary = $derived(
+    getCommandLibrary($settingsStore.autoExportTargetLibrary),
+  );
+  // Tab colours, written out in full so Tailwind can see the class names.
+  // Adding a library to CommandLibraryId makes TypeScript ask for its colours.
+  const LIBRARY_COLORS: Record<
+    CommandLibraryId,
+    { active: string; ring: string }
+  > = {
+    SolversLib: {
+      active: "text-blue-600 dark:text-blue-300",
+      ring: "focus-visible:ring-blue-500",
+    },
+    NextFTC: {
+      active: "text-purple-600 dark:text-purple-300",
+      ring: "focus-visible:ring-purple-500",
+    },
+    Ivy: {
+      active: "text-emerald-600 dark:text-emerald-300",
+      ring: "focus-visible:ring-emerald-500",
+    },
+  };
   const DEFAULT_PACKAGE =
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
 
@@ -64,45 +100,22 @@
   let currentMatchIndex = $state(-1);
   let searchInputRef: HTMLInputElement | undefined = $state();
 
-  const electronAPI = (globalThis as any).electronAPI;
-
-  async function relativizeSequenceForPreview(seq: SequenceItem[]) {
-    const cloned = structuredClone(seq);
-
-    const base = get(currentFilePath);
-    if (!electronAPI?.makeRelativePath || !base) return cloned;
-
-    for (const item of cloned) {
-      if (item.kind === "macro" && item.filePath) {
-        try {
-          item.filePath = await (electronAPI as any).makeRelativePath(
-            base,
-            item.filePath,
-          );
-        } catch (err) {
-          console.warn("Failed to relativize macro path for preview", err);
-        }
-      }
-    }
-
-    return cloned;
+  /** A Java class name based on the project's file name. */
+  function classNameFor(filePath: string): string {
+    return (filePath.split(/[\\/]/).pop() ?? "")
+      .replaceAll(/\.(pp|turt)$/gi, "")
+      .replaceAll(/[^a-zA-Z0-9]/g, "_");
   }
 
-  // Update sequential class name when file changes
+  // Follow the file name, unless the user has typed their own class name.
   $effect(() => {
-    if ($currentFilePath) {
-      const fileName = $currentFilePath.split(/[\\/]/).pop();
-      if (fileName) {
-        const baseName = fileName
-          .replaceAll(/\.(pp|turt)$/gi, "")
-          .replaceAll(/[^a-zA-Z0-9]/g, "_");
-        if (
-          sequentialClassName === "AutoPath" ||
-          sequentialClassName === baseName
-        ) {
-          sequentialClassName = baseName;
-        }
-      }
+    if (!$currentFilePath) return;
+    const baseName = classNameFor($currentFilePath);
+    if (
+      baseName &&
+      (sequentialClassName === "AutoPath" || sequentialClassName === baseName)
+    ) {
+      sequentialClassName = baseName;
     }
   });
 
@@ -118,105 +131,51 @@
     }
   }
 
+  async function generate(): Promise<[string, typeof currentLanguage]> {
+    if (exportFormat === "json") {
+      return [await projectFileJson($currentFilePath ?? undefined), json];
+    }
+
+    const data = { startPoint, lines, shapes, sequence };
+    const exporter = get(exporterRegistry)[exportFormat];
+    if (exporter) {
+      const code = await exporter.exportCode(data, {
+        ...$settingsStore,
+        fileName: sequentialClassName,
+        exportFullCode: $settingsStore.autoExportFullClass ?? true,
+        packageName: $settingsStore.javaPackageName || DEFAULT_PACKAGE,
+        telemetryImpl: $settingsStore.telemetryImplementation || "Panels",
+        hardcodeValues: $settingsStore.autoExportEmbedPoseData || false,
+        targetLibrary: $settingsStore.autoExportTargetLibrary || "SolversLib",
+      });
+      const isJava = exportFormat === "java" || exportFormat === "sequential";
+      return [code, isJava ? java : plaintext];
+    }
+
+    if (exportFormat !== "custom" || !customExporterName) {
+      return ["Exporter not found.", plaintext];
+    }
+    const plugin = get(customExportersStore).find(
+      (e) => e.name === customExporterName,
+    );
+    if (!plugin) return ["Exporter not found.", plaintext];
+    try {
+      return [await plugin.handler(data), plaintext];
+    } catch (e) {
+      return [`Error in plugin: ${e}`, plaintext];
+    }
+  }
+
   async function refreshCode() {
     try {
-      const packageName = $settingsStore?.javaPackageName || DEFAULT_PACKAGE;
-      const targetLibrary =
-        $settingsStore?.autoExportTargetLibrary || "SolversLib";
-      const embedPoseData = $settingsStore?.autoExportEmbedPoseData || false;
-      const exportFullCode = $settingsStore?.autoExportFullClass ?? true;
-      const telemetryImplementation =
-        $settingsStore?.telemetryImplementation || "Panels";
-
-      if (exportFormat === "json") {
-        let loadedFromFile = false;
-        const filePath = get(currentFilePath);
-
-        if (filePath && electronAPI && electronAPI.readFile) {
-          try {
-            exportedCode = await electronAPI.readFile(filePath);
-            loadedFromFile = true;
-          } catch (err) {
-            console.warn(
-              "Failed to read project file, falling back to generation",
-              err,
-            );
-          }
-        }
-
-        if (!loadedFromFile) {
-          const relativeSequence = await relativizeSequenceForPreview(sequence);
-          exportedCode = JSON.stringify(
-            {
-              version: pkg.version,
-              header: {
-                info: "Created with Turtle Tracer",
-                copyright:
-                  "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
-                link: "https://github.com/Mallen220/TurtleTracer",
-              },
-              startPoint,
-              lines,
-              shapes,
-              sequence: relativeSequence,
-            },
-            null,
-            2,
-          );
-        }
-        currentLanguage = json;
-      } else {
-        const registry = get(exporterRegistry);
-        const exporter = registry[exportFormat as string];
-        if (exporter) {
-          const settingsObj = {
-            ...$settingsStore,
-            fileName: sequentialClassName,
-            exportFullCode: exportFullCode,
-            packageName: packageName,
-            telemetryImpl: telemetryImplementation,
-            hardcodeValues: embedPoseData,
-            targetLibrary: targetLibrary,
-          };
-          exportedCode = await exporter.exportCode(
-            { startPoint, lines, shapes, sequence },
-            settingsObj,
-          );
-          currentLanguage =
-            exportFormat === "java" || exportFormat === "sequential"
-              ? java
-              : plaintext;
-        } else if (exportFormat === "custom" && customExporterName) {
-          const exporters = get(customExportersStore);
-          const customExporter = exporters.find(
-            (e) => e.name === customExporterName,
-          );
-          if (customExporter) {
-            try {
-              const data = { startPoint, lines, shapes, sequence };
-              exportedCode = await customExporter.handler(data);
-              currentLanguage = plaintext;
-            } catch (e) {
-              exportedCode = `Error in plugin: ${e}`;
-              currentLanguage = plaintext;
-            }
-          } else {
-            exportedCode = "Exporter not found.";
-            currentLanguage = plaintext;
-          }
-        }
-      }
-
-      // Re-run search if active
-      if (searchQuery) {
-        performSearch();
-      }
+      [exportedCode, currentLanguage] = await generate();
     } catch (error) {
       console.error("Refresh failed:", error);
       exportedCode =
         "// Error refreshing code. Please check the console for details.";
       currentLanguage = plaintext;
     }
+    if (searchQuery) performSearch();
   }
 
   export async function openWithFormat(
@@ -233,14 +192,9 @@
     searchMatches = [];
     currentMatchIndex = -1;
 
-    // Initialize sequential class name if needed
     if (format === "sequential" && $currentFilePath) {
-      const fileName = $currentFilePath.split(/[\\/]/).pop();
-      if (fileName) {
-        sequentialClassName = fileName
-          .replaceAll(/\.(pp|turt)$/gi, "")
-          .replaceAll(/[^a-zA-Z0-9]/g, "_");
-      }
+      sequentialClassName =
+        classNameFor($currentFilePath) || sequentialClassName;
     }
 
     await refreshCode();
@@ -271,67 +225,38 @@
   }
 
   async function handleSaveFile() {
-    // For project exports (.turt / json), use the dedicated Download as .turt button instead
-    // of the generic Save to File action.
-    if (exportFormat === "json") {
-      return;
+    // Project data has its own "Download as .turt" button.
+    if (exportFormat === "json") return;
+
+    const isJava = exportFormat === "java" || exportFormat === "sequential";
+    let fileName = "generated_code.txt";
+    if (isJava) {
+      const className = /class\s+(\w+)/.exec(exportedCode)?.[1] ?? "AutoPath";
+      fileName = `${className}.java`;
+    } else if (exportFormat === "points") {
+      fileName = "points.txt";
     }
 
+    const electronAPI = getElectronAPI();
     if (
       !electronAPI ||
       electronAPI.isVirtual ||
-      !(electronAPI as any).showSaveDialog ||
+      !electronAPI.showSaveDialog ||
       !electronAPI.writeFile
     ) {
-      // Fallback for web: use download attribute trick via Blob
-      // But downloadTrajectory is specialized for JSON/PP usually; make a generic one.
-      const blob = new Blob([exportedCode], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      let filename = "generated_code.txt";
-      if (exportFormat === "java" || exportFormat === "sequential") {
-        // Try to find class name or use default
-        // Regex to find 'class ClassName'
-        const match = exportedCode.match(/class\s+(\w+)/);
-        if (match) filename = `${match[1]}.java`;
-        else filename = "AutoPath.java";
-      } else if (exportFormat === "points") {
-        filename = "points.txt";
-      }
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      triggerDownload(exportedCode, "text/plain", fileName);
       return;
     }
 
     try {
-      let defaultName = "generated_code";
-      let extensions = ["txt"];
-      let nameFilter = "Text File";
-
-      if (exportFormat === "java" || exportFormat === "sequential") {
-        const match = exportedCode.match(/class\s+(\w+)/);
-        defaultName = match ? `${match[1]}.java` : "AutoPath.java";
-        extensions = ["java"];
-        nameFilter = "Java File";
-      } else if (exportFormat === "points") {
-        defaultName = "points.txt";
-        extensions = ["txt"];
-        nameFilter = "Text File";
-      }
-
       const filePath = await electronAPI.showSaveDialog({
         title: "Save Generated Code",
-        defaultPath: defaultName,
-        filters: [{ name: nameFilter, extensions }],
+        defaultPath: fileName,
+        filters: isJava
+          ? [{ name: "Java File", extensions: ["java"] }]
+          : [{ name: "Text File", extensions: ["txt"] }],
       });
-
-      if (filePath) {
-        await electronAPI.writeFile(filePath, exportedCode);
-      }
+      if (filePath) await electronAPI.writeFile(filePath, exportedCode);
     } catch (err) {
       console.error("Failed to save file:", err);
       alert("Failed to save file: " + (err as Error).message);
@@ -425,7 +350,7 @@
   <!-- Backdrop -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) isOpen = false;
@@ -467,8 +392,7 @@
             {:else if exportFormat === "custom"}
               Output generated by plugin.
             {:else}
-              Command-based sequence for {$settingsStore.autoExportTargetLibrary ||
-                "SolversLib"}.
+              {selectedLibrary.description}
             {/if}
           </p>
         </div>
@@ -597,36 +521,23 @@
                 class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-lg self-start"
                 role="tablist"
               >
-                <button
-                  role="tab"
-                  aria-selected={$settingsStore.autoExportTargetLibrary ===
-                    "SolversLib"}
-                  class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 {$settingsStore.autoExportTargetLibrary ===
-                  'SolversLib'
-                    ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-300 shadow-sm'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                  onclick={() => {
-                    $settingsStore.autoExportTargetLibrary = "SolversLib";
-                    refreshCode();
-                  }}
-                >
-                  SolversLib
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={$settingsStore.autoExportTargetLibrary ===
-                    "NextFTC"}
-                  class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {$settingsStore.autoExportTargetLibrary ===
-                  'NextFTC'
-                    ? 'bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-300 shadow-sm'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                  onclick={() => {
-                    $settingsStore.autoExportTargetLibrary = "NextFTC";
-                    refreshCode();
-                  }}
-                >
-                  NextFTC
-                </button>
+                {#each COMMAND_LIBRARIES as library (library.id)}
+                  {@const accent = LIBRARY_COLORS[library.id]}
+                  {@const selected = selectedLibrary.id === library.id}
+                  <button
+                    role="tab"
+                    aria-selected={selected}
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 {accent.ring} {selected
+                      ? `bg-white dark:bg-neutral-700 shadow-sm ${accent.active}`
+                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                    onclick={() => {
+                      $settingsStore.autoExportTargetLibrary = library.id;
+                      refreshCode();
+                    }}
+                  >
+                    {library.label}
+                  </button>
+                {/each}
               </div>
             </div>
 
@@ -671,14 +582,17 @@
               </label>
             </div>
 
-            <!-- NextFTC Warning -->
-            {#if $settingsStore.autoExportTargetLibrary === "NextFTC"}
+            <!-- Experimental Library Warning -->
+            {#if selectedLibrary.experimental}
               <div
                 class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
                 role="alert"
               >
                 <TriangleWarningIcon className="size-4 shrink-0" />
-                <span>NextFTC output is <strong>experimental</strong>.</span>
+                <span
+                  >{selectedLibrary.label} output is
+                  <strong>experimental</strong>.</span
+                >
               </div>
             {/if}
             {#if $settingsStore.codeUnits === "metric" && !$settingsStore.autoExportEmbedPoseData && exportFormat === "sequential"}

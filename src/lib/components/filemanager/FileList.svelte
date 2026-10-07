@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
-<!-- src/lib/components/filemanager/FileList.svelte -->
 <script lang="ts">
-  import { tick } from "svelte";
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
@@ -15,328 +13,17 @@
     TriangleWarningIcon,
     DotIcon,
   } from "../icons";
+  import {
+    filePreviews,
+    loadPreviewWhenVisible,
+    selectOnMount,
+    formatFileSize,
+    groupFilesByDate,
+    renameableName,
+    setDraggedFile,
+    getDraggedFile,
+  } from "./fileBrowser.svelte";
 
-  let contextMenu: { x: number; y: number; file: FileInfo } | null =
-    $state(null);
-  let renameInput: string = $state("");
-
-  function focusInput(node: HTMLInputElement): { destroy: () => void } {
-    tick().then(() => node.select());
-    return {
-      destroy: () => {},
-    };
-  }
-
-  // Preview cache + retry logic (similar to FileGrid)
-  let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
-    $state({});
-  let previewRetryCount: Record<string, number> = {};
-  const MAX_PREVIEW_RETRIES = 5;
-  const previewQueue: string[] = [];
-  let loadingPreviews = false;
-
-  // Debugging toggle for preview failures (enable to see logs)
-  const PREVIEW_DEBUG = true;
-
-  let lastRenamingPath: string | null = $state(null);
-
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-    );
-  }
-
-  async function processPreviewQueue() {
-    if (loadingPreviews || previewQueue.length === 0) return;
-    loadingPreviews = true;
-    const BATCH_SIZE = 3;
-    const batch = previewQueue.splice(0, BATCH_SIZE);
-
-    try {
-      await Promise.all(
-        batch.map(async (filePath) => {
-          if (
-            previews[filePath] &&
-            previews[filePath] !== null &&
-            previews[filePath].startPoint
-          )
-            return;
-          try {
-            const content = await (globalThis as any).electronAPI.readFile(
-              filePath,
-            );
-            const data = JSON.parse(content);
-            if (data.startPoint && Array.isArray(data.lines)) {
-              previews[filePath] = {
-                startPoint: data.startPoint,
-                lines: data.lines,
-              };
-              previewRetryCount[filePath] = 0;
-              if (PREVIEW_DEBUG) console.debug(`[preview] Loaded ${filePath}`);
-            } else {
-              if (PREVIEW_DEBUG)
-                console.warn(
-                  `[preview] Malformed preview data for ${filePath}`,
-                  data,
-                );
-              schedulePreviewRetry(filePath);
-            }
-          } catch (e) {
-            if (PREVIEW_DEBUG)
-              console.warn(`[preview] Failed to read/parse ${filePath}:`, e);
-            schedulePreviewRetry(filePath);
-          }
-        }),
-      );
-      previews = previews;
-    } finally {
-      loadingPreviews = false;
-      if (previewQueue.length > 0) setTimeout(processPreviewQueue, 10);
-    }
-  }
-
-  function schedulePreviewRetry(filePath: string) {
-    previewRetryCount[filePath] = (previewRetryCount[filePath] || 0) + 1;
-    if (PREVIEW_DEBUG)
-      console.debug(
-        `[preview] Scheduling retry #${previewRetryCount[filePath]} for ${filePath}`,
-      );
-    if (previewRetryCount[filePath] <= MAX_PREVIEW_RETRIES) {
-      previews[filePath] = { startPoint: null, lines: [] };
-      const delay = 1000 * Math.min(4, previewRetryCount[filePath]);
-      if (PREVIEW_DEBUG)
-        console.debug(`[preview] Will retry ${filePath} in ${delay}ms`);
-      setTimeout(() => {
-        previews[filePath] = undefined;
-        if (!previewQueue.includes(filePath)) {
-          previewQueue.push(filePath);
-          processPreviewQueue();
-        }
-      }, delay);
-    } else {
-      previews[filePath] = { startPoint: null, lines: [] };
-      if (PREVIEW_DEBUG)
-        console.error(
-          `[preview] Giving up on ${filePath} after ${previewRetryCount[filePath]} retries`,
-        );
-    }
-  }
-
-  function loadPreview(filePath: string, force = false) {
-    if (previews[filePath] !== undefined && !force) return;
-    if (force) {
-      previews[filePath] = undefined;
-      previewRetryCount[filePath] = 0;
-    }
-    if (previewQueue.includes(filePath)) return;
-    previewQueue.push(filePath);
-    processPreviewQueue();
-  }
-
-  export function refreshPreview(filePath: string) {
-    previews[filePath] = undefined;
-    previewRetryCount[filePath] = 0;
-    loadPreview(filePath, true);
-  }
-
-  export function clearPreview(filePath: string) {
-    delete previews[filePath];
-    delete previewRetryCount[filePath];
-  }
-
-  // Retry all previews that previously failed (startPoint === null)
-  export function refreshAllFailed() {
-    Object.keys(previews).forEach((p) => {
-      if (previews[p] && previews[p].startPoint == null) {
-        refreshPreview(p);
-      }
-    });
-  }
-
-  // Force refresh for all files (use sparingly)
-  export function refreshAll() {
-    files.forEach((f) => refreshPreview(f.path));
-  }
-
-  function handleDragStart(e: DragEvent, file: FileInfo) {
-    if (!e.dataTransfer) return;
-    e.dataTransfer.setData("application/x-turtle-tracer-macro", file.path);
-    e.dataTransfer.setData("application/x-pedro-macro", file.path);
-    e.dataTransfer.setData("text/plain", file.path);
-    e.dataTransfer.setData("application/json", JSON.stringify(file));
-    e.dataTransfer.effectAllowed = "copyMove";
-
-    // Set a custom drag image from the preview icon container if possible
-    if (e.currentTarget instanceof HTMLElement) {
-      const iconContainer =
-        e.currentTarget.querySelector(".preview-container") ||
-        e.currentTarget.querySelector(".shrink-0");
-      if (iconContainer) {
-        e.dataTransfer.setDragImage(iconContainer as Element, 24, 24);
-      }
-    }
-  }
-
-  let dragOverTarget: string | null = $state(null);
-
-  function handleDragOver(e: DragEvent, file: FileInfo) {
-    if (file.isDirectory) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-      dragOverTarget = file.path;
-    }
-  }
-
-  function handleDragLeave(e: DragEvent, file: FileInfo) {
-    if (dragOverTarget === file.path) {
-      dragOverTarget = null;
-    }
-  }
-
-  function handleDrop(e: DragEvent, file: FileInfo) {
-    dragOverTarget = null;
-
-    // Stop the event from bubbling up to the main window drop handlers
-    // which might try to interpret this as importing a new macro
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!file.isDirectory) return;
-
-    try {
-      const data = e.dataTransfer?.getData("application/json");
-      if (data) {
-        const sourceFile = JSON.parse(data) as FileInfo;
-        if (sourceFile.path !== file.path) {
-          onmoveFile?.({ sourceFile, targetDir: file });
-        }
-      }
-    } catch (err) {
-      console.error("Failed to parse dragged file data:", err);
-    }
-  }
-
-  function formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString();
-  }
-
-  function isToday(date: Date): boolean {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  }
-
-  function isYesterday(date: Date): boolean {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return (
-      date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear()
-    );
-  }
-
-  function handleContextMenu(event: MouseEvent, file: FileInfo) {
-    event.preventDefault();
-    contextMenu = { x: event.clientX, y: event.clientY, file };
-    onselect?.(file);
-  }
-
-  function handleMenuAction(action: string) {
-    if (!contextMenu) return;
-    const file = contextMenu.file;
-    contextMenu = null;
-
-    if (action === "rename") {
-      onrenameStart?.(file);
-    } else {
-      onmenuAction?.({ action, file });
-    }
-  }
-
-  function groupFilesByDate(files: FileInfo[]) {
-    const folders: FileInfo[] = [];
-    const today: FileInfo[] = [];
-    const yesterday: FileInfo[] = [];
-    const older: FileInfo[] = [];
-
-    files.forEach((f) => {
-      if (f.isDirectory) {
-        folders.push(f);
-        return;
-      }
-      const d = new Date(f.modified);
-      if (isToday(d)) today.push(f);
-      else if (isYesterday(d)) yesterday.push(f);
-      else older.push(f);
-    });
-
-    const result = [];
-    if (folders.length) result.push({ title: "Folders", files: folders });
-    if (today.length) result.push({ title: "Today", files: today });
-    if (yesterday.length) result.push({ title: "Yesterday", files: yesterday });
-    if (older.length) result.push({ title: "Older", files: older });
-
-    return result;
-  }
-
-  // --- Visibility-based preview loading ---
-  let observer: IntersectionObserver;
-  let elementMap = new Map<HTMLElement, string>();
-
-  function setupObserver() {
-    if (observer) observer.disconnect();
-    observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const path = elementMap.get(entry.target as HTMLElement);
-            if (path) {
-              loadPreview(path);
-              observer.unobserve(entry.target);
-            }
-          }
-        });
-      },
-      { rootMargin: "200px", threshold: 0.05 },
-    );
-  }
-
-  function observeElement(node: HTMLElement, file: FileInfo) {
-    if (file.isDirectory) return { destroy() {} };
-    if (!observer) setupObserver();
-    elementMap.set(node, file.path);
-    observer.observe(node);
-
-    return {
-      destroy() {
-        if (observer) observer.unobserve(node);
-        elementMap.delete(node);
-      },
-      update(newFile: FileInfo) {
-        if (newFile.isDirectory) {
-          if (observer) observer.unobserve(node);
-          elementMap.delete(node);
-          return;
-        }
-        if (newFile.path !== file.path) {
-          elementMap.set(node, newFile.path);
-          observer.unobserve(node);
-          observer.observe(node);
-        }
-      },
-    };
-  }
-
-  // Initialize observer on mount
-  import { onMount, onDestroy } from "svelte";
   interface Props {
     fieldImage?: string | null;
     files?: FileInfo[];
@@ -368,41 +55,84 @@
     onmoveFile,
     onmenuAction,
   }: Props = $props();
-  onMount(() => setupObserver());
-  onDestroy(() => observer && observer.disconnect());
+
+  // How many of the first files get their previews loaded straight away.
+  const PRELOAD_COUNT = 12;
+
+  let contextMenu: { x: number; y: number; file: FileInfo } | null =
+    $state(null);
+  let renameInput = $state("");
+  let lastRenamingPath: string | null = null;
+  let dragOverTarget: string | null = $state(null);
+
+  const previews = $derived(filePreviews.previews);
+
+  const formatDate = (date: Date) => new Date(date).toLocaleDateString();
+
+  function handleContextMenu(event: MouseEvent, file: FileInfo) {
+    event.preventDefault();
+    contextMenu = { x: event.clientX, y: event.clientY, file };
+    onselect?.(file);
+  }
+
+  function handleMenuAction(action: string) {
+    if (!contextMenu) return;
+    const file = contextMenu.file;
+    contextMenu = null;
+    if (action === "rename") onrenameStart?.(file);
+    else onmenuAction?.({ action, file });
+  }
+
+  function handleDragStart(e: DragEvent, file: FileInfo) {
+    setDraggedFile(e, file);
+    const icon = (e.currentTarget as HTMLElement).querySelector(
+      ".preview-container, .shrink-0",
+    );
+    if (icon) e.dataTransfer?.setDragImage(icon, 24, 24);
+  }
+
+  function handleDragOver(e: DragEvent, file: FileInfo) {
+    if (!file.isDirectory) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    dragOverTarget = file.path;
+  }
+
+  function handleDragLeave(_e: DragEvent, file: FileInfo) {
+    if (dragOverTarget === file.path) dragOverTarget = null;
+  }
+
+  function handleDrop(e: DragEvent, file: FileInfo) {
+    dragOverTarget = null;
+    // Don't let the window's file-drop handler treat this as opening a file.
+    e.preventDefault();
+    e.stopPropagation();
+    if (!file.isDirectory) return;
+
+    const sourceFile = getDraggedFile(e);
+    if (sourceFile && sourceFile.path !== file.path) {
+      onmoveFile?.({ sourceFile, targetDir: file });
+    }
+  }
+
   $effect(() => {
-    if (renamingFile) {
-      if (renamingFile.path !== lastRenamingPath) {
-        renameInput = renamingFile.name.replaceAll(/\.(pp|turt)$/gi, "");
-        lastRenamingPath = renamingFile.path;
-      }
-    } else {
+    if (!renamingFile) {
       lastRenamingPath = null;
+    } else if (renamingFile.path !== lastRenamingPath) {
+      renameInput = renameableName(renamingFile);
+      lastRenamingPath = renamingFile.path;
     }
   });
-  // Grouping logic for Date sort
+
   let groups = $derived(
     sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }],
   );
-  // Preload top N files proactively when files change (helps when toggling icon display)
+
+  // Load previews for the first few files straight away; the rest load as
+  // they scroll into view.
   $effect(() => {
-    if (files && files.length) {
-      const PRELOAD_COUNT = 12;
-      files.slice(0, PRELOAD_COUNT).forEach((f) => {
-        if (f.isDirectory) return;
-        if (previews[f.path] === undefined) loadPreview(f.path);
-        // If previous attempts failed, force a retry
-        if (previews[f.path] && previews[f.path]!.startPoint == null)
-          loadPreview(f.path, true);
-      });
-    }
-  });
-  // If the field image changes, retry previously failed previews
-  $effect(() => {
-    if (fieldImage !== undefined) {
-      Object.keys(previews).forEach((p) => {
-        if (previews[p] && previews[p].startPoint == null) loadPreview(p, true);
-      });
+    for (const f of files.slice(0, PRELOAD_COUNT)) {
+      if (!f.isDirectory) filePreviews.load(f.path);
     }
   });
 </script>
@@ -415,7 +145,7 @@
   {#each groups as group}
     {#if sortMode === "date"}
       <div
-        class="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50 sticky top-0 backdrop-blur-sm z-1"
+        class="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50 sticky top-0 z-1"
         role="presentation"
       >
         {group.title}
@@ -425,7 +155,7 @@
     <div class="space-y-0.5 px-2 mt-1">
       {#each group.files as file (file.path)}
         <div
-          use:observeElement={file}
+          use:loadPreviewWhenVisible={file}
           class="group flex items-center p-2 rounded-md cursor-pointer transition-colors border border-transparent
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
@@ -456,10 +186,11 @@
               >
                 <FolderIcon className="size-5" />
               </div>
-            {:else if previews[file.path]?.startPoint}
+            {:else if previews[file.path]}
+              {@const preview = previews[file.path]!}
               <PathPreview
-                startPoint={previews[file.path]?.startPoint}
-                lines={previews[file.path]?.lines ?? []}
+                startPoint={preview.startPoint}
+                lines={preview.lines}
                 fieldImage={fieldImage ? `/fields/${fieldImage}` : null}
                 width={48}
                 height={48}
@@ -486,7 +217,7 @@
                 <input
                   type="text"
                   bind:value={renameInput}
-                  use:focusInput
+                  use:selectOnMount
                   class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
                   onkeydown={(e: KeyboardEvent) => {
                     e.stopPropagation();

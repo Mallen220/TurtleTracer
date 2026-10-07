@@ -165,6 +165,15 @@ describe("codeExporter", () => {
       expect(code).not.toContain("addParametricCallback");
     });
 
+    it("creates the follower the way Pedro 3's quickstart does", async () => {
+      const code = await generateJavaCode(startPoint, [line3], true);
+      expect(code).toContain(
+        "import org.firstinspires.ftc.teamcode.pedro.Constants;",
+      );
+      expect(code).toContain("follower = Constants.create(hardwareMap);");
+      expect(code).not.toContain("PedroConstants");
+    });
+
     it("should export event markers on ProgressTracker in full autonomous OpMode", async () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, true);
@@ -179,11 +188,26 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "tracker = new ProgressTracker(follower, telemetry);",
       );
+      // Registered per path, right before it is followed, tied to its segment.
       expect(code).toContain(
-        'tracker.onParametric(0.500, NamedCommands.getCommand("marker1"));',
+        'tracker.onParametric(0, 0.500, NamedCommands.getCommand("marker1"));',
       );
       expect(code).toContain("tracker.update();");
       expect(code).toContain("tracker.setCurrentPath(paths.line3);");
+      const at = (text: string) => code.indexOf(text);
+      expect(at("tracker.clearPathEvents();")).toBeGreaterThan(
+        at("follower.follow(paths.line3);"),
+      );
+      expect(at("tracker.onParametric(")).toBeGreaterThan(
+        at("tracker.clearPathEvents();"),
+      );
+      expect(at("tracker.setCurrentPath(paths.line3);")).toBeGreaterThan(
+        at("tracker.onParametric("),
+      );
+      // Not up front, where every path's markers would trigger on every path.
+      expect(code.slice(0, at("public void loop()"))).not.toContain(
+        "tracker.onParametric(",
+      );
       // Paths class inside OpMode must remain pure geometry
       expect(code).not.toContain(".reverseTangent().onParametric");
     });
@@ -343,6 +367,28 @@ describe("codeExporter", () => {
       expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 45.000))");
     });
 
+    it("starts facing the first path driven, even after a wait", async () => {
+      const listedFirst = setupTangentTest(); // 45 degrees
+      const drivenFirst: Line = {
+        id: "north",
+        name: "north",
+        controlPoints: [],
+        endPoint: { x: 10, y: 30, heading: "constant", degrees: 90 },
+        color: "#000000",
+      };
+      const code = await generateJavaCode(
+        startPoint,
+        [listedFirst, drivenFirst],
+        true,
+        [
+          { kind: "wait", id: "w", name: "", durationMs: 500 },
+          { kind: "path", lineId: "north" },
+          { kind: "path", lineId: listedFirst.id! },
+        ],
+      );
+      expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 90.000))");
+    });
+
     it("should use default start heading if lines array is empty", async () => {
       // construct a point without the constant-heading `degrees` field so it
       // matches the linear variant of Point.
@@ -423,14 +469,15 @@ describe("codeExporter", () => {
         "import dev.nextftc.core.commands.delays.WaitUntil;",
       );
       expect(code).toContain(
-        "import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;",
+        "import dev.nextftc.core.commands.utility.LambdaCommand;",
       );
 
       // Check Methods
       expect(code).toContain("public void start() {");
       expect(code).toContain("buildPaths();");
       expect(code).toContain("group = new SequentialGroup(");
-      expect(code).toContain("new FollowPath(startPointTOline1)");
+      expect(code).toContain("follower.follow(startPointTOline1)");
+      expect(code).not.toContain("teamcode.pedroPathing");
       expect(code).toContain("group.start();");
 
       expect(code).toContain("public void update() {");
@@ -448,10 +495,10 @@ describe("codeExporter", () => {
         "import com.turtletracerlib.pathing.ProgressTracker;",
       );
       expect(code).not.toContain(
-        "public TestPath(final Drivetrain drive, HardwareMap hw, Telemetry telemetry)",
+        "public TestPath(final Follower follower, HardwareMap hw, Telemetry telemetry)",
       );
       expect(code).toContain(
-        "public TestPath(final Drivetrain drive, HardwareMap hw) throws IOException",
+        "public TestPath(final Follower follower, HardwareMap hw) throws IOException",
       );
     });
 
@@ -645,7 +692,8 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "private final PoseFactory p = PoseFactory.degrees();",
       );
-      expect(code).toContain("startPoint = p.of(10.000, 10.000, 0);"); // startPoint
+      // Starts facing the way the first path (constant 90) begins
+      expect(code).toContain("startPoint = p.of(10.000, 10.000, 90);");
       // Check line1 (constant 90)
       expect(code).toContain("line1 = p.of(20.000, 20.000, 90);");
       // Check line2 (linear 90 -> 180). End point should use endDeg (180)
@@ -692,9 +740,9 @@ describe("codeExporter", () => {
         'pp.onEvent("marker1", NamedCommands.getCommand("marker1"));',
       );
       expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+        "tracker = new ProgressTracker(follower, telemetry);",
       );
-      expect(code).toContain("pp.registerEvents(tracker);");
+      expect(code).toContain("pp.registerLineEvents(tracker, 0, 0);");
     });
 
     it("should register event markers with ProgressTracker in NextFTC sequential code (null telemetry)", async () => {
@@ -719,10 +767,8 @@ describe("codeExporter", () => {
       expect(code).toContain(
         'pp.onEvent("marker1", NamedCommands.getCommand("marker1"));',
       );
-      expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, null);",
-      );
-      expect(code).toContain("pp.registerEvents(tracker);");
+      expect(code).toContain("tracker = new ProgressTracker(follower, null);");
+      expect(code).toContain("pp.registerLineEvents(tracker, 0, 0);");
     });
 
     it("should bind event markers to ProgressTracker directly when hardcodeValues is true", async () => {
@@ -741,10 +787,10 @@ describe("codeExporter", () => {
         "import com.turtletracerlib.pathing.ProgressTracker;",
       );
       expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+        "tracker = new ProgressTracker(follower, telemetry);",
       );
       expect(code).toContain(
-        'tracker.onParametric(0.500, NamedCommands.getCommand("marker1"));',
+        'tracker.onParametric(0, 0.500, NamedCommands.getCommand("marker1"));',
       );
     });
 
@@ -835,6 +881,8 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "follower.hold(follower.pose().withHeading(1.571));",
       );
+      // hold() doesn't mark the follower busy, so isBusy() needs the reset.
+      expect(code).toContain("follower.algorithm().reset();");
       expect(code).toContain("if(!follower.isBusy()) {");
     });
   });
@@ -890,6 +938,32 @@ describe("codeExporter", () => {
       expect(code).toContain("return p.of(y + 72.0, 72.0 - x, heading);");
       expect(code).toContain("follower.setPose(buildPose(");
       expect(code).not.toContain("Math.toRadians(" + "buildPose");
+    });
+
+    it("converts a facingPoint target through buildPose in FTC coordinates", async () => {
+      const facing: Line = {
+        ...line1,
+        endPoint: {
+          x: 40,
+          y: 40,
+          heading: "facingPoint",
+          targetX: 20,
+          targetY: 30,
+          reverse: false,
+        },
+      };
+      const code = await generateJavaCode(
+        startPoint,
+        [facing],
+        false,
+        undefined,
+        undefined,
+        "Panels",
+        "FTC",
+        "imperial",
+      );
+      // Pedro (20, 30) is FTC (42, -52); buildPose converts it back.
+      expect(code).toContain(".facingPoint(buildPose(42.000, -52.000, 0.000))");
     });
 
     it("should export Sequential code using buildPose and p.of with FTC coordinates and metric units", async () => {

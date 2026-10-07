@@ -57,13 +57,17 @@ Refer to the README installation section for instructions on installing or updat
 This repo is regularly updated with new features and bug fixes but tested primarily on macOS. Should an issue arise, please report it via the GitHub Issues page and revert to the previous stable version if needed.
 
 #### **macOS / Linux**
-Run the following command in terminal and provide your password when prompted:
+Run the following command in terminal. It asks which version you want (stable is the default; pre-releases are offered too) and shows what it will do before changing anything:
 \`\`\`bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
 \`\`\`
+To install exactly this version without being asked, add \`-s -- --version ${version}\` after \`bash\`.
 
 #### **Windows**
-Download and install via the  \`.exe\` installer below.
+Run this in PowerShell, or download the \`.exe\` installer below:
+\`\`\`powershell
+irm https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.ps1 | iex
+\`\`\`
 
 ## Release Notes
 `;

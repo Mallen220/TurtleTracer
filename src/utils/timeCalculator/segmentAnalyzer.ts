@@ -18,6 +18,7 @@ export function analyzePathSegment(
   end: BasePoint,
   samples: number = 50,
   initialHeading: number, // Unwrapped starting heading
+  minSamples: number = 0, // Finer steps for paths the robot joins part way along
 ): PathAnalysis {
   const cps = controlPoints || [];
 
@@ -28,6 +29,7 @@ export function analyzePathSegment(
   let tangentRotation = 0;
   let netRotation = 0;
   let prevAngle: number | null = null;
+  let direction = 0;
   let currentUnwrapped = Number.isFinite(initialHeading) ? initialHeading : 0;
 
   const steps: PathStep[] = [];
@@ -138,6 +140,8 @@ export function analyzePathSegment(
     adaptiveSamples = Math.max(20, Math.min(target, samples));
   }
 
+  adaptiveSamples = Math.max(adaptiveSamples, Math.min(minSamples, samples));
+
   for (let i = 0; i <= adaptiveSamples; i++) {
     const t = i / adaptiveSamples;
 
@@ -246,6 +250,7 @@ export function analyzePathSegment(
         }
       }
       prevAngle = angle;
+      direction = angle;
     }
 
     if (i > 0) {
@@ -254,6 +259,7 @@ export function analyzePathSegment(
         radius,
         rotation: stepRotation,
         heading: currentUnwrapped,
+        direction,
       });
     }
   }

@@ -115,7 +115,7 @@
   }
 
   function generateSummary(points: TelemetryPoint[]) {
-    const duration = points.at(-1).time - points[0].time;
+    const duration = points.at(-1)!.time - points[0].time;
     summary = `Loaded ${points.length} imported points. Duration: ${duration.toFixed(2)}s.`;
     errorMsg = "";
   }
@@ -132,7 +132,7 @@
   <!-- Dialog UI similar to ExportCodeDialog -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) isOpen = false;

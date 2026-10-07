@@ -20,11 +20,19 @@
     type OptimizationResult,
   } from "../../../utils/pathOptimizer";
   import { formatTime } from "../../../utils";
+  import { findSharpJunctions } from "../../../utils/timeCalculator/chainMeta";
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
 
   let progress = $state(0);
   let currentBestTime = $state(0);
+  // Sharp chained corners left in the optimized path. They are warnings, not
+  // reasons to reject the result.
+  let sharpCornerCount = $state(0);
+  // Only for this run, not a saved setting: whether chained paths are timed
+  // with the robot cutting and swinging wide at the corners.
+  let chainCorrection = $state(true);
+  let optimizedWithoutCorrection = $state(false);
   let showPreview = $state(true);
   interface Props {
     isOpen?: boolean;
@@ -58,6 +66,16 @@
     optimizationFailed = $bindable(false),
     optimizationError = $bindable(""),
   }: Props = $props();
+
+  let hasChains = $derived(
+    sequence.some(
+      (item, i) =>
+        item.kind === "path" &&
+        i > 0 &&
+        (item.isChain === true ||
+          lines.find((l) => l.id === item.lineId)?.isChain === true),
+    ),
+  );
 
   let _lastIsOpen = $state(isOpen);
   let internalCollapsed = $state(!isOpen);
@@ -143,6 +161,7 @@
     progress = 0;
     optimizationFailed = false;
     optimizationError = "";
+    sharpCornerCount = 0;
     isStopping = false;
     showPreview = true;
 
@@ -161,7 +180,9 @@
         settings,
         sequence,
         shapes,
+        { chainCorrection },
       );
+      optimizedWithoutCorrection = hasChains && !chainCorrection;
     } else {
       isRunning = false;
       return;
@@ -197,6 +218,9 @@
 
     const finalBestTime = optimizationResult.bestTime;
     optimizationFailed = finalBestTime >= 10000 || !!optimizationError;
+    sharpCornerCount = optimizedLines
+      ? findSharpJunctions(startPoint, optimizedLines, sequence).length
+      : 0;
 
     isRunning = false;
     isStopping = false;
@@ -219,6 +243,8 @@
       showPreview = true;
       optimizationFailed = false;
       optimizationError = "";
+      sharpCornerCount = 0;
+      optimizedWithoutCorrection = false;
       if (onPreviewChange) onPreviewChange(null);
 
       isOpen = false;
@@ -387,6 +413,32 @@
         </div>
       {/if}
 
+      {#if !isRunning && optimizedLines === null && hasChains}
+        <label
+          class="flex items-start gap-2 text-sm text-neutral-600 dark:text-neutral-400 cursor-pointer"
+          for="optimize-chain-correction"
+        >
+          <input
+            id="optimize-chain-correction"
+            type="checkbox"
+            bind:checked={chainCorrection}
+            class="mt-0.5 w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer"
+          />
+          <span>
+            <span class="font-medium text-neutral-700 dark:text-neutral-300"
+              >Include chain corner correction</span
+            >
+            <span class="block text-xs text-neutral-500 dark:text-neutral-400">
+              On: the robot is timed handing over early and swinging wide at
+              chained corners, and paths that skip the point two paths join at
+              are penalized. Watch out for strange path behavior. <br /> Off: it is
+              timed following each path exactly. Robots with a well tuned PID may
+              find this more helpful.
+            </span>
+          </span>
+        </label>
+      {/if}
+
       {#if optimizationError}
         <div
           class="mt-2 rounded-md bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800"
@@ -405,6 +457,33 @@
             with obstacles. Try creating an initial path that avoids obstacles to
             guide the optimizer.
           </span>
+        </div>
+      {/if}
+
+      {#if !optimizationFailed && !optimizationError && sharpCornerCount > 0}
+        <div
+          class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-yellow-800 dark:text-yellow-300 text-sm flex items-start gap-2"
+        >
+          <TriangleWarningIcon className="size-5 shrink-0 mt-0.5" />
+          <span>
+            <strong class="font-bold"
+              >Sharp chained {sharpCornerCount === 1
+                ? "corner"
+                : "corners"}:</strong
+            >
+            The robot is expected to swing wide. You can still apply this path. See
+            Path Statistics and manually verify this path.
+          </span>
+        </div>
+      {/if}
+
+      {#if !optimizationFailed && !optimizationError && optimizedWithoutCorrection && optimizedLines}
+        <div
+          class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-blue-800 dark:text-blue-300 text-sm"
+        >
+          This path was optimized as if the robot follows each chained path
+          exactly. Once applied, the simulation includes the corner correction,
+          so its time and route can differ.
         </div>
       {/if}
 

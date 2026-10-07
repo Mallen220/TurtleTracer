@@ -6,6 +6,26 @@ import { spawn } from "node:child_process";
 
 const SAFE_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
 
+/** Opens a link in the user's browser. A failure is logged, not thrown. */
+const openInBrowser = (url) => {
+  shell.openExternal(url).catch((err) => {
+    console.error("Failed to open link:", url, err);
+  });
+};
+
+const INSTALL_SCRIPT_URL =
+  "https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh";
+
+// Only version strings that are safe to put in a shell command (and inside an
+// AppleScript string) are passed on; anything else falls back to the
+// installer's own "which version?" question.
+const SAFE_VERSION = /^\d+\.\d+\.\d+(?:[-+.][0-9A-Za-z.+-]*)?$/;
+
+export function buildInstallCommand(version) {
+  const versionArg = SAFE_VERSION.test(version) ? ` --version ${version}` : "";
+  return `/usr/bin/curl -fsSL ${INSTALL_SCRIPT_URL} | /bin/bash -s --${versionArg}`;
+}
+
 class AppUpdater {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
@@ -115,7 +135,7 @@ class AppUpdater {
     }
   }
 
-  async showUpdateAvailableDialog(releaseData, delay = 3000) {
+  showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
       const version = releaseData.tag_name.replaceAll("v", "");
@@ -142,10 +162,9 @@ class AppUpdater {
     try {
       if (process.platform === "win32") {
         const downloadUrl = `https://github.com/Mallen220/TurtleTracer/releases/download/v${version}/Turtle-Tracer-Setup-${version}.exe`;
-        shell.openExternal(downloadUrl);
+        openInBrowser(downloadUrl);
       } else if (process.platform === "darwin") {
-        const command =
-          "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
+        const command = buildInstallCommand(version);
         const appleScript = `tell application "Terminal" to do script "${command}"`;
         spawn("/usr/bin/osascript", ["-e", appleScript], {
           env: { ...process.env, PATH: SAFE_PATH },
@@ -156,19 +175,18 @@ class AppUpdater {
           { env: { ...process.env, PATH: SAFE_PATH } },
         );
       } else if (process.platform === "linux") {
-        const command =
-          "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
+        const command = buildInstallCommand(version);
         if (!this.openTerminalLinux(command)) {
           // Fallback
-          shell.openExternal(releasesUrl);
+          openInBrowser(releasesUrl);
         }
       } else {
         // Unknown OS
-        shell.openExternal(releasesUrl);
+        openInBrowser(releasesUrl);
       }
     } catch (err) {
       console.error("Error launching installer:", err);
-      shell.openExternal(releasesUrl);
+      openInBrowser(releasesUrl);
     }
   }
 

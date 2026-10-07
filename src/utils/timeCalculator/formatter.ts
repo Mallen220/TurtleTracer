@@ -11,10 +11,3 @@ export function formatTime(totalSeconds: number): string {
   }
   return `${seconds.toFixed(3)}s`;
 }
-
-export function getAnimationDuration(
-  totalTime: number,
-  speedFactor: number = 1,
-): number {
-  return (totalTime * 1000) / speedFactor;
-}

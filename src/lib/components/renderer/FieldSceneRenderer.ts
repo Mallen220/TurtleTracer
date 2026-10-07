@@ -1,102 +1,118 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
+import type { Group } from "two.js/src/group";
+import type { Shape } from "two.js/src/shape";
+import type { FieldRenderEntry } from "../../registries";
+
+/**
+ * The field's drawing layers, bottom to top. Exports and CSS look them up
+ * by these ids.
+ */
+export const FIELD_LAYERS = [
+  "shape-group",
+  "line-group",
+  "event-group",
+  "point-group",
+  "collision-group",
+  "snap-group",
+] as const;
+
+export type FieldLayer = (typeof FIELD_LAYERS)[number];
 
 export interface FieldScenePayload {
-  two: Two;
   width: number;
   height: number;
-  shapeElements: any[];
-  path: any[];
-  diffPathElements: any[];
-  previewPathElements: any[];
-  points: any[];
-  eventMarkerElements: any[];
-  collisionElements: any[];
-  diffEventMarkerElements: any[];
-  snapGuides: InstanceType<typeof Two.Line>[];
-  isPresentationMode: boolean;
-  isDiffMode: boolean;
-  fieldRenderers?: Array<{ id: string; fn: (two: Two) => void }>;
+  layers: Record<FieldLayer, readonly Shape[]>;
+  /** Plugin drawing callbacks; they draw straight onto the scene. */
+  fieldRenderers?: readonly FieldRenderEntry[];
 }
 
 /**
- * Synchronizes elements and layers to the Two.js scene graph.
+ * Keeps the Two.js scene in step with the field's drawings.
+ *
+ * The layer groups are made once. When a layer's shapes change, only the
+ * shapes from the first difference onwards are swapped, so unchanged shapes
+ * keep their SVG elements instead of being rebuilt on every redraw.
  */
-export function syncFieldScene(payload: FieldScenePayload): void {
-  const {
-    two,
-    width,
-    height,
-    shapeElements,
-    path,
-    diffPathElements,
-    previewPathElements,
-    points,
-    eventMarkerElements,
-    collisionElements,
-    diffEventMarkerElements,
-    snapGuides,
-    isPresentationMode,
-    isDiffMode,
-    fieldRenderers,
-  } = payload;
+export class FieldScene {
+  #two: Two;
+  #layers: Record<FieldLayer, Group>;
+  /** What the plugins drew last time, removed before they draw again. */
+  #pluginShapes: Shape[] = [];
 
-  if (width && height && (two.width !== width || two.height !== height)) {
-    if (two.renderer) two.renderer.setSize(width, height);
-    two.width = width;
-    two.height = height;
+  constructor(two: Two) {
+    this.#two = two;
+    this.#layers = Object.fromEntries(
+      FIELD_LAYERS.map((id) => {
+        const group = new Two.Group();
+        group.id = id;
+        two.add(group);
+        return [id, group];
+      }),
+    ) as Record<FieldLayer, Group>;
   }
 
-  const shapeGroup = new Two.Group();
-  shapeGroup.id = "shape-group";
-  const lineGroup = new Two.Group();
-  lineGroup.id = "line-group";
-  const pointGroup = new Two.Group();
-  pointGroup.id = "point-group";
-  const eventGroup = new Two.Group();
-  eventGroup.id = "event-group";
-  const collisionGroup = new Two.Group();
-  collisionGroup.id = "collision-group";
-  const snapGroup = new Two.Group();
-  snapGroup.id = "snap-group";
+  sync({ width, height, layers, fieldRenderers }: FieldScenePayload): void {
+    const two = this.#two;
+    let changed = false;
 
-  two.clear();
+    if (width && height && (two.width !== width || two.height !== height)) {
+      if (two.renderer) two.renderer.setSize(width, height);
+      two.width = width;
+      two.height = height;
+      changed = true;
+    }
 
-  if (Array.isArray(shapeElements)) {
-    shapeElements.forEach((el) => shapeGroup.add(el));
+    for (const id of FIELD_LAYERS) {
+      if (this.#setLayer(id, layers[id])) changed = true;
+    }
+
+    if (fieldRenderers?.length || this.#pluginShapes.length) {
+      this.#drawPlugins(fieldRenderers ?? []);
+      changed = true;
+    }
+
+    if (changed) two.update();
   }
 
-  path.forEach((el) => lineGroup.add(el));
-  diffPathElements.forEach((el) => lineGroup.add(el));
-  previewPathElements.forEach((el) => lineGroup.add(el));
+  /** Makes a layer show `shapes`, in order. Returns whether it changed. */
+  #setLayer(id: FieldLayer, shapes: readonly Shape[]): boolean {
+    const children = this.#layers[id].children;
+    let firstChange = 0;
+    while (
+      firstChange < children.length &&
+      firstChange < shapes.length &&
+      children[firstChange] === shapes[firstChange]
+    ) {
+      firstChange++;
+    }
+    if (firstChange === children.length && firstChange === shapes.length) {
+      return false;
+    }
 
-  if (!isPresentationMode && !isDiffMode) {
-    points.forEach((el) => pointGroup.add(el));
-    eventMarkerElements.forEach((el) => eventGroup.add(el));
-    collisionElements.forEach((el) => collisionGroup.add(el));
-    snapGuides.forEach((el) => snapGroup.add(el));
+    // Two.js can only append to a group, so everything from the first
+    // change on is taken out and put back in the new order. Splicing by
+    // index (rather than Group.remove, which goes by id) also copes with
+    // shapes that share an id.
+    if (firstChange < children.length) children.splice(firstChange);
+    if (firstChange < shapes.length) {
+      children.push(...shapes.slice(firstChange));
+    }
+    return true;
   }
 
-  if (isDiffMode) {
-    diffEventMarkerElements.forEach((el) => eventGroup.add(el));
-  }
+  #drawPlugins(renderers: readonly FieldRenderEntry[]) {
+    const scene = this.#two.scene;
+    if (this.#pluginShapes.length) scene.remove(this.#pluginShapes);
 
-  two.add(shapeGroup);
-  two.add(lineGroup);
-  two.add(eventGroup);
-  two.add(pointGroup);
-  two.add(collisionGroup);
-  two.add(snapGroup);
-
-  if (fieldRenderers) {
-    fieldRenderers.forEach((entry) => {
+    const before = new Set(scene.children);
+    for (const entry of renderers) {
       try {
-        entry.fn(two);
+        entry.fn(this.#two);
       } catch (e) {
         console.error(`Error in field renderer ${entry.id}:`, e);
       }
-    });
+    }
+    this.#pluginShapes = scene.children.filter((child) => !before.has(child));
   }
-
-  two.update();
 }

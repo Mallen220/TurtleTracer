@@ -1,11 +1,14 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../utils/platform";
+  import { triggerDownload } from "../../../utils/file";
   import type {
     Point,
     Line,
     SequenceItem,
     Settings,
     Shape,
+    CommandLibraryId,
   } from "../../../types/index";
   import { exporterRegistry } from "../../exporters";
   import {
@@ -55,7 +58,7 @@
     isActive = false,
   }: Props = $props();
 
-  const electronAPI = (globalThis as any).electronAPI;
+  const electronAPI = getElectronAPI();
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
     const cloned = $state.snapshot(seq);
@@ -84,7 +87,7 @@
   let isGenerating = $state(false);
   let format: "java" | "sequential" | "points" | "json" | "custom" =
     $state("java");
-  let targetLibrary: "SolversLib" | "NextFTC" = $state("SolversLib");
+  let targetLibrary: CommandLibraryId = $state("SolversLib");
 
   // Sync state with settings
   $effect(() => {
@@ -356,16 +359,7 @@
           notification.set({ message: "Saved file.", type: "success" });
         }
       } else {
-        // Web fallback: Blob download
-        const blob = new Blob([code], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = defaultName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        triggerDownload(code, "text/plain", defaultName);
         notification.set({ message: "Downloaded file.", type: "success" });
       }
     } catch (err) {

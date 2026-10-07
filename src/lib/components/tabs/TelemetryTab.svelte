@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../utils/platform";
   import { onMount } from "svelte";
   import {
     telemetryState,
@@ -30,7 +31,7 @@
   let sortedKeys = $derived(Object.keys(lines).sort());
 
   onMount(() => {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && api.telemetry) {
       // Set up listeners
 
@@ -49,7 +50,7 @@
   });
 
   async function toggleConnection() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (!api || !api.telemetry) {
       notification.set({
         message: "Telemetry API not available",

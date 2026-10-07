@@ -5,6 +5,7 @@
   import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../../stores";
   import { formatTime } from "../../../utils";
+  import { DEFAULT_FIELD_MAP } from "../../../config";
   import {
     formatDisplayDistance,
     formatDisplayCoordinate,
@@ -55,25 +56,6 @@
 
     // Clone the SVG (or canvas) from the main renderer
     const originalEl = twoInstance.renderer?.domElement;
-
-    // Debug: collect info about the renderer element to diagnose missing field map
-    const debugInfo: any = {
-      twoInstancePresent: !!twoInstance,
-      rendererExists: !!originalEl,
-      tagName: originalEl?.tagName || null,
-      childCount: originalEl ? originalEl.querySelectorAll("*").length : 0,
-      outerLength: originalEl ? (originalEl.outerHTML || "").length : 0,
-      widthAttr: originalEl?.getAttribute
-        ? originalEl.getAttribute("width")
-        : null,
-      heightAttr: originalEl?.getAttribute
-        ? originalEl.getAttribute("height")
-        : null,
-      viewBox: originalEl?.getAttribute
-        ? originalEl.getAttribute("viewBox")
-        : null,
-    };
-    console.debug("StrategySheetPreview renderer debug:", debugInfo);
 
     let svg: SVGElement | null = null;
 
@@ -195,7 +177,7 @@
       bgSrc =
         settings.fieldMap && !settings.fieldMap.includes("custom")
           ? `/fields/${settings.fieldMap}`
-          : "/fields/biobuzz.webp";
+          : `/fields/${DEFAULT_FIELD_MAP}`;
     }
 
     if (svg && bgSrc) {
@@ -411,9 +393,6 @@
       // Helper to find line by ID
       const findLine = (id: string) => lines.find((l) => l.id === id);
 
-      // Initial Start
-      // items.push({ type: 'start', name: 'Start', details: `(${startPoint.x.toFixed(1)}, ${startPoint.y.toFixed(1)})`, events: [] });
-
       // Iterate Sequence
       sequence.forEach((seqItem, _idx) => {
         if (seqItem.kind === "path") {
@@ -477,7 +456,7 @@
   <!-- Backdrop (Hidden on Print) -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 print:hidden"
+    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6 print:hidden"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) handleClose();

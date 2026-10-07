@@ -5,7 +5,6 @@
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
   import { formatTime, getShortcutFromSettings } from "../../utils";
-  import { onMount, onDestroy } from "svelte";
   import {
     loopRangeActiveStore,
     loopRangeStore,
@@ -32,7 +31,7 @@
     percent: number;
     handleSeek: (percent: number) => void;
     loopAnimation: boolean;
-    // New prop for timeline items (markers, waits, rotates)
+    // Markers, waits and rotates drawn along the timeline
     timelineItems?: {
       type: "marker" | "wait" | "rotate" | "dot" | "macro";
       percent: number;
@@ -91,20 +90,8 @@
   let contextMenuTargetId: string | null = null;
 
   let draggingLoopHandle: "min" | "max" | null = null;
-  let loopRangeActive = $state(false);
-  let loopRange: [number, number] = $state([0, 100]);
-  let unsub1: () => void;
-  let unsub2: () => void;
-
-  onMount(() => {
-    unsub1 = loopRangeActiveStore.subscribe((v) => (loopRangeActive = v));
-    unsub2 = loopRangeStore.subscribe((v) => (loopRange = v));
-  });
-
-  onDestroy(() => {
-    if (unsub1) unsub1();
-    if (unsub2) unsub2();
-  });
+  let loopRangeActive = $derived($loopRangeActiveStore);
+  let loopRange = $derived($loopRangeStore);
 
   function startDragLoopHandle(e: MouseEvent, type: "min" | "max") {
     e.preventDefault();
@@ -182,50 +169,39 @@
     hoverPercentStore.set(null);
   }
 
-  function handleSeekInput(e: Event) {
-    if (draggingMarkerIndex !== null) return;
-    const target = e.target as HTMLInputElement;
-    let val = Number.parseFloat(target.value);
-
-    // Snap to markers/events if Shift is NOT held
-    if (!shiftHeld) {
-      let nearest: number | null = null;
-      let minDist = 1; // 1% threshold
-
-      // Snap to 0 and 100
-      if (Math.abs(val - 0) < minDist) {
-        minDist = Math.abs(val - 0);
-        nearest = 0;
-      }
-      if (Math.abs(val - 100) < minDist) {
-        minDist = Math.abs(val - 100);
-        nearest = 100;
-      }
-
-      // Snap to items
-      for (const item of timelineItems) {
-        const dist = Math.abs(item.percent - val);
-        if (dist < minDist) {
-          minDist = dist;
-          nearest = item.percent;
-        }
-        // Also snap to end of duration if present
-        if (item.durationPercent && item.durationPercent > 0) {
-          const endPct = item.percent + item.durationPercent;
-          const distEnd = Math.abs(endPct - val);
-          if (distEnd < minDist) {
-            minDist = distEnd;
-            nearest = endPct;
-          }
-        }
-      }
-
-      if (nearest !== null) {
-        val = nearest;
+  /**
+   * The closest of `targets` within `threshold` of `value`, or `value` itself
+   * if none are that close.
+   */
+  function snap(value: number, targets: number[], threshold: number) {
+    let best = value;
+    let bestDist = threshold;
+    for (const t of targets) {
+      const dist = Math.abs(t - value);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = t;
       }
     }
+    return best;
+  }
 
-    handleSeek(val);
+  function handleSeekInput(e: Event) {
+    if (draggingMarkerIndex !== null) return;
+    const value = Number.parseFloat((e.target as HTMLInputElement).value);
+    if (shiftHeld) {
+      handleSeek(value);
+      return;
+    }
+    // Snap to the ends, markers, and the start and end of waits (within 1%).
+    const targets = [0, 100];
+    for (const item of timelineItems) {
+      targets.push(item.percent);
+      if (item.durationPercent && item.durationPercent > 0) {
+        targets.push(item.percent + item.durationPercent);
+      }
+    }
+    handleSeek(snap(value, targets, 1));
   }
 
   function handleSliderKeydown(e: KeyboardEvent) {
@@ -274,11 +250,16 @@
     return Number.parseFloat(str);
   }
 
+  // Escape leaves the box, which commits like any other blur unless told not to.
+  let cancelTimeEdit = false;
+
   function commitTime() {
-    const t = parseTime(timeInputValue);
-    if (!Number.isNaN(t) && totalSeconds > 0) {
-      const pct = (t / totalSeconds) * 100;
-      handleSeek(Math.max(0, Math.min(100, pct)));
+    if (!cancelTimeEdit) {
+      const t = parseTime(timeInputValue);
+      if (!Number.isNaN(t) && totalSeconds > 0) {
+        const pct = (t / totalSeconds) * 100;
+        handleSeek(Math.max(0, Math.min(100, pct)));
+      }
     }
     isEditingTime = false;
   }
@@ -288,8 +269,9 @@
       (e.target as HTMLInputElement).blur();
     }
     if (e.key === "Escape") {
-      isEditingTime = false; // Cancel
+      cancelTimeEdit = true;
       (e.target as HTMLInputElement).blur();
+      cancelTimeEdit = false;
     }
   }
 
@@ -302,12 +284,12 @@
     e.preventDefault();
     e.stopPropagation();
 
-    // Only allow dragging markers
+    // Only event markers can be dragged.
     if (item.type !== "marker") return;
-    if (!(item as any).id) return; // Must have ID
+    if (!item.id) return;
 
     draggingMarkerIndex = index;
-    draggingMarkerId = (item as any).id;
+    draggingMarkerId = item.id;
     draggingMarkerPercent = item.percent;
 
     wasPlayingBeforeDrag = playing;

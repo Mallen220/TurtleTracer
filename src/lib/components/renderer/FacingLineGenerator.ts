@@ -2,20 +2,34 @@
 import { type RenderContext, findActiveEvent } from "./GeneratorUtils";
 import type { Line } from "../../../types";
 
-export function generateFacingLineElements(lines: Line[], ctx: RenderContext) {
-  const { x, y, robotXY, timePrediction, percentStore } = ctx;
+/** Where playback is, which the facing line follows every frame. */
+export interface PlayheadContext extends Pick<
+  RenderContext,
+  "x" | "y" | "timePrediction"
+> {
+  /** How far through playback, 0 to 100. */
+  percent: number;
+  robotXY: { x: number; y: number } | null | undefined;
+}
+
+/** The line from the robot to the point it is facing, while it faces one. */
+export function generateFacingLineElements(
+  lines: Line[],
+  ctx: PlayheadContext,
+) {
+  const { x, y, robotXY, timePrediction, percent } = ctx;
 
   if (!robotXY || !timePrediction?.timeline?.length) return [];
 
   const totalDuration = timePrediction.timeline.at(-1)?.endTime || 0;
-  const currentSeconds = (percentStore! / 100) * totalDuration;
+  const currentSeconds = (percent / 100) * totalDuration;
 
   // Determine the currently active travel event
-  const activeEvent = findActiveEvent(timePrediction, percentStore!);
+  const activeEvent = findActiveEvent(timePrediction, percent);
   if (activeEvent?.type !== "travel") return [];
 
   const activeLine: Line | undefined =
-    activeEvent.line ?? lines[activeEvent.lineIndex];
+    activeEvent.line ?? lines[activeEvent.lineIndex ?? 0];
   if (!activeLine?.endPoint) return [];
 
   const isGlobal = activeEvent.isGlobalOverride;
@@ -64,12 +78,12 @@ export function generateFacingLineElements(lines: Line[], ctx: RenderContext) {
   const targetX =
     isGlobal && rootLine
       ? (rootLine.globalTargetX ?? 72)
-      : ((activeLine.endPoint as any).targetX ?? 72);
+      : (activeLine.endPoint.targetX ?? 72);
 
   const targetY =
     isGlobal && rootLine
       ? (rootLine.globalTargetY ?? 72)
-      : ((activeLine.endPoint as any).targetY ?? 72);
+      : (activeLine.endPoint.targetY ?? 72);
 
   const pathColor = activeLine.color || "#60a5fa";
   return [

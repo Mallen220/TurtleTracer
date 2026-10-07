@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable, get } from "svelte/store";
 import type {
+  TimePrediction,
   Line,
   Point,
   SequenceItem,
@@ -20,14 +21,14 @@ import { getRandomColor } from "../utils";
 import { regenerateProjectMacros } from "./macroUtils";
 import { notification } from "../stores";
 import { hookRegistry } from "./registries";
-import { actionRegistry } from "./actionRegistry";
 import { currentFilePath } from "../stores";
 import { getElectronAPI } from "../utils/platform";
+import { makeId } from "../utils/nameGenerator";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
     ...line,
-    id: line.id || `line-${Math.random().toString(36).slice(2)}`,
+    id: line.id || makeId("line"),
     controlPoints: line.controlPoints || [],
     eventMarkers: line.eventMarkers || [],
     color: line.color || getRandomColor(),
@@ -56,26 +57,23 @@ export function sanitizeSequence(
 
   // Remove path entries that reference lines not present
   const pruned = candidate.filter(
-    (s) =>
-      !actionRegistry.get(s.kind)?.isPath || lineIds.has((s as any).lineId),
+    (s) => s.kind !== "path" || lineIds.has(s.lineId),
   );
 
   // Append any lines that are missing from the sequence
   const presentIds = new Set(
-    pruned
-      .filter((s) => actionRegistry.get(s.kind)?.isPath)
-      .map((s) => (s as any).lineId),
+    pruned.flatMap((s) => (s.kind === "path" ? [s.lineId] : [])),
   );
   const missing = lines.filter(
-    (l) => !presentIds.has(l.id) && !l.isMacroElement,
+    (l) => !presentIds.has(l.id!) && !l.isMacroElement,
   );
 
   // Ensure isChain is synced from lines for ALL path items in the sequence
   const fullySanitized = [
     ...pruned.map((s) => {
-      if (actionRegistry.get(s.kind)?.isPath) {
-        const line = lines.find((l) => l.id === (s as any).lineId);
-        if (line && line.isChain !== (s as any).isChain) {
+      if (s.kind === "path") {
+        const line = lines.find((l) => l.id === s.lineId);
+        if (line && line.isChain !== s.isChain) {
           return { ...s, isChain: line.isChain };
         }
       }
@@ -140,6 +138,8 @@ export const loopAnimationStore = writable(true);
 export const loopRangeActiveStore = writable(true);
 export const loopRangeStore = writable<[number, number]>([0, 100]);
 export const isDraggingStore = writable(false);
+// Timing of the current path, computed by App whenever the project changes.
+export const timePredictionStore = writable<TimePrediction | null>(null);
 
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });
@@ -182,35 +182,43 @@ robotProfilesStore.subscribe((profiles) => {
   }
 });
 
+/**
+ * Default obstacles are laid out for the standard field. On a different-sized
+ * built-in field, stretch them to match. Custom maps are left alone.
+ */
+export function scaleShapesToField(
+  shapes: Shape[],
+  settings: Settings,
+): Shape[] {
+  const defaultWidth = DEFAULT_SETTINGS.fieldWidth ?? 144;
+  const defaultHeight = DEFAULT_SETTINGS.fieldHeight ?? 144;
+  const width = settings.fieldWidth ?? 144;
+  const height = settings.fieldHeight ?? 144;
+  const isCustomMap = settings.customMaps?.some(
+    (m) => m.id === settings.fieldMap,
+  );
+  if (isCustomMap || (width === defaultWidth && height === defaultHeight)) {
+    return shapes;
+  }
+
+  const scaleX = width / defaultWidth;
+  const scaleY = height / defaultHeight;
+  return shapes.map((shape) => ({
+    ...shape,
+    vertices: shape.vertices.map((v) => ({
+      ...v,
+      x: v.x * scaleX,
+      y: v.y * scaleY,
+    })),
+  }));
+}
+
+/** Replaces the project with the default starting path. */
 export function resetProject() {
   startPointStore.set(getDefaultStartPoint());
   const newLines = normalizeLines(getDefaultLines());
   linesStore.set(newLines);
-
-  let newShapes = getDefaultShapes();
-  const currentSettings = get(settingsStore);
-  if (
-    (currentSettings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
-      currentSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
-    !currentSettings.customMaps?.some((m) => m.id === currentSettings.fieldMap)
-  ) {
-    const scaleX =
-      (currentSettings.fieldWidth ?? 144) /
-      (DEFAULT_SETTINGS.fieldWidth ?? 144);
-    const scaleY =
-      (currentSettings.fieldHeight ?? 144) /
-      (DEFAULT_SETTINGS.fieldHeight ?? 144);
-    newShapes = newShapes.map((shape) => ({
-      ...shape,
-      vertices: shape.vertices.map((v) => ({
-        ...v,
-        x: v.x * scaleX,
-        y: v.y * scaleY,
-      })),
-    }));
-  }
-
-  shapesStore.set(newShapes);
+  shapesStore.set(scaleShapesToField(getDefaultShapes(), get(settingsStore)));
   sequenceStore.set(
     newLines.map((ln) => ({
       kind: "path",
@@ -241,7 +249,7 @@ export function refreshMacros() {
   const macros = get(macrosStore);
 
   // Optimization: Check if any macros exist or if there are leftover macro elements before doing heavy work
-  const hasMacro = sequence.some((s) => actionRegistry.get(s.kind)?.isMacro);
+  const hasMacro = sequence.some((s) => s.kind === "macro");
   const hasMacroElements = lines.some((l) => l.isMacroElement);
 
   if (!hasMacro && !hasMacroElements) return;
@@ -316,7 +324,7 @@ export async function loadMacro(filePath: string, force = false) {
         const promises: Promise<void>[] = [];
         if (data.sequence?.length > 0) {
           for (const item of data.sequence) {
-            if (actionRegistry.get(item.kind)?.isMacro) {
+            if (item.kind === "macro") {
               const resolvePath = api.resolvePath;
               if (resolvePath) {
                 // Resolve potential relative paths against the current macro file path

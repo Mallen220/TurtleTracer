@@ -271,6 +271,25 @@ export interface Settings {
   maxAcceleration: number; // inches/sec²
   maxDeceleration?: number; // inches/sec²
   maxAngularAcceleration?: number; // rad/sec²
+  /**
+   * Which Pedro Pathing behaviour to simulate. v3 measures heading progress
+   * along a path by distance and hands chained paths over early; v2 measures
+   * it by the curve parameter and hands over at the end of the path.
+   */
+  pedroVersion?: "v3" | "v2";
+  /** Seconds the robot holds at the end of a path before the next step starts. */
+  pathSettleTime?: number;
+  /** Stop to turn in place before a path that starts at a different heading. */
+  stopToTurn?: boolean;
+  /**
+   * The P gain of Pedro's translational PID, which steers the robot back onto
+   * the path: motor power per inch of error. A stronger controller swings less
+   * wide at a chained corner and gets back onto the path sooner.
+   */
+  translationalP?: number;
+  /** Braking distance (in) is `quadratic * v^2 + linear * v`, with v in in/s. 0 and 0 use max deceleration. */
+  brakingQuadratic?: number;
+  brakingLinear?: number;
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
@@ -282,6 +301,7 @@ export interface Settings {
   javaPackageName?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
+  squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes
   showVelocityHeatmap?: boolean; // Show velocity heatmap overlay
@@ -318,7 +338,7 @@ export interface Settings {
   autoExportPath?: string;
   autoExportPathMode?: "relative" | "absolute";
   autoExportFormat?: "java" | "sequential" | "points" | "json";
-  autoExportTargetLibrary?: "SolversLib" | "NextFTC";
+  autoExportTargetLibrary?: CommandLibraryId;
   autoExportFullClass?: boolean;
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
@@ -365,6 +385,11 @@ export interface RobotProfile {
   aVelocity: number; // angular velocity
   xVelocity: number;
   yVelocity: number;
+  // How the robot is tuned (profiles saved before these existed don't have them)
+  translationalP?: number;
+  brakingQuadratic?: number;
+  brakingLinear?: number;
+  pathSettleTime?: number;
   robotImage?: string;
   robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
   showRobotArrows?: boolean;
@@ -390,7 +415,18 @@ export interface ObstaclePreset {
   shapes: Shape[];
 }
 
-export type TimelineEventType = "travel" | "wait" | "macro";
+export type TimelineEventType = "travel" | "wait" | "macro" | "recovery";
+
+/** Where a robot goes while it is steered back onto a path. Shared: read only. */
+export interface RecoveryTrace {
+  /** Seconds from the start of the event. */
+  readonly time: readonly number[];
+  readonly x: readonly number[];
+  readonly y: readonly number[];
+  readonly speed: readonly number[];
+  /** The robot's heading at each sample, in degrees. */
+  readonly heading: readonly number[];
+}
 
 export interface TimelineEvent {
   type: TimelineEventType;
@@ -407,7 +443,19 @@ export interface TimelineEvent {
   startHeading?: number;
   targetHeading?: number;
   atPoint?: BasePoint;
-  // Detailed motion profile for travel events: maps step index to cumulative time
+  /**
+   * For a travel event: how much of the line this event drives, as fractions
+   * of it (0 to 1). A robot handed over early doesn't drive the end of its
+   * line, and one that joins part way along doesn't drive the start. Use
+   * `drivenRange` rather than reading these directly.
+   */
+  drivenFrom?: number;
+  drivenTo?: number;
+  // Detailed motion profile for travel events: maps step index to cumulative time.
+  // The steps outside the driven range are not part of this event: those before
+  // it have times just below zero, those after it times past `duration`. Time
+  // to position lookups work as usual; use `drivenRange` for anything that
+  // counts distance or speed along the whole line.
   motionProfile?: number[];
   // Detailed velocity profile for travel events: maps step index to velocity
   velocityProfile?: number[];
@@ -416,6 +464,19 @@ export interface TimelineEvent {
   isGlobalOverride?: boolean;
   rootLine?: Line;
   globalHeading?: Point["heading"];
+  /**
+   * For a "recovery" event: where the robot goes between a chained path being
+   * handed over and the robot being back on the next one.
+   */
+  trace?: RecoveryTrace;
+  /** For a "recovery" event: whether the robot gets back onto the next path. */
+  settled?: boolean;
+  /** For a "recovery" event: how close the robot gets to the point the paths join at, in inches. */
+  missedBy?: number;
+  /** For a "recovery" event: how far the robot is from the next path when it is handed over. */
+  startOffset?: number;
+  /** For a "recovery" event: how far the robot swings past the next path, in inches. */
+  overshoot?: number;
 }
 
 export interface TimePrediction {
@@ -444,7 +505,9 @@ export interface CollisionMarker {
   y: number;
   time: number;
   segmentIndex?: number;
-  type?: "obstacle" | "boundary" | "zero-length" | "keep-in";
+  type?: "obstacle" | "boundary" | "zero-length" | "keep-in" | "chain-corner";
+  /** The collision happens while the robot is off its path at a chained corner. */
+  offPath?: boolean;
   // Range properties
   endTime?: number;
   endX?: number;
@@ -512,6 +575,20 @@ export interface HookRegistry {
   clear: () => void;
 }
 
+/** One row of a right-click menu (ContextMenu.svelte). */
+export interface MenuEntry {
+  label?: string;
+  /** Passed to the menu's `onaction` when there's no `onClick`. */
+  action?: string;
+  onClick?: () => void;
+  /** A component, or an SVG string from a plugin. */
+  icon?: Component<{ class?: string }> | string;
+  separator?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+  shortcut?: string;
+}
+
 export interface ContextMenuItem {
   id: string;
   label: string;
@@ -533,7 +610,7 @@ export interface ProjectStore {
   linesStore: Writable<Line[]>;
   shapesStore: Writable<Shape[]>;
   sequenceStore: Writable<SequenceItem[]>;
-  settingsStore: Writable<any>; // Using any for Settings to avoid circular or huge types for now
+  settingsStore: Writable<Settings>;
   extraDataStore: Writable<Record<string, any>>;
 }
 
@@ -751,21 +828,25 @@ export interface FieldRenderContext {
   x: (val: number) => number;
   y: (val: number) => number;
   uiLength: (inches: number) => number;
-  settings: any;
+  settings: Settings;
 
   hoveredId: string | null;
   selectedId: string | null;
   selectedPointId: string | null;
 
-  timePrediction?: any;
+  timePrediction?: TimePrediction;
 }
+
+/** The command-based libraries the sequential exporter can target. */
+export type CommandLibraryId = "SolversLib" | "NextFTC" | "Ivy";
 
 export interface CodeExportContext {
   stateStep?: number; // For state machine generation
   indent?: string;
   variableName?: string;
-  isNextFTC?: boolean; // For sequential generation target
-  targetLibrary?: "SolversLib" | "NextFTC";
+  /** @deprecated Use targetLibrary. Kept so existing plugins keep working. */
+  isNextFTC?: boolean;
+  targetLibrary?: CommandLibraryId; // For sequential generation target
 }
 
 export interface JavaCodeResult {
@@ -777,7 +858,7 @@ export interface TimeCalculationContext {
   currentTime: number;
   currentHeading: number;
   lastPoint: Point;
-  settings: any;
+  settings: Settings;
   lines: Line[];
 }
 
@@ -897,6 +978,13 @@ export interface ElectronTelemetryAPI {
   onStatus: (callback: (status: any) => void) => void;
 }
 
+/** The parts of Electron's save dialog options the app uses. */
+export interface SaveDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  filters?: { name: string; extensions: string[] }[];
+}
+
 export interface ElectronAPI {
   // Utils
   getPathForFile?: (file: File) => string;
@@ -930,7 +1018,7 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; newPath: string }>;
 
   // Show native save dialog
-  showSaveDialog?: (options?: any) => Promise<string | null>;
+  showSaveDialog?: (options?: SaveDialogOptions) => Promise<string | null>;
 
   // Write binary content encoded as base64 to disk
   writeFileBase64?: (

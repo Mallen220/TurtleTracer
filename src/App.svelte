@@ -1,19 +1,19 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import * as d3 from "d3";
   import debounce from "lodash/debounce";
 
-  const IDENTITY_SCALE = d3.scaleLinear();
-
   // Components
-  import { DEFAULT_SETTINGS } from "./config/defaults";
   import ControlTab from "./lib/ControlTab.svelte";
   import Navbar from "./lib/Navbar.svelte";
   import LeftSidebar from "./lib/components/LeftSidebar.svelte";
   import FieldRenderer from "./lib/components/FieldRenderer.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
+  import FileDropZone from "./lib/components/FileDropZone.svelte";
+  import ResizeHandle from "./lib/components/ResizeHandle.svelte";
+  import StoreDialogs from "./lib/components/StoreDialogs.svelte";
+  import UnsavedChangesGuard from "./lib/components/UnsavedChangesGuard.svelte";
   import ExportGifDialog from "./lib/components/dialogs/ExportGifDialog.svelte";
   import ExportImageDialog from "./lib/components/dialogs/ExportImageDialog.svelte";
   import PathStatisticsDialog from "./lib/components/dialogs/PathStatisticsDialog.svelte";
@@ -21,21 +21,11 @@
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
   import SetupDialog from "./lib/components/dialogs/SetupDialog.svelte";
-  import SaveNameDialog from "./lib/components/dialogs/SaveNameDialog.svelte";
-  import UnsavedChangesDialog from "./lib/components/dialogs/UnsavedChangesDialog.svelte";
-  import FileManager from "./lib/FileManager.svelte";
-  import SettingsDialog from "./lib/components/dialogs/SettingsDialog.svelte";
-  import TelemetryDialog from "./lib/components/dialogs/TelemetryDialog.svelte";
-  import PluginManagerDialog from "./lib/components/dialogs/PluginManagerDialog.svelte";
-  import KeyboardShortcutsDialog from "./lib/components/dialogs/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./lib/components/dialogs/ExportCodeDialog.svelte";
   import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
-  import UpdateAvailableDialog from "./lib/components/dialogs/UpdateAvailableDialog.svelte";
   import FeedbackDialog from "./lib/components/dialogs/FeedbackDialog.svelte";
   import RatingDialog from "./lib/components/dialogs/RatingDialog.svelte";
-  import TransformDialog from "./lib/components/dialogs/TransformDialog.svelte";
-  import { CloudArrowDownIcon } from "./lib/components/icons";
 
   // Stores
   import {
@@ -51,679 +41,104 @@
     startTutorial,
     exportDialogState,
     selectedPointId,
-    collisionMarkers,
+    selectedLineId,
     showFileManager,
     fileManagerNewFileMode,
-    projectMetadataStore,
     currentDirectoryStore,
-    showPluginManager,
-    showTelemetryDialog,
-    selectedLineId,
-    // alias the import so the original name can be used safely below
-    showUpdateAvailableDialog as _showUpdateAvailableDialog,
+    showUpdateAvailableDialog,
     updateDataStore,
-    showRatingDialog,
-    ratingDialogAutoOpened,
     gitStatusStore,
-    showTransformDialog,
     notification,
   } from "./stores";
 
-  // keep a locally-named binding for the watchers and template
-  const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import {
     startPointStore,
     linesStore,
     shapesStore,
     sequenceStore,
     settingsStore,
-    extraDataStore,
-    robotXYStore,
-    robotHeadingStore,
     percentStore,
-    hoverPercentStore,
-    hoverRobotXYStore,
-    hoverRobotHeadingStore,
     playingStore,
     loopAnimationStore,
     playbackSpeedStore,
+    robotXYStore,
+    robotHeadingStore,
     ensureSequenceConsistency,
     macrosStore,
     refreshMacros,
     loadMacro,
-    loopRangeStore,
-    loopRangeActiveStore,
-    isDraggingStore,
+    resetProject,
+    scaleShapesToField,
   } from "./lib/projectStore";
-  import { diffMode, committedData } from "./lib/diffStore";
 
-  import { resetPath } from "./utils/projectLifecycle";
-
-  // Utils
-  import { createAnimationController } from "./utils/animation";
+  // Logic
+  import { FieldLayout } from "./lib/fieldLayout.svelte";
+  import { Playback } from "./lib/playback.svelte";
   import {
-    calculatePathTime,
-    getAnimationDuration,
-    calculateRobotState,
-  } from "./utils";
-  import { validatePath } from "./utils/validation";
+    recordUsageTime,
+    startRatingChecks,
+    tryShowRatingDialog,
+  } from "./lib/usageTracking";
+  import { PluginManager } from "./lib/pluginManager";
+  import { themesStore } from "./lib/pluginsStore";
+  import { registerCoreUI } from "./lib/coreRegistrations";
+  import { componentRegistry } from "./lib/registries";
+  import {
+    applyTheme,
+    applyFontSize,
+    applySquaredCorners,
+  } from "./lib/appearance";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
   import {
     saveProject,
     saveFileAs,
     handleExternalFileOpen,
-    handleAutoExport,
+    autoExportAfterChange,
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
-  import { PluginManager } from "./lib/pluginManager";
+  import { trackMicrosoftStoreInstall } from "./utils/msStoreTracking";
   import { isBrowser, getElectronAPI } from "./utils/platform";
-  import { themesStore } from "./lib/pluginsStore";
-  import { registerCoreUI } from "./lib/coreRegistrations";
-  import { componentRegistry } from "./lib/registries";
-  import {
-    DEFAULT_PROJECT_EXTENSION,
-    isSupportedProjectFileName,
-  } from "./utils/fileExtensions";
-  import { POTATO_THEME_CSS, firePotatoConfetti } from "./utils/potatoTheme";
+  import { firePotatoConfetti } from "./utils/potatoTheme";
+  import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "./config";
+  import type { Line } from "./types/index";
+  import pkg from "../package.json";
 
   // Register Default Components/Tabs
   registerCoreUI();
 
-  // Types
-  import type { Settings } from "./types/index";
-  import {
-    FIELD_SIZE,
-    DEFAULT_ROBOT_LENGTH,
-    DEFAULT_ROBOT_WIDTH,
-  } from "./config";
-
-  // Package info
-  import pkg from "../package.json";
-
-  let sessionStartTime = Date.now();
-  const appStartTime = sessionStartTime;
-
   const electronAPI = getElectronAPI();
 
-  async function checkMsStoreTracking() {
-    if (!electronAPI?.isWindowsStore) return;
-    try {
-      const isStore = await electronAPI.isWindowsStore();
-      if (isStore) {
-        const tracked = localStorage.getItem("msStoreTracked");
-        if (!tracked) {
-          // Attempt to fetch the tracking asset to increment the download count on GitHub
-          // This requires a release tagged 'tracker' with a file 'ms-store-tracker.zip'
-          try {
-            const response = await fetch(
-              "https://github.com/Mallen220/TurtleTracer/releases/download/tracker/ms-store-tracker.zip",
-            );
-            if (response.ok) {
-              localStorage.setItem("msStoreTracked", "true");
-            } else {
-              console.warn(
-                "Microsoft Store tracking failed: Asset not found or network error",
-              );
-            }
-          } catch (e) {
-            console.warn("Microsoft Store tracking failed", e);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("Error checking Microsoft Store status", e);
-    }
-  }
-
-  // Delegated handler: open external links in the user's default browser when running in Electron
-  function handleLinkClick(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (!target || !("closest" in target)) return;
-    const anchor = target.closest("a") as HTMLAnchorElement | null;
-    if (!anchor || !anchor.href) return;
-
-    // Allow other handlers to prevent default behavior first
-    if (e.defaultPrevented) return;
-
-    // Special exception: allow links marked as internal
-    if (anchor.hasAttribute("data-internal")) return;
-
-    const href = anchor.href;
-    const isExternal =
-      href.startsWith("http://") || href.startsWith("https://");
-    if (isExternal && electronAPI?.openExternal) {
-      e.preventDefault();
-      electronAPI
-        .openExternal(href)
-        .catch((err) => console.warn("openExternal failed", err));
-    }
-  }
-
-  async function fetchGitStatus() {
-    const dir = get(currentDirectoryStore);
-    if (!dir) return;
-    const currentSettings = get(settingsStore);
-    if (!currentSettings.gitIntegration) return;
-
-    if ((electronAPI as any)?.gitStatus) {
-      try {
-        const statuses = await (electronAPI as any).gitStatus(dir);
-        gitStatusStore.set(statuses);
-      } catch (e) {
-        console.warn("Failed to check git status on focus", e);
-      }
-    }
-  }
-
-  onMount(() => {
-    document.addEventListener("click", handleLinkClick);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("focus", fetchGitStatus);
-    checkMsStoreTracking();
-
-    if (electronAPI && electronAPI.onUpdateAvailable) {
-      electronAPI.onUpdateAvailable((data: any) => {
-        updateDataStore.set(data);
-        showUpdateAvailableDialog.set(true);
-      });
-    }
-
-    if (electronAPI && electronAPI.onStoreUpdateAvailable) {
-      electronAPI.onStoreUpdateAvailable((data: any) => {
-        notification.set({
-          message: `Update ${data.version} is available in the Microsoft Store.`,
-          type: "info",
-          timeout: 0,
-          actionLabel: "Open Store",
-          action: () => {
-            if (electronAPI.openExternal)
-              electronAPI.openExternal(
-                "https://apps.microsoft.com/store/detail/9NK0B4FDJ3ZW?cid=DevShareMCLPCS",
-              );
-          },
-        });
-      });
-    }
-
-    // Rating dialog interval logic
-    const ratingInterval = setInterval(tryShowRatingDialog, 10 * 60 * 1000); // Check every 10 minutes
-
-    return () => {
-      clearInterval(ratingInterval);
-      window.removeEventListener("focus", fetchGitStatus);
-      if (gitRefreshUnsub) gitRefreshUnsub();
-    };
-  });
-
-  // Automatically refresh git status when directory or file changes
-  let gitRefreshUnsub: () => void;
-  let libraryCheckUnsub: () => void;
-  onMount(() => {
-    gitRefreshUnsub = currentDirectoryStore.subscribe(() => {
-      fetchGitStatus();
-    });
-
-    libraryCheckUnsub = currentDirectoryStore.subscribe((dir) => {
-      if (dir) {
-        checkLibraryVersion(dir, electronAPI, notification.set);
-      }
-    });
-
-    return () => {
-      if (libraryCheckUnsub) libraryCheckUnsub();
-    };
-  });
-
-  $effect(() => {
-    // Also refresh when git integration is toggled or file path changes
-    const _ = [$settingsStore.gitIntegration, $currentFilePath];
-    fetchGitStatus();
-  });
-
-  function tryShowRatingDialog() {
-    // Disable rating dialog in browser mode
-    if (isBrowser) {
-      return;
-    }
-
-    const settings = get(settingsStore);
-
-    // If they already rated ANY version, or dismissed the current version, or chose to never be asked again, don't show.
-    const hasRatedAnyVersion =
-      settings.submittedRatings &&
-      Object.keys(settings.submittedRatings).length > 0;
-    const hasDismissedCurrentVersion = settings.dismissedRatings?.[pkg.version];
-    const hasDismissedAll = settings.dismissedRatings?.["all"];
-
-    if (hasRatedAnyVersion || hasDismissedCurrentVersion || hasDismissedAll) {
-      return;
-    }
-
-    // If offline, don't show. Wait for the interval to check again later.
-    if (!navigator.onLine) {
-      return;
-    }
-
-    // Don't pop it up if it's currently open
-    if (get(showRatingDialog)) {
-      return;
-    }
-
-    const now = Date.now();
-
-    // Don't show the rating dialog within the first 5 minutes of app startup.
-    const fiveMinutesMs = 5 * 60 * 1000;
-    if (now - appStartTime < fiveMinutesMs) {
-      return;
-    }
-
-    const currentSessionUsage = now - sessionStartTime;
-    const totalUsageMs = (settings.totalUsageTime || 0) + currentSessionUsage;
-
-    // Save total usage time periodically
-    settingsStore.update((s) => ({
-      ...s,
-      totalUsageTime: totalUsageMs,
-    }));
-    sessionStartTime = now; // Reset session start time to avoid double counting
-    saveSettings(get(settingsStore)).catch((e) =>
-      console.error("Failed to save usage time", e),
-    );
-
-    const tenHoursMs = 10 * 60 * 60 * 1000; //10 Hours rating delay
-
-    if (totalUsageMs >= tenHoursMs) {
-      ratingDialogAutoOpened.set(true);
-      showRatingDialog.set(true);
-    }
-  }
-
-  onDestroy(() => {
-    document.removeEventListener("click", handleLinkClick);
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("focus", fetchGitStatus);
-    if (autosaveIntervalId) clearInterval(autosaveIntervalId);
-  });
-
-  // --- Drag and Drop Logic ---
-  let isDraggingFile = $state(false);
-  let dragCounter = 0;
-
-  // Custom Prompt State
-  let showSaveNameDialog = $state(false);
-  let showUnsavedChangesDialog = $state(false);
-  let pendingAction: "reset" | "close" | null = null;
-  let saveNameResolve: ((name: string | null) => void) | null = null;
-
-  function openSaveNamePrompt(): Promise<string | null> {
-    return new Promise((resolve) => {
-      saveNameResolve = resolve;
-      showSaveNameDialog = true;
-    });
-  }
-
-  function handleSaveName(name: string) {
-    if (saveNameResolve) saveNameResolve(name);
-    saveNameResolve = null;
-  }
-
-  function handleCancelSaveName() {
-    if (saveNameResolve) saveNameResolve(null);
-    saveNameResolve = null;
-  }
-
-  // --- Unsaved Changes Dialog Logic ---
-  async function handleUnsavedSave() {
-    showUnsavedChangesDialog = false;
-    const api = (globalThis as any).electronAPI;
-    const currentPath = get(currentFilePath);
-    let success = false;
-
-    if (!currentPath && api && api.getSavedDirectory) {
-      // Try to use default directory + prompt
-      const savedDir = await api.getSavedDirectory();
-      if (savedDir) {
-        const name = await openSaveNamePrompt();
-        if (name) {
-          const sep = savedDir.includes("\\") ? "\\" : "/";
-          const cleanDir = savedDir.endsWith(sep)
-            ? savedDir.slice(0, -1)
-            : savedDir;
-          const fullPath = `${cleanDir}${sep}${name}${DEFAULT_PROJECT_EXTENSION}`;
-          success = await saveProject(
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            false,
-            fullPath,
-          );
-        } else {
-          // User cancelled name input
-          return;
-        }
-      } else {
-        success = await saveProject();
-      }
-    } else {
-      success = await saveProject();
-    }
-
-    if (success) {
-      if (pendingAction === "close") {
-        if (api?.sendCloseApproved) {
-          api.sendCloseApproved();
-        }
-      } else {
-        performReset();
-      }
-    }
-    pendingAction = null;
-  }
-
-  function handleUnsavedDiscard() {
-    showUnsavedChangesDialog = false;
-    if (pendingAction === "close") {
-      const api = (globalThis as any).electronAPI;
-      if (api?.sendCloseApproved) {
-        api.sendCloseApproved();
-      }
-    } else {
-      performReset();
-    }
-    pendingAction = null;
-  }
-
-  function handleUnsavedCancel() {
-    showUnsavedChangesDialog = false;
-    pendingAction = null;
-  }
-
-  function performReset() {
-    resetPath();
-    // Clear file association for the new project
-    currentFilePath.set(null);
-    projectMetadataStore.set({ filepath: "" });
-
-    recordChange("New Project");
-    // Mark as clean new project
-    lastSavedState = getCurrentState();
-    isUnsaved.set(false);
-  }
-
-  function handleDragEnter(e: DragEvent) {
-    e.preventDefault();
-    // Check if dragging files
-    if (e.dataTransfer?.types?.includes("Files")) {
-      dragCounter++;
-      isDraggingFile = true;
-    }
-  }
-
-  function handleDragLeave(e: DragEvent) {
-    e.preventDefault();
-    dragCounter--;
-    if (dragCounter <= 0) {
-      dragCounter = 0;
-      isDraggingFile = false;
-    }
-  }
-
-  function handleDragOver(e: DragEvent) {
-    e.preventDefault();
-  }
-
-  async function handleDrop(e: DragEvent) {
-    // Reset drag indicators regardless of type
-    dragCounter = 0;
-    isDraggingFile = false;
-
-    // Only intercept if it's an OS file drop we care about (avoids blocking internal drags)
-    if (e.dataTransfer?.types?.includes("Files")) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.dataTransfer.files.length > 0) {
-        const file = e.dataTransfer.files[0];
-        // Refresh electronAPI reference from window to ensure it's available
-        const api = (globalThis as any).electronAPI;
-
-        if (!api) return;
-
-        // Case-insensitive check for supported extension
-        if (!isSupportedProjectFileName(file.name)) {
-          alert("Please drop a .turt or .pp file.");
-          return;
-        }
-
-        let path = (file as any).path;
-        if (!path && api.getPathForFile) {
-          try {
-            path = api.getPathForFile(file);
-          } catch (e) {
-            console.warn("getPathForFile failed:", e);
-          }
-        }
-
-        if (!path) {
-          alert(
-            "Cannot determine file path. If you are running in a browser, this feature is not supported.",
-          );
-          return;
-        }
-
-        try {
-          if (get(isUnsaved)) {
-            if (
-              confirm(
-                "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
-              )
-            ) {
-              const currentPath = get(currentFilePath);
-              let success = false;
-
-              if (!currentPath && api.getSavedDirectory) {
-                // Try to use default directory + prompt
-                const savedDir = await api.getSavedDirectory();
-                if (savedDir) {
-                  const name = await openSaveNamePrompt();
-                  if (name) {
-                    const sep = savedDir.includes("\\") ? "\\" : "/";
-                    const cleanDir = savedDir.endsWith(sep)
-                      ? savedDir.slice(0, -1)
-                      : savedDir;
-                    const fullPath = `${cleanDir}${sep}${name}${DEFAULT_PROJECT_EXTENSION}`;
-                    success = await saveProject(
-                      undefined,
-                      undefined,
-                      undefined,
-                      undefined,
-                      undefined,
-                      false,
-                      fullPath,
-                    );
-                  } else {
-                    // User cancelled name input
-                    return;
-                  }
-                } else {
-                  success = await saveProject();
-                }
-              } else {
-                success = await saveProject();
-              }
-
-              if (!success) return; // Save failed or cancelled
-            } else if (
-              !confirm(
-                "This will discard your unsaved changes. Are you sure you want to open the new file?",
-              )
-            ) {
-              return;
-            }
-          }
-
-          await handleExternalFileOpen(path);
-          recordChange("Load Project");
-        } catch (err) {
-          console.error("Error opening dropped file:", err);
-          alert("Failed to open file: " + err);
-        }
-      }
-    }
-  }
-
-  // --- Autosave Logic ---
-  let autosaveIntervalId: any = $state(null);
-
-  function performAutosave() {
-    const path = get(currentFilePath);
-    if (path && get(isUnsaved)) {
-      saveProject(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false,
-        undefined,
-        {
-          quiet: true,
-        },
-      );
-    }
-  }
-
-  // Handle On Close Autosave
-  function handleBeforeUnload(e: BeforeUnloadEvent) {
-    // Legacy web behavior - mostly unused in Electron due to main process interception
-    // but kept for safety if running in browser
-    if (!electronAPI && get(isUnsaved)) {
-      e.preventDefault();
-      e.returnValue = "";
-    }
-  }
-
-  async function handleAppCloseRequested() {
-    // Accumulate total usage time on close
-    const now = Date.now();
-    const currentSessionUsage = now - sessionStartTime;
-    settingsStore.update((s) => ({
-      ...s,
-      totalUsageTime: (s.totalUsageTime || 0) + currentSessionUsage,
-    }));
-    sessionStartTime = now;
-    try {
-      await saveSettings(get(settingsStore));
-    } catch {}
-
-    const unsaved = get(isUnsaved);
-    const autosaveMode = settings?.autosaveMode;
-
-    if (autosaveMode === "close") {
-      // Autosave and close
-      const path = get(currentFilePath);
-      if (path && unsaved) {
-        await saveProject();
-        if (electronAPI?.sendCloseApproved) {
-          electronAPI.sendCloseApproved();
-        }
-        return;
-      } else if (!unsaved) {
-        // Nothing to save
-        if (electronAPI && electronAPI.sendCloseApproved) {
-          electronAPI.sendCloseApproved();
-        }
-        return;
-      }
-      // If unsaved and no path (new file), fall through to prompt
-    }
-
-    if (unsaved) {
-      pendingAction = "close";
-      showUnsavedChangesDialog = true;
-    } else if (electronAPI?.sendCloseApproved) {
-      electronAPI.sendCloseApproved();
-    }
-  }
-
-  // --- Layout State ---
-  let showSidebar = $state(true);
-
-  // DEBUG: force open Whats New during development to validate feature loading
-  let setupMode = $state(false);
-  // Set this to true to force the setup dialog for testing
-  const TEST_SETUP_DIALOG = false;
-  let activeControlTab: "path" | "field" | "table" = $state("path");
-  let controlTabRef: any = $state(null);
-  // DOM container for the ControlTab; used to size/position the stats panel
-  let controlTabContainer: HTMLDivElement | null = $state(null);
-  let controlTabRect = $state({
-    top: 0,
-    left: 0,
-    width: 0,
-    height: 0,
-    right: 0,
-    bottom: 0,
-  });
-  let _controlTabObserver: ResizeObserver | null = $state(null);
-
-  function updateControlRect() {
-    if (!controlTabContainer) return;
-    const r = controlTabContainer.getBoundingClientRect();
-    controlTabRect = {
-      top: Math.round(r.top),
-      left: Math.round(r.left),
-      width: Math.round(r.width),
-      height: Math.round(r.height),
-      right: Math.round(r.right),
-      bottom: Math.round(r.bottom),
-    };
-  }
-
-  onMount(() => {
-    updateControlRect();
-    _controlTabObserver = new ResizeObserver(updateControlRect);
-    if (controlTabContainer) _controlTabObserver.observe(controlTabContainer);
-    window.addEventListener("resize", updateControlRect);
-  });
-
-  onDestroy(() => {
-    if (_controlTabObserver) _controlTabObserver.disconnect();
-    window.removeEventListener("resize", updateControlRect);
-  });
-
-  let statsOpen = $state(false);
-  let mainContentHeight = $state(0);
-  let mainContentWidth = $state(0);
-  let mainContentDiv: HTMLDivElement | undefined = $state();
-  let innerWidth = $state(0);
-  let innerHeight = $state(0);
-  let userFieldLimit: number | null = $state(null);
-  let userFieldHeightLimit: number | null = $state(null);
-  let resizeMode: "horizontal" | "vertical" | null = $state(null);
-  const MIN_SIDEBAR_WIDTH = 320;
-  const MIN_FIELD_PANE_WIDTH = 300;
-
-  // --- Animation State ---
-  let animationController:
-    | ReturnType<typeof createAnimationController>
-    | undefined = $state();
-
-  // --- Preview Optimization ---
-  let previewOptimizedLines: any[] | null = $state(null);
-  let timePrediction: any = $state(null);
-
-  // --- History ---
+  // Plugins can replace these components.
+  const NavbarComponent = $derived($componentRegistry.Navbar || Navbar);
+  const FieldRendererComponent = $derived(
+    $componentRegistry.FieldRenderer || FieldRenderer,
+  );
+  const ControlTabComponent = $derived(
+    $componentRegistry.ControlTab || ControlTab,
+  );
+
+  const layout = new FieldLayout(() => $isPresentationMode);
+  const playback = new Playback();
+
+  let settings = $derived($settingsStore);
+  let robotLength = $derived(settings?.rLength || DEFAULT_ROBOT_LENGTH);
+  let robotWidth = $derived(settings?.rWidth || DEFAULT_ROBOT_WIDTH);
+
+  // --- Project state and history ---
   const history = createHistory();
   const { canUndoStore, canRedoStore } = history;
+  let canUndo = $derived($canUndoStore);
+  let canRedo = $derived($canRedoStore);
 
+  /** Set once startup has finished, so loading the project doesn't count as an edit. */
   let isLoaded = $state(false);
-  let lastSavedState: string = "";
+  /** The project as last saved, to tell whether undo/redo brought it back to a saved state. */
+  let lastSavedState = "";
+  /** Shorter versions of the path shown while previewing an optimisation. */
+  let previewOptimizedLines = $state<Line[] | null>(null);
 
   function getAppState(): AppState {
     return {
@@ -739,507 +154,379 @@
     return JSON.stringify(getAppState());
   }
 
-  function onRecordChange(action?: string) {
-    recordChange(action);
-  }
-
-  // Exported for tests
-  export async function recordChange(description: string = "Change") {
+  /** Call after every edit: records it for undo and handles autosave and auto-export. */
+  async function recordChange(description: string = "Change") {
     ensureSequenceConsistency();
     refreshMacros();
     previewOptimizedLines = null;
     history.record(getAppState(), description);
-    if (isLoaded) isUnsaved.set(true);
-    if (isLoaded) animationController?.seekToPercent(0);
+    if (!isLoaded) return;
 
-    // Autosave on change
-    if (isLoaded && settings?.autosaveMode === "change") {
-      const path = get(currentFilePath);
-      if (path) {
-        saveProject(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          false,
-          undefined,
-          { quiet: true },
-        ).then(() => {
-          fetchGitStatus();
-        });
-      }
+    isUnsaved.set(true);
+    playback.seek(0);
+
+    const path = get(currentFilePath);
+    if (!path) return;
+
+    if (settings?.autosaveMode === "change") {
+      saveProject({ quiet: true }).then(fetchGitStatus);
     }
-
-    // Auto-export on any change when enabled
-    if (isLoaded && settings?.autoExportCode) {
-      const path = get(currentFilePath);
-      if (path) {
-        // Build minimal project data (full header included for JSON export)
-        const projectData = {
-          version: pkg.version,
-          header: {
-            info: "Created with Turtle Tracer",
-            copyright:
-              "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
-            link: "https://github.com/Mallen220/TurtleTracer",
-          },
-          startPoint: get(startPointStore),
-          lines: get(linesStore),
-          sequence: get(sequenceStore),
-          shapes: get(shapesStore),
-          extraData: get(extraDataStore),
-        };
-
-        // fire-and-forget; don't care about awaiting in the UI path
-        handleAutoExport(
-          get(startPointStore),
-          get(linesStore),
-          get(sequenceStore),
-          get(settingsStore),
-          get(shapesStore),
-          projectData,
-          path,
-        ).catch((e: any) => {
-          console.error("Auto-export during change failed", e);
-        });
-      }
+    if (settings?.autoExportCode) {
+      // Fire and forget; the UI doesn't wait for the export.
+      autoExportAfterChange(path).catch((e) => {
+        console.error("Auto-export during change failed", e);
+      });
     }
   }
 
+  function restoreHistoryState(state: AppState) {
+    startPointStore.set(state.startPoint);
+    linesStore.set(state.lines);
+    shapesStore.set(state.shapes);
+    sequenceStore.set(state.sequence);
+
+    // Undoing a reset can bring back macros that are no longer loaded.
+    const loadedMacros = get(macrosStore);
+    for (const item of state.sequence ?? []) {
+      if (item.kind === "macro" && !loadedMacros.has(item.filePath)) {
+        loadMacro(item.filePath);
+      }
+    }
+
+    // Onion layer visibility is a view preference, so undo/redo leave it alone.
+    const showOnion = get(settingsStore).showOnionLayers;
+    settingsStore.set({
+      ...state.settings,
+      showOnionLayers:
+        typeof showOnion === "boolean"
+          ? showOnion
+          : state.settings?.showOnionLayers,
+    });
+
+    isUnsaved.set(getCurrentState() !== lastSavedState);
+  }
+
+  function undoAction() {
+    const prev = history.undo();
+    if (prev) restoreHistoryState(prev);
+  }
+
+  function redoAction() {
+    const next = history.redo();
+    if (next) restoreHistoryState(next);
+  }
+
+  // --- Saving, resetting and closing ---
+  let unsavedGuard: UnsavedChangesGuard | undefined = $state();
+
   function handleSaveProject() {
-    const path = get(currentFilePath);
-    if (path) {
-      saveProject().then(() => {
-        fetchGitStatus();
-      });
+    if (get(currentFilePath)) {
+      saveProject().then(fetchGitStatus);
     } else {
       showFileManager.set(true);
       fileManagerNewFileMode.set(true);
     }
   }
 
-  async function handleResetProject() {
-    if (get(isUnsaved)) {
-      pendingAction = "reset";
-      showUnsavedChangesDialog = true;
+  function handleResetProject() {
+    unsavedGuard?.requestReset();
+  }
+
+  function performReset() {
+    resetProject();
+    // A new project isn't saved anywhere yet.
+    currentFilePath.set(null);
+
+    recordChange("New Project");
+    lastSavedState = getCurrentState();
+    isUnsaved.set(false);
+  }
+
+  function performAutosave() {
+    if (get(currentFilePath) && get(isUnsaved)) {
+      saveProject({ quiet: true });
+    }
+  }
+
+  // Desktop builds ask about unsaved changes through the main process
+  // (see handleAppCloseRequested); this covers running in a browser.
+  function handleBeforeUnload(e: BeforeUnloadEvent) {
+    if (!electronAPI && get(isUnsaved)) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  }
+
+  async function handleAppCloseRequested() {
+    try {
+      await recordUsageTime();
+    } catch (e) {
+      console.error("Failed to save usage time", e);
+    }
+
+    const unsaved = get(isUnsaved);
+
+    // With "save on close", a project that has a file is saved silently.
+    // A new, never-saved project still gets the prompt.
+    if (settings?.autosaveMode === "close" && unsaved && get(currentFilePath)) {
+      await saveProject();
+      electronAPI?.sendCloseApproved?.();
+    } else if (unsaved) {
+      unsavedGuard?.requestClose();
     } else {
-      performReset();
+      electronAPI?.sendCloseApproved?.();
     }
   }
 
-  function undoAction() {
-    const prev = history.undo();
-    if (prev) {
-      startPointStore.set(prev.startPoint);
-      linesStore.set(prev.lines);
-      shapesStore.set(prev.shapes);
-      sequenceStore.set(prev.sequence);
+  // Time-based autosave
+  $effect(() => {
+    if (settings?.autosaveMode !== "time" || !settings.autosaveInterval) return;
+    const id = setInterval(performAutosave, settings.autosaveInterval * 60_000);
+    return () => clearInterval(id);
+  });
 
-      // Check for macros that need reloading (e.g. after undoing a reset)
-      const currentMacros = get(macrosStore);
-      if (prev.sequence) {
-        prev.sequence.forEach((item) => {
-          if (item.kind === "macro") {
-            // If missing from cache, trigger load
-            if (!currentMacros.has(item.filePath)) {
-              loadMacro(item.filePath);
-            }
-          }
-        });
-      }
+  // --- Git status and library version ---
+  async function fetchGitStatus() {
+    const dir = get(currentDirectoryStore);
+    if (!dir || !get(settingsStore).gitIntegration) return;
+    if (!electronAPI?.gitStatus) return;
+    try {
+      gitStatusStore.set(await electronAPI.gitStatus(dir));
+    } catch (e) {
+      console.warn("Failed to check git status", e);
+    }
+  }
 
-      // Preserve the current onion layer visibility when undoing so that
-      // toggling onion layers isn't overwritten by history operations.
-      const currentShowOnion = get(settingsStore).showOnionLayers;
-      const preservedShowOnion =
-        typeof currentShowOnion === "boolean"
-          ? currentShowOnion
-          : prev.settings?.showOnionLayers;
-      settingsStore.set({
-        ...prev.settings,
-        showOnionLayers: preservedShowOnion,
+  // Refresh git status when the folder, open file or git setting changes.
+  $effect(() => {
+    void [
+      $currentDirectoryStore,
+      $currentFilePath,
+      $settingsStore.gitIntegration,
+    ];
+    fetchGitStatus();
+  });
+
+  $effect(() => {
+    if ($currentDirectoryStore) {
+      checkLibraryVersion(
+        $currentDirectoryStore,
+        electronAPI,
+        notification.set,
+      );
+    }
+  });
+
+  // --- Startup ---
+  /** Shown on first launch to pick a project folder. */
+  let setupMode = $state(false);
+
+  onMount(() => {
+    trackMicrosoftStoreInstall();
+
+    electronAPI?.onUpdateAvailable?.((data: any) => {
+      updateDataStore.set(data);
+      showUpdateAvailableDialog.set(true);
+    });
+
+    electronAPI?.onStoreUpdateAvailable?.((data: any) => {
+      notification.set({
+        message: `Update ${data.version} is available in the Microsoft Store.`,
+        type: "info",
+        timeout: 0,
+        actionLabel: "Open Store",
+        action: () =>
+          electronAPI.openExternal?.(
+            "https://apps.microsoft.com/store/detail/9NK0B4FDJ3ZW?cid=DevShareMCLPCS",
+          ),
       });
+    });
 
-      const currentState = getCurrentState();
-      isUnsaved.set(currentState !== lastSavedState);
-      // FieldRenderer will update reactively via stores
-    }
+    startUp();
+    return startRatingChecks();
+  });
+
+  async function startUp() {
+    if (!isBrowser) await PluginManager.init();
+
+    const savedSettings = await loadSettings();
+    settingsStore.set({ ...savedSettings });
+    shapesStore.update((shapes) => scaleShapesToField(shapes, savedSettings));
+
+    // Give the stores a moment to settle before treating the project as loaded.
+    setTimeout(finishStartup, 500);
+
+    if (electronAPI) connectToElectron();
   }
 
-  function redoAction() {
-    const next = history.redo();
-    if (next) {
-      startPointStore.set(next.startPoint);
-      linesStore.set(next.lines);
-      shapesStore.set(next.shapes);
-      sequenceStore.set(next.sequence);
+  async function finishStartup() {
+    // Recorded before isLoaded is set, so it doesn't mark the project unsaved.
+    recordChange("Initial State");
+    isLoaded = true;
+    lastSavedState = getCurrentState();
 
-      // Check for macros that need reloading
-      const currentMacros = get(macrosStore);
-      if (next.sequence) {
-        next.sequence.forEach((item) => {
-          if (item.kind === "macro") {
-            if (!currentMacros.has(item.filePath)) {
-              loadMacro(item.filePath);
-            }
-          }
-        });
+    try {
+      ensureSequenceConsistency();
+    } catch (err) {
+      console.warn("ensureSequenceConsistency failed", err);
+    }
+
+    // The project folder comes first: without one, the setup dialog opens.
+    if (await needsProjectFolder()) {
+      setupMode = true;
+    } else {
+      const { lastSeenVersion, hasSeenOnboarding } = get(settingsStore);
+      if (lastSeenVersion !== pkg.version && hasSeenOnboarding) {
+        showWhatsNew.set(true);
       }
+    }
 
-      // Preserve onion layer visibility when redoing as well.
-      const currentShowOnion = get(settingsStore).showOnionLayers;
-      const preservedShowOnion =
-        typeof currentShowOnion === "boolean"
-          ? currentShowOnion
-          : next.settings?.showOnionLayers;
-      settingsStore.set({
-        ...next.settings,
-        showOnionLayers: preservedShowOnion,
-      });
+    fadeOutLoadingScreen();
+    tryShowRatingDialog();
+  }
 
-      const currentState = getCurrentState();
-      isUnsaved.set(currentState !== lastSavedState);
+  /** Loads the saved project folder. Returns true if none has been chosen yet. */
+  async function needsProjectFolder(): Promise<boolean> {
+    if (!electronAPI?.getSavedDirectory) return false;
+    try {
+      const dir = await electronAPI.getSavedDirectory();
+      if (!dir || dir.trim() === "") return true;
+      currentDirectoryStore.set(dir);
+      void scanEventsInDirectory(dir);
+    } catch (e) {
+      console.warn("Failed to check saved directory", e);
+    }
+    return false;
+  }
+
+  function fadeOutLoadingScreen() {
+    const loader = document.getElementById("loading-screen");
+    if (!loader) return;
+    loader.style.opacity = "0";
+    setTimeout(() => loader.remove(), 500);
+  }
+
+  /** Listens for events from the desktop app's main process. */
+  function connectToElectron() {
+    if (!electronAPI) return;
+
+    // Listen for external file opens BEFORE signaling ready
+    electronAPI.onOpenFilePath?.(async (filePath) => {
+      await handleExternalFileOpen(filePath);
+      recordChange("Load Project");
+    });
+    electronAPI.rendererReady?.();
+    electronAPI.onAppCloseRequested?.(handleAppCloseRequested);
+    electronAPI.onMenuAction?.(handleMenuAction);
+  }
+
+  /** Menu clicks. Keyboard shortcuts are handled in KeyboardShortcuts. */
+  function handleMenuAction(action: string) {
+    switch (action) {
+      case "save-project":
+        handleSaveProject();
+        break;
+      case "save-as":
+        saveFileAs();
+        break;
+      case "open-file":
+        document.getElementById("file-upload")?.click();
+        break;
+      case "export-gif":
+        showExportGif.set(true);
+        break;
+      case "export-image":
+        showExportImage.set(true);
+        break;
+      case "export-pp":
+        // The JSON format is the .turt project file.
+        exportDialogState.set({ isOpen: true, format: "json" });
+        break;
+      case "export-java":
+        exportDialogState.set({ isOpen: true, format: "java" });
+        break;
+      case "export-points":
+        exportDialogState.set({ isOpen: true, format: "points" });
+        break;
+      case "export-sequential":
+        exportDialogState.set({ isOpen: true, format: "sequential" });
+        break;
+      case "undo":
+        if (canUndo) undoAction();
+        break;
+      case "redo":
+        if (canRedo) redoAction();
+        break;
+      case "open-settings":
+        showSettings.set(true);
+        break;
+      case "open-shortcuts":
+        showShortcuts.set(true);
+        break;
     }
   }
+
+  // --- Appearance and settings persistence ---
+  const debouncedSaveSettings = debounce(saveSettings, 1000);
+
+  $effect(() => {
+    if (settings) debouncedSaveSettings(settings);
+  });
+
+  $effect(() => {
+    if (!settings) return;
+    applyTheme(settings, $themesStore);
+    applyFontSize(settings);
+    applySquaredCorners(settings);
+  });
 
   function closeWhatsNew() {
     showWhatsNew.set(false);
-    // Update settings with new version
-    const currentVersion = pkg.version;
-    const s = get(settingsStore);
-    settingsStore.set({
-      ...s,
-      lastSeenVersion: currentVersion,
-    });
-    // Persistence handled by debounced auto-save
+    // Saved by the debounced settings save.
+    settingsStore.update((s) => ({ ...s, lastSeenVersion: pkg.version }));
   }
 
-  // --- Initialization ---
-  onMount(async () => {
-    // Initialize Plugins
-    if (!isBrowser) {
-      await PluginManager.init();
-    }
+  // --- Field, control tab and dialogs ---
+  let activeControlTab: "path" | "field" | "table" = $state("path");
+  let controlTabRef: any = $state(null);
+  let statsOpen = $state(false);
+  // The field renderer's Two.js instance is needed by the export dialogs.
+  let fieldRenderer: any = $state();
+  let exportDialog: ExportCodeDialog | undefined = $state();
 
-    // Load Settings
-    const savedSettings = await loadSettings();
-    settingsStore.set({ ...savedSettings });
-
-    if (
-      (savedSettings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
-        savedSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
-      !savedSettings.customMaps?.some((m) => m.id === savedSettings.fieldMap)
-    ) {
-      const scaleX =
-        (savedSettings.fieldWidth ?? 144) /
-        (DEFAULT_SETTINGS.fieldWidth ?? 144);
-      const scaleY =
-        (savedSettings.fieldHeight ?? 144) /
-        (DEFAULT_SETTINGS.fieldHeight ?? 144);
-      shapesStore.update((shapes) =>
-        shapes.map((shape) => ({
-          ...shape,
-          vertices: shape.vertices.map((v) => ({
-            ...v,
-            x: v.x * scaleX,
-            y: v.y * scaleY,
-          })),
-        })),
-      );
-    }
-
-    // Stabilize
-    setTimeout(async () => {
-      // Record initial state before marking as loaded to prevent unsaved flag
-      recordChange("Initial State");
-      isLoaded = true;
-      lastSavedState = getCurrentState(); // Assume fresh start is "saved" unless loaded
-
-      // Ensure sequence/line consistency once initial load is stabilized
-      try {
-        ensureSequenceConsistency();
-      } catch (err) {
-        console.warn("ensureSequenceConsistency failed", err);
-      }
-
-      // Check for directory setup FIRST
-      let needsSetup = false;
-      if (electronAPI?.getSavedDirectory) {
-        try {
-          const dir = await electronAPI.getSavedDirectory();
-          if (!dir || dir.trim() === "") {
-            needsSetup = true;
-          } else {
-            currentDirectoryStore.set(dir);
-            scanEventsInDirectory(dir);
-          }
-        } catch (e) {
-          console.warn("Failed to check saved directory", e);
-        }
-      }
-
-      if (needsSetup || TEST_SETUP_DIALOG) {
-        setupMode = true;
-      } else {
-        // Check for What's New
-        const currentVersion = pkg.version;
-        const s = get(settingsStore);
-        const lastSeen = s.lastSeenVersion;
-        const hasSeenTutorial = s.hasSeenOnboarding;
-
-        // If version mismatch or never seen, show dialog
-        if (lastSeen !== currentVersion && hasSeenTutorial) {
-          showWhatsNew.set(true);
-        }
-      }
-
-      // Remove loading screen
-      const loader = document.getElementById("loading-screen");
-      if (loader) {
-        loader.style.opacity = "0";
-        setTimeout(() => loader.remove(), 500);
-      }
-
-      // Rating dialog logic
-      tryShowRatingDialog();
-    }, 500);
-
-    // Expose debug trigger for testing setup dialog
-    (globalThis as any).triggerSetupDialog = () => {
-      setupMode = true;
-    };
-
-    // Electron Menu Action Listener
-    if (electronAPI) {
-      // Listen for external file opens BEFORE signaling ready
-      if (electronAPI.onOpenFilePath) {
-        electronAPI.onOpenFilePath(async (filePath) => {
-          await handleExternalFileOpen(filePath);
-          recordChange("Load Project");
-        });
-      }
-
-      // Signal main process that ready to receive file paths
-      if (electronAPI.rendererReady) {
-        electronAPI.rendererReady();
-      }
-
-      if (electronAPI.onAppCloseRequested) {
-        electronAPI.onAppCloseRequested(() => {
-          handleAppCloseRequested();
-        });
-      }
-
-      if (electronAPI.onMenuAction) {
-        electronAPI.onMenuAction((action) => {
-          // Some actions are handled in KeyboardShortcuts via props or bindings,
-          // but menu clicks come here.
-          switch (action) {
-            case "save-project":
-              handleSaveProject();
-              break;
-            case "save-as":
-              saveFileAs();
-              break;
-            case "open-file":
-              const input = document.getElementById("file-upload");
-              if (input) input.click();
-              break;
-            case "export-gif":
-              exportGif();
-              break;
-            case "export-image":
-              showExportImage.set(true);
-              break;
-            case "export-pp":
-              // Open the Export Code dialog pre-selected to JSON (.turt) format
-              exportDialogState.set({ isOpen: true, format: "json" });
-              break;
-            case "export-java":
-              exportDialogState.set({ isOpen: true, format: "java" });
-              break;
-            case "export-points":
-              exportDialogState.set({ isOpen: true, format: "points" });
-              break;
-            case "export-sequential":
-              exportDialogState.set({ isOpen: true, format: "sequential" });
-              break;
-            case "undo":
-              if (canUndo) undoAction();
-              break;
-            case "redo":
-              if (canRedo) redoAction();
-              break;
-            case "open-settings":
-              showSettings.set(true);
-              break;
-            case "open-shortcuts":
-              showShortcuts.set(true);
-              break;
-            // ... other cases ...
-          }
-        });
-      }
-    }
+  $effect(() => {
+    if (!layout.effectiveShowSidebar && statsOpen) statsOpen = false;
   });
 
-  // Settings Auto-Save
-  const debouncedSaveSettings = debounce(async (s: Settings) => {
-    await saveSettings(s);
-  }, 1000);
-
-  onMount(() => {
-    animationController = createAnimationController(
-      animationDuration,
-      (newPercent) => percentStore.set(newPercent),
-      () => {
-        playingStore.set(false);
-      },
-    );
-  });
-
-  // Sync controller updates to Robot State
-  let committedRobotState: { x: number; y: number; heading: number } | null =
-    $state(null);
-
-  function play() {
-    playingStore.set(true);
-  }
-  function pause() {
-    playingStore.set(false);
-  }
-  function resetAnimation() {
-    animationController?.reset();
-    playingStore.set(false);
-  }
-  function handleSeek(val: number) {
-    animationController?.seekToPercent(val);
-  }
-
-  function handlePreviewChange(newLines: any) {
-    previewOptimizedLines = newLines;
-  }
-
-  function stepForward() {
-    const p = Math.min(100, percent + 1);
-    percentStore.set(p);
-    handleSeek(p);
-  }
-  function stepBackward() {
-    const p = Math.max(0, percent - 1);
-    percentStore.set(p);
-    handleSeek(p);
-  }
-  function resetPlaybackSpeed() {
-    playbackSpeedStore.set(1);
-  }
-  function setPlaybackSpeed(val: number) {
-    playbackSpeedStore.set(val);
+  function toggleStats() {
+    if (layout.showSidebar) statsOpen = !statsOpen;
   }
 
   function handleSplitPath() {
-    if (!(timePrediction?.totalTime > 0)) return;
-    const currentLines = get(linesStore);
-    const currentSequence = get(sequenceStore);
-    const currentPercent = get(percentStore);
-
+    const prediction = playback.timePrediction;
+    if (!prediction?.totalTime) return;
     const res = splitPathAtPercent(
-      currentPercent,
-      timePrediction,
-      currentLines,
-      currentSequence,
+      get(percentStore),
+      prediction,
+      get(linesStore),
+      get(sequenceStore),
     );
+    if (!res) return;
 
-    if (res) {
-      linesStore.set(res.lines);
-      sequenceStore.set(res.sequence);
-      recordChange("Split Path");
+    linesStore.set(res.lines);
+    sequenceStore.set(res.sequence);
+    recordChange("Split Path");
 
-      // Select the split point
-      const splitLine = res.lines[res.splitIndex];
-      if (splitLine?.id) {
-        selectedLineId.set(splitLine.id);
-        selectedPointId.set(`point-${res.splitIndex + 1}-0`);
-      }
+    // Select the split point
+    const splitLine = res.lines[res.splitIndex];
+    if (splitLine?.id) {
+      selectedLineId.set(splitLine.id);
+      selectedPointId.set(`point-${res.splitIndex + 1}-0`);
     }
   }
 
-  // --- Resizing Logic ---
-  // When in vertical (mobile) mode, hide the control tab from layout after
-  // its closing animation completes so the field can resize to the freed area.
-  let controlTabHidden = $state(false);
-  let hideControlTabTimeout: ReturnType<typeof setTimeout> | null =
-    $state(null);
-
-  function startResize(mode: "horizontal" | "vertical") {
-    if (
-      (mode === "horizontal" && (!isLargeScreen || !effectiveShowSidebar)) ||
-      (mode === "vertical" && (isLargeScreen || !effectiveShowSidebar))
-    )
-      return;
-    resizeMode = mode;
-  }
-  function handleResize(cx: number, cy: number) {
-    if (!resizeMode) return;
-    if (resizeMode === "horizontal") userFieldLimit = cx;
-    else if (resizeMode === "vertical" && mainContentDiv) {
-      const rect = mainContentDiv!.getBoundingClientRect();
-      const nh = cy - rect.top;
-      const max = rect.height - 100;
-      userFieldHeightLimit = Math.max(200, Math.min(nh, max));
-    }
-  }
-
-  function handleResizeKeyDown(
-    e: KeyboardEvent,
-    mode: "horizontal" | "vertical",
-  ) {
-    const step = e.shiftKey ? 50 : 10;
-
-    if (mode === "horizontal") {
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        e.preventDefault();
-        // Initialize if null
-        if (userFieldLimit === null) {
-          userFieldLimit = mainContentWidth * 0.55;
-        }
-
-        let current = userFieldLimit;
-        if (e.key === "ArrowLeft") current -= step;
-        else current += step;
-
-        // Clamp to min/max
-        const min = MIN_FIELD_PANE_WIDTH;
-        const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
-
-        userFieldLimit = Math.max(min, Math.min(current, max));
-      }
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      // Vertical
-      e.preventDefault();
-
-      if (userFieldHeightLimit === null) {
-        userFieldHeightLimit = mainContentHeight * 0.6;
-      }
-
-      let current = userFieldHeightLimit;
-      // ArrowUp decreases height (pulls up), ArrowDown increases height (pulls down)
-      if (e.key === "ArrowUp") current -= step;
-      else current += step;
-
-      const rect = mainContentDiv!.getBoundingClientRect();
-      const max = rect.height - 100;
-      userFieldHeightLimit = Math.max(200, Math.min(current, max));
-    }
-  }
-
-  function stopResize() {
-    resizeMode = null;
-  }
-
-  // --- Document Click Handler (Wait Selection) ---
-  function handleDocClick(e: MouseEvent) {
+  // Clicking anywhere outside a selected wait deselects it.
+  function clearWaitSelectionOnOutsideClick(e: MouseEvent) {
     const sel = get(selectedPointId);
     if (!sel || !sel.startsWith("wait-")) return;
     let el = e.target as Element | null;
@@ -1251,347 +538,14 @@
     }
     selectedPointId.set(null);
   }
-  onDestroy(() => {
-    if (typeof document !== "undefined")
-      document.removeEventListener("click", handleDocClick);
-  });
-  if (typeof document !== "undefined")
-    document.addEventListener("click", handleDocClick);
 
-  // --- Export GIF ---
-  // Need reference to Two instance from FieldRenderer
-  let fieldRenderer: any = $state();
-  function exportGif() {
-    showExportGif.set(true);
+  function handleWindowClick(e: MouseEvent) {
+    if (settings?.robotImage === "/JefferyThePotato.png") {
+      firePotatoConfetti(e.clientX, e.clientY);
+    }
   }
 
-  // --- Export Dialog Logic ---
-  let exportDialog: ExportCodeDialog | undefined = $state();
-
-  // --- Apply Custom Theme Class ---
-  // Keep track of the previously-applied custom theme class so it can be removed when switching themes.
-  let currentCustomThemeClass: string | null = $state(null);
-
-  let settings = $derived($settingsStore);
-  // Manage Time-based Autosave
-  $effect(() => {
-    if (autosaveIntervalId) {
-      clearInterval(autosaveIntervalId);
-      autosaveIntervalId = null;
-    }
-
-    if (settings?.autosaveMode === "time" && settings?.autosaveInterval) {
-      const intervalMs = settings.autosaveInterval * 60 * 1000;
-      autosaveIntervalId = setInterval(performAutosave, intervalMs);
-    }
-  });
-  let effectiveShowSidebar = $derived(
-    $isPresentationMode ? false : showSidebar,
-  );
-  $effect(() => {
-    if (controlTabContainer && _controlTabObserver) {
-      try {
-        _controlTabObserver.observe(controlTabContainer);
-        updateControlRect();
-      } catch {}
-    }
-  });
-  $effect(() => {
-    if (!effectiveShowSidebar && statsOpen) statsOpen = false;
-  });
-  let isLargeScreen = $derived(innerWidth >= 1024);
-  let startPoint = $derived($startPointStore);
-  let lines = $derived($linesStore);
-  let sequence = $derived($sequenceStore);
-  let macros = $derived($macrosStore);
-  let percent = $derived($percentStore);
-  let hoverPercent = $derived($hoverPercentStore);
-  let playing = $derived($playingStore);
-  let loopAnimation = $derived($loopAnimationStore);
-  let playbackSpeed = $derived($playbackSpeedStore);
-  let loopRange = $derived($loopRangeStore);
-  let loopRangeActive = $derived($loopRangeActiveStore);
-  $effect(() => {
-    if (
-      userFieldHeightLimit === null &&
-      mainContentHeight > 0 &&
-      !isLargeScreen
-    ) {
-      userFieldHeightLimit = mainContentHeight * 0.6;
-    }
-  });
-  $effect(() => {
-    if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
-      userFieldLimit = mainContentWidth * 0.49;
-    }
-  });
-  let leftPaneWidth = $derived(
-    (() => {
-      if (!isLargeScreen) return mainContentWidth;
-      if (!effectiveShowSidebar) return mainContentWidth;
-      let target = userFieldLimit ?? mainContentWidth * 0.55;
-      const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
-      const min = MIN_FIELD_PANE_WIDTH;
-      if (max < min) return mainContentWidth * 0.5;
-      return Math.max(min, Math.min(target, max));
-    })(),
-  );
-  let fieldDrawSize = $derived(
-    (() => {
-      if (!isLargeScreen) {
-        const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
-        return Math.min(innerWidth - 32, h - 16);
-      }
-      const avW = leftPaneWidth - 16;
-      const avH = mainContentHeight - 16;
-      return Math.max(100, Math.min(avW, avH));
-    })(),
-  );
-  // --- D3 Scales (Used for resizing logic / math) ---
-  let x = $derived(
-    d3
-      .scaleLinear()
-      .domain([0, FIELD_SIZE])
-      .range([0, fieldDrawSize || FIELD_SIZE]),
-  );
-  let y = $derived(
-    d3
-      .scaleLinear()
-      .domain([0, FIELD_SIZE])
-      .range([fieldDrawSize || FIELD_SIZE, 0]),
-  );
-  // --- Robot Dimensions ---
-  let robotLength = $derived(settings?.rLength || DEFAULT_ROBOT_LENGTH);
-  let robotWidth = $derived(settings?.rWidth || DEFAULT_ROBOT_WIDTH);
-  let canUndo = $derived($canUndoStore);
-  let canRedo = $derived($canRedoStore);
-  // --- Animation Logic ---
-  $effect(() => {
-    if (!$isDraggingStore) {
-      timePrediction = calculatePathTime(
-        startPoint,
-        lines,
-        settings,
-        sequence,
-        macros,
-      );
-    }
-  });
-  // Continuous validation when path/settings change
-  $effect(() => {
-    // depend on timePrediction to ensure validation with the latest timeline
-    if (
-      $startPointStore &&
-      $linesStore &&
-      $settingsStore &&
-      $sequenceStore &&
-      $shapesStore &&
-      timePrediction &&
-      !$settingsStore.validationDisabled &&
-      !$isDraggingStore
-    ) {
-      validatePath(
-        $startPointStore,
-        $linesStore,
-        $settingsStore,
-        $sequenceStore,
-        $shapesStore,
-        true, // silent
-        timePrediction.timeline,
-      );
-    } else if (
-      $settingsStore?.validationDisabled &&
-      get(collisionMarkers).length > 0
-    ) {
-      collisionMarkers.set([]);
-    }
-  });
-  $effect(() => {
-    if (settings) debouncedSaveSettings(settings);
-  });
-  // Diff Mode Animation Logic
-  let isDiffMode = $derived($diffMode);
-  let committed = $derived($committedData);
-  let committedTimePrediction = $derived(
-    isDiffMode && committed
-      ? calculatePathTime(
-          committed.startPoint,
-          committed.lines,
-          committed.settings,
-          committed.sequence,
-          macros,
-        )
-      : null,
-  );
-  let currentTotalTime = $derived(
-    timePrediction?.totalTime ? timePrediction.totalTime / 1000 : 0,
-  );
-  let committedTotalTime = $derived(
-    committedTimePrediction ? committedTimePrediction.totalTime / 1000 : 0,
-  );
-  // If in diff mode, duration is the max of both paths
-  let effectiveDuration = $derived(
-    isDiffMode
-      ? Math.max(currentTotalTime, committedTotalTime)
-      : currentTotalTime,
-  );
-  let animationDuration = $derived(
-    getAnimationDuration(effectiveDuration, playbackSpeed),
-  );
-  $effect(() => {
-    if (animationController) {
-      animationController.setDuration(animationDuration);
-      animationController.setLoop(loopAnimation);
-      animationController.setPlaybackRange(
-        loopRange[0],
-        loopRange[1],
-        loopRangeActive,
-      );
-      // If playing state changes externally (e.g. store update), sync controller?
-      // Actually controller drives percent. `playing` store drives controller.
-    }
-  });
-  // Sync playing store -> controller
-  $effect(() => {
-    if (animationController) {
-      if (playing && animationController.isPlaying() === false)
-        animationController.play();
-      if (!playing && animationController.isPlaying())
-        animationController.pause();
-    }
-  });
-  $effect(() => {
-    if (timePrediction?.timeline && (lines.length > 0 || sequence.length > 0)) {
-      // Calculate Global Time based on effective duration
-      const globalTime = (percent / 100) * effectiveDuration;
-
-      // 1. Current Robot State
-      // Map global time to current path percent
-      let currentPercent = 0;
-      if (currentTotalTime > 0) {
-        currentPercent = (globalTime / currentTotalTime) * 100;
-        if (currentPercent > 100) currentPercent = 100;
-      }
-
-      // Pass identity scales to get inches
-      const state = calculateRobotState(
-        currentPercent,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        IDENTITY_SCALE,
-        IDENTITY_SCALE,
-      );
-      robotXYStore.set({ x: state.x, y: state.y });
-      robotHeadingStore.set(state.heading);
-
-      // 2. Committed Robot State (if in diff mode)
-      if (isDiffMode && committed && committedTimePrediction) {
-        let committedPercent = 0;
-        if (committedTotalTime > 0) {
-          committedPercent = (globalTime / committedTotalTime) * 100;
-          if (committedPercent > 100) committedPercent = 100;
-        }
-
-        const commState = calculateRobotState(
-          committedPercent,
-          committedTimePrediction.timeline,
-          committed.lines,
-          committed.startPoint,
-          IDENTITY_SCALE,
-          IDENTITY_SCALE,
-        );
-        committedRobotState = {
-          x: commState.x,
-          y: commState.y,
-          heading: commState.heading,
-        };
-      } else {
-        committedRobotState = null;
-      }
-    } else {
-      // Store position in inches
-      robotXYStore.set({ x: startPoint.x, y: startPoint.y });
-      let h = 0;
-      if (startPoint.heading === "constant") h = -startPoint.degrees;
-      else if (startPoint.heading === "linear") h = -startPoint.startDeg;
-      // Tangential defaults to 0 if no lines
-      robotHeadingStore.set(h);
-      committedRobotState = null;
-    }
-  });
-
-  $effect(() => {
-    if (
-      hoverPercent !== null &&
-      timePrediction?.timeline &&
-      (lines.length > 0 || sequence.length > 0)
-    ) {
-      const globalTime = (hoverPercent / 100) * effectiveDuration;
-      let currentPercent = 0;
-      if (currentTotalTime > 0) {
-        currentPercent = (globalTime / currentTotalTime) * 100;
-        if (currentPercent > 100) currentPercent = 100;
-      }
-      const state = calculateRobotState(
-        currentPercent,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        IDENTITY_SCALE,
-        IDENTITY_SCALE,
-      );
-      hoverRobotXYStore.set({ x: state.x, y: state.y });
-      hoverRobotHeadingStore.set(state.heading);
-    } else {
-      hoverRobotXYStore.set(null);
-      hoverRobotHeadingStore.set(null);
-    }
-  });
-  $effect(() => {
-    if (isLargeScreen) {
-      // Ensure visible on large screens
-      controlTabHidden = false;
-      if (hideControlTabTimeout) {
-        clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = null;
-      }
-    } else if (effectiveShowSidebar) {
-      // On small screens, when sidebar is closed, wait for animation then hide
-      if (hideControlTabTimeout) {
-        clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = null;
-      }
-      controlTabHidden = false;
-    } else {
-      if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
-      hideControlTabTimeout = setTimeout(() => {
-        controlTabHidden = true;
-      }, 320); // slightly longer than the 300ms transition
-    }
-  });
-  let fieldRenderWidth = $derived(
-    $isPresentationMode ? mainContentWidth : fieldDrawSize,
-  );
-  let fieldRenderHeight = $derived(
-    $isPresentationMode ? mainContentHeight : fieldDrawSize,
-  );
-  // Compute a target height for the field container so it can animate smoothly
-  // when the sidebar (control tab) opens/closes in vertical mode
-  let fieldContainerTargetHeight = $derived(
-    (() => {
-      if (isLargeScreen) return "100%";
-      // when sidebar is visible, reserve space for it (use userFieldHeightLimit or default fraction)
-      if (effectiveShowSidebar) {
-        const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
-        const target = Math.min(h, mainContentHeight);
-        return `${Math.max(120, Math.floor(target))}px`;
-      } else {
-        // sidebar not shown -> full available height
-        return `${mainContentHeight}px`;
-      }
-    })(),
-  );
+  // Opens the export dialog when something sets `exportDialogState`.
   $effect(() => {
     if ($exportDialogState.isOpen && exportDialog) {
       exportDialog.openWithFormat(
@@ -1602,151 +556,39 @@
       exportDialogState.update((s) => ({ ...s, isOpen: false }));
     }
   });
-  // --- Apply Theme ---
-  $effect(() => {
-    // Depend on themesStore so re-run when plugins load
-    const registeredThemes = $themesStore;
-    if (settings) {
-      // Check for Potato Mode first!
-      const isAprilFools =
-        new Date().getMonth() === 3 && new Date().getDate() === 1;
-      const isPotatoMode =
-        settings.robotImage === "/JefferyThePotato.png" || isAprilFools;
-
-      // Remove any existing custom theme style
-      const existingStyle = document.getElementById("custom-theme-style");
-      if (existingStyle) existingStyle.remove();
-
-      if (isPotatoMode) {
-        const style = document.createElement("style");
-        style.id = "custom-theme-style";
-        style.textContent = POTATO_THEME_CSS;
-        document.head.appendChild(style);
-
-        // Potato mode works best with light mode base (colors are overridden anyway)
-        document.documentElement.classList.remove("dark");
-        document.documentElement.classList.add("potato-mode");
-
-        // Ensure we clear any earlier custom theme classes
-        if (currentCustomThemeClass) {
-          document.documentElement.classList.remove(currentCustomThemeClass);
-          currentCustomThemeClass = null;
-        }
-      } else {
-        document.documentElement.classList.remove("potato-mode");
-
-        let t = settings.theme || "auto";
-
-        // Check if it's a custom theme
-        const customTheme = registeredThemes.find((th) => th.name === t);
-
-        if (customTheme) {
-          const style = document.createElement("style");
-          style.id = "custom-theme-style";
-          style.textContent = customTheme.css;
-          document.head.appendChild(style);
-
-          // Add a theme-specific class so we can scope CSS for multiple custom themes
-          const themeClass = `theme-${t
-            .toLowerCase()
-            .replaceAll(/[^a-z0-9]+/g, "-")}`;
-          if (
-            currentCustomThemeClass &&
-            currentCustomThemeClass !== themeClass
-          ) {
-            document.documentElement.classList.remove(currentCustomThemeClass);
-          }
-          document.documentElement.classList.add(themeClass);
-          currentCustomThemeClass = themeClass;
-
-          // Custom themes should start from the dark mode base to avoid Tailwind's
-          // default light mode styling applying to the app.
-          document.documentElement.classList.add("dark");
-        } else {
-          if (currentCustomThemeClass) {
-            document.documentElement.classList.remove(currentCustomThemeClass);
-            currentCustomThemeClass = null;
-          }
-
-          if (t === "auto") {
-            t = globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-          }
-          if (t === "dark") document.documentElement.classList.add("dark");
-          else document.documentElement.classList.remove("dark");
-        }
-      }
-    }
-  });
-  // --- Apply Program Font Size ---
-  $effect(() => {
-    if (settings?.programFontSize) {
-      document.documentElement.style.fontSize = `${settings.programFontSize}%`;
-    } else {
-      document.documentElement.style.fontSize = "100%";
-    }
-  });
-
-  const SvelteComponent_1 = $derived(
-    $componentRegistry.FieldRenderer || FieldRenderer,
-  );
-  const SvelteComponent_2 = $derived(
-    $componentRegistry.ControlTab || ControlTab,
-  );
 </script>
 
 <svelte:window
-  bind:innerWidth
-  bind:innerHeight
-  onclick={(e) => {
-    if (settings?.robotImage === "/JefferyThePotato.png") {
-      firePotatoConfetti(e.clientX, e.clientY);
-    }
-  }}
-  ondragenter={handleDragEnter}
-  ondragleave={handleDragLeave}
-  ondragover={handleDragOver}
-  ondrop={handleDrop}
-  onmouseup={stopResize}
-  onmousemove={(e) => {
-    if (resizeMode) {
-      e.preventDefault();
-      handleResize(e.clientX, e.clientY);
-    }
-  }}
-  ontouchend={stopResize}
-  ontouchmove={(e) => {
-    if (resizeMode) {
-      const t = e.touches[0];
-      handleResize(t.clientX, t.clientY);
-    }
-  }}
+  bind:innerWidth={layout.innerWidth}
+  onclick={handleWindowClick}
+  onfocus={fetchGitStatus}
+  onbeforeunload={handleBeforeUnload}
+  onmouseup={layout.stopResize}
+  onmousemove={layout.handleMouseMove}
+  ontouchend={layout.stopResize}
+  ontouchmove={layout.handleTouchMove}
 />
+<svelte:document onclick={clearWaitSelectionOnOutsideClick} />
 
 <KeyboardShortcuts
   saveProject={handleSaveProject}
   resetProject={handleResetProject}
   {saveFileAs}
-  {exportGif}
+  exportGif={() => showExportGif.set(true)}
   exportImage={() => showExportImage.set(true)}
   {undoAction}
   {redoAction}
-  {play}
-  {pause}
-  {resetAnimation}
-  {stepForward}
-  {stepBackward}
+  play={playback.play}
+  pause={playback.pause}
+  resetAnimation={playback.reset}
+  stepForward={playback.stepForward}
+  stepBackward={playback.stepBackward}
   {recordChange}
   splitPath={handleSplitPath}
   bind:controlTabRef
   bind:activeControlTab
-  toggleStats={() => {
-    if (showSidebar) {
-      statsOpen = !statsOpen;
-    }
-  }}
-  toggleControlTab={() => (showSidebar = !showSidebar)}
+  {toggleStats}
+  toggleControlTab={() => (layout.showSidebar = !layout.showSidebar)}
   openWhatsNew={() => showWhatsNew.set(true)}
   toggleSidebar={() => {
     settingsStore.update((s) => ({
@@ -1757,17 +599,16 @@
   {fieldRenderer}
 />
 
-{#if $showExportGif && fieldRenderer}
+{#if $showExportGif && fieldRenderer && playback.controller}
   <ExportGifDialog
     bind:show={$showExportGif}
     twoInstance={fieldRenderer.getTwoInstance()}
-    {animationController}
+    animationController={playback.controller}
     {settings}
-    robotLengthPx={x(robotLength)}
-    robotWidthPx={x(robotWidth)}
+    robotLengthPx={layout.xScale(robotLength)}
+    robotWidthPx={layout.xScale(robotWidth)}
     robotStateFunction={(p) =>
-      calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y)}
-    {electronAPI}
+      playback.poseAtPercent(p, layout.xScale, layout.yScale)}
     onclose={() => showExportGif.set(false)}
   />
 {/if}
@@ -1777,23 +618,15 @@
     bind:show={$showExportImage}
     twoInstance={fieldRenderer.getTwoInstance()}
     {settings}
-    robotLengthPx={x(robotLength)}
-    robotWidthPx={x(robotWidth)}
-    xScale={x}
-    yScale={y}
+    robotLengthPx={layout.xScale(robotLength)}
+    robotWidthPx={layout.xScale(robotWidth)}
+    xScale={layout.xScale}
+    yScale={layout.yScale}
     robotState={{
       x: $startPointStore.x,
       y: $startPointStore.y,
-      heading: calculateRobotState(
-        0,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        IDENTITY_SCALE,
-        IDENTITY_SCALE,
-      ).heading,
+      heading: playback.poseAtPercent(0).heading,
     }}
-    {electronAPI}
     onclose={() => showExportImage.set(false)}
   />
 {/if}
@@ -1806,7 +639,7 @@
     lines={$linesStore}
     sequence={$sequenceStore}
     settings={$settingsStore}
-    {timePrediction}
+    timePrediction={playback.timePrediction}
   />
 {/if}
 
@@ -1817,7 +650,7 @@
     sequence={$sequenceStore}
     settings={$settingsStore}
     startPoint={$startPointStore}
-    controlRect={controlTabRect}
+    controlRect={layout.controlTabRect}
     percent={$percentStore}
     onClose={() => (statsOpen = false)}
   />
@@ -1833,40 +666,9 @@
   ontutorialComplete={() => showWhatsNew.set(true)}
 />
 
-<SaveNameDialog
-  bind:show={showSaveNameDialog}
-  onSave={handleSaveName}
-  onCancel={handleCancelSaveName}
-/>
+<UnsavedChangesGuard bind:this={unsavedGuard} onReset={performReset} />
 
-<UnsavedChangesDialog
-  bind:show={showUnsavedChangesDialog}
-  onSave={handleUnsavedSave}
-  onDiscard={handleUnsavedDiscard}
-  onCancel={handleUnsavedCancel}
-/>
-
-<UpdateAvailableDialog bind:show={$showUpdateAvailableDialog} />
-
-<SettingsDialog bind:isOpen={$showSettings} bind:settings={$settingsStore} />
-<TelemetryDialog bind:isOpen={$showTelemetryDialog} />
-<TransformDialog bind:isOpen={$showTransformDialog} />
-<KeyboardShortcutsDialog
-  bind:isOpen={$showShortcuts}
-  bind:settings={$settingsStore}
-/>
-<PluginManagerDialog bind:isOpen={$showPluginManager} />
-
-{#if $showFileManager}
-  <FileManager
-    bind:isOpen={$showFileManager}
-    bind:startPoint={$startPointStore}
-    bind:lines={$linesStore}
-    bind:shapes={$shapesStore}
-    bind:sequence={$sequenceStore}
-    bind:settings={$settingsStore}
-  />
-{/if}
+<StoreDialogs />
 
 <ExportCodeDialog
   bind:this={exportDialog}
@@ -1880,46 +682,31 @@
 <FeedbackDialog />
 <RatingDialog />
 
-<!-- Drag Overlay -->
-{#if isDraggingFile}
-  <div
-    class="fixed inset-0 z-[100] bg-purple-500/20 backdrop-blur-sm border-4 border-purple-500 flex items-center justify-center pointer-events-none"
-  >
-    <div
-      class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-slight"
-    >
-      <CloudArrowDownIcon
-        className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
-      />
-      <h2 class="text-2xl font-bold mb-2 dark:text-white">Drop to Open</h2>
-      <p class="text-neutral-500 dark:text-neutral-400">
-        Release the file to open project
-      </p>
-    </div>
-  </div>
-{/if}
+<FileDropZone
+  saveBeforeContinuing={async () =>
+    (await unsavedGuard?.saveBeforeContinuing()) ?? false}
+  onOpened={() => recordChange("Load Project")}
+/>
 
-<!-- Main Container -->
 <div
   class="h-screen w-full flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans"
 >
   {#if !$isPresentationMode}
-    {@const SvelteComponent = $componentRegistry.Navbar || Navbar}
     <div class="flex-none z-50">
-      <SvelteComponent
+      <NavbarComponent
         bind:lines={$linesStore}
         bind:startPoint={$startPointStore}
         bind:shapes={$shapesStore}
         bind:sequence={$sequenceStore}
         bind:settings={$settingsStore}
-        bind:robotLength
-        bind:robotWidth
-        bind:showSidebar
-        bind:isLargeScreen
+        {robotLength}
+        {robotWidth}
+        bind:showSidebar={layout.showSidebar}
+        isLargeScreen={layout.isLargeScreen}
         saveProject={handleSaveProject}
         resetProject={handleResetProject}
         {saveFileAs}
-        {exportGif}
+        exportGif={() => showExportGif.set(true)}
         {undoAction}
         {redoAction}
         {recordChange}
@@ -1947,19 +734,16 @@
 
     <div
       class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative gap-0"
-      bind:clientHeight={mainContentHeight}
-      bind:clientWidth={mainContentWidth}
-      bind:this={mainContentDiv}
+      bind:clientHeight={layout.mainContentHeight}
+      bind:clientWidth={layout.mainContentWidth}
+      bind:this={layout.mainContentDiv}
     >
-      <!-- Field Container -->
       <div
         id="field-container"
         class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
-        style={`
-        width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};
-        height: ${isLargeScreen ? "100%" : fieldContainerTargetHeight};
-        min-height: ${isLargeScreen ? "0" : userFieldHeightLimit ? "0" : "60vh"};
-      `}
+        style:width={layout.fieldContainerWidth}
+        style:height={layout.fieldContainerHeight}
+        style:min-height={layout.fieldContainerMinHeight}
       >
         <div
           class="relative shadow-inner w-full h-full flex justify-center items-center"
@@ -1972,66 +756,43 @@
             title="Field workspace tutorial target"
             tabindex={$startTutorial ? 0 : -1}
           ></button>
-          <SvelteComponent_1
+          <FieldRendererComponent
             bind:this={fieldRenderer}
-            width={fieldRenderWidth}
-            height={fieldRenderHeight}
-            {timePrediction}
-            {committedRobotState}
+            width={layout.fieldRenderWidth}
+            height={layout.fieldRenderHeight}
+            timePrediction={playback.timePrediction}
+            committedRobotState={playback.committedRobotState}
             {previewOptimizedLines}
-            {onRecordChange}
+            onRecordChange={recordChange}
           />
         </div>
       </div>
 
-      <!-- Resizer Handle (Desktop) -->
-      {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
-        <button
-          class="group w-4 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
-          onmousedown={() => startResize("horizontal")}
-          onkeydown={(e) => handleResizeKeyDown(e, "horizontal")}
-          ondblclick={() => {
-            userFieldLimit = null;
-          }}
-          aria-label="Resize Sidebar"
-          title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
-        >
-          <div
-            class="w-0.5 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
-          ></div>
-        </button>
+      {#if layout.isLargeScreen && layout.effectiveShowSidebar && !$isPresentationMode}
+        <ResizeHandle
+          direction="horizontal"
+          onstart={() => layout.startResize("horizontal")}
+          onkeydown={(e) => layout.resizeWithKeyboard(e, "horizontal")}
+          onreset={() => layout.resetFieldWidth()}
+        />
+      {:else if !layout.isLargeScreen && layout.effectiveShowSidebar && !$isPresentationMode}
+        <ResizeHandle
+          direction="vertical"
+          onstart={() => layout.startResize("vertical")}
+          onkeydown={(e) => layout.resizeWithKeyboard(e, "vertical")}
+          onreset={() => layout.resetFieldHeight()}
+        />
       {/if}
 
-      <!-- Resizer Handle (Mobile) -->
-      {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
-        <button
-          class="group h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
-          onmousedown={() => startResize("vertical")}
-          onkeydown={(e) => handleResizeKeyDown(e, "vertical")}
-          ontouchstart={(e) => {
-            e.preventDefault();
-            startResize("vertical");
-          }}
-          ondblclick={() => {
-            userFieldHeightLimit = null;
-          }}
-          aria-label="Resize Tab"
-          title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
-        >
-          <div
-            class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
-          ></div>
-        </button>
-      {/if}
-
-      <!-- Control Tab -->
       <div
-        bind:this={controlTabContainer}
+        bind:this={layout.controlTabContainer}
         class="relative flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
-        class:translate-x-full={!effectiveShowSidebar && isLargeScreen}
-        class:translate-y-full={!effectiveShowSidebar && !isLargeScreen}
-        class:overflow-hidden={!effectiveShowSidebar}
-        class:hidden={controlTabHidden}
+        class:translate-x-full={!layout.effectiveShowSidebar &&
+          layout.isLargeScreen}
+        class:translate-y-full={!layout.effectiveShowSidebar &&
+          !layout.isLargeScreen}
+        class:overflow-hidden={!layout.effectiveShowSidebar}
+        class:hidden={layout.controlTabHidden}
         class:controlTabBlurred={statsOpen}
       >
         {#if statsOpen}
@@ -2048,32 +809,29 @@
           ></div>
         {/if}
 
-        <SvelteComponent_2
+        <ControlTabComponent
           bind:this={controlTabRef}
           bind:playing={$playingStore}
-          {play}
-          {pause}
+          play={playback.play}
+          pause={playback.pause}
           bind:startPoint={$startPointStore}
           bind:lines={$linesStore}
           bind:sequence={$sequenceStore}
-          bind:robotLength
-          bind:robotWidth
           bind:settings={$settingsStore}
           bind:percent={$percentStore}
           bind:robotXY={$robotXYStore}
           bind:robotHeading={$robotHeadingStore}
           bind:shapes={$shapesStore}
-          {handleSeek}
+          handleSeek={playback.seek}
           bind:loopAnimation={$loopAnimationStore}
-          {resetAnimation}
           {recordChange}
           playbackSpeed={$playbackSpeedStore}
-          {resetPlaybackSpeed}
-          {setPlaybackSpeed}
+          setPlaybackSpeed={(speed: number) => playbackSpeedStore.set(speed)}
           bind:statsOpen
           bind:activeTab={activeControlTab}
-          onPreviewChange={handlePreviewChange}
-          totalSeconds={effectiveDuration * 1000}
+          onPreviewChange={(lines: Line[] | null) =>
+            (previewOptimizedLines = lines)}
+          totalSeconds={playback.effectiveDuration}
           splitPath={handleSplitPath}
         />
       </div>
@@ -2082,20 +840,17 @@
 </div>
 
 <style>
-  /* Blur the control tab when the stats panel is open; clicking the background closes the panel */
+  /* Dim the control tab when the stats panel is open; clicking the background closes the panel */
   .controlTabBlurred {
-    filter: blur(4px);
     opacity: 0.88;
-    transition:
-      filter 0.15s ease,
-      opacity 0.15s ease;
+    transition: opacity 0.15s ease;
     position: relative;
   }
 
   /* Overlay that sits above the control tab contents while stats are open */
   .control-tab-overlay {
     cursor: pointer;
-    background: transparent; /* keep blurred visuals visible */
+    background: transparent; /* keep the dimmed control tab visible */
     outline: none;
   }
 

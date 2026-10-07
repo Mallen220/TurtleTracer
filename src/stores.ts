@@ -63,7 +63,7 @@ export const showFileManager = writable(false);
 export const fileManagerNewFileMode = writable(false);
 
 // Consolidated Dialog Stores Map
-export const dialogStores = {
+const dialogStores = {
   settings: showSettings,
   fileManager: showFileManager,
   pluginManager: showPluginManager,
@@ -150,12 +150,6 @@ export const forceShowValidation = writable<boolean>(false);
 
 // Notification system
 export const notification = writable<Notification | null>(null);
-
-// Project Metadata
-export const projectMetadataStore = writable<{
-  filepath: string;
-  lastSaved?: Date;
-}>({ filepath: "" });
 
 // File Manager Session State
 export const fileManagerSessionState = writable<{

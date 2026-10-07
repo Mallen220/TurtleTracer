@@ -26,7 +26,7 @@ vi.mock("electron", () => ({
     setApplicationMenu: vi.fn(),
   },
   shell: {
-    openExternal: vi.fn(),
+    openExternal: vi.fn(() => Promise.resolve()),
   },
   ipcMain: {
     handle: vi.fn(),

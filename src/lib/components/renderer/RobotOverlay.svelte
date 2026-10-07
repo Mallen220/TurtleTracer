@@ -1,6 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "../../../config";
   import type { Settings, RobotFeature } from "../../../types/index";
   import type { WheelSpeeds } from "../../../utils/drivetrain";
@@ -41,8 +40,6 @@
   }: Props = $props();
 
   let turtlePhases = $state({ fl: 0, fr: 0, bl: 0, br: 0, tail: 0 });
-  let lastTurtleTime = performance.now();
-  let animId: number;
 
   function speedForWheel(
     wheel: string,
@@ -52,48 +49,51 @@
     return speeds[wheel as keyof WheelSpeeds] || 0;
   }
 
-  function turtleLoop() {
-    const now = performance.now();
-    const dt = (now - lastTurtleTime) / 1000;
-    lastTurtleTime = now;
-
-    if (
-      isPlaying &&
-      showRobot &&
-      settings.robotImage === "turtle" &&
-      mecanumSpeeds
-    ) {
-      const fl = mecanumSpeeds.frontLeft || 0;
-      const fr = mecanumSpeeds.frontRight || 0;
-      const bl = mecanumSpeeds.backLeft || 0;
-      const br = mecanumSpeeds.backRight || 0;
-      const total =
-        (Math.abs(fl) + Math.abs(fr) + Math.abs(bl) + Math.abs(br)) / 4;
-      const WIGGLE_SPEED = 25;
-
-      // Cap the wiggling factors to 1.0 to enforce the maximum flapping cap
-      const factorFl = Math.min(1, Math.abs(fr));
-      const factorFr = Math.min(1, Math.abs(fl));
-      const factorBl = Math.min(1, Math.abs(br));
-      const factorBr = Math.min(1, Math.abs(bl));
-      const factorTail = Math.min(1, total);
-
-      turtlePhases.fl += dt * factorFl * WIGGLE_SPEED;
-      turtlePhases.fr += dt * factorFr * WIGGLE_SPEED;
-      turtlePhases.bl += dt * factorBl * WIGGLE_SPEED * 1.3;
-      turtlePhases.br += dt * factorBr * WIGGLE_SPEED * 1.3;
-      turtlePhases.tail += dt * factorTail * WIGGLE_SPEED * 1.8;
-    }
-
-    animId = requestAnimationFrame(turtleLoop);
+  /**
+   * Places a robot-sized box centred on (px, py), turned to `heading`. It is
+   * moved with a transform rather than top/left so moving it every frame
+   * doesn't make the page lay itself out again.
+   */
+  function placeAt(px: number, py: number, heading: number) {
+    return `top: 0; left: 0; transform: translate(${px}px, ${py}px) translate(-50%, -50%) rotate(${heading}deg);`;
   }
 
-  onMount(() => {
-    animId = requestAnimationFrame(turtleLoop);
-  });
+  /** Wiggles the turtle's legs and tail by how fast each wheel turns. */
+  function swim(dt: number) {
+    if (!mecanumSpeeds) return;
+    const fl = mecanumSpeeds.frontLeft || 0;
+    const fr = mecanumSpeeds.frontRight || 0;
+    const bl = mecanumSpeeds.backLeft || 0;
+    const br = mecanumSpeeds.backRight || 0;
+    const total =
+      (Math.abs(fl) + Math.abs(fr) + Math.abs(bl) + Math.abs(br)) / 4;
+    const WIGGLE_SPEED = 25;
 
-  onDestroy(() => {
-    cancelAnimationFrame(animId);
+    // Cap the wiggling factors to 1.0 to enforce the maximum flapping cap
+    const factorFl = Math.min(1, Math.abs(fr));
+    const factorFr = Math.min(1, Math.abs(fl));
+    const factorBl = Math.min(1, Math.abs(br));
+    const factorBr = Math.min(1, Math.abs(bl));
+    const factorTail = Math.min(1, total);
+
+    turtlePhases.fl += dt * factorFl * WIGGLE_SPEED;
+    turtlePhases.fr += dt * factorFr * WIGGLE_SPEED;
+    turtlePhases.bl += dt * factorBl * WIGGLE_SPEED * 1.3;
+    turtlePhases.br += dt * factorBr * WIGGLE_SPEED * 1.3;
+    turtlePhases.tail += dt * factorTail * WIGGLE_SPEED * 1.8;
+  }
+
+  // The turtle only swims while playing, so frames are only asked for then.
+  $effect(() => {
+    if (!(isPlaying && showRobot && settings.robotImage === "turtle")) return;
+    let last = performance.now();
+    let animId = requestAnimationFrame(function frame() {
+      const now = performance.now();
+      swim((now - last) / 1000);
+      last = now;
+      animId = requestAnimationFrame(frame);
+    });
+    return () => cancelAnimationFrame(animId);
   });
 </script>
 
@@ -169,7 +169,7 @@
     <!-- Current (Green Square) -->
     <div
       class="flex items-center justify-center relative shadow-sm"
-      style={`overflow: visible; position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.10); border: 2px solid #16a34a; border-radius: 8px;`}
+      style={`overflow: visible; position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.10); border: 2px solid #16a34a; border-radius: 8px;`}
     >
       {#if settings.showRobotArrows}
         <!-- Mecanum / Swerve wheel arrows -->
@@ -218,7 +218,7 @@
     </div>
   {:else if settings.robotImage === "turtle"}
     <div
-      style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
+      style={`position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
     >
       <!-- Turtle Parts Container -->
       <div
@@ -289,7 +289,7 @@
     </div>
   {:else}
     <div
-      style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
+      style={`position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
     >
       <img
         src={settings.robotImage || "/robot.png"}
@@ -327,14 +327,14 @@
   <!-- Current (Green) -->
   {#if robotXY}
     <div
-      style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
+      style={`position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
     ></div>
   {/if}
 
   <!-- Committed (Red) -->
   {#if committedRobotState}
     <div
-      style={`position: absolute; top: ${y(committedRobotState.y)}px; left: ${x(committedRobotState.x)}px; transform: translate(-50%, -50%) rotate(${committedRobotState.heading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(239, 68, 68, 0.5); border: 2px solid #dc2626;`}
+      style={`position: absolute; ${placeAt(x(committedRobotState.x), y(committedRobotState.y), committedRobotState.heading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(239, 68, 68, 0.5); border: 2px solid #dc2626;`}
     ></div>
   {/if}
 {/if}
@@ -343,7 +343,7 @@
 {#if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && settings.robotImage !== "none" && settings.robotImage !== "turtle"}
   <div
     class="field-element transition-all duration-[20ms] ease-linear pointer-events-none"
-    style={`position: absolute; top: ${y(hoverRobotXY.y)}px; left: ${x(hoverRobotXY.x)}px; transform: translate(-50%, -50%) rotate(${hoverRobotHeading}deg); z-index: 21; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; opacity: 0.5;`}
+    style={`position: absolute; ${placeAt(x(hoverRobotXY.x), y(hoverRobotXY.y), hoverRobotHeading)} z-index: 21; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; opacity: 0.5;`}
   >
     <img
       src={settings.robotImage || "/robot.png"}
@@ -378,7 +378,7 @@
 {:else if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && (settings.robotImage === "none" || settings.robotImage === "turtle")}
   <div
     class="field-element transition-all duration-[20ms] ease-linear pointer-events-none"
-    style={`position: absolute; top: ${y(hoverRobotXY.y)}px; left: ${x(hoverRobotXY.x)}px; transform: translate(-50%, -50%) rotate(${hoverRobotHeading}deg); z-index: 21; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; background-color: rgba(100, 116, 139, 0.3); border: 2px dashed #94a3b8; border-radius: 8px;`}
+    style={`position: absolute; ${placeAt(x(hoverRobotXY.x), y(hoverRobotXY.y), hoverRobotHeading)} z-index: 21; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; background-color: rgba(100, 116, 139, 0.3); border: 2px dashed #94a3b8; border-radius: 8px;`}
   >
     <!-- heading arrow indicator for no-image robot -->
     <div
@@ -402,7 +402,7 @@
 <!-- Telemetry Ghost Robot -->
 {#if ghostRobotState}
   <div
-    style={`position: absolute; top: ${y(ghostRobotState.y)}px; left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghostRobotState.heading}deg); z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
+    style={`position: absolute; ${placeAt(x(ghostRobotState.x), y(ghostRobotState.y), ghostRobotState.heading)} z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
   >
     {#if settings.robotImage === "none"}
       <div

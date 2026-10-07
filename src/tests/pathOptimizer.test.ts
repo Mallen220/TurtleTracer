@@ -236,7 +236,7 @@ describe("PathOptimizer", () => {
     expect(result.lines).not.toEqual(lines);
   });
 
-  it("should initialize population with valid seeds if available", async () => {
+  it("only seeds the population with paths that don't collide", async () => {
     const optimizer = new PathOptimizer(
       startPoint,
       lines,
@@ -245,8 +245,9 @@ describe("PathOptimizer", () => {
       shapes,
     ) as any;
 
-    const seeds = optimizer.findValidPathSeeds();
-    expect(Array.isArray(seeds)).toBe(true);
+    const seeds: { time: number }[] = optimizer.gridSeeds();
+    expect(seeds.length).toBeGreaterThan(0);
+    for (const seed of seeds) expect(seed.time).toBeLessThan(10000);
   });
 
   it("should respect timeline prevPoint for macro sequences to avoid ghost collisions", () => {

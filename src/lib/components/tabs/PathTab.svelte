@@ -1,26 +1,24 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type {
+    ActionDefinition,
     Point,
     Line,
     SequenceItem,
-    SequenceWaitItem,
-    SequenceRotateItem,
     SequenceMacroItem,
     Settings,
   } from "../../../types/index";
   import { tick } from "svelte";
   import random from "lodash/random";
+  import { createLine, endPointAfter } from "../../actions/PathAction";
+  import { createWait } from "../../actions/WaitAction";
+  import { createRotate } from "../../actions/RotateAction";
   import {
     reorderSequence,
     getClosestTarget,
     type DragPosition,
   } from "../../../utils/dragDrop";
-  import { getRandomColor } from "../../../utils";
-  import {
-    makeId,
-    renumberDefaultPathNames,
-  } from "../../../utils/nameGenerator";
+  import { renumberDefaultPathNames } from "../../../utils/nameGenerator";
   import StartingPointSection from "../sections/StartingPointSection.svelte";
   import EmptyState from "../common/EmptyState.svelte";
   import PathLineSection from "../sections/PathLineSection.svelte";
@@ -28,17 +26,20 @@
     selectedLineId,
     selectedPointId,
     toggleCollapseAllTrigger,
-    currentFilePath,
-    notification,
   } from "../../../stores";
-  import {
-    loadMacro,
-    macrosStore,
-    ensureSequenceConsistency,
-  } from "../../../lib/projectStore";
-  import { get } from "svelte/store";
+  import { ensureSequenceConsistency } from "../../../lib/projectStore";
   import { actionRegistry } from "../../actionRegistry";
-  import { wouldCreateCycle } from "../../../lib/macroUtils";
+  import {
+    isSequenceItemLocked,
+    lineOrderForSequence,
+    moveSequenceItem as moveItem,
+    unlinkMacro as unlinkMacroItems,
+    isMacroDrag,
+    getDroppedMacroPath,
+    insertMacro,
+    sequenceItemKey,
+    toggleChain,
+  } from "../../sequenceOperations";
   import {
     updateLinkedWaits,
     updateLinkedRotations,
@@ -46,7 +47,6 @@
   import PathActionButtons from "./PathActionButtons.svelte";
   import DebugPanel from "../common/DebugPanel.svelte";
   import MapPinIcon from "../icons/MapPinIcon.svelte";
-  import { isSupportedProjectFileName } from "../../../utils/fileExtensions";
 
   interface Props {
     startPoint: Point;
@@ -96,15 +96,6 @@
       return;
     }
 
-    const item = sequence[index];
-    let isLocked = false;
-    if (item.kind === "path") {
-      const line = lines.find((l) => l.id === item.lineId);
-      isLocked = line?.locked ?? false;
-    } else {
-      isLocked = item.locked ?? false;
-    }
-
     if (
       originElem?.tagName === "INPUT" ||
       originElem?.tagName === "TEXTAREA" ||
@@ -114,7 +105,7 @@
       return;
     }
 
-    if (isLocked) {
+    if (isSequenceItemLocked(sequence[index], lines)) {
       e.preventDefault();
       return;
     }
@@ -127,14 +118,7 @@
 
   function handleWindowDragOver(e: DragEvent) {
     if (!isActive) return;
-    const isInternalReorder = draggingIndex !== null;
-    const isMacroDrop = e.dataTransfer?.types
-      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-          (t) => e.dataTransfer?.types.includes(t),
-        )
-      : false;
-
-    if (!isInternalReorder && !isMacroDrop) return;
+    if (draggingIndex === null && !isMacroDrag(e)) return;
     e.preventDefault();
 
     const target = getClosestTarget(e, '[role="listitem"]', document.body);
@@ -155,68 +139,27 @@
   async function handleWindowDrop(e: DragEvent) {
     if (!isActive) return;
 
-    const isInternalReorder = draggingIndex !== null;
-
-    // Check for internal macro data OR OS files that could be macros
-    let isMacroDrop = e.dataTransfer?.types
-      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-          (t) => e.dataTransfer?.types.includes(t),
-        )
-      : false;
-
-    // Optional: detect OS file drops as macros if active
-    const hasFiles = e.dataTransfer?.types.includes("Files");
-    if (
-      !isMacroDrop &&
-      hasFiles &&
-      e.dataTransfer?.files &&
-      e.dataTransfer.files.length > 0
-    ) {
-      const file = e.dataTransfer.files[0];
-      if (isSupportedProjectFileName(file.name)) {
-        isMacroDrop = true;
-      }
-    }
-
-    if (!isInternalReorder && !isMacroDrop) return;
+    const isReorder = draggingIndex !== null;
+    const isMacroDrop = !isReorder && isMacroDrag(e);
+    if (!isReorder && !isMacroDrop) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    // If no specific item targeted, but it's a macro, append to end
-    if (isMacroDrop && (dragOverIndex === null || dragPosition === null)) {
-      let filePath =
-        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
-        e.dataTransfer?.getData("application/x-pedro-macro");
-
-      // Handle OS file path if no internal data
-      if (
-        !filePath &&
-        hasFiles &&
-        e.dataTransfer?.files &&
-        e.dataTransfer.files.length > 0
-      ) {
-        // In Electron, we can often get the path from file.path
-        filePath = (e.dataTransfer.files[0] as any).path;
+    if (isMacroDrop) {
+      const filePath = getDroppedMacroPath(e);
+      // Dropped between items, or at the end if not over any item.
+      let index = sequence.length;
+      if (dragOverIndex !== null && dragPosition !== null) {
+        index = dragPosition === "bottom" ? dragOverIndex + 1 : dragOverIndex;
       }
-
-      if (filePath) {
-        await addMacroToSequence(filePath, sequence.length);
-      }
-      handleDragEnd();
-      return;
-    }
-
-    if (
-      dragOverIndex === null ||
-      dragPosition === null ||
-      (draggingIndex !== null && draggingIndex === dragOverIndex)
+      if (filePath) await addMacroToSequence(filePath, index);
+    } else if (
+      draggingIndex !== null &&
+      dragOverIndex !== null &&
+      dragPosition !== null &&
+      draggingIndex !== dragOverIndex
     ) {
-      handleDragEnd();
-      return;
-    }
-
-    if (isInternalReorder && draggingIndex !== null) {
       const newSequence = reorderSequence(
         sequence,
         draggingIndex,
@@ -226,74 +169,16 @@
       sequence = newSequence;
       syncLinesToSequence(newSequence);
       recordChange?.("Reorder Sequence");
-    } else if (isMacroDrop) {
-      let filePath =
-        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
-        e.dataTransfer?.getData("application/x-pedro-macro");
-
-      if (
-        !filePath &&
-        hasFiles &&
-        e.dataTransfer?.files &&
-        e.dataTransfer.files.length > 0
-      ) {
-        filePath = (e.dataTransfer.files[0] as any).path;
-      }
-
-      if (filePath) {
-        // Calculate insertion index
-        let insertIndex = dragOverIndex;
-        if (dragPosition === "bottom") insertIndex++;
-
-        await addMacroToSequence(filePath, insertIndex);
-      }
     }
 
     handleDragEnd();
   }
 
   async function addMacroToSequence(filePath: string, index: number) {
-    const curPath = get(currentFilePath);
-
-    // Load the macro data into the store so it can be expanded
-    await loadMacro(filePath, true); // Force true to get freshest dependencies from disk
-
-    // Check if adding this macro would create a cycle
-    if (curPath) {
-      const macrosMap = get(macrosStore);
-      if (wouldCreateCycle(filePath, curPath, macrosMap)) {
-        notification.set({
-          message: "Cannot add macro: this would create a recursive loop.",
-          type: "error",
-          timeout: 5000,
-        });
-        return;
-      }
-    }
-
-    const macroId = makeId();
-    // Default name from filename
-    let name = filePath.split(/[\\/]/).pop() || "Macro";
-    name = name.replaceAll(/\.(pp|turt)$/gi, "");
-
-    const newItem: SequenceMacroItem = {
-      kind: "macro",
-      id: macroId,
-      filePath: filePath,
-      name: name,
-      locked: false,
-    };
-
-    const newSeq = [...sequence];
-    if (index >= 0 && index <= newSeq.length) {
-      newSeq.splice(index, 0, newItem);
-    } else {
-      newSeq.push(newItem);
-    }
-    sequence = newSeq;
-
-    collapsedSections.items[macroId] = false;
-    collapsedSections = { ...collapsedSections };
+    const result = await insertMacro(sequence, filePath, index);
+    if (!result) return;
+    sequence = result.sequence;
+    collapsedSections.items[result.macro.id] = false;
     recordChange?.("Add Macro");
   }
 
@@ -303,26 +188,9 @@
     dragPosition = null;
   }
 
-  function getWait(i: any) {
-    return i as SequenceWaitItem;
-  }
-
-  function getRotate(i: any) {
-    return i as SequenceRotateItem;
-  }
-
-  function getMacro(i: any) {
-    return i as SequenceMacroItem;
-  }
-
   // Generic getter for ID
-  function getItemId(item: SequenceItem) {
-    if (item.kind === "path") return (item as any).lineId;
-    return (item as any).id;
-  }
-
   function getPathLineId(item: SequenceItem) {
-    return item.kind === "path" ? (item as any).lineId : undefined;
+    return item.kind === "path" ? item.lineId : undefined;
   }
 
   /**
@@ -333,22 +201,11 @@
    *   - for "constant": degrees  = prev.degrees
    *   - for "tangential" / "facingPoint": copies reverse / targetX,Y
    */
-  function makeNewEndPointFrom(prev: Point): Point {
-    const x = random(36, 108);
-    const y = random(36, 108);
-    if (prev.heading === "linear") {
-      const linPrev = prev as Extract<Point, { heading: "linear" }>;
-      const deg = linPrev.endDeg ?? linPrev.startDeg ?? 0;
-      return { x, y, heading: "linear", startDeg: deg, endDeg: deg };
-    }
-    if (prev.heading === "constant") {
-      return { x, y, heading: "constant", degrees: prev.degrees ?? 0 };
-    }
-    if (prev.heading === "facingPoint") {
-      return { x, y, heading: "tangential" };
-    }
-    // tangential (default)
-    return { x, y, heading: "tangential", reverse: prev.reverse ?? false };
+  /** A spot for a new path's end, turning the way `previous` does. */
+  function newEndPoint(previous?: Point): Point {
+    return previous
+      ? endPointAfter(previous, random(36, 108), random(36, 108))
+      : endPointAfter(undefined, random(0, 144), random(0, 144));
   }
 
   function insertLineAfter(seqIndex: number) {
@@ -357,18 +214,7 @@
     const lineIndex = lines.findIndex((l) => l.id === seqItem.lineId);
     const currentLine = lines[lineIndex];
 
-    const newLine = {
-      id: makeId(),
-      endPoint: makeNewEndPointFrom(currentLine.endPoint),
-      controlPoints: [],
-      color: getRandomColor(),
-      name: "",
-      eventMarkers: [],
-      waitBeforeMs: 0,
-      waitAfterMs: 0,
-      waitBeforeName: "",
-      waitAfterName: "",
-    };
+    const newLine = createLine(newEndPoint(currentLine.endPoint));
 
     const newLines = [...lines];
     newLines.splice(lineIndex + 1, 0, newLine);
@@ -392,43 +238,12 @@
 
   function unlinkMacro(macroItem: SequenceMacroItem, seqIndex: number) {
     if (macroItem.locked) return;
-
-    // 1. Remove macro tracking from lines
-    lines = lines.map((line) => {
-      if (line.macroId === macroItem.id) {
-        return {
-          ...line,
-          isMacroElement: false,
-          macroId: undefined,
-          locked: false,
-          endPoint: {
-            ...line.endPoint,
-            isMacroElement: false,
-            macroId: undefined,
-            locked: false,
-          },
-          controlPoints: line.controlPoints.map((cp) => ({
-            ...cp,
-            isMacroElement: false,
-            macroId: undefined,
-            locked: false,
-          })),
-        };
-      }
-      return line;
-    });
-
-    // 2. Extract nested sequence and unlock it
-    const nestedSequence = (macroItem.sequence || []).map((item) => ({
-      ...item,
-      locked: false,
-    }));
-
-    // 3. Update main sequence
-    const newSeq = [...sequence];
-    newSeq.splice(seqIndex, 1, ...nestedSequence);
-    sequence = newSeq;
-
+    ({ lines, sequence } = unlinkMacroItems(
+      lines,
+      sequence,
+      macroItem,
+      seqIndex,
+    ));
     recordChange?.("Unlink Macro");
   }
 
@@ -454,28 +269,7 @@
   }
 
   function addLine() {
-    // Inherit heading from the last line, or fall back to tangential
-    const lastLine = lines.length > 0 ? lines.at(-1) : null;
-    const endPoint: Point = lastLine
-      ? makeNewEndPointFrom(lastLine.endPoint)
-      : {
-          x: random(0, 144),
-          y: random(0, 144),
-          heading: "tangential",
-          reverse: false,
-        };
-
-    const newLine: Line = {
-      id: makeId(),
-      name: "",
-      endPoint,
-      controlPoints: [],
-      color: getRandomColor(),
-      waitBeforeMs: 0,
-      waitAfterMs: 0,
-      waitBeforeName: "",
-      waitAfterName: "",
-    };
+    const newLine = createLine(newEndPoint(lines.at(-1)?.endPoint));
     lines = [...lines, newLine];
     sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
     collapsedSections.lines.push(allCollapsed ? true : false);
@@ -493,9 +287,7 @@
 
     const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind !== "path") {
-        newItems[(s as any).id] = true;
-      }
+      if (s.kind !== "path") newItems[s.id] = true;
     });
     collapsedSections.items = newItems;
 
@@ -510,9 +302,7 @@
 
     const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind !== "path") {
-        newItems[(s as any).id] = false;
-      }
+      if (s.kind !== "path") newItems[s.id] = false;
     });
     collapsedSections.items = newItems;
 
@@ -526,57 +316,23 @@
   }
 
   export function addWaitAtStart() {
-    const wait = {
-      kind: "wait",
-      id: makeId(),
-      name: "",
-      durationMs: 1000,
-      locked: false,
-    } as SequenceItem;
+    const wait = createWait();
     sequence = [wait, ...sequence];
-    selectedPointId.set(`wait-${(wait as any).id}`);
+    selectedPointId.set(`wait-${wait.id}`);
     selectedLineId.set(null);
     recordChange("Add Wait");
   }
 
   export function addRotateAtStart() {
-    const rotate = {
-      kind: "rotate",
-      id: makeId(),
-      name: "",
-      degrees: 0,
-      locked: false,
-    } as SequenceItem;
+    const rotate = createRotate();
     sequence = [rotate, ...sequence];
-    selectedPointId.set(`rotate-${(rotate as any).id}`);
+    selectedPointId.set(`rotate-${rotate.id}`);
     selectedLineId.set(null);
     recordChange("Add Rotate");
   }
 
   export function addPathAtStart() {
-    // Inherit heading from the first existing line, or fall back to tangential
-    const firstLine = lines.length > 0 ? lines[0] : null;
-    const endPoint: Point = firstLine
-      ? makeNewEndPointFrom(firstLine.endPoint)
-      : {
-          x: random(0, 144),
-          y: random(0, 144),
-          heading: "tangential",
-          reverse: false,
-        };
-
-    const newLine: Line = {
-      id: makeId(),
-      name: "",
-      endPoint,
-      controlPoints: [],
-      color: getRandomColor(),
-      eventMarkers: [],
-      waitBeforeMs: 0,
-      waitAfterMs: 0,
-      waitBeforeName: "",
-      waitAfterName: "",
-    };
+    const newLine = createLine(newEndPoint(lines[0]?.endPoint));
     lines = [newLine, ...lines];
     lines = renumberDefaultPathNames(lines);
     sequence = [{ kind: "path", lineId: newLine.id! }, ...sequence];
@@ -596,107 +352,41 @@
     recordChange("Add Path");
   }
 
+  // Keep `lines` (and each line's collapsed state) in sequence order.
   function syncLinesToSequence(newSeq: SequenceItem[]) {
-    const pathOrder = newSeq
-      .filter((item) => item.kind === "path")
-      .map((item) => item.lineId);
-
-    const indexedLines = lines.map((line, idx) => ({
-      line,
-      collapsed: collapsedSections.lines[idx],
-      control: collapsedSections.controlPoints[idx],
-      markers: collapsedEventMarkers[idx],
-    }));
-
-    const byId = new Map(indexedLines.map((entry) => [entry.line.id, entry]));
-    const reordered: typeof indexedLines = [];
-
-    pathOrder.forEach((id) => {
-      const entry = byId.get(id);
-      if (entry) {
-        reordered.push(entry);
-        byId.delete(id);
-      }
-    });
-
-    reordered.push(...byId.values());
-
-    lines = reordered.map((entry) => entry.line);
-    lines = renumberDefaultPathNames(lines);
-
+    const order = lineOrderForSequence(lines, newSeq);
+    lines = renumberDefaultPathNames(order.map((i) => lines[i]));
     collapsedSections = {
       ...collapsedSections,
-      lines: reordered.map((entry) => entry.collapsed ?? false),
-      controlPoints: reordered.map((entry) => entry.control ?? true),
+      lines: order.map((i) => collapsedSections.lines[i] ?? false),
+      controlPoints: order.map(
+        (i) => collapsedSections.controlPoints[i] ?? true,
+      ),
     };
-    collapsedEventMarkers = reordered.map((entry) => entry.markers ?? false);
+    collapsedEventMarkers = order.map((i) => collapsedEventMarkers[i] ?? false);
   }
 
   export function moveSequenceItem(seqIndex: number, delta: number) {
-    const targetIndex = seqIndex + delta;
-    if (targetIndex < 0 || targetIndex >= sequence.length) return;
-
-    const isLockedSequenceItem = (index: number) => {
-      const it = sequence[index];
-      if (!it) return false;
-      if (it.kind === "path") {
-        const ln = lines.find((l) => l.id === it.lineId);
-        return ln?.locked ?? false;
-      }
-      if (it.kind === "wait") {
-        return (it as any).locked ?? false;
-      }
-      if (it.kind === "rotate") {
-        return (it as any).locked ?? false;
-      }
-      if (it.kind === "macro") {
-        return (it as any).locked ?? false;
-      }
-      return false;
-    };
-
-    if (isLockedSequenceItem(seqIndex) || isLockedSequenceItem(targetIndex))
-      return;
-
-    const newSeq = [...sequence];
-    const [item] = newSeq.splice(seqIndex, 1);
-    newSeq.splice(targetIndex, 0, item);
-    sequence = newSeq;
-
-    syncLinesToSequence(newSeq);
+    const moved = moveItem(sequence, lines, seqIndex, delta);
+    if (!moved) return;
+    sequence = moved;
+    syncLinesToSequence(moved);
     recordChange?.("Reorder Sequence");
   }
 
-  function isItemLocked(item: SequenceItem, lines: Line[]): boolean {
-    if (item.kind === "path") {
-      return lines.find((l) => l.id === (item as any).lineId)?.locked ?? false;
-    }
-    if (item.kind === "rotate") {
-      return getRotate(item).locked ?? false;
-    }
-    if (item.kind === "macro") {
-      return getMacro(item).locked ?? false;
-    }
-    return getWait(item).locked ?? false;
-  }
-
   export async function scrollToItem(itemId: string) {
-    const seqIndex = sequence.findIndex((s) => {
-      if (s.kind === "path") return s.lineId === itemId;
-      return (s as any).id === itemId;
-    });
+    const seqIndex = sequence.findIndex((s) => sequenceItemKey(s) === itemId);
 
     if (seqIndex !== -1) {
       const item = sequence[seqIndex];
 
       if (item.kind === "path") {
-        const lineId = (item as any).lineId;
-        const lineIdx = lines.findIndex((l) => l.id === lineId);
+        const lineIdx = lines.findIndex((l) => l.id === item.lineId);
         if (lineIdx !== -1) {
           collapsedSections.lines[lineIdx] = false;
         }
       } else {
-        collapsedSections.items[(item as any).id] = false;
+        collapsedSections.items[item.id] = false;
       }
 
       collapsedSections = { ...collapsedSections };
@@ -728,38 +418,35 @@
     collapsedSections = { ...collapsedSections };
   }
 
-  function handleAddAction(def: any) {
-    if (def.createDefault) {
-      const newItem = def.createDefault();
-      sequence = [...sequence, newItem];
-      selectedPointId.set(`${def.kind}-${newItem.id}`);
+  /** Inserts a new `def` item at `index`, picking up linked settings. */
+  function insertAction(index: number, def: ActionDefinition) {
+    const newItem = def.createDefault?.();
+    if (!newItem || newItem.kind === "path") return;
+    sequence = sequence.toSpliced(index, 0, newItem);
+    if (newItem.kind === "wait") {
+      sequence = updateLinkedWaits(sequence, newItem.id);
+    } else if (newItem.kind === "rotate") {
+      sequence = updateLinkedRotations(sequence, newItem.id);
+    }
+    recordChange(`Add ${def.label}`);
+  }
+
+  function handleAddAction(def: ActionDefinition) {
+    const index = sequence.length;
+    insertAction(index, def);
+    const added = sequence[index];
+    if (added && added.kind !== "path") {
+      selectedPointId.set(`${added.kind}-${added.id}`);
       selectedLineId.set(null);
-      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
-      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
-      recordChange(`Add ${def.label}`);
     }
   }
 
-  function handleAddActionAfter(seqIndex: number, def: any) {
-    if (def.isPath) {
-      insertLineAfter(seqIndex);
-    } else if (def.createDefault) {
-      const newItem = def.createDefault();
-      const newSeq = [...sequence];
-      newSeq.splice(seqIndex + 1, 0, newItem);
-      sequence = newSeq;
-      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
-      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
-      recordChange(`Add ${def.label}`);
-    }
+  function addActionAfterFor(seqIndex: number, def: ActionDefinition) {
+    if (def.isPath) insertLineAfter(seqIndex);
+    else insertAction(seqIndex + 1, def);
   }
 
-  // Small helper to wrap handlers and avoid inline typed parameters in markup
-  function addActionAfterFor(idx: number, def: any) {
-    handleAddActionAfter(idx, def);
-  }
-
-  let showDebug = $derived((settings as any)?.showDebugSequence);
+  let showDebug = $derived(settings?.showDebugSequence);
   // Debug helpers
   let debugLinesIds = $derived(
     Array.isArray(lines)
@@ -774,7 +461,7 @@
   });
   let debugSequenceIds = $derived(
     Array.isArray(sequence)
-      ? sequence.filter((s) => s.kind === "path").map((s: any) => s.lineId)
+      ? sequence.flatMap((s) => (s.kind === "path" ? [s.lineId] : []))
       : ([] as string[]),
   );
   let debugMissing = $derived(
@@ -814,7 +501,7 @@
       collapsedEventMarkers.every((v) => v) &&
       sequence
         .filter((s) => s.kind !== "path")
-        .every((s) => collapsedSections.items[(s as any).id]),
+        .every((s) => collapsedSections.items[s.id]),
   );
 </script>
 
@@ -868,18 +555,14 @@
   {/if}
 
   <div role="list" class="flex flex-col gap-4">
-    {#each sequence as item, sIdx (getItemId(item))}
+    {#each sequence as item, sIdx (sequenceItemKey(item))}
       {@const def = $actionRegistry[item.kind]}
       {@const prevItem = sIdx > 0 ? sequence[sIdx - 1] : null}
       {@const nextItem = sIdx < sequence.length - 1 ? sequence[sIdx + 1] : null}
       {@const isChain =
-        item.kind === "path" &&
-        prevItem?.kind === "path" &&
-        (item as any).isChain}
+        item.kind === "path" && prevItem?.kind === "path" && !!item.isChain}
       {@const isChainedWithNext =
-        item.kind === "path" &&
-        nextItem?.kind === "path" &&
-        (nextItem as any).isChain}
+        item.kind === "path" && nextItem?.kind === "path" && !!nextItem.isChain}
 
       {#if item.kind === "path" && prevItem?.kind === "path"}
         <div class="flex justify-center -my-3 z-10 relative">
@@ -890,62 +573,8 @@
             title={isChain ? "Unchain paths" : "Chain paths"}
             aria-label={isChain ? "Unchain paths" : "Chain paths"}
             onclick={() => {
-              const newIsChain = !(item as any).isChain;
-
-              if (!newIsChain) {
-                // Find the root of the former chain
-                let rootIdx = sIdx;
-                while (
-                  rootIdx > 0 &&
-                  sequence[rootIdx - 1].kind === "path" &&
-                  (sequence[rootIdx] as any).isChain
-                ) {
-                  rootIdx--;
-                }
-
-                // Find the end of the former chain
-                let endIdx = sIdx;
-                while (
-                  endIdx + 1 < sequence.length &&
-                  sequence[endIdx + 1].kind === "path" &&
-                  (sequence[endIdx + 1] as any).isChain
-                ) {
-                  endIdx++;
-                }
-
-                // Reset globalHeading for all paths in the former chain island
-                for (let i = rootIdx; i <= endIdx; i++) {
-                  const sItem = sequence[i];
-                  if (sItem.kind === "path") {
-                    const lIdx = lines.findIndex(
-                      (l) => l.id === (sItem as any).lineId,
-                    );
-                    if (
-                      lIdx !== -1 &&
-                      lines[lIdx].globalHeading !== undefined
-                    ) {
-                      lines[lIdx] = {
-                        ...lines[lIdx],
-                        globalHeading: undefined,
-                      };
-                    }
-                  }
-                }
-              }
-
-              // Need to create a new object to trigger reactivity in Svelte 5 for the `isChain` derived value
-              sequence[sIdx] = { ...item, isChain: newIsChain };
-
-              // Also update the line object
-              const lIdx = lines.findIndex(
-                (l) => l.id === (item as any).lineId,
-              );
-              if (lIdx !== -1) {
-                lines[lIdx] = { ...lines[lIdx], isChain: newIsChain };
-              }
-              lines = [...lines];
-              sequence = [...sequence];
-              if (recordChange) recordChange("Toggle Path Chain");
+              ({ lines, sequence } = toggleChain(lines, sequence, sIdx));
+              recordChange?.("Toggle Path Chain");
             }}
           >
             <svg
@@ -978,11 +607,11 @@
       <div
         role="listitem"
         data-index={sIdx}
-        id={`sequence-item-${getItemId(item)}`}
+        id={`sequence-item-${sequenceItemKey(item)}`}
         class="w-full transition-all duration-200 rounded-lg {isChain
           ? '-mt-2'
           : ''} {isChainedWithNext ? '-mb-2' : ''}"
-        draggable={!isItemLocked(item, lines)}
+        draggable={!isSequenceItemLocked(item, lines)}
         ondragstart={(e) => handleDragStart(e, sIdx)}
         ondragend={handleDragEnd}
         class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
@@ -1005,12 +634,7 @@
                 collapsedSections.controlPoints[lineIdx]
               }
               onRemove={() => removeLine(lineIdx)}
-              onInsertAfter={() => insertLineAfter(sIdx)}
-              onAddWaitAfter={() =>
-                handleAddActionAfter(sIdx, $actionRegistry["wait"])}
-              onAddRotateAfter={() =>
-                handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
-              onAddAction={addActionAfterFor.bind(null, sIdx)}
+              onAddAction={(def) => addActionAfterFor(sIdx, def)}
               onMoveUp={() => moveSequenceItem(sIdx, -1)}
               onMoveDown={() => moveSequenceItem(sIdx, 1)}
               canMoveUp={sIdx !== 0}
@@ -1023,19 +647,19 @@
           <def.sectionComponent
             {...{ [def.kind]: item }}
             bind:sequence
-            collapsed={collapsedSections.items[getItemId(item)]}
+            collapsed={collapsedSections.items[sequenceItemKey(item)]}
             onRemove={() => {
               const newSeq = [...sequence];
               newSeq.splice(sIdx, 1);
               sequence = newSeq;
               recordChange?.("Remove Item");
             }}
-            onInsertAfter={() => handleAddActionAfter(sIdx, def)}
+            onInsertAfter={() => addActionAfterFor(sIdx, def)}
             onAddPathAfter={() => insertLineAfter(sIdx)}
             onAddWaitAfter={() =>
-              handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+              addActionAfterFor(sIdx, $actionRegistry["wait"])}
             onAddRotateAfter={() =>
-              handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+              addActionAfterFor(sIdx, $actionRegistry["rotate"])}
             onAddAction={addActionAfterFor.bind(null, sIdx)}
             onUnlink={() => {
               if (item.kind === "macro") {

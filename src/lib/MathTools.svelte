@@ -81,7 +81,10 @@
   }
 
   function handleMouseMove(event: MouseEvent) {
-    if (!twoElement) return;
+    // This listens on the whole window, so return before measuring the field:
+    // measuring right after the field redraws makes the browser lay out the
+    // page again on every mouse move.
+    if (!twoElement || (!rulerDragging && !protractorDragging)) return;
 
     const rect = twoElement.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;

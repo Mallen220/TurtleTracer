@@ -44,4 +44,35 @@ describe("SettingsDialog", () => {
     // Restore confirm
     globalThis.confirm = origConfirm;
   });
+
+  it("fetches the download count only once the dialog opens", async () => {
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () =>
+        url.endsWith("page=1")
+          ? [
+              {
+                assets: [
+                  { name: "Turtle-Setup.exe", download_count: 40 },
+                  { name: "Turtle.dmg", download_count: 2 },
+                  { name: "latest.yml", download_count: 999 },
+                ],
+              },
+            ]
+          : [],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const { rerender, findByText } = render(SettingsDialog, {
+        props: { isOpen: false, settings: { ...DEFAULT_SETTINGS } },
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await rerender({ isOpen: true });
+      expect(await findByText("42 Downloads")).toBeTruthy();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

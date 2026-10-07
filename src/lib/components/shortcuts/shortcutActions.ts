@@ -1,5 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { tuningFromProfile } from "../../../utils/robotProfile";
 import { get } from "svelte/store";
+import type ControlTab from "../../ControlTab.svelte";
+import type { Settings } from "../../../types";
 import {
   showGrid,
   snapToGrid,
@@ -24,6 +27,9 @@ import {
   isDrawingMode,
 } from "../../../stores";
 import {
+  startPointStore,
+  linesStore,
+  sequenceStore,
   shapesStore,
   settingsStore,
   robotProfilesStore,
@@ -33,11 +39,13 @@ import {
   percentStore,
 } from "../../projectStore";
 import { createTriangle } from "../../../utils";
+import { validatePath } from "../../../utils/validation";
+import { reversePathData } from "../../../utils/pathTransform";
 import { getElectronAPI } from "../../../utils/platform";
 import { toggleDiff } from "../../diffStore";
 import { DEFAULT_SETTINGS, SETTINGS_TAB_ORDER } from "../../../config";
 import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
-import { isUIElementFocused } from "./utils";
+import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import {
   addNewLine,
   addWait,
@@ -71,6 +79,8 @@ import {
   panToStart,
   panToEnd,
   panView,
+  snapSelection,
+  resetStartPoint,
 } from "./view";
 import { changePlaybackSpeedBy, resetPlaybackSpeed } from "./playback";
 import {
@@ -84,6 +94,18 @@ import {
   toggleContinuousValidation,
   toggleOnionCurrentPath,
 } from "./misc";
+
+/** Opens a page in the system browser (desktop app) or a new tab. */
+function openUrl(url: string) {
+  const api = getElectronAPI();
+  if (api?.openExternal) {
+    api
+      .openExternal(url)
+      .catch((err) => console.warn("Failed to open", url, err));
+  } else {
+    window.open(url, "_blank");
+  }
+}
 
 export interface ShortcutActionContext {
   saveProject: () => void;
@@ -100,13 +122,13 @@ export interface ShortcutActionContext {
   stepBackward: () => void;
   splitPath?: () => void;
   recordChange: (action?: string) => void;
-  controlTabRef?: any;
+  controlTabRef?: ControlTabInstance | null;
   getActiveControlTab: () => "path" | "field" | "table" | "code";
   setActiveControlTab: (tab: "path" | "field" | "table" | "code") => void;
   toggleStats?: () => void;
   toggleSidebar?: () => void;
   toggleControlTab?: () => void;
-  fieldRenderer?: any;
+  fieldRenderer?: { panToField?: (x: number, y: number) => void } | null;
   openWhatsNew?: () => void;
   toggleCommandPalette: () => void;
   closeCommandPalette: () => void;
@@ -115,6 +137,8 @@ export interface ShortcutActionContext {
   fetchFiles: () => void;
   isPlaying: () => boolean;
 }
+
+type ControlTabInstance = ReturnType<typeof ControlTab>;
 
 export type ActionHandler = (...args: any[]) => void;
 
@@ -353,6 +377,62 @@ export function buildActionHandlers(
       showFileManager.update((v) => !v);
     },
     exportJava: () => exportDialogState.set({ isOpen: true, format: "java" }),
+    exportPoints: () =>
+      exportDialogState.set({ isOpen: true, format: "points" }),
+    exportSequential: () =>
+      exportDialogState.set({ isOpen: true, format: "sequential" }),
+    exportPP: () => exportDialogState.set({ isOpen: true, format: "json" }),
+    moveItemUp: () => {
+      const idx = getSelectedSequenceIndex();
+      if (idx !== null) ctx.controlTabRef?.moveSequenceItem?.(idx, -1);
+    },
+    moveItemDown: () => {
+      const idx = getSelectedSequenceIndex();
+      if (idx !== null) ctx.controlTabRef?.moveSequenceItem?.(idx, 1);
+    },
+    addPathAtStart: () => ctx.controlTabRef?.addPathAtStart?.(),
+    addWaitAtStart: () => ctx.controlTabRef?.addWaitAtStart?.(),
+    addRotateAtStart: () => ctx.controlTabRef?.addRotateAtStart?.(),
+    validatePath: () =>
+      validatePath(
+        get(startPointStore),
+        get(linesStore),
+        get(settingsStore),
+        get(sequenceStore),
+        get(shapesStore),
+      ),
+    reversePath: () => {
+      try {
+        const reversed = reversePathData({
+          startPoint: get(startPointStore),
+          lines: get(linesStore),
+          shapes: get(shapesStore),
+          sequence: get(sequenceStore),
+        });
+        startPointStore.set(reversed.startPoint);
+        linesStore.set(reversed.lines);
+        if (reversed.shapes) shapesStore.set(reversed.shapes);
+        if (reversed.sequence) sequenceStore.set(reversed.sequence);
+        ctx.recordChange("Reverse Path");
+        notification.set({
+          message: "Path reversed",
+          type: "success",
+          timeout: 2000,
+        });
+      } catch (e: any) {
+        notification.set({
+          message: `Failed to reverse path: ${e.message}`,
+          type: "error",
+          timeout: 5000,
+        });
+      }
+    },
+    clearObstacles: () => {
+      shapesStore.set([]);
+      ctx.recordChange("Clear Obstacles");
+    },
+    snapSelection: () => snapSelection(ctx.recordChange),
+    resetStartPoint: () => resetStartPoint(ctx.recordChange),
     panToStart: () => panToStart(ctx.fieldRenderer),
     panToEnd: () => panToEnd(ctx.fieldRenderer),
     panViewUp: () => panView(0, 50),
@@ -365,7 +445,7 @@ export function buildActionHandlers(
     toggleDebugSequence: () =>
       settingsStore.update((s) => ({
         ...s,
-        showDebugSequence: !(s as any).showDebugSequence,
+        showDebugSequence: !s.showDebugSequence,
       })),
     toggleFieldBoundaries: () =>
       settingsStore.update((s) => ({
@@ -377,7 +457,8 @@ export function buildActionHandlers(
         ...s,
         restrictDraggingToField: !s.restrictDraggingToField,
       })),
-    setTheme: (theme: any) => settingsStore.update((s) => ({ ...s, theme })),
+    setTheme: (theme: Settings["theme"]) =>
+      settingsStore.update((s) => ({ ...s, theme })),
     setAutosave: (mode: any, interval?: any) => {
       if (mode === "never")
         settingsStore.update((s) => ({ ...s, autosaveMode: "never" }));
@@ -392,25 +473,10 @@ export function buildActionHandlers(
       else if (mode === "close")
         settingsStore.update((s) => ({ ...s, autosaveMode: "close" }));
     },
-    openDocs: () => {
-      const url =
-        "https://www.turtletracer.com/turtle-tracer-lib/installation/";
-      const api = getElectronAPI();
-      if (api?.openExternal) {
-        api.openExternal(url);
-      } else {
-        window.open(url, "_blank");
-      }
-    },
-    reportIssue: () => {
-      const url = "https://github.com/Mallen220/TurtleTracer/issues";
-      const api = getElectronAPI();
-      if (api?.openExternal) {
-        api.openExternal(url);
-      } else {
-        window.open(url, "_blank");
-      }
-    },
+    openDocs: () =>
+      openUrl("https://www.turtletracer.com/turtle-tracer-lib/installation/"),
+    reportIssue: () =>
+      openUrl("https://github.com/Mallen220/TurtleTracer/issues"),
     checkForUpdates: () => {
       const api = getElectronAPI();
       if (api?.checkForUpdates) {
@@ -418,9 +484,7 @@ export function buildActionHandlers(
           .checkForUpdates()
           .catch((err: any) => console.warn("Manual update check failed", err));
       } else {
-        const url = "https://github.com/Mallen220/TurtleTracer/releases";
-        if (api?.openExternal) api.openExternal(url);
-        else window.open(url, "_blank");
+        openUrl("https://github.com/Mallen220/TurtleTracer/releases");
       }
     },
     setFileManagerDirectory: async () => {
@@ -448,7 +512,7 @@ export function buildActionHandlers(
     cycleTheme: () => {
       settingsStore.update((s) => {
         const themes: ("light" | "dark" | "auto")[] = ["light", "dark", "auto"];
-        const currentIndex = themes.indexOf(s.theme as any);
+        const currentIndex = themes.indexOf(s.theme as (typeof themes)[number]);
         const nextIndex = (currentIndex + 1) % themes.length;
         return { ...s, theme: themes[nextIndex] };
       });
@@ -461,9 +525,9 @@ export function buildActionHandlers(
     setAutoSaveChange: () => handlers.setAutosave("change"),
     setAutoSaveClose: () => handlers.setAutosave("close"),
     startTutorial: () => {
-      import("../../../stores").then(({ startTutorial }) => {
-        startTutorial.set(true);
-      });
+      import("../../../stores")
+        .then(({ startTutorial }) => startTutorial.set(true))
+        .catch((err) => console.warn("Failed to start the tutorial", err));
     },
     toggleDiff: () => toggleDiff(),
     togglePluginManager: () => showPluginManager.update((v) => !v),
@@ -522,6 +586,7 @@ export function buildActionHandlers(
         aVelocity: nextProfile.aVelocity,
         xVelocity: nextProfile.xVelocity,
         yVelocity: nextProfile.yVelocity,
+        ...tuningFromProfile(nextProfile, s),
         robotImage: nextProfile.robotImage || s.robotImage,
       }));
 

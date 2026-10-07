@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../utils/platform";
   import { onMount } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
@@ -49,7 +50,7 @@
   let currentVersion: string | null = $state(null);
 
   onMount(async () => {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api) {
       // Check platform
       const userAgent = globalThis.navigator.userAgent;
@@ -104,7 +105,7 @@
   }
 
   function handleDownload() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && updateData) {
       if (api.downloadUpdate) {
         // Pass version and url
@@ -118,7 +119,7 @@
   }
 
   function handleSkip() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && updateData && api.skipUpdate) {
       api.skipUpdate(updateData.version);
     }
@@ -126,7 +127,7 @@
   }
 
   function handleSwitchToStore() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && api.openExternal) {
       // URL from README
       api.openExternal(
@@ -138,7 +139,7 @@
 
   // Open the GitHub releases page for this release (keeps dialog open)
   function handleOpenReleases(): void {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && api.openExternal && updateData?.url) {
       api.openExternal(updateData.url);
     } else if (updateData?.url) {
@@ -158,7 +159,7 @@
 
 {#if show && updateData}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
+    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60"
     transition:fade={{ duration: 200 }}
   >
     <div
@@ -174,10 +175,10 @@
     >
       <!-- Background decorative blobs -->
       <div
-        class="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"
+        class="absolute top-0 right-0 w-64 h-64 rounded-full bg-[radial-gradient(closest-side,rgba(168,85,247,0.1),transparent)] -translate-y-1/2 translate-x-1/3 pointer-events-none"
       ></div>
       <div
-        class="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"
+        class="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-[radial-gradient(closest-side,rgba(99,102,241,0.1),transparent)] translate-y-1/2 -translate-x-1/3 pointer-events-none"
       ></div>
 
       <!-- Close Button -->
@@ -218,7 +219,7 @@
             class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
           >
             <div
-              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
+              class="bg-white/60 dark:bg-white/5 border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
             >
               <div
                 class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"

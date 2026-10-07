@@ -12,8 +12,18 @@ import type {
 import WaitTableRow from "../components/table/WaitTableRow.svelte";
 import WaitSection from "../components/sections/WaitSection.svelte";
 import type { SequenceItem, SequenceWaitItem } from "../../types";
-import { POINT_RADIUS } from "../../config";
+import { stationaryMarkerElements } from "./stationaryMarkers";
 import { makeId } from "../../utils/nameGenerator";
+import { libraryForContext } from "../exporters/commandLibraries";
+
+/** A new one-second wait. */
+export const createWait = (): SequenceWaitItem => ({
+  kind: "wait",
+  id: makeId(),
+  name: "",
+  durationMs: 1000,
+  locked: false,
+});
 
 export const WaitAction: ActionDefinition = {
   kind: "wait",
@@ -28,92 +38,34 @@ export const WaitAction: ActionDefinition = {
   component: WaitTableRow,
   sectionComponent: WaitSection,
 
-  createDefault: () => ({
-    kind: "wait",
-    id: makeId(),
-    name: "",
-    durationMs: 1000,
-    locked: false,
-  }),
+  createDefault: createWait,
 
   onInsert: (ctx: InsertionContext) => {
-    const newWait: SequenceItem = {
-      kind: "wait",
-      id: makeId(),
-      name: "",
-      durationMs: 1000,
-      locked: false,
-    };
-
-    ctx.sequence.splice(ctx.index, 0, newWait);
+    ctx.sequence.splice(ctx.index, 0, createWait());
     ctx.triggerReactivity();
   },
 
-  renderField: (item: SequenceItem, context: FieldRenderContext) => {
-    const waitItem = item as SequenceWaitItem;
-    const { timePrediction, x, y, uiLength, hoveredId, selectedPointId } =
-      context;
-
-    if (!timePrediction?.timeline) return [];
-
-    const elements: any[] = [];
-
-    // Iterate through timeline to find occurrences of this wait
-    timePrediction.timeline.forEach((ev: any) => {
-      // Check if this timeline event corresponds to our wait item
-      if (ev.type !== "wait" || ev.waitId !== waitItem.id || !ev.atPoint)
-        return;
-
-      // Only render if there are event markers on this wait
-      if (waitItem.eventMarkers && waitItem.eventMarkers.length > 0) {
-        const point = ev.atPoint;
-
-        waitItem.eventMarkers.forEach((marker: any, idx: number) => {
-          const isHovered = hoveredId === marker.id;
-          const radiusMult = isHovered ? 1.3 : 0.9;
-
-          const markerGroup = new Two.Group();
-          // FieldRenderer uses: `wait-event-${ev.waitId}-${eventIdx}`
-          markerGroup.id = `wait-event-${waitItem.id}-${idx}`;
-
-          const markerCircle = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            uiLength(POINT_RADIUS * radiusMult),
-          );
-          markerCircle.id = `wait-event-circle-${waitItem.id}-${idx}`;
-
-          const waitSelected = selectedPointId === `wait-${waitItem.id}`;
-
-          if (waitSelected) {
-            markerCircle.fill = "#f97316";
-            markerCircle.stroke = "#fffbeb";
-            markerCircle.linewidth = uiLength(0.6);
-          } else {
-            markerCircle.fill = isHovered ? "#8b5cf6" : "#a78bfa";
-            markerCircle.stroke = "#ffffff";
-            markerCircle.linewidth = uiLength(0.3);
-          }
-
-          const flagSize = uiLength(isHovered ? 1 : 0.6);
-          const flagPoints = [
-            new Two.Anchor(x(point.x), y(point.y) - flagSize / 2),
-            new Two.Anchor(x(point.x) + flagSize / 2, y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y) + flagSize / 2),
-          ];
-          const flag = new Two.Path(flagPoints, true);
-          flag.fill = waitSelected ? "#fffbeb" : "#ffffff";
-          flag.stroke = "none";
-          flag.id = `wait-event-flag-${waitItem.id}-${idx}`;
-
-          markerGroup.add(markerCircle, flag);
-          elements.push(markerGroup);
-        });
-      }
-    });
-
-    return elements;
-  },
+  renderField: (item: SequenceItem, context: FieldRenderContext) =>
+    stationaryMarkerElements(item as SequenceWaitItem, context, {
+      prefix: "wait",
+      fill: "#a78bfa",
+      hoverFill: "#8b5cf6",
+      glyphName: "flag",
+      // A small right-pointing triangle
+      glyph: (px, py, size, color) => {
+        const flag = new Two.Path(
+          [
+            new Two.Anchor(px, py - size / 2),
+            new Two.Anchor(px + size / 2, py),
+            new Two.Anchor(px, py + size / 2),
+          ],
+          true,
+        );
+        flag.fill = color;
+        flag.stroke = "none";
+        return flag;
+      },
+    }),
 
   toJavaCode: (
     item: SequenceItem,
@@ -143,29 +95,15 @@ export const WaitAction: ActionDefinition = {
   ): string => {
     const waitItem = item as SequenceWaitItem;
     const waitDuration = waitItem.durationMs || 0;
-    const isNextFTC = context.isNextFTC || false;
+    const { commands } = libraryForContext(context);
 
-    // Define classes based on library
-    const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
-    const InstantCmdClass = "InstantCommand";
-    const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
-    const SequentialGroupClass = isNextFTC
-      ? "SequentialGroup"
-      : "SequentialCommandGroup";
-
-    const getWaitValue = (ms: number) =>
-      isNextFTC ? (ms / 1000).toFixed(3) : ms.toFixed(0);
-
-    const markers: any[] = Array.isArray(waitItem.eventMarkers)
-      ? [...waitItem.eventMarkers]
-      : [];
+    const markers = (waitItem.eventMarkers ?? []).toSorted(
+      (a, b) => (a.position || 0) - (b.position || 0),
+    );
 
     if (markers.length === 0) {
-      return `new ${WaitCmdClass}(${getWaitValue(waitDuration)})`;
+      return commands.wait(waitDuration);
     }
-
-    // Sort markers
-    markers.sort((a, b) => (a.position || 0) - (b.position || 0));
 
     let scheduled = 0;
     const markerCommandParts: string[] = [];
@@ -176,18 +114,24 @@ export const WaitAction: ActionDefinition = {
       const delta = Math.max(0, targetMs - scheduled);
       scheduled = targetMs;
 
+      // executeEvent ignores events the tracker doesn't know about, and
+      // nothing else registers a wait's markers when poses are embedded.
+      const fire = `{
+                        tracker.registerEvent("${marker.name}", ${(marker.position || 0).toFixed(3)});
+                        tracker.executeEvent("${marker.name}");
+                    }`;
       markerCommandParts.push(
-        `new ${WaitCmdClass}(${getWaitValue(delta)}), new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`,
+        `${commands.wait(delta)}, ${commands.instant(fire)}`,
       );
     });
 
     const remaining = Math.max(0, waitDuration - scheduled);
-    markerCommandParts.push(`new ${WaitCmdClass}(${getWaitValue(remaining)})`);
+    markerCommandParts.push(commands.wait(remaining));
 
-    return `new ${ParallelRaceClass}(
-                    new ${WaitCmdClass}(${getWaitValue(waitDuration)}),
-                    new ${SequentialGroupClass}(${markerCommandParts.join(",")})
-                )`;
+    return commands.race(`
+                    ${commands.wait(waitDuration)},
+                    ${commands.sequential(markerCommandParts.join(","))}
+                `);
   },
 
   calculateTime: (

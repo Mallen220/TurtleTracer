@@ -1,4 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+// Macros embed another project file in the sequence. Expanding one produces
+// the locked lines and steps it adds to the open project, plus a "bridge"
+// path from wherever the robot is to the macro's start.
 import type {
   Line,
   Point,
@@ -12,214 +15,214 @@ import {
   getLineStartHeading,
   getLineEndHeading,
   getAngularDifference,
-  getInitialTangentialHeading,
 } from "../utils/math";
+import { startingHeading } from "../utils/timeCalculator/pathCalculator";
+import { makeId } from "../utils/nameGenerator";
 
-// Helper to make unique IDs
-function makeId() {
-  return Math.random().toString(36).slice(2, 9);
-}
+type XY = { x: number; y: number };
 
+const FIELD_CENTER: XY = { x: 72, y: 72 };
+
+/** Deeper nesting than this is treated as a mistake rather than expanded. */
+export const MAX_MACRO_DEPTH = 50;
+
+/** `target` moved by whole turns to within 180 degrees of `reference`. */
 function unwrapAngle(target: number, reference: number): number {
-  const diff = getAngularDifference(reference, target);
-  return reference + diff;
+  return reference + getAngularDifference(reference, target);
 }
 
-// --- Transformation Helpers ---
+/** Paths compare equal regardless of slash direction or case. */
+function normalizePath(p: string): string {
+  return p ? p.replaceAll("\\", "/").toLowerCase() : "";
+}
 
-function resolvePivot(
-  pivot: Transformation["pivot"],
-  center: { x: number; y: number },
-): { x: number; y: number } {
-  if (!pivot || pivot === "origin") return { x: 72, y: 72 };
+// --- Transformations (translate / rotate / flip a macro in place) ---
+
+function resolvePivot(pivot: Transformation["pivot"], center: XY): XY {
+  if (!pivot || pivot === "origin") return FIELD_CENTER;
   if (pivot === "center") return center;
-  return pivot; // it's {x,y}
+  return pivot;
 }
 
-function applyPointTransformInternal(
-  p: { x: number; y: number },
-  t: Transformation,
-  pivot: { x: number; y: number },
-): { x: number; y: number } {
-  let x = p.x;
-  let y = p.y;
-
+function transformPoint(p: XY, t: Transformation, pivot: XY) {
   if (t.type === "translate") {
-    x += t.dx || 0;
-    y += t.dy || 0;
+    p.x += t.dx || 0;
+    p.y += t.dy || 0;
   } else if (t.type === "rotate" && t.degrees) {
     const rad = (t.degrees * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const dx = x - pivot.x;
-    const dy = y - pivot.y;
-    x = pivot.x + (dx * cos - dy * sin);
-    y = pivot.y + (dx * sin + dy * cos);
-  } else if (t.type === "flip") {
-    if (t.axis === "horizontal") {
-      // Mirror across vertical axis at pivot.x
-      x = 2 * pivot.x - x;
-    } else if (t.axis === "vertical") {
-      // Mirror across horizontal axis at pivot.y
-      y = 2 * pivot.y - y;
-    }
+    const dx = p.x - pivot.x;
+    const dy = p.y - pivot.y;
+    p.x = pivot.x + (dx * Math.cos(rad) - dy * Math.sin(rad));
+    p.y = pivot.y + (dx * Math.sin(rad) + dy * Math.cos(rad));
+  } else if (t.type === "flip" && t.axis === "horizontal") {
+    p.x = 2 * pivot.x - p.x;
+  } else if (t.type === "flip" && t.axis === "vertical") {
+    p.y = 2 * pivot.y - p.y;
   }
-
-  return { x, y };
 }
 
 function transformHeading(degrees: number, t: Transformation): number {
-  let d = degrees;
-  if (t.type === "rotate" && t.degrees) {
-    d += t.degrees;
-  } else if (t.type === "flip") {
-    if (t.axis === "horizontal") {
-      // Mirror across vertical axis: 0 -> 180, 90 -> 90.
-      // Formula: 180 - angle
-      d = 180 - d;
-    } else if (t.axis === "vertical") {
-      // Mirror across horizontal axis: 0 -> 0, 90 -> -90
-      // Formula: -angle
-      d = -d;
-    }
+  if (t.type === "rotate") return degrees + (t.degrees || 0);
+  if (t.type === "flip" && t.axis === "horizontal") return 180 - degrees;
+  if (t.type === "flip" && t.axis === "vertical") return -degrees;
+  return degrees;
+}
+
+// The heading fields shared by points, piecewise segments and a chain's
+// global heading.
+type HeadingSettings = {
+  heading?: string;
+  degrees?: number;
+  startDeg?: number;
+  endDeg?: number;
+  targetX?: number;
+  targetY?: number;
+  segments?: HeadingSettings[];
+};
+
+/** Turns (or re-aims) a heading setting to match the transformed path. */
+function transformHeadingSettings(
+  h: HeadingSettings,
+  t: Transformation,
+  pivot: XY,
+) {
+  if (h.heading === "constant") {
+    h.degrees = transformHeading(h.degrees ?? 0, t);
+  } else if (h.heading === "linear") {
+    h.startDeg = transformHeading(h.startDeg ?? 0, t);
+    h.endDeg = transformHeading(h.endDeg ?? 0, t);
+  } else if (h.heading === "facingPoint") {
+    const target = { x: h.targetX ?? 0, y: h.targetY ?? 0 };
+    transformPoint(target, t, pivot);
+    h.targetX = target.x;
+    h.targetY = target.y;
+  } else if (h.heading === "piecewise") {
+    for (const seg of h.segments ?? []) transformHeadingSettings(seg, t, pivot);
   }
-  // Normalize to -180 to 180 or 0-360? Usually just keep it wrapped or raw.
-  // Normalize to 0-360 for cleanliness, but standardizing later is fine.
-  return d;
 }
 
-function calculateMacroCenter(data: TurtleData): { x: number; y: number } {
-  let minX = data.startPoint.x;
-  let minY = data.startPoint.y;
-  let maxX = data.startPoint.x;
-  let maxY = data.startPoint.y;
-
-  data.lines.filter(Boolean).forEach((l) => {
-    if (!l.endPoint) return;
-    [l.endPoint, ...l.controlPoints].filter(Boolean).forEach((p) => {
-      minX = Math.min(minX, p.x);
-      minY = Math.min(minY, p.y);
-      maxX = Math.max(maxX, p.x);
-      maxY = Math.max(maxY, p.y);
-    });
-  });
-
-  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+/** Transforms a chain's global heading, stored as `global*` fields. */
+function transformGlobalHeading(line: Line, t: Transformation, pivot: XY) {
+  if (!line.globalHeading || line.globalHeading === "none") return;
+  const h: HeadingSettings = {
+    heading: line.globalHeading,
+    degrees: line.globalDegrees,
+    startDeg: line.globalStartDeg,
+    endDeg: line.globalEndDeg,
+    targetX: line.globalTargetX,
+    targetY: line.globalTargetY,
+    segments: line.globalSegments,
+  };
+  transformHeadingSettings(h, t, pivot);
+  line.globalDegrees = h.degrees;
+  line.globalStartDeg = h.startDeg;
+  line.globalEndDeg = h.endDeg;
+  line.globalTargetX = h.targetX;
+  line.globalTargetY = h.targetY;
 }
 
-function transformMacroData(
-  data: TurtleData,
-  transforms: Transformation[],
-): { data: TurtleData; resolvedTransforms: Transformation[] } {
-  // Clone data deeply to prevent mutating the shared store macro data when expanding
-  const newData: TurtleData = structuredClone(data);
-  const resolvedTransforms: Transformation[] = [];
-
-  if (!transforms?.length) {
-    return { data: newData, resolvedTransforms: [] };
+/** Centre of the box around the macro's points. */
+function boundingBoxCenter(data: TurtleData): XY {
+  const points: XY[] = [data.startPoint];
+  for (const line of data.lines) {
+    if (line?.endPoint) points.push(line.endPoint, ...line.controlPoints);
   }
-
-  transforms.forEach((t) => {
-    // Determine pivot for this step
-    const center = calculateMacroCenter(newData);
-    const pivot = resolvePivot(t.pivot, center);
-
-    // Helper to transform a generic point-like object in place
-    const transformPt = (pt: { x: number; y: number }) => {
-      const res = applyPointTransformInternal(pt, t, pivot);
-      pt.x = res.x;
-      pt.y = res.y;
-    };
-
-    // Apply to startPoint
-    transformPt(newData.startPoint);
-    if (newData.startPoint.heading === "constant") {
-      newData.startPoint.degrees = transformHeading(
-        newData.startPoint.degrees,
-        t,
-      );
-    } else if (newData.startPoint.heading === "linear") {
-      newData.startPoint.startDeg = transformHeading(
-        newData.startPoint.startDeg,
-        t,
-      );
-      newData.startPoint.endDeg = transformHeading(
-        newData.startPoint.endDeg,
-        t,
-      );
-    }
-    // Tangential reverse logic
-    if (
-      newData.startPoint.heading === "tangential" &&
-      t.type === "flip" &&
-      newData.startPoint.reverse !== undefined
-    ) {
-      // Flipping geometry preserves tangential relationship direction relative to path,
-      // but the "absolute" angle flips. The 'reverse' flag just means "backward along path".
-      // That shouldn't change.
-    }
-
-    // Apply to lines
-    newData.lines.forEach((line) => {
-      transformPt(line.endPoint);
-      if (line.endPoint.heading === "constant") {
-        line.endPoint.degrees = transformHeading(line.endPoint.degrees, t);
-      } else if (line.endPoint.heading === "linear") {
-        line.endPoint.startDeg = transformHeading(line.endPoint.startDeg, t);
-        line.endPoint.endDeg = transformHeading(line.endPoint.endDeg, t);
-      }
-
-      line.controlPoints.forEach((cp) => transformPt(cp));
-    });
-
-    // Handle sequence items (Wait, Rotate, nested Macro?)
-    if (newData.sequence) {
-      newData.sequence.forEach((seqItem) => {
-        if (seqItem.kind === "rotate") {
-          seqItem.degrees = transformHeading(seqItem.degrees, t);
-        }
-        // Wait items don't have spatial properties
-      });
-    }
-
-    // Save resolved transform for children
-    resolvedTransforms.push({
-      ...t,
-      pivot: pivot, // Explicit coordinates
-    });
-  });
-
-  return { data: newData, resolvedTransforms };
+  const xs = points.filter(Boolean).map((p) => p.x);
+  const ys = points.filter(Boolean).map((p) => p.y);
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2,
+  };
 }
-
-// --- Main Expansion Logic ---
 
 /**
- * Expands a macro into a list of lines and a sequence of items.
- * Handles bridge generation and rotation alignment.
+ * A transformed copy of the macro's data. Also returns the transforms with
+ * their pivots as coordinates, so nested macros move with their parent.
  */
-export function normalizePath(p: string): string {
-  if (!p) return "";
-  return p.replaceAll(`\\`, "/").toLowerCase();
-}
+function transformMacroData(
+  data: TurtleData,
+  transforms: Transformation[] = [],
+): { data: TurtleData; resolvedTransforms: Transformation[] } {
+  // The original is shared by every use of the macro, so work on a copy.
+  const copy: TurtleData = structuredClone(data);
+  const resolvedTransforms: Transformation[] = [];
 
-export function updateCurrentHeading(
-  line: Line,
-  currentPoint: Point,
-  currentHeading: number,
-): number {
-  const endHeadingRaw = getLineEndHeading(line, currentPoint);
-  if (line.endPoint.heading === "tangential") {
-    const tangent = endHeadingRaw;
-    return unwrapAngle(tangent, currentHeading);
-  } else if (line.endPoint.heading === "constant") {
-    return line.endPoint.degrees;
-  } else if (line.endPoint.heading === "linear") {
-    return line.endPoint.endDeg;
+  for (const t of transforms) {
+    const pivot = resolvePivot(t.pivot, boundingBoxCenter(copy));
+
+    transformPoint(copy.startPoint, t, pivot);
+    transformHeadingSettings(copy.startPoint, t, pivot);
+    for (const line of copy.lines) {
+      transformPoint(line.endPoint, t, pivot);
+      transformHeadingSettings(line.endPoint, t, pivot);
+      transformGlobalHeading(line, t, pivot);
+      for (const cp of line.controlPoints) transformPoint(cp, t, pivot);
+    }
+    for (const item of copy.sequence ?? []) {
+      if (item.kind === "rotate")
+        item.degrees = transformHeading(item.degrees, t);
+    }
+
+    resolvedTransforms.push({ ...t, pivot });
   }
-  return currentHeading;
+
+  return { data: copy, resolvedTransforms };
 }
 
+// --- Expansion ---
+
+/** The heading after driving `line` from `start`, kept near `heading`. */
+function headingAfter(line: Line, start: Point, heading: number): number {
+  const end = line.endPoint;
+  if (end.heading === "constant") return end.degrees;
+  if (end.heading === "linear") return end.endDeg;
+  return unwrapAngle(getLineEndHeading(line, start), heading);
+}
+
+/** The path from where the robot is to the start of the macro. */
+function bridgeLine(macro: SequenceMacroItem, from: Point, to: Point): Line {
+  const tag = { isMacroElement: true, macroId: macro.id };
+  // A constant heading is kept; otherwise the bridge simply drives forward
+  // (or backward, if the macro starts reversed and tangential).
+  const endPoint: Point =
+    to.heading === "constant"
+      ? { x: to.x, y: to.y, heading: "constant", degrees: to.degrees, ...tag }
+      : {
+          x: to.x,
+          y: to.y,
+          heading: "tangential",
+          reverse: to.heading === "linear" ? false : (to.reverse ?? false),
+          ...tag,
+        };
+  return {
+    id: `bridge-${macro.id}`,
+    startPoint: { ...from, ...tag },
+    endPoint,
+    controlPoints: [],
+    color: "rgba(100, 100, 100, 0.5)",
+    name: `Bridge to ${macro.name}`,
+    ...tag,
+  };
+}
+
+/** A copy of one of the macro's own lines, marked as part of the macro. */
+function lockedMacroLine(line: Line, macro: SequenceMacroItem): Line {
+  const tag = { isMacroElement: true, macroId: macro.id, locked: true };
+  return {
+    ...line,
+    ...tag,
+    id: `macro-${macro.id}-${line.id || makeId()}`,
+    originalId: line.id,
+    endPoint: { ...line.endPoint, ...tag },
+    controlPoints: line.controlPoints.map((cp) => ({ ...cp, ...tag })),
+  };
+}
+
+/**
+ * Expands `macroItem` (whose file contents are `macroData`), starting from
+ * the robot's current point and heading. Nested macros are expanded too;
+ * `visitedPaths` holds the files already being expanded, to catch cycles.
+ */
 export function expandMacro(
   macroItem: SequenceMacroItem,
   prevPoint: Point,
@@ -234,305 +237,149 @@ export function expandMacro(
   endPoint: Point;
   endHeading: number;
 } {
-  // Check for deep nesting (malicious recursion without loops)
-  if (depth > 50) {
+  if (depth > MAX_MACRO_DEPTH) {
     throw new Error(`Maximum macro depth exceeded: ${macroItem.filePath}`);
   }
-
   const normalizedPath = normalizePath(macroItem.filePath);
-
-  // Check for recursion loop
   if (visitedPaths.has(normalizedPath)) {
     throw new Error(`Recursion detected: ${macroItem.filePath}`);
   }
+  const visited = new Set(visitedPaths).add(normalizedPath);
 
-  // Clone visitedPaths for this branch
-  const nextVisited = new Set(visitedPaths);
-  nextVisited.add(normalizedPath);
-
-  // --- Apply Transformations to Macro Data ---
-  const { data: transformedData, resolvedTransforms } = transformMacroData(
+  const { data, resolvedTransforms } = transformMacroData(
     macroData,
-    macroItem.transformations || [],
+    macroItem.transformations,
   );
 
-  const generatedLines: Line[] = [];
-  const generatedSequence: SequenceItem[] = [];
+  const lines: Line[] = [];
+  const sequence: SequenceItem[] = [];
+  let point = prevPoint;
+  let heading = prevHeading;
 
-  // 1. Bridge Generation (uses transformed start point)
-  const dist = getDistance(prevPoint, transformedData.startPoint);
-  let currentHeading = prevHeading;
-  let currentPoint = prevPoint;
-
-  if (dist > 0.1) {
-    // Determine bridge heading based on macro start point preferences
-    let bridgeEndPoint: Point;
-    const target = transformedData.startPoint;
-
-    if (target.heading === "constant") {
-      bridgeEndPoint = {
-        x: target.x,
-        y: target.y,
-        heading: "constant",
-        degrees: target.degrees,
-        isMacroElement: true,
-        macroId: macroItem.id,
-      };
-    } else if (target.heading === "linear") {
-      // Use tangential bridges for macros even when the macro start is linear.
-      // Tangential bridges provide a smoother connection from caller paths
-      // and avoid introducing artificial linear headings.
-      bridgeEndPoint = {
-        x: target.x,
-        y: target.y,
-        heading: "tangential",
-        reverse: false,
-        isMacroElement: true,
-        macroId: macroItem.id,
-      };
-    } else {
-      // Tangential (already tangential)
-      bridgeEndPoint = {
-        x: target.x,
-        y: target.y,
-        heading: "tangential",
-        reverse: target.reverse ?? false,
-        isMacroElement: true,
-        macroId: macroItem.id,
-      };
-    }
-
-    const bridgeLine: Line = {
-      id: `bridge-${macroItem.id}`,
-      startPoint: { ...prevPoint, isMacroElement: true, macroId: macroItem.id },
-      endPoint: bridgeEndPoint,
-      controlPoints: [],
-      color: "rgba(100, 100, 100, 0.5)", // gray
-      name: `Bridge to ${macroItem.name}`,
-      isMacroElement: true,
-      macroId: macroItem.id,
-    };
-
-    generatedLines.push(bridgeLine);
-    generatedSequence.push({
-      kind: "path",
-      lineId: bridgeLine.id!,
-    });
-
-    currentPoint = bridgeLine.endPoint;
-    // Estimate new heading after bridge
-    currentHeading = getLineEndHeading(bridgeLine, prevPoint);
+  if (getDistance(prevPoint, data.startPoint) > 0.1) {
+    const bridge = bridgeLine(macroItem, prevPoint, data.startPoint);
+    lines.push(bridge);
+    sequence.push({ kind: "path", lineId: bridge.id! });
+    point = bridge.endPoint;
+    heading = getLineEndHeading(bridge, prevPoint);
   } else {
-    currentPoint = transformedData.startPoint;
+    point = data.startPoint;
   }
 
-  // 2. Process Macro Lines/Sequence
-  const macroLines = transformedData.lines
-    .filter(Boolean)
-    .map((l) => ({ ...l }));
+  const linesById = new Map<string, Line>();
+  for (const line of data.lines.filter(Boolean)) {
+    const copy = lockedMacroLine(line, macroItem);
+    linesById.set(line.id || "", copy);
+    lines.push(copy);
+  }
 
-  // Create a mapping from old ID to new ID to preserve sequence references
-  const lineIdMap = new Map<string, string>();
+  const steps: SequenceItem[] = data.sequence?.length
+    ? data.sequence
+    : data.lines.map((l) => ({ kind: "path", lineId: l.id! }));
+  const scopedId = (id: string) => `macro-${macroItem.id}-${id}`;
 
-  macroLines.forEach((line) => {
-    const originalId = line.id;
-    const newId = `macro-${macroItem.id}-${originalId || makeId()}`;
-    lineIdMap.set(originalId || "", newId);
-
-    line.id = newId;
-    line.isMacroElement = true;
-    line.macroId = macroItem.id;
-    line.originalId = originalId;
-    line.locked = true; // Enforce read-only
-
-    // Also mark points
-    line.endPoint = {
-      ...line.endPoint,
-      isMacroElement: true,
-      macroId: macroItem.id,
-      locked: true,
-    };
-    line.controlPoints = line.controlPoints.map((cp) => ({
-      ...cp,
-      isMacroElement: true,
-      macroId: macroItem.id,
-      locked: true,
-    }));
-
-    generatedLines.push(line);
-  });
-
-  const sourceSeq =
-    transformedData.sequence?.length > 0
-      ? transformedData.sequence
-      : transformedData.lines.map(
-          (l) => ({ kind: "path", lineId: l.id! }) as SequenceItem,
-        );
-
-  sourceSeq.forEach((item) => {
+  for (const item of steps) {
     if (item.kind === "path") {
-      const newId = lineIdMap.get(item.lineId);
-      if (newId) {
-        // Check rotation requirement
-        const line = generatedLines.find((l) => l.id === newId);
-        if (line) {
-          const requiredStartHeadingRaw = getLineStartHeading(
-            line,
-            currentPoint,
-          );
-          const requiredStartHeading = unwrapAngle(
-            requiredStartHeadingRaw,
-            currentHeading,
-          );
-
-          if (Math.abs(currentHeading - requiredStartHeading) > 0.1) {
-            generatedSequence.push({
-              kind: "rotate",
-              id: `rotate-align-${newId}`,
-              name: "Align Rotation",
-              degrees: requiredStartHeading,
-              locked: true,
-            });
-            currentHeading = requiredStartHeading;
-          }
-
-          generatedSequence.push({
-            kind: "path",
-            lineId: newId,
-          });
-
-          // Update state
-          currentHeading = updateCurrentHeading(
-            line,
-            currentPoint,
-            currentHeading,
-          );
-
-          currentPoint = line.endPoint;
-        }
-      }
-    } else if (item.kind === "wait") {
-      generatedSequence.push({
-        ...item,
-        id: `macro-${macroItem.id}-${item.id}`,
-        locked: true,
-      });
-    } else if (item.kind === "rotate") {
-      generatedSequence.push({
-        ...item,
-        id: `macro-${macroItem.id}-${item.id}`,
-        locked: true,
-      });
-      currentHeading = item.degrees;
-    } else if (item.kind === "macro") {
-      const nestedData = macrosMap.get(item.filePath);
-      if (nestedData) {
-        const nestedId = `macro-${macroItem.id}-${item.id}`;
-
-        // Propagate transformations to nested macro
-        const childTransforms = [
-          ...(item.transformations || []),
-          ...resolvedTransforms, // Apply parent transforms (resolved) on top
-        ];
-
-        const nestedItem: SequenceMacroItem = {
-          ...item,
-          id: nestedId,
-          locked: true,
-          transformations: childTransforms,
-        };
-
-        const result = expandMacro(
-          nestedItem,
-          currentPoint,
-          currentHeading,
-          nestedData,
-          macrosMap,
-          nextVisited,
-          depth + 1,
-        );
-
-        generatedLines.push(...result.lines);
-
-        const expandedNestedItem: SequenceMacroItem = {
-          ...nestedItem,
-          sequence: result.sequence,
-        };
-        generatedSequence.push(expandedNestedItem);
-
-        currentPoint = result.endPoint;
-        currentHeading = result.endHeading;
-      } else {
-        // Missing data for nested macro, push placeholder or skip
-        generatedSequence.push({
-          ...item,
-          id: `macro-${macroItem.id}-${item.id}`,
+      const line = linesById.get(item.lineId);
+      if (!line) continue;
+      // Turn in place first if the path needs to start facing elsewhere.
+      const startHeading = unwrapAngle(
+        getLineStartHeading(line, point),
+        heading,
+      );
+      if (Math.abs(heading - startHeading) > 0.1) {
+        sequence.push({
+          kind: "rotate",
+          id: `rotate-align-${line.id}`,
+          name: "Align Rotation",
+          degrees: startHeading,
           locked: true,
         });
+        heading = startHeading;
       }
+      sequence.push({ kind: "path", lineId: line.id! });
+      heading = headingAfter(line, point, heading);
+      point = line.endPoint;
+    } else if (item.kind === "wait") {
+      sequence.push({ ...item, id: scopedId(item.id), locked: true });
+    } else if (item.kind === "rotate") {
+      sequence.push({ ...item, id: scopedId(item.id), locked: true });
+      heading = item.degrees;
+    } else if (item.kind === "macro") {
+      const nestedData = macrosMap.get(item.filePath);
+      const nested: SequenceMacroItem = {
+        ...item,
+        id: scopedId(item.id),
+        locked: true,
+      };
+      if (!nestedData) {
+        sequence.push(nested);
+        continue;
+      }
+      // The nested macro's own transforms apply first, then this macro's.
+      nested.transformations = [
+        ...(item.transformations || []),
+        ...resolvedTransforms,
+      ];
+      const result = expandMacro(
+        nested,
+        point,
+        heading,
+        nestedData,
+        macrosMap,
+        visited,
+        depth + 1,
+      );
+      lines.push(...result.lines);
+      sequence.push({ ...nested, sequence: result.sequence });
+      point = result.endPoint;
+      heading = result.endHeading;
     }
-  });
+  }
 
-  return {
-    lines: generatedLines,
-    sequence: generatedSequence,
-    endPoint: currentPoint,
-    endHeading: currentHeading,
-  };
+  return { lines, sequence, endPoint: point, endHeading: heading };
 }
 
+/**
+ * Whether embedding `targetFilePath` in `startFilePath` would make a macro
+ * include itself, directly or through other macros.
+ */
 export function wouldCreateCycle(
   targetFilePath: string,
   startFilePath: string,
   macrosMap: Map<string, TurtleData>,
 ): boolean {
-  const startNormalized = normalizePath(startFilePath);
-  const targetNormalized = normalizePath(targetFilePath);
+  const start = normalizePath(startFilePath);
+  const macros = new Map(
+    [...macrosMap].map(([path, data]) => [normalizePath(path), data]),
+  );
+  const checked = new Set<string>();
 
-  if (targetNormalized === startNormalized) return true;
+  function reachesStart(path: string, branch: Set<string>): boolean {
+    const p = normalizePath(path);
+    if (p === start || branch.has(p)) return true;
+    if (checked.has(p)) return false;
 
-  const globalVisited = new Set<string>();
-
-  function check(path: string, currentBranch: Set<string>): boolean {
-    const pNorm = normalizePath(path);
-
-    if (pNorm === startNormalized) return true;
-    if (currentBranch.has(pNorm)) return true;
-    if (globalVisited.has(pNorm)) return false;
-
-    currentBranch.add(pNorm);
-
-    let data: TurtleData | undefined = undefined;
-    for (const [key, value] of macrosMap.entries()) {
-      if (normalizePath(key) === pNorm) {
-        data = value;
-        break;
+    const nextBranch = new Set(branch).add(p);
+    for (const item of macros.get(p)?.sequence ?? []) {
+      if (
+        item.kind === "macro" &&
+        item.filePath &&
+        reachesStart(item.filePath, nextBranch)
+      ) {
+        return true;
       }
     }
-
-    if (data?.sequence) {
-      for (const item of data.sequence) {
-        if (item.kind === "macro") {
-          const childPath = (item as any).filePath;
-          if (childPath && check(childPath, new Set(currentBranch))) {
-            return true;
-          }
-        }
-      }
-    }
-
-    currentBranch.delete(pNorm);
-    globalVisited.add(pNorm);
-
+    checked.add(p);
     return false;
   }
 
-  return check(targetFilePath, new Set<string>());
+  return reachesStart(targetFilePath, new Set());
 }
 
 /**
- * Regenerates all macros in the project based on current user lines.
- * Updates the lines list (including macro lines) and the sequence items.
+ * Re-expands every macro in the project. The user's own lines are kept;
+ * macro lines are rebuilt from the macro files in `macrosMap`.
  */
 export function regenerateProjectMacros(
   startPoint: Point,
@@ -541,142 +388,75 @@ export function regenerateProjectMacros(
   macrosMap: Map<string, TurtleData>,
   currentFilePath: string | null = null,
 ): { lines: Line[]; sequence: SequenceItem[] } {
-  const newLines: Line[] = [];
-  // Separate user lines from macro lines to keep user edits
   const userLines = lines.filter((l) => !l.isMacroElement);
-  newLines.push(...userLines);
+  const linesById = new Map(userLines.map((l) => [l.id!, l]));
+  const newLines: Line[] = [...userLines];
+  const newSequence: SequenceItem[] = [];
 
-  // Index user lines for fast lookup
-  const lineMap = new Map(userLines.map((l) => [l.id!, l]));
+  let point = startPoint;
+  let heading = startingHeading(startPoint, userLines, sequence);
 
-  const newSequence: SequenceItem[] = []; // Top level sequence
-
-  // Tracking state
-  let currentPoint: Point = startPoint;
-  let currentHeading = 0;
-
-  // Initialize start heading
-  if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
-  else if (startPoint.heading === "constant")
-    currentHeading = startPoint.degrees;
-
-  // Special handling for initial tangential heading
-  if (startPoint.heading === "tangential") {
-    // Look ahead at first path line
-    const firstPathItem = sequence.find((s) => s.kind === "path");
-    if (firstPathItem) {
-      const l = lineMap.get((firstPathItem as any).lineId);
-      if (l) {
-        const nextP =
-          l.controlPoints.length > 0 ? l.controlPoints[0] : l.endPoint;
-        currentHeading = getInitialTangentialHeading(startPoint, nextP);
-      }
-    }
-  }
-
-  sequence.forEach((item) => {
+  for (const item of sequence) {
     if (item.kind === "path") {
       newSequence.push(item);
-      const line = lineMap.get(item.lineId);
-      if (line) {
-        const requiredStartHeadingRaw = getLineStartHeading(line, currentPoint);
-        const requiredStartHeading = unwrapAngle(
-          requiredStartHeadingRaw,
-          currentHeading,
-        );
-        currentHeading = requiredStartHeading;
-
-        currentHeading = updateCurrentHeading(
-          line,
-          currentPoint,
-          currentHeading,
-        );
-        currentPoint = line.endPoint;
-      }
+      const line = linesById.get(item.lineId);
+      if (!line) continue;
+      heading = unwrapAngle(getLineStartHeading(line, point), heading);
+      heading = headingAfter(line, point, heading);
+      point = line.endPoint;
     } else if (item.kind === "wait") {
       newSequence.push(item);
     } else if (item.kind === "rotate") {
       newSequence.push(item);
-      currentHeading = item.degrees;
+      heading = item.degrees;
     } else if (item.kind === "macro") {
       const macroData = macrosMap.get(item.filePath);
       if (macroData) {
-        // Expand with recursion support
-        const initialVisited = new Set<string>();
-        if (currentFilePath) {
-          initialVisited.add(normalizePath(currentFilePath));
-        }
-
+        // The open file can't include itself.
+        const visited = new Set<string>();
+        if (currentFilePath) visited.add(normalizePath(currentFilePath));
         const result = expandMacro(
           item,
-          currentPoint,
-          currentHeading,
+          point,
+          heading,
           macroData,
           macrosMap,
-          initialVisited,
+          visited,
         );
-
-        // Add generated lines to master list
         newLines.push(...result.lines);
-
-        // Update macro item with new sequence
-        const newMacroItem: SequenceMacroItem = {
-          ...item,
-          sequence: result.sequence,
-        };
-        newSequence.push(newMacroItem);
-
-        // Update state
-        currentPoint = result.endPoint;
-        currentHeading = result.endHeading;
-      } else {
-        // Macro data missing, just push item as is
-        newSequence.push(item);
-
-        // Attempt to preserve existing lines for this macro if they exist in the input
-        const prefix = `macro-${item.id}-`;
-        const bridgePrefix = `bridge-${item.id}`;
-        const preservedLines = lines.filter(
-          (l) =>
-            l.macroId === item.id ||
-            (l.id && (l.id.startsWith(prefix) || l.id === bridgePrefix)),
-        );
-
-        if (preservedLines.length > 0) {
-          newLines.push(...preservedLines);
-
-          // Reconstruct sequence if missing
-          if (!item.sequence?.length) {
-            const reconstructedSeq: SequenceItem[] = preservedLines.map(
-              (l) => ({
-                kind: "path",
-                lineId: l.id!,
-              }),
-            );
-            const newItem: SequenceMacroItem = {
-              ...item,
-              sequence: reconstructedSeq,
-            };
-            newSequence[newSequence.length - 1] = newItem;
-          }
-
-          // Update current point to end of last line
-          const lastLine = preservedLines.at(-1);
-          currentPoint = lastLine.endPoint;
-          currentHeading = getLineEndHeading(
-            lastLine,
-            preservedLines.length > 1
-              ? preservedLines.at(-2).endPoint
-              : currentPoint,
-          );
-          if (lastLine.endPoint.heading === "constant")
-            currentHeading = lastLine.endPoint.degrees;
-          else if (lastLine.endPoint.heading === "linear")
-            currentHeading = lastLine.endPoint.endDeg;
-        }
+        newSequence.push({ ...item, sequence: result.sequence });
+        point = result.endPoint;
+        heading = result.endHeading;
+        continue;
       }
+
+      // The macro file isn't loaded (yet). Keep the lines it produced last
+      // time so the path doesn't jump around.
+      const kept = lines.filter(
+        (l) =>
+          l.macroId === item.id ||
+          l.id?.startsWith(`macro-${item.id}-`) ||
+          l.id === `bridge-${item.id}`,
+      );
+      if (kept.length === 0) {
+        newSequence.push(item);
+        continue;
+      }
+      newLines.push(...kept);
+      newSequence.push(
+        item.sequence?.length
+          ? item
+          : {
+              ...item,
+              sequence: kept.map((l) => ({ kind: "path", lineId: l.id! })),
+            },
+      );
+
+      const last = kept.at(-1)!;
+      heading = headingAfter(last, kept.at(-2)?.endPoint ?? point, heading);
+      point = last.endPoint;
     }
-  });
+  }
 
   return { lines: newLines, sequence: newSequence };
 }

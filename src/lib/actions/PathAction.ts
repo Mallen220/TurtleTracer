@@ -2,13 +2,76 @@
 import type { ActionDefinition, InsertionContext } from "../actionRegistry";
 import { makeId, renumberDefaultPathNames } from "../../utils/nameGenerator";
 import { getRandomColor } from "../../utils/draw";
-import type { Line } from "../../types";
+import type { Line, Point } from "../../types";
 import { settingsStore } from "../projectStore";
 import { get } from "svelte/store";
 
 // Tailwind Safelist for dynamic classes:
 // bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 focus:ring-green-300 dark:focus:ring-green-700
 // bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800/30
+
+/**
+ * The end point for a new path at (x, y), turning the way the path before
+ * it does. Facing a point doesn't carry over; the new path faces forward.
+ */
+export function endPointAfter(
+  previous: Point | undefined,
+  x: number,
+  y: number,
+): Point {
+  if (previous?.heading === "linear") {
+    const deg = previous.endDeg ?? 0;
+    return { x, y, heading: "linear", startDeg: deg, endDeg: deg };
+  }
+  if (previous?.heading === "constant") {
+    return { x, y, heading: "constant", degrees: previous.degrees ?? 0 };
+  }
+  return { x, y, heading: "tangential", reverse: previous?.reverse ?? false };
+}
+
+/** A new, empty path to `endPoint`. */
+export function createLine(endPoint: Point): Line {
+  return {
+    id: makeId(),
+    name: "",
+    endPoint,
+    controlPoints: [],
+    color: getRandomColor(),
+    eventMarkers: [],
+    waitBeforeMs: 0,
+    waitAfterMs: 0,
+    waitBeforeName: "",
+    waitAfterName: "",
+  };
+}
+
+/**
+ * Inserts a new path at `ctx.index`, starting where the last path before it
+ * ends and turning the same way. `place` picks its end from that start.
+ */
+export function insertPath(
+  ctx: InsertionContext,
+  place: (from: Point) => { x: number; y: number },
+) {
+  const previous = ctx.sequence
+    .slice(0, ctx.index)
+    .findLast((s) => s.kind === "path");
+  const afterIndex =
+    previous?.kind === "path"
+      ? ctx.lines.findIndex((l) => l.id === previous.lineId)
+      : -1;
+  const from = ctx.lines[afterIndex]?.endPoint ?? ctx.startPoint;
+  const { x, y } = place(from);
+  const line = createLine(endPointAfter(from, x, y));
+
+  // Edited in place: the caller's arrays are the ones it re-renders.
+  const renumbered = renumberDefaultPathNames(
+    ctx.lines.toSpliced(afterIndex + 1, 0, line),
+  );
+  ctx.lines.splice(0, ctx.lines.length, ...renumbered);
+  ctx.sequence.splice(ctx.index, 0, { kind: "path", lineId: line.id! });
+  ctx.triggerReactivity();
+}
 
 // This is a partial definition for the Path action.
 // The UI rendering and logic for Path is still handled natively in WaypointTable and FieldRenderer
@@ -28,91 +91,13 @@ export const PathAction: ActionDefinition = {
 
   component: null,
 
+  // Menu inserts put the new end a short step on from the previous one.
   onInsert: (ctx: InsertionContext) => {
-    // Logic similar to insertPath in WaypointTable
-    let insertAfterLineId: string | null = null;
-    let refPoint = ctx.startPoint;
-
-    // Find the last path element before insertion point
-    for (let i = ctx.index - 1; i >= 0; i--) {
-      if (ctx.sequence[i].kind === "path") {
-        insertAfterLineId = (ctx.sequence[i] as any).lineId;
-        const l = ctx.lines.find((x) => x.id === insertAfterLineId);
-        if (l) {
-          refPoint = l.endPoint;
-        }
-        break;
-      }
-    }
-
     const settings = get(settingsStore);
-    const fieldW = settings?.fieldWidth ?? 144;
-    const fieldH = settings?.fieldHeight ?? 144;
-
-    // Inherit heading type from refPoint
-    let endPoint: import("../../types").Point;
-    if (refPoint.heading === "linear") {
-      const linRef = refPoint as Extract<
-        import("../../types").Point,
-        { heading: "linear" }
-      >;
-      const deg = linRef.endDeg ?? linRef.startDeg ?? 0;
-      endPoint = {
-        x: Math.max(0, Math.min(fieldW, refPoint.x + 10)),
-        y: Math.max(0, Math.min(fieldH, refPoint.y + 10)),
-        heading: "linear",
-        startDeg: deg,
-        endDeg: deg,
-      };
-    } else if (refPoint.heading === "constant") {
-      const constRef = refPoint as Extract<
-        import("../../types").Point,
-        { heading: "constant" }
-      >;
-      endPoint = {
-        x: Math.max(0, Math.min(fieldW, refPoint.x + 10)),
-        y: Math.max(0, Math.min(fieldH, refPoint.y + 10)),
-        heading: "constant",
-        degrees: constRef.degrees ?? 0,
-      };
-    } else {
-      endPoint = {
-        x: Math.max(0, Math.min(fieldW, refPoint.x + 10)),
-        y: Math.max(0, Math.min(fieldH, refPoint.y + 10)),
-        heading: "tangential",
-        reverse: (refPoint as any).reverse ?? false,
-      };
-    }
-
-    // Create new line
-    const newLine: Line = {
-      id: makeId(),
-      name: "",
-      endPoint,
-      controlPoints: [],
-      color: getRandomColor(),
-      waitBeforeMs: 0,
-      waitAfterMs: 0,
-      waitBeforeName: "",
-      waitAfterName: "",
-      eventMarkers: [],
-    };
-
-    let lineInsertIdx = 0;
-    if (insertAfterLineId) {
-      const idx = ctx.lines.findIndex((l) => l.id === insertAfterLineId);
-      if (idx !== -1) lineInsertIdx = idx + 1;
-    }
-
-    ctx.lines.splice(lineInsertIdx, 0, newLine);
-
-    const renumbered = renumberDefaultPathNames(ctx.lines);
-    // Copy back to ctx.lines
-    ctx.lines.length = 0;
-    renumbered.forEach((l) => ctx.lines.push(l));
-
-    ctx.sequence.splice(ctx.index, 0, { kind: "path", lineId: newLine.id! });
-
-    ctx.triggerReactivity();
+    const clamp = (v: number, max: number) => Math.max(0, Math.min(max, v));
+    insertPath(ctx, (from) => ({
+      x: clamp(from.x + 10, settings?.fieldWidth ?? 144),
+      y: clamp(from.y + 10, settings?.fieldHeight ?? 144),
+    }));
   },
 };

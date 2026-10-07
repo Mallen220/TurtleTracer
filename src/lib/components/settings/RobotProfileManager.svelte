@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { triggerDownload } from "../../../utils/file";
+  import { tuningFromProfile, tuningOf } from "../../../utils/robotProfile";
   import { onDestroy } from "svelte";
   import type { RobotProfile, Settings } from "../../../types";
   import { notification } from "../../../stores";
@@ -50,6 +52,7 @@
       aVelocity: settings.aVelocity,
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
+      ...tuningOf(settings),
       robotImage: settings.robotImage,
       robotDriveType: settings.robotDriveType,
       showRobotArrows: settings.showRobotArrows,
@@ -90,6 +93,7 @@
     settings.aVelocity = profile.aVelocity;
     settings.xVelocity = profile.xVelocity;
     settings.yVelocity = profile.yVelocity;
+    Object.assign(settings, tuningFromProfile(profile, settings));
     if (profile.robotImage) {
       settings.robotImage = profile.robotImage;
     }
@@ -125,6 +129,7 @@
       aVelocity: settings.aVelocity,
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
+      ...tuningOf(settings),
       robotImage: settings.robotImage,
       robotDriveType: settings.robotDriveType,
       showRobotArrows: settings.showRobotArrows,
@@ -209,6 +214,7 @@
             aVelocity: json.aVelocity ?? settings.aVelocity,
             xVelocity: json.xVelocity ?? settings.xVelocity,
             yVelocity: json.yVelocity ?? settings.yVelocity,
+            ...tuningFromProfile(json, settings),
             robotImage: json.robotImage,
             robotDriveType: json.robotDriveType,
             showRobotArrows: json.showRobotArrows,
@@ -241,23 +247,14 @@
     if (!profile) return;
 
     try {
-      const dataStr = JSON.stringify(profile, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const downloadAnchorNode = document.createElement("a");
-      downloadAnchorNode.setAttribute("href", url);
       const safeName = profile.name
         .replaceAll(/[^a-z0-9]/gi, "_")
         .toLowerCase();
-      downloadAnchorNode.setAttribute(
-        "download",
+      triggerDownload(
+        JSON.stringify(profile, null, 2),
+        "application/json",
         `robot-profile-${safeName}.json`,
       );
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-      URL.revokeObjectURL(url);
-
       notification.set({
         message: `Profile "${profile.name}" exported`,
         type: "success",

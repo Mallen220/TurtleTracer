@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { actionRegistry } from "../../actionRegistry";
-import type { SequenceItem } from "../../../types/index";
+import type { EventMarker, SequenceItem } from "../../../types/index";
 
 export type SelectionInfo =
   | { type: "wait"; id: string }
@@ -64,31 +63,28 @@ export function parseSelectionId(sel: string): SelectionInfo {
   return { type: "unknown", raw: sel };
 }
 
-export function findSequenceItem(
-  sequence: SequenceItem[],
-  id: string,
-  kind: "wait" | "rotate",
-): any {
-  return sequence.find(
-    (s) =>
-      actionRegistry.get(s.kind)?.[kind === "wait" ? "isWait" : "isRotate"] &&
-      (s as any).id === id,
-  );
-}
-
 export function findSequenceItemIndex(
   sequence: SequenceItem[],
   id: string,
   kind: "wait" | "rotate",
 ): number {
-  return sequence.findIndex(
-    (s) =>
-      actionRegistry.get(s.kind)?.[kind === "wait" ? "isWait" : "isRotate"] &&
-      (s as any).id === id,
-  );
+  return sequence.findIndex((s) => s.kind === kind && s.id === id);
 }
 
-export function updateEventMarkerPosition(marker: any, delta: number): number {
-  let newPos = marker.position + delta;
-  return Math.max(0, Math.min(1, newPos));
+export function findSequenceItem<K extends "wait" | "rotate">(
+  sequence: SequenceItem[],
+  id: string,
+  kind: K,
+): Extract<SequenceItem, { kind: K }> | undefined {
+  return sequence[findSequenceItemIndex(sequence, id, kind)] as
+    | Extract<SequenceItem, { kind: K }>
+    | undefined;
+}
+
+/** A marker's position moved by `delta`, kept within its item (0 to 1). */
+export function updateEventMarkerPosition(
+  marker: EventMarker,
+  delta: number,
+): number {
+  return Math.max(0, Math.min(1, marker.position + delta));
 }

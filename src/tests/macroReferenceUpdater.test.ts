@@ -8,14 +8,14 @@
  *   2. Re-relativize the updated absolute path before writing back to disk.
  *   3. Always keep sequenceStore and macrosStore in absolute-path form.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { get } from "svelte/store";
 import {
   sequenceStore,
   macrosStore,
   updateAllMacroReferences,
 } from "../lib/projectStore";
-import { currentDirectoryStore } from "../stores";
+import { currentDirectoryStore, notification } from "../stores";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequenceMacroItem, TurtleData } from "../types";
@@ -253,5 +253,235 @@ describe("updateAllMacroReferences", () => {
     const written = JSON.parse(writes[projectPath]);
     const newRef = (written.sequence[0] as SequenceMacroItem).filePath;
     expect(newRef).toBe("lib/macro.turt");
+  });
+});
+
+// ─── more cases ──────────────────────────────────────────────────────────────
+
+import { getUpdatedPath } from "../lib/macroReferenceUpdater";
+
+describe("getUpdatedPath", () => {
+  it("replaces an exact match", () => {
+    expect(getUpdatedPath("/a/b.turt", "/a/b.turt", "/c/d.turt")).toBe(
+      "/c/d.turt",
+    );
+  });
+
+  it("moves everything inside a renamed folder, with either separator", () => {
+    expect(getUpdatedPath("/a/macros/x.turt", "/a/macros", "/a/lib")).toBe(
+      "/a/lib/x.turt",
+    );
+    expect(
+      getUpdatedPath(
+        String.raw`C:\a\macros\x.turt`,
+        String.raw`C:\a\macros`,
+        String.raw`C:\a\lib`,
+      ),
+    ).toBe(String.raw`C:\a\lib\x.turt`);
+  });
+
+  it("doesn't touch paths that only share a prefix, or are unrelated", () => {
+    expect(
+      getUpdatedPath("/a/macros2/x.turt", "/a/macros", "/a/lib"),
+    ).toBeNull();
+    expect(getUpdatedPath("/other/x.turt", "/a/macros", "/a/lib")).toBeNull();
+  });
+});
+
+describe("updateAllMacroReferences edge cases", () => {
+  const projectPath = `${BASE}/project.turt`;
+  const withMacroRef = (ref = "macros/macro.turt") => ({
+    ...makeEmptyData(),
+    sequence: [makeMacroItem(ref)],
+  });
+
+  beforeEach(() => {
+    actionRegistry.reset();
+    registerCoreUI();
+    sequenceStore.set([]);
+    macrosStore.set(new Map());
+    currentDirectoryStore.set(null as any);
+    notification.set(null);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    delete (globalThis as any).electronAPI;
+    vi.restoreAllMocks();
+  });
+
+  it("does nothing when the file API isn't available", async () => {
+    (globalThis as any).electronAPI = { readFile: vi.fn() }; // no listFiles or writeFile
+    expect(await updateAllMacroReferences(OLD_ABS, NEW_ABS)).toEqual({
+      totalUpdated: 0,
+      mainSequenceChanged: false,
+    });
+  });
+
+  it("reports whether the open project's sequence changed", async () => {
+    sequenceStore.set([makeMacroItem(OLD_ABS)]);
+    (globalThis as any).electronAPI = setupElectronAPI({});
+    const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(result).toEqual({ totalUpdated: 1, mainSequenceChanged: true });
+    expect((get(sequenceStore)[0] as SequenceMacroItem).filePath).toBe(NEW_ABS);
+  });
+
+  it("tells the user how many references were updated", async () => {
+    (globalThis as any).electronAPI = setupElectronAPI({
+      [projectPath]: withMacroRef(),
+    });
+    (globalThis as any).electronAPI.getSavedDirectory = vi.fn(async () => BASE);
+    await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(get(notification)).toMatchObject({
+      type: "success",
+      message: "Updated 1 macro reference(s) to new location.",
+    });
+  });
+
+  it("warns, but still counts the update, when a file can't be written", async () => {
+    const api = setupElectronAPI({ [projectPath]: withMacroRef() });
+    api.writeFile.mockRejectedValue(new Error("read-only"));
+    (globalThis as any).electronAPI = api;
+    const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(result.totalUpdated).toBe(1);
+    expect(get(notification)).toMatchObject({ type: "warning" });
+    expect(get(notification)!.message).toContain(
+      "failed to save to disk in 1 file(s)",
+    );
+  });
+
+  it("stays quiet when nothing referred to the moved file", async () => {
+    (globalThis as any).electronAPI = setupElectronAPI({
+      [projectPath]: withMacroRef("other/elsewhere.turt"),
+    });
+    await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(get(notification)).toBeNull();
+  });
+
+  it("keeps going when one project file is unreadable", async () => {
+    const good = `${BASE}/good.turt`;
+    const bad = `${BASE}/bad.turt`;
+    const writes: Record<string, string> = {};
+    const api = setupElectronAPI({ [bad]: {}, [good]: withMacroRef() }, writes);
+    const read = api.readFile.getMockImplementation()!;
+    api.readFile.mockImplementation(async (p: string) => {
+      if (p === bad) return "{not json";
+      return read(p);
+    });
+    (globalThis as any).electronAPI = api;
+
+    const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(result.totalUpdated).toBe(1);
+    expect(writes[good]).toBeDefined();
+    expect(writes[bad]).toBeUndefined();
+  });
+
+  it("scans sub-folders, and skips other file types and parent links", async () => {
+    const nested = `${BASE}/team/auto.turt`;
+    const writes: Record<string, string> = {};
+    const api = setupElectronAPI(
+      {
+        [nested]: withMacroRef("../macros/macro.turt"),
+        [`${BASE}/notes.txt`]: withMacroRef(),
+      },
+      writes,
+    );
+    const list = api.listFiles.getMockImplementation()!;
+    api.listFiles.mockImplementation(async (dir: string) => [
+      { path: `${dir}/..`, name: "..", isDirectory: true },
+      ...(await list(dir)),
+    ]);
+    (globalThis as any).electronAPI = api;
+
+    await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(JSON.parse(writes[nested]).sequence[0].filePath).toBe(
+      "../macro.turt",
+    );
+    expect(writes[`${BASE}/notes.txt`]).toBeUndefined();
+  });
+
+  it("carries on if a folder can't be listed", async () => {
+    const api = setupElectronAPI({ [projectPath]: withMacroRef() });
+    api.listFiles.mockRejectedValue(new Error("denied"));
+    (globalThis as any).electronAPI = api;
+    await expect(
+      updateAllMacroReferences(OLD_ABS, NEW_ABS),
+    ).resolves.toMatchObject({
+      totalUpdated: 0,
+    });
+  });
+
+  it("falls back to the open folder when no folder has been saved", async () => {
+    const api = setupElectronAPI({ [projectPath]: withMacroRef() });
+    api.getSavedDirectory.mockResolvedValue("" as any);
+    currentDirectoryStore.set(BASE);
+    (globalThis as any).electronAPI = api;
+    expect(
+      (await updateAllMacroReferences(OLD_ABS, NEW_ABS)).totalUpdated,
+    ).toBe(1);
+  });
+
+  it("leaves a reference alone if its path can't be resolved", async () => {
+    const writes: Record<string, string> = {};
+    const api = setupElectronAPI({ [projectPath]: withMacroRef() }, writes);
+    api.resolvePath.mockRejectedValue(new Error("nope"));
+    (globalThis as any).electronAPI = api;
+    const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(result.totalUpdated).toBe(0);
+    expect(writes[projectPath]).toBeUndefined();
+  });
+
+  it("updates a loaded macro's own references, including the copy held in memory", async () => {
+    const holder = `${BASE}/holder.turt`;
+    macrosStore.set(
+      new Map([
+        [holder, { ...makeEmptyData(), sequence: [makeMacroItem(OLD_ABS)] }],
+      ]),
+    );
+    const writes: Record<string, string> = {};
+    (globalThis as any).electronAPI = setupElectronAPI({}, writes);
+
+    const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+
+    expect(result.totalUpdated).toBe(1);
+    const inMemory = get(macrosStore).get(holder)!;
+    expect((inMemory.sequence[0] as SequenceMacroItem).filePath).toBe(NEW_ABS);
+
+    // On disk the reference stays relative to the file that holds it, so the
+    // project folder can still be moved or shared.
+    const onDisk = JSON.parse(writes[holder]);
+    expect(onDisk.sequence[0].filePath).toBe("macro.turt");
+  });
+
+  it("writes a loaded macro's reference as an absolute path if it can't be made relative", async () => {
+    const holder = `${BASE}/holder.turt`;
+    macrosStore.set(
+      new Map([
+        [holder, { ...makeEmptyData(), sequence: [makeMacroItem(OLD_ABS)] }],
+      ]),
+    );
+    const writes: Record<string, string> = {};
+    const api = setupElectronAPI({}, writes);
+    api.makeRelativePath.mockRejectedValue(new Error("different drives"));
+    (globalThis as any).electronAPI = api;
+
+    await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(JSON.parse(writes[holder]).sequence[0].filePath).toBe(NEW_ABS);
+  });
+
+  it("writes each file once even when it is both loaded and on disk", async () => {
+    const holder = `${BASE}/holder.turt`;
+    macrosStore.set(
+      new Map([
+        [holder, { ...makeEmptyData(), sequence: [makeMacroItem(OLD_ABS)] }],
+      ]),
+    );
+    const api = setupElectronAPI({
+      [holder]: withMacroRef("macros/macro.turt"),
+    });
+    (globalThis as any).electronAPI = api;
+    await updateAllMacroReferences(OLD_ABS, NEW_ABS);
+    expect(api.writeFile.mock.calls.filter(([p]) => p === holder)).toHaveLength(
+      1,
+    );
   });
 });

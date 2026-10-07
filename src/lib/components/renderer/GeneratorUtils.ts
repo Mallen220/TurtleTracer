@@ -1,30 +1,43 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import { Anchor } from "two.js/src/anchor";
+import type { Path } from "two.js/src/path";
+import type { Line as PathLine } from "two.js/src/shapes/line";
 import { getCurvePoint, quadraticToCubic } from "../../../utils/math";
-import type { Line, Point } from "../../../types";
+import type {
+  Line,
+  Point,
+  Settings,
+  TimelineEvent,
+  TimePrediction,
+} from "../../../types";
 
+/**
+ * What the field's drawings are built from. It deliberately leaves out the
+ * playhead and the robot's pose: those change every frame of playback, and
+ * anything built from this context is rebuilt when it changes.
+ */
 export interface RenderContext {
   x: d3.ScaleLinear<number, number>;
   y: d3.ScaleLinear<number, number>;
   uiLength: (inches: number) => number;
-  settings: any;
-  timePrediction: any;
-  percentStore: number;
+  settings: Settings;
+  timePrediction: TimePrediction | null | undefined;
   dimmedIds: string[];
   multiSelectedPointIds: string[];
   ppI?: number;
   hoveredMarkerId?: string | null;
   selectedLineId?: string | null;
   selectedPointId?: string | null;
-  actionRegistry?: any;
-  robotXY?: { x: number; y: number } | null;
 }
 
 /**
  * Finds the active timeline event based on the current animation progress.
  */
-export function findActiveEvent(timePrediction: any, percentStore: number) {
+export function findActiveEvent(
+  timePrediction: TimePrediction | null | undefined,
+  percentStore: number,
+): TimelineEvent | null | undefined {
   if (!timePrediction?.timeline?.length) return null;
 
   const totalDuration = timePrediction.timeline.at(-1)?.endTime || 0;
@@ -32,7 +45,7 @@ export function findActiveEvent(timePrediction: any, percentStore: number) {
 
   return (
     timePrediction.timeline.find(
-      (e: any) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
+      (e) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
     ) ?? timePrediction.timeline.at(-1)
   );
 }
@@ -125,6 +138,21 @@ export function createPathAnchors(
       ),
     ];
   }
+}
+
+/** A Two.js shape for a path line: a straight line, or a curve through its anchors. */
+export function createLineElement(
+  line: Line,
+  startPoint: Point,
+  ctx: RenderContext,
+): Path | PathLine {
+  const anchors = createPathAnchors(line, startPoint, ctx);
+  if (line.controlPoints.length === 0) {
+    return new Two.Line(anchors[0].x, anchors[0].y, anchors[1].x, anchors[1].y);
+  }
+  const curve = new Two.Path(anchors);
+  curve.automatic = false;
+  return curve;
 }
 
 /**

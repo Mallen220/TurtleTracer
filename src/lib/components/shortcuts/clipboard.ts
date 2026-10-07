@@ -4,253 +4,152 @@ import {
   linesStore,
   sequenceStore,
   startPointStore,
+  settingsStore,
   renumberDefaultPathNames,
 } from "../../projectStore";
+import { copyName, duplicateStep } from "../../sequenceOperations";
 import { selectedLineId, selectedPointId, notification } from "../../../stores";
-import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import { parseSelectionId, findSequenceItem } from "./itemUtils";
+import { makeId } from "../../../utils/nameGenerator";
 
-// Internal clipboard state for shortcuts
-export let clipboard: SequenceItem | Line | null = null;
+type WaitOrRotate = "wait" | "rotate";
 
-// Helper to generate unique name
-export const generateName = (baseName: string, existingNames: string[]) => {
-  // Regex to match "Name duplicate" or "Name duplicate N"
-  const match = baseName.match(/^(.*?) duplicate(?: (\d+))?$/);
+// What the copy/cut/paste shortcuts are holding. This is separate from the
+// system clipboard.
+let clipboard: SequenceItem | Line | null = null;
 
-  let rootName = baseName;
-  let startNum = 1;
+export const getClipboard = () => clipboard;
 
-  if (match) {
-    rootName = match[1];
-    startNum = match[2] ? Number.parseInt(match[2], 10) : 1;
-    startNum++;
-  }
-
-  // Try candidates starting from the determined number
-  let candidate = "";
-  let i = startNum;
-
-  // Safety/Sanity: loop limit to prevent infinite hangs in weird edge cases
-  while (i < 1000) {
-    if (i === 1) {
-      candidate = rootName + " duplicate";
-    } else {
-      candidate = rootName + " duplicate " + i;
-    }
-
-    if (!existingNames.includes(candidate)) {
-      return candidate;
-    }
-    i++;
-  }
-  return rootName + " duplicate " + Date.now(); // Fallback
-};
-
-function duplicateSequenceItem(
-  item: any,
-  kind: "wait" | "rotate",
-  sequence: SequenceItem[],
-  recordChange: (action?: string) => void,
-) {
-  const newItem = JSON.parse(JSON.stringify(item));
-  newItem.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-  const existingNames = sequence
-    .filter(
-      (s) =>
-        actionRegistry.get(s.kind)?.[kind === "wait" ? "isWait" : "isRotate"],
-    )
-    .map((s) => (s as any).name || "");
-
-  if (item.name && item.name.trim() !== "") {
-    newItem.name = generateName(item.name, existingNames);
-  } else {
-    newItem.name = "";
-  }
-
-  const insertIdx = getSelectedSequenceIndex();
-  if (insertIdx !== null) {
-    sequenceStore.update((s) => {
-      const s2 = [...s];
-      s2.splice(insertIdx + 1, 0, newItem);
-      return s2;
-    });
-    selectedPointId.set(`${kind}-${newItem.id}`);
-    recordChange("Duplicate Selection");
-  }
+function getWaitOrRotateKind(item: SequenceItem): WaitOrRotate | null {
+  return item.kind === "wait" || item.kind === "rotate" ? item.kind : null;
 }
 
+/** A copy of a wait/rotate item with a new id and a name that doesn't clash. */
+function cloneSequenceItem(
+  item: SequenceItem,
+  kind: WaitOrRotate,
+  sequence: SequenceItem[],
+): SequenceItem & { id: string } {
+  const existingNames = sequence
+    .filter((s) => getWaitOrRotateKind(s) === kind)
+    .map((s) => (s as { name?: string }).name || "");
+  return {
+    ...structuredClone(item),
+    id: makeId(),
+    name: copyName((item as { name?: string }).name, existingNames),
+  } as SequenceItem & { id: string };
+}
+
+/** A copy of a line with a new id and a name that doesn't clash. */
+function cloneLine(line: Line, lines: Line[]): Line {
+  return {
+    ...structuredClone(line),
+    id: makeId("line"),
+    name: copyName(
+      line.name,
+      lines.map((l) => l.name || ""),
+    ),
+  };
+}
+
+/** The selected line, whether it was selected directly or via one of its points. */
+function getTargetLine(selection: string, lines: Line[]): Line | undefined {
+  const lineId = get(selectedLineId);
+  if (lineId) return lines.find((l) => l.id === lineId);
+
+  const info = parseSelectionId(selection);
+  if (info.type === "point" && info.lineNum > 0) return lines[info.lineNum - 1];
+  return undefined;
+}
+
+function insertAfter<T>(items: T[], index: number | null, item: T): T[] {
+  if (index === null) return [...items, item];
+  return [...items.slice(0, index + 1), item, ...items.slice(index + 1)];
+}
+
+/** Ctrl+D: copies the selected wait, turn or path right after it. */
 export function duplicate(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
   const sel = get(selectedPointId);
+  if (!sel) return;
+
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
-  const startPoint = get(startPointStore);
-
-  if (!sel) return;
   const info = parseSelectionId(sel);
 
-  if (info.type === "wait") {
-    const item = findSequenceItem(sequence, info.id, "wait");
-    if (item) duplicateSequenceItem(item, "wait", sequence, recordChange);
-    return;
-  }
-
-  if (info.type === "rotate") {
-    const item = findSequenceItem(sequence, info.id, "rotate");
-    if (item) duplicateSequenceItem(item, "rotate", sequence, recordChange);
-    return;
-  }
-
-  // Path duplication
-  let targetLineId: string | null = null;
-  if (sel.startsWith("point-")) {
-    const parts = sel.split("-");
-    const lineNum = Number(parts[1]);
-    if (lineNum > 0) {
-      targetLineId = lines[lineNum - 1].id || null;
-    }
-  }
-  if (get(selectedLineId)) targetLineId = get(selectedLineId);
-
-  if (targetLineId) {
-    const lineIndex = lines.findIndex((l) => l.id === targetLineId);
-    if (lineIndex === -1) return;
-    const originalLine = lines[lineIndex];
-
-    // Calculate relative offset
-    // Previous point (start of original line)
-    let prevPoint: { x: number; y: number } = startPoint;
-    if (lineIndex > 0) {
-      prevPoint = lines[lineIndex - 1].endPoint;
-    }
-
-    const deltaX = originalLine.endPoint.x - prevPoint.x;
-    const deltaY = originalLine.endPoint.y - prevPoint.y;
-
-    const newLine = JSON.parse(JSON.stringify(originalLine));
-    newLine.id = `line-${Math.random().toString(36).slice(2)}`;
-
-    // Update name (preserve empty name if original was unnamed)
-    const existingLineNames = lines.map((l) => l.name || "");
-    if (originalLine.name && originalLine.name.trim() !== "") {
-      newLine.name = generateName(originalLine.name, existingLineNames);
-    } else {
-      newLine.name = "";
-    }
-
-    // Apply offset to endPoint
-    newLine.endPoint.x += deltaX;
-    newLine.endPoint.y += deltaY;
-
-    // Apply offset to control points
-    newLine.controlPoints.forEach((cp: any) => {
-      cp.x += deltaX;
-      cp.y += deltaY;
-    });
-
-    // Insert line
-    linesStore.update((l) => {
-      const newLines = [...l];
-      newLines.splice(lineIndex + 1, 0, newLine);
-      return renumberDefaultPathNames(newLines);
-    });
-
-    // Insert into sequence
-    // Find original line's sequence index
-    const seqIdx = sequence.findIndex(
-      (s) =>
-        actionRegistry.get(s.kind)?.isPath &&
-        (s as any).lineId === originalLine.id,
+  let index: number | null;
+  if (info.type === "wait" || info.type === "rotate") {
+    index = getSelectedSequenceIndex();
+  } else {
+    const line = getTargetLine(sel, lines);
+    index = sequence.findIndex(
+      (s) => s.kind === "path" && s.lineId === line?.id,
     );
-    if (seqIdx === -1) {
-      // Fallback: append
-      sequenceStore.update((s) => [
-        ...s,
-        { kind: "path", lineId: newLine.id! },
-      ]);
-    } else {
-      sequenceStore.update((s) => {
-        const s2 = [...s];
-        s2.splice(seqIdx + 1, 0, { kind: "path", lineId: newLine.id! });
-        return s2;
-      });
-    }
-
-    selectedLineId.set(newLine.id!);
-    selectedPointId.set(`point-${lineIndex + 2}-0`); // Selected the end point of new line
-    recordChange("Duplicate Selection");
   }
+  if (index === null || index < 0) return;
+
+  const { fieldWidth, fieldHeight } = get(settingsStore);
+  const result = duplicateStep(
+    { startPoint: get(startPointStore), lines, sequence },
+    index,
+    { width: fieldWidth ?? 144, height: fieldHeight ?? 144 },
+  );
+  if (!result) return;
+
+  linesStore.set(result.lines);
+  sequenceStore.set(result.sequence);
+  const { copy } = result;
+  if (copy.kind === "path") {
+    selectedLineId.set(copy.lineId);
+    const lineNum = result.lines.findIndex((l) => l.id === copy.lineId) + 1;
+    selectedPointId.set(`point-${lineNum}-0`);
+  } else if (copy.kind === "wait" || copy.kind === "rotate") {
+    selectedPointId.set(`${copy.kind}-${copy.id}`);
+  }
+  recordChange("Duplicate Selection");
 }
 
-export function copy(activeControlTab: string, controlTabRef: any) {
+/** The tabs that copy their own content (code, table) instead of a selection. */
+type CopySource = { copyCode?: () => void; copyTable?: () => void } | null;
+
+export function copy(activeControlTab: string, controlTabRef?: CopySource) {
   if (isUIElementFocused()) return;
 
-  // Context-aware copy
-  if (activeControlTab === "code") {
-    if (controlTabRef?.copyCode) {
-      controlTabRef.copyCode();
-      return;
-    }
-  } else if (activeControlTab === "table") {
-    if (controlTabRef?.copyTable) {
-      controlTabRef.copyTable();
-      return;
-    }
+  // The code and table tabs copy their own contents instead.
+  if (activeControlTab === "code" && controlTabRef?.copyCode) {
+    controlTabRef.copyCode();
+    return;
+  }
+  if (activeControlTab === "table" && controlTabRef?.copyTable) {
+    controlTabRef.copyTable();
+    return;
   }
 
   const sel = get(selectedPointId);
-  const sequence = get(sequenceStore);
-  const lines = get(linesStore);
-
   if (!sel) return;
 
   const info = parseSelectionId(sel);
-
-  if (info.type === "wait") {
-    const item = findSequenceItem(sequence, info.id, "wait");
-    if (item) clipboard = JSON.parse(JSON.stringify(item));
-    return;
+  let copied: SequenceItem | Line | undefined;
+  if (info.type === "wait" || info.type === "rotate") {
+    copied = findSequenceItem(get(sequenceStore), info.id, info.type);
+  } else {
+    copied = getTargetLine(sel, get(linesStore));
   }
+  if (!copied) return;
 
-  if (info.type === "rotate") {
-    const item = findSequenceItem(sequence, info.id, "rotate");
-    if (item) clipboard = JSON.parse(JSON.stringify(item));
-    return;
-  }
-
-  let targetLineId: string | null = null;
-  if (sel.startsWith("point-")) {
-    const parts = sel.split("-");
-    const lineNum = Number(parts[1]);
-    if (lineNum > 0) {
-      targetLineId = lines[lineNum - 1].id || null;
-    }
-  }
-  if (get(selectedLineId)) targetLineId = get(selectedLineId);
-
-  if (targetLineId) {
-    const line = lines.find((l) => l.id === targetLineId);
-    if (line) {
-      clipboard = JSON.parse(JSON.stringify(line));
-    }
-  }
-
-  if (clipboard) {
-    notification.set({
-      message: "Selection copied",
-      type: "info",
-      timeout: 1500,
-    });
-  }
+  clipboard = structuredClone(copied);
+  notification.set({
+    message: "Selection copied",
+    type: "info",
+    timeout: 1500,
+  });
 }
 
 export function cut(
   activeControlTab: string,
-  controlTabRef: any,
+  controlTabRef: CopySource | undefined,
   removeSelected: () => void,
 ) {
   if (isUIElementFocused()) return;
@@ -264,124 +163,58 @@ export function cut(
 }
 
 export function paste(recordChange: (action?: string) => void) {
-  if (isUIElementFocused()) return;
-  if (!clipboard) return;
+  if (isUIElementFocused() || !clipboard) return;
 
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
+  const insertIdx = getSelectedSequenceIndex();
 
-  const clipKind = (clipboard as any).kind;
-  const clipDef = clipKind ? actionRegistry.get(clipKind) : null;
+  if ("kind" in clipboard) {
+    const kind = getWaitOrRotateKind(clipboard);
+    if (!kind) return;
 
-  // Handle Wait/Rotate
-  if (clipDef?.isWait || clipDef?.isRotate) {
-    const kind = clipDef.isWait ? "wait" : "rotate";
-    const item = clipboard as SequenceItem;
-    const newItem = JSON.parse(JSON.stringify(item)) as any;
-    newItem.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-    const existingNames = sequence
-      .filter(
-        (s) =>
-          actionRegistry.get(s.kind)?.[kind === "wait" ? "isWait" : "isRotate"],
-      )
-      .map((s) => (s as any).name || "");
-
-    if (newItem.name && newItem.name.trim() !== "") {
-      newItem.name = generateName(newItem.name, existingNames);
-    } else {
-      newItem.name = "";
-    }
-
-    const insertIdx = getSelectedSequenceIndex();
-    sequenceStore.update((s) => {
-      const s2 = [...s];
-      if (insertIdx === null) {
-        s2.push(newItem);
-      } else {
-        s2.splice(insertIdx + 1, 0, newItem);
-      }
-      return s2;
-    });
-
+    const newItem = cloneSequenceItem(clipboard, kind, sequence);
+    sequenceStore.set(insertAfter(sequence, insertIdx, newItem));
     selectedPointId.set(`${kind}-${newItem.id}`);
     recordChange("Paste");
     notification.set({
-      message: `${kind.charAt(0).toUpperCase() + kind.slice(1)} pasted`,
+      message: kind === "wait" ? "Wait pasted" : "Rotate pasted",
       type: "success",
       timeout: 1500,
     });
     return;
   }
 
-  // Handle Path (Line)
-  // Line interface has 'id', 'endPoint', 'controlPoints'
-  if (!(clipboard as any).kind && (clipboard as any).endPoint) {
-    const originalLine = clipboard as Line;
+  const newLine = cloneLine(clipboard, lines);
 
-    // Paste path: determine insertion point and clone the line
-    const insertIdx = getSelectedSequenceIndex(); // index in sequence
-
-    const newLine = JSON.parse(JSON.stringify(originalLine));
-    newLine.id = `line-${Math.random().toString(36).slice(2)}`;
-
-    const existingLineNames = lines.map((l) => l.name || "");
-    if (newLine.name && newLine.name.trim() !== "") {
-      newLine.name = generateName(newLine.name, existingLineNames);
-    } else {
-      newLine.name = "";
-    }
-
-    // Insert
-    if (insertIdx === null) {
-      // Append
-      linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
-      sequenceStore.update((s) => [
-        ...s,
-        { kind: "path", lineId: newLine.id! },
-      ]);
-    } else {
-      // Find the last path item in sequence up to insertIdx.
-
-      let insertionLineIndex = -1;
-      for (let i = insertIdx; i >= 0; i--) {
-        if (actionRegistry.get(sequence[i].kind)?.isPath) {
-          const lid = (sequence[i] as any).lineId;
-          insertionLineIndex = lines.findIndex((l) => l.id === lid);
-          break;
-        }
-      }
-
-      // If no path found before, insert at 0?
-      // If found, insert after.
-      if (insertionLineIndex === -1) {
-        linesStore.update((l) => {
-          const newLines = [...l];
-          newLines.splice(0, 0, newLine);
-          return renumberDefaultPathNames(newLines);
-        });
-      } else {
-        linesStore.update((l) => {
-          const newLines = [...l];
-          newLines.splice(insertionLineIndex + 1, 0, newLine);
-          return renumberDefaultPathNames(newLines);
-        });
-      }
-
-      sequenceStore.update((s) => {
-        const s2 = [...s];
-        s2.splice(insertIdx + 1, 0, { kind: "path", lineId: newLine.id! });
-        return s2;
-      });
-    }
-
-    selectedLineId.set(newLine.id!);
-    // select end point after paste and record change.
-    recordChange("Paste");
-    notification.set({
-      message: "Path pasted",
-      type: "success",
-      timeout: 1500,
-    });
+  // Put the line after the last path at or before the selected sequence item
+  // (or at the very start if there isn't one).
+  let lineIndex = lines.length - 1;
+  if (insertIdx !== null) {
+    const pathBefore = sequence
+      .slice(0, insertIdx + 1)
+      .findLast((s) => s.kind === "path");
+    lineIndex = pathBefore
+      ? lines.findIndex((l) => l.id === pathBefore.lineId)
+      : -1;
   }
+
+  linesStore.set(
+    renumberDefaultPathNames([
+      ...lines.slice(0, lineIndex + 1),
+      newLine,
+      ...lines.slice(lineIndex + 1),
+    ]),
+  );
+  sequenceStore.set(
+    insertAfter(sequence, insertIdx, { kind: "path", lineId: newLine.id! }),
+  );
+
+  selectedLineId.set(newLine.id!);
+  recordChange("Paste");
+  notification.set({
+    message: "Path pasted",
+    type: "success",
+    timeout: 1500,
+  });
 }

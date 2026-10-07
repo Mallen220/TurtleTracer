@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { getElectronAPI } from "../utils/platform";
 import { get } from "svelte/store";
 import {
   pluginsStore,
@@ -50,8 +51,8 @@ export class PluginManager {
   private static allThemes: CustomTheme[] = [];
 
   static async init() {
-    const electronAPI = (globalThis as any).electronAPI;
-    if (!electronAPI?.listPlugins) return;
+    const electronAPI = getElectronAPI();
+    if (!electronAPI?.listPlugins || !electronAPI.readPlugin) return;
 
     // Reset internal lists
     this.allExporters = [];
@@ -69,6 +70,8 @@ export class PluginManager {
 
           let code = await electronAPI.readPlugin(file);
           if (file.endsWith(".ts")) {
+            // TypeScript plugins need the desktop app's compiler.
+            if (!electronAPI.transpilePlugin) continue;
             code = await electronAPI.transpilePlugin(code);
           }
 
@@ -126,7 +129,9 @@ export class PluginManager {
     );
 
     // Reload all plugins to ensure proper cleanup/registration
-    this.reloadPlugins();
+    this.reloadPlugins().catch((err) =>
+      console.error("Failed to reload plugins", err),
+    );
   }
 
   private static refreshActiveResources() {
@@ -542,14 +547,14 @@ export class PluginManager {
   }
 
   static async openPluginsFolder() {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
     if (electronAPI?.openPluginsFolder) {
       await electronAPI.openPluginsFolder();
     }
   }
 
   static async deletePlugin(name: string) {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
     if (electronAPI?.deletePlugin) {
       await electronAPI.deletePlugin(name);
       await this.reloadPlugins();

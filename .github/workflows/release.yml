@@ -52,17 +52,22 @@ jobs:
           This repo is regularly updated with new features and bug fixes but tested primarily on macOS. Should an issue arise, please report it via the GitHub Issues page and revert to the previous stable version if needed.
 
           #### **macOS / Linux**
-          Run the following command in terminal and provide your password when prompted:
+          Run the following command in terminal. It asks which version you want (stable is the default; pre-releases are offered too) and shows what it will do before changing anything:
           ```bash
           curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
           ```
+          To install exactly this version without being asked, add `-s -- --version __VERSION__` after `bash`.
 
           #### **Windows**
           <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank"  rel="noopener noreferrer">
             <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
           </a>
 
-          Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. A .exe file is also provided below. 
+          Windows Users can download from the Microsoft Store to receive auto-updates for stable releases (Recommended). Or run this in PowerShell:
+          ```powershell
+          irm https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.ps1 | iex
+          ```
+          A .exe file is also provided below.
 
           ## Release Notes
           EOF
@@ -287,3 +292,26 @@ jobs:
             echo "Uploading: $file"
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
+
+  release-checksums:
+    needs: [prepare-release, release-mac, release-win, release-linux]
+    # Still publish checksums for whatever was built if one platform failed.
+    if: ${{ !cancelled() && needs.prepare-release.result == 'success' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate and upload SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir assets
+          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir assets --clobber \
+            --pattern '*.dmg' --pattern '*.exe' --pattern '*.AppImage' --pattern '*.deb' \
+            --pattern '*.appx' --pattern '*.msix'
+          cd assets
+          # "<sha256>  <file name>" per line, the format install.sh and install.ps1 read.
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "$TAG_NAME" SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber

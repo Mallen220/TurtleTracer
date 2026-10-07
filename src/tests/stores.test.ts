@@ -50,25 +50,6 @@ describe("Global Stores", () => {
       stores.exportDialogState.set(initialState);
     });
 
-    it("projectMetadataStore should initialize and update correctly", () => {
-      const initialState = get(stores.projectMetadataStore);
-      expect(initialState.filepath).toBe("");
-      expect(initialState.lastSaved).toBeUndefined();
-
-      const testDate = new Date();
-      stores.projectMetadataStore.set({
-        filepath: "/test/path.json",
-        lastSaved: testDate,
-      });
-
-      const updatedState = get(stores.projectMetadataStore);
-      expect(updatedState.filepath).toBe("/test/path.json");
-      expect(updatedState.lastSaved).toEqual(testDate);
-
-      // Reset
-      stores.projectMetadataStore.set(initialState);
-    });
-
     it("fileManagerSessionState should initialize and update correctly", () => {
       const initialState = get(stores.fileManagerSessionState);
       expect(initialState.searchQuery).toBe("");

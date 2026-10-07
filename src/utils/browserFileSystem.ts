@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { FileInfo } from "../types";
+import type { FileInfo, SaveDialogOptions } from "../types";
 import { DEFAULT_PROJECT_EXTENSION } from "./fileExtensions";
 
 const DB_NAME = "TurtleTracerVirtualFS";
@@ -9,7 +9,10 @@ const DB_VERSION = 1;
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 // In-memory cache for faster reads
-const fileCache = new Map<string, any>();
+/** A file's text, or a marker saying the path is a folder. */
+type Entry = string | { type: "dir" };
+
+const fileCache = new Map<string, Entry>();
 let cacheInitialized = false;
 let initPromise: Promise<void> | null = null;
 
@@ -56,12 +59,12 @@ async function initCache(): Promise<void> {
   return initPromise;
 }
 
-async function get(key: string): Promise<any> {
+async function get(key: string): Promise<Entry | undefined> {
   await initCache();
   return fileCache.get(key);
 }
 
-async function set(key: string, value: any): Promise<void> {
+async function set(key: string, value: Entry): Promise<void> {
   await initCache();
   fileCache.set(key, value);
   const db = await getDB();
@@ -93,7 +96,7 @@ async function keys(): Promise<string[]> {
 }
 
 async function setMultiple(
-  entries: { key: string; value: any }[],
+  entries: { key: string; value: Entry }[],
 ): Promise<void> {
   await initCache();
   entries.forEach((e) => fileCache.set(e.key, e.value));
@@ -110,7 +113,7 @@ async function setMultiple(
 async function renameInDB(
   oldPath: string,
   newPath: string,
-  value: any,
+  value: Entry,
 ): Promise<void> {
   await initCache();
   fileCache.delete(oldPath);
@@ -198,15 +201,15 @@ export const browserFileSystem = {
           }
         } else {
           const val = await get(key);
-          if (val && val.type !== "dir") {
+          if (typeof val === "string") {
             files.push({
               name,
               path: key,
-              size: typeof val === "string" ? val.length : 0,
+              size: val.length,
               modified: new Date(),
               isDirectory: false,
             });
-          } else if (val?.type === "dir") {
+          } else if (val) {
             if (!addedDirs.has(name)) {
               addedDirs.add(name);
               files.push({
@@ -225,8 +228,8 @@ export const browserFileSystem = {
   },
   readFile: async (filePath: string): Promise<string> => {
     const val = await get(filePath);
-    if (!val || val.type === "dir") throw new Error("File not found");
-    return val as string;
+    if (typeof val !== "string") throw new Error("File not found");
+    return val;
   },
   writeFile: async (filePath: string, content: string): Promise<boolean> => {
     // ensure parent dir exists
@@ -261,12 +264,10 @@ export const browserFileSystem = {
     await set(dirPath, { type: "dir" });
     return true;
   },
-  getDirectoryStats: async (_dirPath: string): Promise<any> => {
-    return { size: 0, files: 0 };
-  },
-  resolvePath: async (base: string, relative: string): Promise<string> => {
-    return resolvePath(base, relative);
-  },
+  getDirectoryStats: (_dirPath: string): Promise<any> =>
+    Promise.resolve({ size: 0, files: 0 }),
+  resolvePath: (base: string, relative: string): Promise<string> =>
+    Promise.resolve(resolvePath(base, relative)),
   renameFile: async (
     oldPath: string,
     newPath: string,
@@ -291,17 +292,17 @@ export const browserFileSystem = {
     await set(dest, val);
     return true;
   },
-  showSaveDialog: async (options: any): Promise<string | null> => {
+  showSaveDialog: (options?: SaveDialogOptions): Promise<string | null> => {
     const defaultName =
       options?.defaultPath || "trajectory" + DEFAULT_PROJECT_EXTENSION;
-    return VIRTUAL_ROOT + "/" + defaultName;
+    return Promise.resolve(VIRTUAL_ROOT + "/" + defaultName);
   },
-  openExternal: async (url: string): Promise<boolean> => {
+  openExternal: (url: string): Promise<boolean> => {
     window.open(url, "_blank");
-    return true;
+    return Promise.resolve(true);
   },
-  rendererReady: async (): Promise<void> => {},
-  makeRelativePath: async (base: string, target: string): Promise<string> => {
+  rendererReady: (): Promise<void> => Promise.resolve(),
+  makeRelativePath: (base: string, target: string): Promise<string> => {
     // simple relative path for virtual fs
     const baseParts = base.split("/").filter(Boolean);
     if (base.includes(".") && !base.endsWith("/")) baseParts.pop();
@@ -321,6 +322,6 @@ export const browserFileSystem = {
       .fill("..")
       .concat(targetParts.slice(commonLen))
       .join("/");
-    return rel || ".";
+    return Promise.resolve(rel || ".");
   },
 };

@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import AppUpdater from "./updater.js";
+import AppUpdater, { buildInstallCommand } from "./updater.js";
 import { shell } from "electron";
 import fs from "node:fs";
 
@@ -10,7 +10,7 @@ vi.mock("electron", () => ({
     getPath: vi.fn(() => "/fake/userData"),
   },
   shell: {
-    openExternal: vi.fn(),
+    openExternal: vi.fn(() => Promise.resolve()),
   },
 }));
 
@@ -222,12 +222,38 @@ describe("updater.js", () => {
     });
   });
 
+  describe("buildInstallCommand", () => {
+    it("passes the announced version to the installer", () => {
+      expect(buildInstallCommand("2.4.1")).toBe(
+        "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash -s -- --version 2.4.1",
+      );
+      expect(buildInstallCommand("2.5.0-beta.1")).toContain(
+        "--version 2.5.0-beta.1",
+      );
+    });
+
+    it.each([
+      "",
+      "latest",
+      "1.0; rm -rf ~",
+      '1.0.0"',
+      "1.0.0 && x",
+      "$(whoami)",
+    ])("never puts an unsafe version (%j) into the command", (version) => {
+      const command = buildInstallCommand(version);
+      expect(command).not.toContain("--version");
+      expect(command).toMatch(/\| \/bin\/bash -s --$/);
+    });
+  });
+
   describe("handleDownloadAndInstall", () => {
     let originalPlatform;
 
     beforeEach(() => {
       originalPlatform = process.platform;
       mockSpawn.mockClear();
+      shell.openExternal.mockReset();
+      shell.openExternal.mockResolvedValue(undefined);
     });
 
     afterEach(() => {
@@ -247,6 +273,8 @@ describe("updater.js", () => {
       updater.handleDownloadAndInstall("1.0.0", "url");
       expect(mockSpawn).toHaveBeenCalledTimes(2);
       expect(mockSpawn.mock.calls[0][0]).toBe("/usr/bin/osascript");
+      // The version the user was told about is the one the installer fetches.
+      expect(mockSpawn.mock.calls[0][1][1]).toContain("--version 1.0.0");
     });
 
     it("handles linux with terminal fallback", () => {
@@ -279,6 +307,26 @@ describe("updater.js", () => {
 
       updater.handleDownloadAndInstall("1.0.0", "fallback_url");
       expect(shell.openExternal).toHaveBeenCalledWith("fallback_url");
+    });
+
+    it("logs a link that can't be opened instead of throwing", async () => {
+      Object.defineProperty(process, "platform", { value: "win32" });
+      shell.openExternal.mockRejectedValue(new Error("no handler"));
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      expect(() =>
+        updater.handleDownloadAndInstall("1.0.0", "fallback_url"),
+      ).not.toThrow();
+      await vi.waitFor(() =>
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Failed to open link:",
+          expect.stringContaining("Turtle-Tracer-Setup-1.0.0.exe"),
+          expect.any(Error),
+        ),
+      );
+      consoleSpy.mockRestore();
     });
   });
 

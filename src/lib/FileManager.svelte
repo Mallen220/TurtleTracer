@@ -1,22 +1,13 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
-<script lang="ts" module>
-</script>
-
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
   import { get } from "svelte/store";
-  import type {
-    FileInfo,
-    Point,
-    Line,
-    Shape,
-    SequenceItem,
-    Settings,
-  } from "../types/index";
+  import type { FileInfo, Settings } from "../types/index";
   import {
     currentFilePath,
     isUnsaved,
+    notification,
     fileManagerSessionState,
     fileManagerNewFileMode,
     currentDirectoryStore,
@@ -24,16 +15,22 @@
     showTelemetryDialog,
   } from "../stores";
   import {
-    settingsStore,
+    linesStore,
     loadMacro,
     loadProjectData,
+    sequenceStore,
+    shapesStore,
+    startPointStore,
     updateAllMacroReferences,
   } from "./projectStore";
-  import { saveProject } from "../utils/fileHandlers";
-  import { saveAutoPathsDirectory } from "../utils/directorySettings";
-  import { hookRegistry } from "./registries";
-  import { mirrorPathData, reversePathData } from "../utils/pathTransform";
-  import { scanEventsInDirectory } from "../utils/eventScanner";
+  import {
+    autosaveBeforeLeaving,
+    directoryOf,
+    fileNameOf,
+    joinPath,
+    saveProject,
+    writeProjectCopy,
+  } from "../utils/fileHandlers";
   import {
     DEFAULT_PROJECT_EXTENSION,
     ensureDefaultProjectExtension,
@@ -41,13 +38,18 @@
     isSupportedProjectFileName,
     stripProjectExtension,
   } from "../utils/fileExtensions";
+  import { saveAutoPathsDirectory } from "../utils/directorySettings";
+  import { saveSettings } from "../utils/settingsPersistence";
+  import { mirrorPathData, reversePathData } from "../utils/pathTransform";
+  import { scanEventsInDirectory } from "../utils/eventScanner";
   import { getElectronAPI } from "../utils/platform";
-
+  import { hookRegistry } from "./registries";
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
   import FileList from "./components/filemanager/FileList.svelte";
   import FileGrid from "./components/filemanager/FileGrid.svelte";
   import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
+  import { filePreviews } from "./components/filemanager/fileBrowser.svelte";
   import {
     FolderIcon,
     CloudArrowDownIcon,
@@ -61,184 +63,94 @@
     ArrowCircleIcon,
   } from "./components/icons";
 
-  // Initialize from session state
-  const session = get(fileManagerSessionState);
-  let sortMode: "name" | "date" = $state(session.sortMode ?? "date");
-  let sortModeInitialized = $state(false);
-  let viewMode: "list" | "grid" = $state(session.viewMode);
-  let currentDirectory = $state("");
-  let baseDirectory = $state("");
-  let files: FileInfo[] = $state([]);
-  let filteredFiles: FileInfo[] = $state([]);
-  let loading = $state(false);
-  let selectedFile: FileInfo | null = $state(null);
-  let errorMessage = $state("");
-  let searchQuery = $state(session.searchQuery);
-
-  // Renaming state
-  let renamingFile: FileInfo | null = $state(null);
-  // Reference to child components for preview refreshes
-  let fileGrid: any = $state();
-  let fileList: any = $state();
-
-  // New file state
-  let creatingNewFile = $state(false);
-  let newFileName = $state("");
-
-  // New folder state
-  let creatingNewFolder = $state(false);
-  let newFolderName = $state("");
-
-  let fileInput: HTMLInputElement | undefined = $state();
-  let javaInput: HTMLInputElement | undefined = $state();
-  let showAddMenu = $state(false);
-
-  function handleAddMenuToggle(e: MouseEvent) {
-    e.stopPropagation();
-    showAddMenu = !showAddMenu;
-  }
-
-  function handleWindowClick(e: MouseEvent) {
-    if (showAddMenu) {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".floating-add-container")) {
-        showAddMenu = false;
-      }
-    }
-  }
-
-  function onImportFileSelect(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.files?.[0]) {
-      handleImportFile({ detail: target.files[0] } as CustomEvent<File>);
-      target.value = "";
-    }
-  }
-
-  function onImportJavaSelect(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.files?.[0]) {
-      handleImportJava({ detail: target.files[0] } as CustomEvent<File>);
-      target.value = "";
-    }
-  }
-
-  const electronAPI = getElectronAPI();
-
-  function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    return String(error);
-  }
-
-  // Load settings on mount
-  onMount(() => {
-    if (settings?.fileManagerSortMode) {
-      sortMode = settings.fileManagerSortMode;
-    }
-    sortModeInitialized = true;
-  });
-
-  // Resizing state
-  let sidebarWidth = $state(600); // default max-w-sm is roughly 655px (24rem)
-  let isResizing = false;
-
-  // New file input reference for programmatic focus
-  import { tick } from "svelte";
-  let newFileInput: HTMLInputElement | null = $state(null);
-  let newFolderInput: HTMLInputElement | null = $state(null);
-
-  function startResize() {
-    isResizing = true;
-    globalThis.addEventListener("mousemove", handleResize);
-    globalThis.addEventListener("mouseup", stopResize);
-  }
-
-  function handleResize(e: MouseEvent) {
-    if (isResizing) {
-      // Constrain width
-      const newWidth = Math.max(250, Math.min(e.clientX, 800));
-      sidebarWidth = newWidth;
-    }
-  }
-
-  function stopResize() {
-    isResizing = false;
-    globalThis.removeEventListener("mousemove", handleResize);
-    globalThis.removeEventListener("mouseup", stopResize);
-  }
-
-  import { saveSettings } from "../utils/settingsPersistence";
   interface Props {
     isOpen?: boolean;
-    startPoint: Point;
-    lines: Line[];
-    shapes: Shape[];
-    sequence: SequenceItem[];
     settings: Settings;
   }
 
-  let {
-    isOpen = $bindable(false),
-    startPoint = $bindable(),
-    lines = $bindable(),
-    shapes = $bindable(),
-    sequence = $bindable(),
-    settings = $bindable(),
-  }: Props = $props();
+  let { isOpen = $bindable(false), settings = $bindable() }: Props = $props();
 
-  // Normalize trailing numeric duplicates like "shooter (2)" to maintain links
-  function stripSuffix(name?: string | null): string {
-    if (!name) return name ?? "";
-    const match = name.match(/^(.*) \(\d+\)$/);
-    return match ? match[1] : name;
+  const electronAPI = getElectronAPI();
+
+  // Search, view and sort survive closing and reopening the panel.
+  const session = get(fileManagerSessionState);
+  let searchQuery = $state(session.searchQuery);
+  let viewMode: "list" | "grid" = $state(session.viewMode);
+  let sortMode: "name" | "date" = $state(
+    settings.fileManagerSortMode ?? session.sortMode ?? "date",
+  );
+
+  /** The folder the user chose; browsing never goes above it. */
+  let baseDirectory = $state("");
+  let currentDirectory = $state("");
+  let files: FileInfo[] = $state([]);
+  let loading = $state(false);
+  let errorMessage = $state("");
+  let selectedFile: FileInfo | null = $state(null);
+  let renamingFile: FileInfo | null = $state(null);
+
+  let creatingNewFile = $state(false);
+  let newFileName = $state("");
+  let creatingNewFolder = $state(false);
+  let newFolderName = $state("");
+
+  let showAddMenu = $state(false);
+  let isDraggingPath = $state(false);
+  let sidebarWidth = $state(600);
+
+  let fileInput: HTMLInputElement | undefined = $state();
+  let javaInput: HTMLInputElement | undefined = $state();
+
+  let visibleFiles = $derived.by(() => {
+    const query = searchQuery.toLowerCase();
+    return files
+      .filter((f) => f.name.toLowerCase().includes(query))
+      .sort((a, b) => {
+        if (a.name === "..") return -1;
+        if (b.name === "..") return 1;
+        if (!!a.isDirectory !== !!b.isDirectory) return a.isDirectory ? -1 : 1;
+        return sortMode === "name"
+          ? a.name.localeCompare(b.name)
+          : new Date(b.modified).getTime() - new Date(a.modified).getTime();
+      });
+  });
+
+  $effect(() => {
+    fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
+  });
+  $effect(() => {
+    if (currentDirectory) currentDirectoryStore.set(currentDirectory);
+  });
+  // Other parts of the app can ask for the "new file" form.
+  $effect(() => {
+    if ($fileManagerNewFileMode) {
+      creatingNewFile = true;
+      fileManagerNewFileMode.set(false);
+    }
+  });
+
+  onMount(loadDirectory);
+
+  function notify(
+    message: string,
+    type: "success" | "error" | "warning" | "info" = "info",
+  ) {
+    notification.set({ message, type, timeout: 3000 });
   }
 
-  // Normalize lines helper
-  function normalizeLines(input: Line[] = []): Line[] {
-    return (input || []).map((line) => {
-      const baseName = line._linkedName ?? line.name ?? "";
-      const beforeName =
-        line.waitBeforeName ?? (line as any).waitBefore?.name ?? "";
-      const afterName =
-        line.waitAfterName ?? (line as any).waitAfter?.name ?? "";
+  const errorText = (error: unknown) =>
+    error instanceof Error ? error.message : String(error);
 
-      return {
-        ...line,
-        name: stripSuffix(baseName),
-        id: line.id || `line-${Math.random().toString(36).slice(2)}`,
-        waitBeforeMs: Math.max(
-          0,
-          Number(
-            line.waitBeforeMs ?? (line as any).waitBefore?.durationMs ?? 0,
-          ),
-        ),
-        waitAfterMs: Math.max(
-          0,
-          Number(line.waitAfterMs ?? (line as any).waitAfter?.durationMs ?? 0),
-        ),
-        waitBeforeName: stripSuffix(beforeName),
-        waitAfterName: stripSuffix(afterName),
-      };
-    });
+  function setSortMode(mode: "name" | "date") {
+    sortMode = mode;
+    if (settings.fileManagerSortMode === mode) return;
+    settings = { ...settings, fileManagerSortMode: mode };
+    saveSettings(settings).catch((e) =>
+      console.error("Failed to save file manager sort mode:", e),
+    );
   }
 
-  function deriveSequence(data: any, normalizedLines: Line[]): SequenceItem[] {
-    const baseSeq: SequenceItem[] =
-      Array.isArray(data?.sequence) && data.sequence.length
-        ? (data.sequence as SequenceItem[])
-        : normalizedLines.map((ln) => ({
-            kind: "path",
-            lineId: ln.id!,
-          }));
-
-    return baseSeq.map((item) => {
-      if (item.kind === "wait") {
-        const baseName = (item as any)._linkedName ?? item.name ?? "";
-        return { ...item, name: stripSuffix(baseName) };
-      }
-      return item;
-    });
-  }
+  // --- Browsing ---
 
   async function loadDirectory() {
     if (!electronAPI) {
@@ -248,391 +160,405 @@
     loading = true;
     errorMessage = "";
     try {
-      const savedDir = electronAPI.getSavedDirectory
-        ? await electronAPI.getSavedDirectory()
-        : null;
-      if (savedDir && savedDir.trim() !== "") {
-        currentDirectory = savedDir;
-        baseDirectory = savedDir;
-      } else {
-        const dir = electronAPI.getDirectory
-          ? await electronAPI.getDirectory()
-          : null;
-        currentDirectory = dir || "";
-        baseDirectory = dir || "";
-      }
+      const saved = (await electronAPI.getSavedDirectory?.())?.trim();
+      const dir = saved || (await electronAPI.getDirectory?.()) || "";
+      baseDirectory = currentDirectory = dir;
       await refreshDirectory();
     } catch (error) {
       console.error("Error loading directory:", error);
-      errorMessage = `Failed to load directory: ${getErrorMessage(error)}`;
+      errorMessage = `Failed to load directory: ${errorText(error)}`;
     } finally {
       loading = false;
     }
   }
 
   async function refreshDirectory() {
-    if (!electronAPI || !currentDirectory || currentDirectory.trim() === "")
-      return;
+    if (!electronAPI || !currentDirectory.trim()) return;
 
     try {
-      const allFiles = await electronAPI.listFiles(currentDirectory);
-      // Update Git Status Store
+      const listed = await electronAPI.listFiles(currentDirectory);
       if (settings.gitIntegration) {
-        const statusMap: Record<string, string> = {};
-        allFiles.forEach((f: FileInfo) => {
-          if (f.gitStatus && f.gitStatus !== "clean") {
-            statusMap[f.path] = f.gitStatus;
-          }
-        });
-        gitStatusStore.update((store) => {
-          const newStore = { ...store };
-          // Remove entries that are in the current directory but are now clean
-          allFiles.forEach((f: FileInfo) => {
-            if (newStore[f.path] && !statusMap[f.path]) {
-              delete newStore[f.path];
+        gitStatusStore.update((statuses) => {
+          const next = { ...statuses };
+          for (const f of listed) {
+            if (f.gitStatus && f.gitStatus !== "clean") {
+              next[f.path] = f.gitStatus;
+            } else {
+              delete next[f.path];
             }
-          });
-          // Add/Update new statuses
-          Object.assign(newStore, statusMap);
-          return newStore;
+          }
+          return next;
         });
       }
 
-      files = allFiles
-        .map((file: FileInfo) => ({
-          ...file,
-          error:
-            file.isDirectory || isSupportedProjectFileName(file.name)
-              ? undefined
-              : `Unsupported type`,
-        }))
-        .filter(
-          (file: FileInfo) =>
-            file.isDirectory || isSupportedProjectFileName(file.name),
-        );
-
+      files = listed.filter(
+        (f) => f.isDirectory || isSupportedProjectFileName(f.name),
+      );
       if (currentDirectory !== baseDirectory) {
         files.unshift({
           name: "..",
-          path: path.dirname(currentDirectory),
+          path: directoryOf(currentDirectory),
           isDirectory: true,
           size: 0,
           modified: new Date(),
-        } as FileInfo);
+        });
       }
-
-      sortFiles();
       errorMessage = "";
       scanEventsInDirectory(currentDirectory);
     } catch (error) {
       console.error("Error refreshing directory:", error);
-      errorMessage = `Error accessing directory: ${getErrorMessage(error)}`;
+      errorMessage = `Error accessing directory: ${errorText(error)}`;
       files = [];
     }
   }
 
-  function sortFiles() {
-    if (sortMode === "name") {
-      files.sort((a, b) => {
-        if (a.name === "..") return -1;
-        if (b.name === "..") return 1;
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    } else if (sortMode === "date") {
-      files.sort((a, b) => {
-        if (a.name === "..") return -1;
-        if (b.name === "..") return 1;
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return new Date(b.modified).getTime() - new Date(a.modified).getTime();
-      });
-    }
-    files = files; // trigger update
+  async function openDirectory(dir: string) {
+    currentDirectory = dir;
+    await refreshDirectory();
   }
 
-  // Handle directory change (dialog)
-  async function changeDirectoryDialog() {
+  async function chooseBaseDirectory() {
     if (!electronAPI?.setDirectory) {
-      showToast(
+      notify(
         "Directory selection is not supported in this environment",
         "error",
       );
       return;
     }
     try {
-      const newDir = await electronAPI.setDirectory();
-      if (newDir) {
-        currentDirectory = newDir;
-        baseDirectory = newDir;
-        await saveAutoPathsDirectory(newDir);
-        await refreshDirectory();
-        showToast(`Directory changed to: ${path.basename(newDir)}`, "success");
-      }
+      const dir = await electronAPI.setDirectory();
+      if (!dir) return;
+      baseDirectory = dir;
+      await saveAutoPathsDirectory(dir);
+      await openDirectory(dir);
+      notify(`Directory changed to: ${fileNameOf(dir)}`, "success");
     } catch (error) {
-      errorMessage = `Failed to change directory: ${getErrorMessage(error)}`;
-    }
-  }
-
-  // New refresh handler: refresh directory and force preview reloads
-  async function handleRefresh() {
-    try {
-      await refreshDirectory();
-
-      // After directory is refreshed, request previews to refresh for both list and grid
-      fileList?.refreshAllFailed?.();
-      fileList?.refreshAll?.();
-
-      fileGrid?.refreshAllFailed?.();
-      fileGrid?.refreshAll?.();
-
-      showToast("Refreshed files and previews", "success");
-    } catch (err) {
-      showToast(`Refresh failed: ${getErrorMessage(err)}`, "error");
+      errorMessage = `Failed to change directory: ${errorText(error)}`;
     }
   }
 
   async function goUpDirectory() {
-    if (currentDirectory === baseDirectory) {
-      return; // Cannot go up beyond the base directory
+    if (currentDirectory === baseDirectory) return;
+    const parent = directoryOf(currentDirectory);
+    await openDirectory(
+      parent.startsWith(baseDirectory) ? parent : baseDirectory,
+    );
+  }
+
+  async function navigateTo(dir: string) {
+    if (!dir) return;
+    if (!dir.startsWith(baseDirectory)) {
+      notify("Cannot navigate outside the base directory", "error");
+      return;
     }
+    await openDirectory(dir);
+    if (!errorMessage) notify("Directory changed", "success");
+  }
+
+  async function handleRefresh() {
+    await refreshDirectory();
+    for (const f of files) {
+      if (!f.isDirectory) filePreviews.reload(f.path);
+    }
+    notify("Refreshed files and previews", "success");
+  }
+
+  function handleOpen(file: FileInfo) {
+    if (!file.isDirectory) loadFile(file);
+    else if (file.name === "..") goUpDirectory();
+    else openDirectory(file.path);
+  }
+
+  // --- Opening and importing ---
+
+  async function loadFile(file: FileInfo) {
+    await autosaveBeforeLeaving();
     try {
-      if (electronAPI?.resolvePath) {
-        // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
-        // Since currentDirectory is a directory and not a file, passing it directly as `base`
-        // would drop the last directory segment and then apply "..", going up TWO levels.
-        // and then ".." correctly moves up exactly ONE level.
-        const parentDir = await electronAPI.resolvePath(
-          path.join(currentDirectory, "dummy.txt"),
-          "..",
-        );
-        if (parentDir && parentDir !== currentDirectory) {
-          // Additional safety check to prevent going outside baseDirectory
-          // parentDir must start with baseDirectory
-          if (parentDir.startsWith(baseDirectory)) {
-            currentDirectory = parentDir;
-            await refreshDirectory();
-          } else {
-            currentDirectory = baseDirectory;
-            await refreshDirectory();
-          }
-        }
+      if (!electronAPI?.readFile) {
+        notify("File reading is not supported in this environment", "error");
+        return;
       }
-    } catch (err) {
-      showToast(`Failed to go up directory: ${getErrorMessage(err)}`, "error");
+      const content = await electronAPI.readFile(file.path);
+      if (!content) throw new Error("File is empty or could not be read");
+      const data = JSON.parse(content);
+      if (!data.startPoint || !data.lines) {
+        throw new Error("Invalid file format");
+      }
+
+      await loadProjectData(data, file.path);
+      currentFilePath.set(file.path);
+      isUnsaved.set(false);
+      selectedFile = file;
+      notify(`Loaded: ${file.name}`, "success");
+      filePreviews.reload(file.path);
+    } catch (error) {
+      notify(`Error loading file: ${errorText(error)}`, "error");
     }
   }
 
-  // Handle directory change (manual input)
-  async function changeDirectoryManual(newDir: string) {
-    if (!newDir) return;
+  const confirmDiscardChanges = (what: string) =>
+    !get(isUnsaved) ||
+    confirm(
+      `You have unsaved changes that will be lost. Are you sure you want to import ${what}?`,
+    );
+
+  /** Copies a project file into the current folder and opens it. */
+  async function importProjectFile(file: File) {
+    if (!isSupportedProjectFileName(file.name)) {
+      notify("Please select a .turt or .pp file", "error");
+      return;
+    }
+    if (!confirmDiscardChanges("a new file")) return;
 
     try {
-      // Ensure the manual directory is still within the base directory
-      if (!newDir.startsWith(baseDirectory)) {
-        showToast(`Cannot navigate outside the base directory`, "error");
+      const content = await file.text();
+      const data = JSON.parse(content);
+      if (!data.startPoint || !data.lines) {
+        throw new Error("Invalid project file format");
+      }
+
+      // Without a folder (in the browser), just load it as unsaved work.
+      if (!electronAPI || !currentDirectory) {
+        await loadProjectData(data);
+        currentFilePath.set(null);
+        isUnsaved.set(true);
+        selectedFile = null;
+        notify(`Imported: ${file.name}`, "success");
         return;
       }
 
-      currentDirectory = newDir;
-      // Do NOT call saveAutoPathsDirectory(newDir) here to avoid changing the base
-      await refreshDirectory();
-
-      if (errorMessage) {
-        // Keep error
-      } else {
-        showToast(`Directory changed`, "success");
-      }
-    } catch (err) {
-      errorMessage = `Failed to change directory: ${getErrorMessage(err)}`;
-    }
-  }
-
-  async function handleImportFile(e: CustomEvent<File>) {
-    const file = e.detail;
-    if (!file) return;
-
-    if (!isSupportedProjectFileName(file.name)) {
-      showToast("Please select a .turt or .pp file", "error");
-      return;
-    }
-
-    if (get(isUnsaved)) {
+      const destination = joinPath(currentDirectory, file.name);
       if (
+        (await electronAPI.fileExists?.(destination)) &&
         !confirm(
-          "You have unsaved changes that will be lost. Are you sure you want to import a new file?",
+          `File "${file.name}" already exists in "${fileNameOf(currentDirectory)}". Overwrite?`,
         )
       ) {
         return;
       }
-    }
-
-    try {
-      if (electronAPI && currentDirectory) {
-        // Read file content first
-        const sourcePath = (file as any).path;
-
-        let content = "";
-        if (sourcePath && electronAPI.readFile) {
-          content = await electronAPI.readFile(sourcePath);
-        } else {
-          // Fallback to FileReader for web or if path missing
-          content = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = () => reject(new Error("Failed to read file"));
-            reader.readAsText(file);
-          });
-        }
-
-        // Validate JSON
-        const data = JSON.parse(content);
-        if (!data.startPoint || !data.lines) {
-          throw new Error("Invalid project file format");
-        }
-
-        // Determine destination path
-        const fileName = file.name;
-        const destPath = path.join(currentDirectory, fileName);
-
-        // Check overwrite
-        if (await electronAPI?.fileExists?.(destPath)) {
-          if (
-            !confirm(
-              `File "${fileName}" already exists in "${path.basename(currentDirectory)}". Overwrite?`,
-            )
-          ) {
-            return;
-          }
-        }
-
-        // Write to destination
-        await electronAPI.writeFile(destPath, content);
-
-        // Refresh and load
-        await refreshDirectory();
-
-        // Find the new file info object to pass to loadFile
-        const newFile = files.find((f) => f.name === fileName);
-        if (newFile) {
-          await loadFile(newFile);
-        } else {
-          // Fallback if refresh failed or something
-          showToast("File imported but not found in list", "warning");
-        }
-      } else {
-        // Web mode / No directory: just load into memory
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const content = e.target?.result as string;
-          try {
-            const data = JSON.parse(content);
-            if (!data.startPoint || !data.lines)
-              throw new Error("Invalid format");
-
-            startPoint = data.startPoint;
-            lines = normalizeLines(data.lines || []);
-            shapes = data.shapes || [];
-            sequence = deriveSequence(data, lines);
-
-            currentFilePath.set(null);
-            isUnsaved.set(true); // Treat as unsaved imported data
-            selectedFile = null;
-
-            showToast(`Imported: ${file.name}`, "success");
-          } catch {
-            showToast("Invalid file content", "error");
-          }
-        };
-        reader.readAsText(file);
-      }
-    } catch (err) {
-      showToast(`Import failed: ${getErrorMessage(err)}`, "error");
+      await electronAPI.writeFile(destination, content);
+      await refreshDirectory();
+      const imported = files.find((f) => f.name === file.name);
+      if (imported) await loadFile(imported);
+      else notify("File imported but not found in list", "warning");
+    } catch (error) {
+      notify(`Import failed: ${errorText(error)}`, "error");
     }
   }
 
-  // File Operations
-  async function handleMoveFile(data: {
-    sourceFile: FileInfo;
-    targetDir: FileInfo;
-  }) {
-    const { sourceFile, targetDir } = data;
-    if (!targetDir.isDirectory) return;
-    if (sourceFile.path === targetDir.path) return;
-    if (sourceFile.name === "..") return; // cannot move the .. directory itself
+  /** Converts a Java auto file into a project, saved next to the others. */
+  async function importJavaFile(file: File) {
+    if (!file.name.endsWith(".java")) {
+      notify("Please select a .java file", "error");
+      return;
+    }
+    if (!confirmDiscardChanges("a new Java file")) return;
 
     try {
-      let newDir = targetDir.path;
-      if (targetDir.name === "..") {
-        newDir = path.dirname(currentDirectory);
+      const { importJavaProject } = await import("../utils/javaImporter");
+      const imported = importJavaProject(await file.text());
+      startPointStore.set(imported.startPoint);
+      linesStore.set(imported.lines);
+      shapesStore.set(imported.shapes || []);
+      sequenceStore.set(imported.sequence);
+      if (imported.extraData?.settings) {
+        settings = imported.extraData.settings;
       }
 
-      const newPath = path.join(newDir, sourceFile.name);
+      const projectName = file.name.replace(
+        /\.java$/,
+        DEFAULT_PROJECT_EXTENSION,
+      );
+      if (electronAPI && currentDirectory) {
+        await saveProject({
+          path: joinPath(currentDirectory, projectName),
+          quiet: true,
+        });
+        await refreshDirectory();
+      } else {
+        currentFilePath.set(projectName);
+        isUnsaved.set(false);
+      }
 
-      if (!electronAPI?.renameFile) {
-        showToast("Moving files is not supported in this environment", "error");
+      notify(`Successfully imported ${file.name}`, "success");
+      isOpen = false;
+    } catch (error) {
+      console.error("Error importing Java file:", error);
+      notify(`Error importing Java file: ${errorText(error)}`, "error");
+    }
+  }
+
+  function onFileChosen(e: Event, handle: (file: File) => void) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) handle(file);
+    input.value = "";
+  }
+
+  // --- Creating and saving ---
+
+  async function createNewFolder(name: string) {
+    const folderName = name.trim();
+    if (!folderName) return;
+    if (!electronAPI?.createDirectory) {
+      notify("Creating folders is not supported in this environment", "error");
+      return;
+    }
+
+    const dirPath = joinPath(currentDirectory, folderName);
+    try {
+      if (await electronAPI.fileExists?.(dirPath)) {
+        notify(`Folder "${folderName}" already exists.`, "error");
         return;
       }
-
-      const result = await electronAPI.renameFile(sourceFile.path, newPath);
-      if (result.success) {
-        if (selectedFile?.path === sourceFile.path) {
-          selectedFile = { ...selectedFile, path: newPath };
-          currentFilePath.set(newPath);
-        }
-
-        // Check if the currently open file is inside the moved folder (or is the moved file)
-        const openPath = get(currentFilePath);
-        if (openPath) {
-          if (openPath === sourceFile.path) {
-            currentFilePath.set(newPath);
-            selectedFile = { ...selectedFile!, path: newPath };
-          } else if (
-            openPath.startsWith(sourceFile.path + "/") ||
-            openPath.startsWith(sourceFile.path + "\\")
-          ) {
-            const newOpenPath =
-              newPath + openPath.slice(sourceFile.path.length);
-            currentFilePath.set(newOpenPath);
-            if (selectedFile)
-              selectedFile = { ...selectedFile, path: newOpenPath };
-          }
-        }
-
-        // Use the new centralized macro reference updater to deeply fix all references
-        const { mainSequenceChanged } = await updateAllMacroReferences(
-          sourceFile.path,
-          newPath,
-        );
-
-        // Persist the updated sequence to disk so the open file doesn't have stale references
-        if (mainSequenceChanged) {
-          isUnsaved.set(true);
-          const openPath = get(currentFilePath);
-          if (openPath) {
-            await saveProject(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              false,
-              openPath,
-              { quiet: true },
-            );
-          }
-        }
-
-        showToast(
-          `Moved to ${targetDir.name === ".." ? "parent folder" : targetDir.name}`,
-          "success",
-        );
-        await refreshDirectory();
-      }
+      await electronAPI.createDirectory(dirPath);
+      creatingNewFolder = false;
+      newFolderName = "";
+      await refreshDirectory();
+      notify(`Created folder: ${folderName}`, "success");
     } catch (error) {
-      showToast(`Failed to move: ${getErrorMessage(error)}`, "error");
+      notify(`Failed to create folder: ${errorText(error)}`, "error");
     }
+  }
+
+  /** Saves the current project as a new file in this folder and opens it. */
+  async function createNewFile(name: string) {
+    if (!name.trim()) return;
+    if (!electronAPI?.writeFile) {
+      notify("Creating files is not supported in this environment", "error");
+      return;
+    }
+
+    const fileName = ensureDefaultProjectExtension(name.trim());
+    const filePath = joinPath(currentDirectory, fileName);
+    await autosaveBeforeLeaving();
+
+    try {
+      if (
+        (await electronAPI.fileExists?.(filePath)) &&
+        !confirm(`File "${fileName}" already exists. Overwrite?`)
+      ) {
+        return;
+      }
+      if (!(await saveProject({ path: filePath, quiet: true }))) return;
+
+      creatingNewFile = false;
+      newFileName = "";
+      await refreshDirectory();
+      selectedFile = files.find((f) => f.path === filePath) ?? null;
+      notify(`Created: ${fileName}`, "success");
+      filePreviews.reload(filePath);
+    } catch (error) {
+      notify(`Failed to create: ${errorText(error)}`, "error");
+    }
+  }
+
+  /** Writes the current project over `target`, keeping the open file as is. */
+  async function saveCurrentToFile(target: FileInfo) {
+    if (!electronAPI?.writeFile) {
+      notify("Saving files is not supported in this environment", "error");
+      return;
+    }
+    try {
+      await writeProjectCopy(target.path);
+      await refreshDirectory();
+      if (target.path === get(currentFilePath)) isUnsaved.set(false);
+      notify(`Saved to: ${target.name}`, "success");
+      // Projects that use this file as a macro should see the new contents.
+      loadMacro(target.path, true);
+      filePreviews.reload(target.path);
+    } catch (error) {
+      notify(`Failed to save: ${errorText(error)}`, "error");
+    }
+  }
+
+  const DUPLICATE_MODES = {
+    copy: { suffix: "_copy", label: "Duplicated", transform: (d: any) => d },
+    mirror: {
+      suffix: "_mirrored",
+      label: "Mirrored",
+      transform: mirrorPathData,
+    },
+    reverse: {
+      suffix: "_reversed",
+      label: "Reversed",
+      transform: reversePathData,
+    },
+  };
+
+  async function duplicateFile(
+    file: FileInfo,
+    mode: keyof typeof DUPLICATE_MODES,
+  ) {
+    if (!electronAPI?.readFile || !electronAPI.writeFile) {
+      notify("File operations are not supported in this environment", "error");
+      return;
+    }
+    const { suffix, label, transform } = DUPLICATE_MODES[mode];
+    try {
+      const content = await electronAPI.readFile(file.path);
+      if (!content) throw new Error("File is empty or could not be read");
+      const data = transform(JSON.parse(content));
+
+      // name_copy.turt, then name_copy1.turt, name_copy2.turt, ...
+      const base = stripProjectExtension(file.name) + suffix;
+      let newName = base + DEFAULT_PROJECT_EXTENSION;
+      for (
+        let n = 1;
+        await electronAPI.fileExists?.(joinPath(currentDirectory, newName));
+        n++
+      ) {
+        newName = `${base}${n}${DEFAULT_PROJECT_EXTENSION}`;
+      }
+
+      await hookRegistry.run("onSave", data);
+      const newPath = joinPath(currentDirectory, newName);
+      await electronAPI.writeFile(newPath, JSON.stringify(data, null, 2));
+      await refreshDirectory();
+      notify(`${label}: ${newName}`, "success");
+      filePreviews.reload(newPath);
+    } catch (error) {
+      notify(`Failed to duplicate: ${errorText(error)}`, "error");
+    }
+  }
+
+  // --- Renaming, moving and deleting ---
+
+  /**
+   * Moves `from` to `to` on disk and updates everything that pointed at the
+   * old location: the open file, the selection and macro references.
+   */
+  async function relocate(from: string, to: string): Promise<boolean> {
+    if (!electronAPI?.renameFile) {
+      notify("Moving files is not supported in this environment", "error");
+      return false;
+    }
+    const result = await electronAPI.renameFile(from, to);
+    if (!result.success) return false;
+
+    // `from` may be the open file or a folder that contains it.
+    const moved = (p: string) =>
+      p === from || p.startsWith(from + "/") || p.startsWith(from + "\\")
+        ? to + p.slice(from.length)
+        : p;
+    const openPath = get(currentFilePath);
+    if (openPath) currentFilePath.set(moved(openPath));
+    if (selectedFile) {
+      selectedFile = {
+        ...selectedFile,
+        name: fileNameOf(moved(selectedFile.path)),
+        path: moved(selectedFile.path),
+      };
+    }
+
+    const { mainSequenceChanged } = await updateAllMacroReferences(from, to);
+    // Save straight away so the open file doesn't keep a stale macro path.
+    if (mainSequenceChanged) {
+      isUnsaved.set(true);
+      const current = get(currentFilePath);
+      if (current) await saveProject({ path: current, quiet: true });
+    }
+    return true;
   }
 
   async function renameFile(file: FileInfo, newName: string) {
@@ -640,352 +566,54 @@
     const cleanName = newName.trim();
     if (!cleanName) return;
 
-    let fileName = cleanName;
-    if (!file.isDirectory) {
-      if (isSupportedProjectFileName(cleanName)) {
-        fileName = cleanName;
-      } else {
-        const extension = getProjectExtensionFromPath(file.name);
-        fileName = `${cleanName}${extension}`;
-      }
-    }
-
+    // Keep the extension if the user leaves it off.
+    const fileName =
+      file.isDirectory || isSupportedProjectFileName(cleanName)
+        ? cleanName
+        : cleanName + getProjectExtensionFromPath(file.name);
     if (fileName === file.name) return;
 
-    const newFilePath = path.join(currentDirectory, fileName);
-
+    const newPath = joinPath(currentDirectory, fileName);
     try {
-      if (await electronAPI?.fileExists?.(newFilePath)) {
-        showToast(`File "${fileName}" already exists`, "error");
+      if (await electronAPI?.fileExists?.(newPath)) {
+        notify(`File "${fileName}" already exists`, "error");
         return;
       }
-
-      if (!electronAPI?.renameFile) {
-        showToast("Renaming is not supported in this environment", "error");
-        return;
-      }
-
-      const result = await electronAPI.renameFile(file.path, newFilePath);
-      if (result.success) {
-        if (selectedFile?.path === file.path) {
-          selectedFile = { ...selectedFile, name: fileName, path: newFilePath };
-          currentFilePath.set(newFilePath);
-        }
-
-        // Check if the currently open file is inside the renamed folder (or is the renamed file)
-        const openPath = get(currentFilePath);
-        if (openPath) {
-          if (openPath === file.path) {
-            currentFilePath.set(newFilePath);
-            selectedFile = { ...selectedFile!, path: newFilePath };
-          } else if (
-            openPath.startsWith(file.path + "/") ||
-            openPath.startsWith(file.path + "\\")
-          ) {
-            const newOpenPath = newFilePath + openPath.slice(file.path.length);
-            currentFilePath.set(newOpenPath);
-            if (selectedFile)
-              selectedFile = { ...selectedFile, path: newOpenPath };
-          }
-        }
-
-        // Deeply update any macro references
-        const { mainSequenceChanged } = await updateAllMacroReferences(
-          file.path,
-          newFilePath,
-        );
-
-        // Persist the updated sequence to disk so the open file doesn't have stale references
-        if (mainSequenceChanged) {
-          isUnsaved.set(true);
-          const openPath = get(currentFilePath);
-          if (openPath) {
-            await saveProject(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              false,
-              openPath,
-              { quiet: true },
-            );
-          }
-        }
-
-        showToast(`Renamed to: ${fileName}`, "success");
+      if (await relocate(file.path, newPath)) {
+        notify(`Renamed to: ${fileName}`, "success");
         await refreshDirectory();
       }
     } catch (error) {
-      showToast(`Failed to rename: ${getErrorMessage(error)}`, "error");
+      notify(`Failed to rename: ${errorText(error)}`, "error");
     }
   }
 
-  function handleOpen(file: FileInfo) {
-    if (file.isDirectory) {
-      if (file.name === "..") {
-        goUpDirectory();
-        return;
-      }
-      currentDirectory = file.path;
-      refreshDirectory();
-    } else {
-      loadFile(file);
-    }
-  }
+  async function moveFile({
+    sourceFile,
+    targetDir,
+  }: {
+    sourceFile: FileInfo;
+    targetDir: FileInfo;
+  }) {
+    if (!targetDir.isDirectory || sourceFile.name === "..") return;
+    if (sourceFile.path === targetDir.path) return;
 
-  async function loadFile(file: FileInfo) {
-    if (file.error) return;
-
-    // Autosave on Close Logic
-    const currentSettings = get(settingsStore);
-    if (
-      currentSettings.autosaveMode === "close" &&
-      get(isUnsaved) &&
-      get(currentFilePath)
-    ) {
-      await saveProject(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false,
-        undefined,
-        { quiet: true },
-      );
-    }
-
+    const isParent = targetDir.name === "..";
+    const destination = isParent
+      ? directoryOf(currentDirectory)
+      : targetDir.path;
     try {
-      if (!electronAPI?.readFile) {
-        showToast("File reading is not supported in this environment", "error");
-        return;
-      }
-      const content = await electronAPI.readFile(file.path);
-      if (!content) {
-        throw new Error("File is empty or could not be read");
-      }
-      const data = JSON.parse(content);
-
-      if (!data.startPoint || !data.lines)
-        throw new Error("Invalid file format");
-
-      await loadProjectData(data, file.path);
-
-      currentFilePath.set(file.path);
-      isUnsaved.set(false);
-      selectedFile = file;
-      showToast(`Loaded: ${file.name}`, "success");
-
-      // Refresh the file preview so the latest content is reflected
-      if (fileGrid && file && file.path) fileGrid.refreshPreview(file.path);
-    } catch (error) {
-      showToast(`Error loading file: ${getErrorMessage(error)}`, "error");
-    }
-  }
-
-  async function handleImportJava(e: CustomEvent<File>) {
-    const file = e.detail;
-    if (!file) return;
-
-    if (!file.name.endsWith(".java")) {
-      showToast("Please select a .java file", "error");
-      return;
-    }
-
-    if (get(isUnsaved)) {
       if (
-        !confirm(
-          "You have unsaved changes that will be lost. Are you sure you want to import a new Java file?",
-        )
+        await relocate(sourceFile.path, joinPath(destination, sourceFile.name))
       ) {
-        return;
-      }
-    }
-
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const decoder = new TextDecoder("utf-8");
-      const javaContent = decoder.decode(arrayBuffer);
-
-      const { importJavaProject } = await import("../utils/javaImporter");
-      const loadedData = importJavaProject(javaContent);
-
-      startPoint = loadedData.startPoint;
-      lines = loadedData.lines;
-      shapes = loadedData.shapes || [];
-      sequence = loadedData.sequence;
-      if (loadedData.extraData?.settings) {
-        settings = loadedData.extraData.settings;
-      }
-
-      // Optionally save it as a new .turt file right away if in desktop mode
-      if (electronAPI && currentDirectory) {
-        const newFileName = file.name.replaceAll(".java", ".turt");
-        const destPath = path.join(currentDirectory, newFileName);
-
-        const savedDataStr = JSON.stringify(
-          {
-            startPoint,
-            lines,
-            shapes,
-            sequence,
-            timestamp: new Date().toISOString(),
-          },
-          null,
-          2,
+        notify(
+          `Moved to ${isParent ? "parent folder" : targetDir.name}`,
+          "success",
         );
-
-        await electronAPI.writeFile(destPath, savedDataStr);
         await refreshDirectory();
-
-        currentFilePath.set(destPath);
-        isUnsaved.set(false);
-      } else {
-        currentFilePath.set(file.name.replaceAll(".java", ".turt"));
-        isUnsaved.set(false);
-      }
-
-      showToast(`Successfully imported ${file.name}`, "success");
-      isOpen = false;
-    } catch (err: any) {
-      console.error("Error importing Java file:", err);
-      showToast(`Error importing Java file: ${err.message}`, "error");
-    }
-  }
-
-  async function saveCurrentToFile(targetFile: FileInfo) {
-    try {
-      const data = {
-        startPoint,
-        lines,
-        shapes,
-        sequence,
-        timestamp: new Date().toISOString(),
-      };
-
-      await hookRegistry.run("onSave", data);
-
-      const content = JSON.stringify(data, null, 2);
-
-      if (!electronAPI?.writeFile) {
-        showToast("Saving files is not supported in this environment", "error");
-        return;
-      }
-
-      await electronAPI.writeFile(targetFile.path, content);
-      await refreshDirectory();
-      isUnsaved.set(false);
-      showToast(`Saved to: ${targetFile.name}`, "success");
-
-      // Reload macro if it's being used somewhere
-      loadMacro(targetFile.path, true);
-
-      // Updated saved file — refresh its preview
-      if (targetFile?.path) {
-        fileGrid?.refreshPreview?.(targetFile.path);
-        fileList?.refreshPreview?.(targetFile.path);
       }
     } catch (error) {
-      showToast(`Failed to save: ${getErrorMessage(error)}`, "error");
-    }
-  }
-
-  async function createNewFolder(name: string) {
-    if (!name.trim()) return;
-
-    const dirPath = path.join(currentDirectory, name.trim());
-    try {
-      if (await electronAPI?.fileExists?.(dirPath)) {
-        showToast(`Folder "${name}" already exists.`, "error");
-        return;
-      }
-
-      if (!electronAPI?.createDirectory) {
-        showToast(
-          "Creating folders is not supported in this environment",
-          "error",
-        );
-        return;
-      }
-
-      await electronAPI.createDirectory(dirPath);
-      creatingNewFolder = false;
-      newFolderName = "";
-      await refreshDirectory();
-      showToast(`Created folder: ${name}`, "success");
-    } catch (error) {
-      showToast(`Failed to create folder: ${getErrorMessage(error)}`, "error");
-    }
-  }
-
-  async function createNewFile(name: string) {
-    if (!name.trim()) return;
-
-    const fileName = ensureDefaultProjectExtension(name);
-    const filePath = path.join(currentDirectory, fileName);
-
-    // Autosave on Close Logic
-    const currentSettings = get(settingsStore);
-    if (
-      currentSettings.autosaveMode === "close" &&
-      get(isUnsaved) &&
-      get(currentFilePath)
-    ) {
-      await saveProject(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false,
-        undefined,
-        { quiet: true },
-      );
-    }
-
-    try {
-      if (await electronAPI?.fileExists?.(filePath)) {
-        if (!confirm(`File "${fileName}" already exists. Overwrite?`)) return;
-      }
-
-      const data = {
-        startPoint,
-        lines: normalizeLines(lines),
-        shapes,
-        sequence,
-        timestamp: new Date().toISOString(),
-      };
-
-      await hookRegistry.run("onSave", data);
-
-      const content = JSON.stringify(data, null, 2);
-
-      if (!electronAPI?.writeFile) {
-        showToast(
-          "Creating files is not supported in this environment",
-          "error",
-        );
-        return;
-      }
-
-      await electronAPI.writeFile(filePath, content);
-      creatingNewFile = false;
-      newFileName = "";
-      await refreshDirectory();
-
-      const newFile = files.find((f) => f.name === fileName);
-      if (newFile) {
-        selectedFile = newFile;
-        currentFilePath.set(newFile.path);
-        isUnsaved.set(false);
-        showToast(`Created: ${fileName}`, "success");
-
-        // New file created — ensure preview is generated
-        if (newFile.path) fileGrid?.refreshPreview?.(newFile.path);
-      }
-    } catch (error) {
-      showToast(`Failed to create: ${getErrorMessage(error)}`, "error");
+      notify(`Failed to move: ${errorText(error)}`, "error");
     }
   }
 
@@ -998,127 +626,50 @@
         currentFilePath.set(null);
       }
       await refreshDirectory();
-      showToast(`Deleted: ${file.name}`, "success");
+      notify(`Deleted: ${file.name}`, "success");
     } catch (error) {
-      showToast(`Failed to delete: ${getErrorMessage(error)}`, "error");
+      notify(`Failed to delete: ${errorText(error)}`, "error");
     }
   }
 
-  async function duplicateFile(
-    file: FileInfo,
-    mode: "copy" | "mirror" | "reverse" = "copy",
-  ) {
-    try {
-      if (!electronAPI?.readFile || !electronAPI?.writeFile) {
-        showToast(
-          "File operations are not supported in this environment",
-          "error",
-        );
-        return;
-      }
-      const content = await electronAPI.readFile(file.path);
-      if (!content) {
-        throw new Error("File is empty or could not be read");
-      }
-      let data = JSON.parse(content);
-
-      let suffix = "_copy";
-      if (mode === "mirror") {
-        data = mirrorPathData(data);
-        suffix = "_mirrored";
-      } else if (mode === "reverse") {
-        data = reversePathData(data);
-        suffix = "_reversed";
-      }
-
-      const baseName = stripProjectExtension(file.name);
-      let newName = `${baseName}${suffix}${DEFAULT_PROJECT_EXTENSION}`;
-      let counter = 1;
-
-      while (
-        await electronAPI?.fileExists?.(path.join(currentDirectory, newName))
-      ) {
-        newName = `${baseName}${suffix}${counter}${DEFAULT_PROJECT_EXTENSION}`;
-        counter++;
-      }
-
-      await hookRegistry.run("onSave", data);
-
-      await electronAPI.writeFile(
-        path.join(currentDirectory, newName),
-        JSON.stringify(data, null, 2),
-      );
-      await refreshDirectory();
-
-      let actionLabel = "Duplicated";
-      if (mode === "mirror") actionLabel = "Mirrored";
-      if (mode === "reverse") actionLabel = "Reversed";
-
-      showToast(`${actionLabel}: ${newName}`, "success");
-
-      // Refresh preview for the newly created copy/mirror
-      const newFile = files.find((f) => f.name === newName);
-      if (newFile?.path) {
-        fileGrid?.refreshPreview?.(newFile.path);
-        fileList?.refreshPreview?.(newFile.path);
-      }
-    } catch (error) {
-      showToast(`Failed to duplicate: ${getErrorMessage(error)}`, "error");
-    }
-  }
-
-  function showToast(
-    message: string,
-    type: "success" | "error" | "warning" | "info" = "info",
-  ) {
-    // Standard toast logic
-    const toast = document.createElement("div");
-    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg z-[1300] ${
-      type === "success"
-        ? "bg-green-500 text-white"
-        : type === "error"
-          ? "bg-red-500 text-white"
-          : "bg-blue-500 text-white"
-    }`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
-  }
-
-  // Event handlers for child components
-  function handleMenuAction(data: { action: string; file: FileInfo }) {
-    const { action, file } = data;
+  function handleMenuAction({
+    action,
+    file,
+  }: {
+    action: string;
+    file: FileInfo;
+  }) {
     switch (action) {
       case "open":
-        handleOpen(file);
-        break;
+        return handleOpen(file);
       case "rename-start":
         renamingFile = file;
-        break;
+        return;
       case "delete":
-        deleteFile(file);
-        break;
+        return deleteFile(file);
       case "duplicate":
-        duplicateFile(file, "copy");
-        break;
+        return duplicateFile(file, "copy");
       case "mirror":
-        duplicateFile(file, "mirror");
-        break;
       case "reverse":
-        duplicateFile(file, "reverse");
-        break;
+        return duplicateFile(file, action);
       case "save-to":
-        saveCurrentToFile(file);
-        break;
+        return saveCurrentToFile(file);
     }
   }
 
-  onMount(() => {
-    loadDirectory();
-  });
+  // --- Panel UI ---
+
+  function startResize() {
+    const resize = (e: MouseEvent) => {
+      sidebarWidth = Math.max(250, Math.min(e.clientX, 800));
+    };
+    const stop = () => {
+      globalThis.removeEventListener("mousemove", resize);
+      globalThis.removeEventListener("mouseup", stop);
+    };
+    globalThis.addEventListener("mousemove", resize);
+    globalThis.addEventListener("mouseup", stop);
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen && !creatingNewFile && !renamingFile) {
@@ -1126,80 +677,19 @@
     }
   }
 
-  let isDraggingPath = $state(false);
+  function handleWindowClick(e: MouseEvent) {
+    if (
+      showAddMenu &&
+      !(e.target as HTMLElement).closest(".floating-add-container")
+    ) {
+      showAddMenu = false;
+    }
+  }
 
-  // Mock path utils
-  const path = {
-    join: (...parts: string[]) => parts.join("/").replaceAll(/\/\//g, "/"),
-    basename: (p: string) => p.split(/[\\/]/).pop() || "",
-    extname: (p: string) => {
-      const m = p.match(/\.[^/.]+$/);
-      return m ? m[0] : "";
-    },
-    dirname: (p: string) => {
-      const parts = p.split(/[\\/]/);
-      parts.pop();
-      return parts.join("/") || "/";
-    },
-  };
-  $effect(() => {
-    if ($fileManagerNewFileMode) {
-      creatingNewFile = true;
-      fileManagerNewFileMode.set(false);
-    }
-  });
-  $effect(() => {
-    if (creatingNewFile) {
-      // Focus the input after it renders
-      tick().then(() => newFileInput?.focus());
-    }
-  });
-  $effect(() => {
-    if (creatingNewFolder) {
-      tick().then(() => newFolderInput?.focus());
-    }
-  });
-  $effect(() => {
-    if (currentDirectory) {
-      currentDirectoryStore.set(currentDirectory);
-    }
-  });
-  // Persist session state when changed
-  $effect(() => {
-    fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
-  });
-  // Sync sortMode to settings only after initialization and persist it
-  $effect(() => {
-    if (sortModeInitialized && settings && sortMode) {
-      if (settings.fileManagerSortMode !== sortMode) {
-        settings.fileManagerSortMode = sortMode;
-        // Force update so Svelte reactivity at higher levels will detect the change
-        settings = { ...settings };
-
-        // Persist settings to disk (non-blocking)
-        saveSettings(settings).catch((e) =>
-          console.error("Failed to save settings fileManagerSortMode:", e),
-        );
-
-        // Re-sort files now that mode changed
-        sortFiles();
-      }
-    }
-  });
-  // Update filtered files whenever files or searchQuery changes
-  $effect(() => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      filteredFiles = files.filter((f) => f.name.toLowerCase().includes(q));
-    } else {
-      filteredFiles = [...files];
-    }
-  });
-  $effect(() => {
-    if (sortMode) {
-      sortFiles();
-    }
-  });
+  /** Focuses an input when it appears. */
+  function autofocus(node: HTMLInputElement) {
+    tick().then(() => node.focus());
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} onclick={handleWindowClick} />
@@ -1209,7 +699,7 @@
   {#if isOpen}
     <div
       transition:fade={{ duration: 200 }}
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 bg-black/50"
       onclick={() => (isOpen = false)}
       role="button"
       tabindex="0"
@@ -1223,7 +713,7 @@
   <!-- Drop Zone (Right Area) -->
   {#if isOpen && isDraggingPath}
     <div
-      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 backdrop-blur-[2px] z-[1015]"
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 z-[1015]"
       style="left: {sidebarWidth}px;"
     >
       <div
@@ -1295,17 +785,10 @@
         {sortMode}
         {viewMode}
         onsearch={(val) => (searchQuery = val)}
-        onsortchange={(val) => (sortMode = val)}
+        onsortchange={setSortMode}
         onviewchange={(val) => {
           viewMode = val;
-          // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
-          if (viewMode === "list") {
-            fileList?.refreshAllFailed?.();
-            fileList?.refreshAll?.();
-          } else if (viewMode === "grid") {
-            fileGrid?.refreshAllFailed?.();
-            fileGrid?.refreshAll?.();
-          }
+          filePreviews.reloadFailed();
         }}
       />
     </div>
@@ -1314,8 +797,8 @@
     <FileManagerBreadcrumbs
       currentPath={currentDirectory}
       isAtBase={currentDirectory === baseDirectory}
-      onchangeDir={changeDirectoryManual}
-      onchangeDirDialog={changeDirectoryDialog}
+      onchangeDir={navigateTo}
+      onchangeDirDialog={chooseBaseDirectory}
       ongoUp={goUpDirectory}
     />
 
@@ -1338,7 +821,7 @@
         </div>
         <input
           bind:value={newFolderName}
-          bind:this={newFolderInput}
+          use:autofocus
           class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
           placeholder="New Folder"
           onkeydown={(e) => {
@@ -1370,7 +853,7 @@
         </div>
         <input
           bind:value={newFileName}
-          bind:this={newFileInput}
+          use:autofocus
           class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
           placeholder="path_name.turt"
           onkeydown={(e) => {
@@ -1397,7 +880,7 @@
       <!-- Floating Add Dropdown -->
       <div class="absolute top-4 right-4 z-[100] floating-add-container">
         <button
-          onclick={handleAddMenuToggle}
+          onclick={() => (showAddMenu = !showAddMenu)}
           class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
           title="Add / Import"
           aria-label="Add / Import"
@@ -1482,7 +965,7 @@
         type="file"
         accept=".java"
         class="hidden"
-        onchange={onImportJavaSelect}
+        onchange={(e) => onFileChosen(e, importJavaFile)}
         tabindex="-1"
       />
       <input
@@ -1490,7 +973,7 @@
         type="file"
         accept=".turt,.pp"
         class="hidden"
-        onchange={onImportFileSelect}
+        onchange={(e) => onFileChosen(e, importProjectFile)}
         tabindex="-1"
       />
 
@@ -1501,7 +984,7 @@
         >
           <LoadingSpinner />
         </div>
-      {:else if filteredFiles.length === 0}
+      {:else if visibleFiles.length === 0}
         <div
           class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center h-full"
         >
@@ -1521,8 +1004,7 @@
         </div>
       {:else if viewMode === "list"}
         <FileList
-          bind:this={fileList}
-          files={filteredFiles}
+          files={visibleFiles}
           selectedFilePath={selectedFile?.path ?? null}
           {sortMode}
           fieldImage={settings.fieldMap}
@@ -1534,12 +1016,11 @@
             renamingFile && renameFile(renamingFile, name)}
           onrenameCancel={() => (renamingFile = null)}
           onmenuAction={handleMenuAction}
-          onmoveFile={handleMoveFile}
+          onmoveFile={moveFile}
         />
       {:else}
         <FileGrid
-          bind:this={fileGrid}
-          files={filteredFiles}
+          files={visibleFiles}
           selectedFilePath={selectedFile?.path ?? null}
           {sortMode}
           fieldImage={settings.fieldMap}
@@ -1552,7 +1033,7 @@
             renamingFile && renameFile(renamingFile, name)}
           onrenameCancel={() => (renamingFile = null)}
           onmenuAction={handleMenuAction}
-          onmoveFile={handleMoveFile}
+          onmoveFile={moveFile}
         />
       {/if}
     </div>
@@ -1571,7 +1052,7 @@
           <ArrowCircleIcon className="size-4" />
         </button>
         <span
-          >{filteredFiles.length} file{filteredFiles.length === 1
+          >{visibleFiles.length} file{visibleFiles.length === 1
             ? ""
             : "s"}</span
         >

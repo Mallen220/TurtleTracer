@@ -30,7 +30,7 @@
     isActive = false,
   }: Props = $props();
 
-  let waypointTableRef: any = $state(null);
+  let waypointTableRef: ReturnType<typeof WaypointTable> | null = $state(null);
 
   let collapsedObstacles = $state(shapes.map(() => true));
   $effect(() => {
@@ -41,51 +41,7 @@
 
   // Exported methods
   export function copyTable() {
-    if (waypointTableRef && waypointTableRef.copyTableToClipboard) {
-      waypointTableRef.copyTableToClipboard();
-    }
-  }
-
-  export function openAndStartOptimization() {
-    if (waypointTableRef && waypointTableRef.openAndStartOptimization) {
-      return waypointTableRef.openAndStartOptimization();
-    }
-  }
-
-  export function stopOptimization() {
-    if (waypointTableRef && waypointTableRef.stopOptimization) {
-      waypointTableRef.stopOptimization();
-    }
-  }
-
-  export function applyOptimization() {
-    if (waypointTableRef && waypointTableRef.applyOptimization) {
-      waypointTableRef.applyOptimization();
-    }
-  }
-
-  export function discardOptimization() {
-    if (waypointTableRef && waypointTableRef.discardOptimization) {
-      waypointTableRef.discardOptimization();
-    }
-  }
-
-  export function retryOptimization() {
-    if (waypointTableRef && waypointTableRef.retryOptimization) {
-      waypointTableRef.retryOptimization();
-    }
-  }
-
-  export function getOptimizationStatus() {
-    if (waypointTableRef && waypointTableRef.getOptimizationStatus) {
-      return waypointTableRef.getOptimizationStatus();
-    }
-    return {
-      isOpen: true,
-      isRunning: false,
-      optimizedLines: null,
-      optimizationFailed: false,
-    };
+    waypointTableRef?.copyTableToClipboard();
   }
 </script>
 
