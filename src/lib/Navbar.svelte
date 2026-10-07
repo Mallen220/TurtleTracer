@@ -11,7 +11,8 @@
     showStrategySheet,
     gitStatusStore,
   } from "../stores";
-  import { SaveIcon } from "./components/icons";
+  import { GithubIcon, SaveIcon } from "./components/icons";
+  import GitHubCommitDialog from "./components/github/GitHubCommitDialog.svelte";
   import { getShortcutFromSettings, isBrowser } from "../utils";
   import {
     ChevronUpIcon,
@@ -23,6 +24,12 @@
     SidebarHiddenIcon,
   } from "./components/icons";
   import { formatDisplayDistance } from "../utils/coordinates";
+  import {
+    isGitHubPath,
+    parseGitHubPath,
+    repoKey,
+  } from "../utils/github/paths";
+  import { githubRepos } from "../utils/github/repos";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
@@ -49,6 +56,18 @@
     saveFileAs,
     exportGif,
   }: Props = $props();
+
+  // Edits to a repository file stay on this device until committed, so the
+  // Navbar keeps saying so while there are any.
+  const repoSummaries = githubRepos.summaries;
+  let openRepo = $derived.by(() => {
+    const parsed = $currentFilePath ? parseGitHubPath($currentFilePath) : null;
+    return parsed && { owner: parsed.owner, repo: parsed.repo };
+  });
+  let openRepoSummary = $derived(
+    openRepo && $repoSummaries.find((s) => repoKey(s) === repoKey(openRepo!)),
+  );
+  let showRepoCommit = $state(false);
 
   let exportMenuOpen = $state(false);
   let saveDropdownOpen = $state(false);
@@ -274,7 +293,7 @@
           <span class="truncate max-w-[200px]"
             >{$currentFilePath.split(/[\\/]/).pop()}</span
           >
-          {#if settings.gitIntegration && $gitStatusStore[$currentFilePath] && $gitStatusStore[$currentFilePath] !== "clean"}
+          {#if (settings.gitIntegration || isGitHubPath($currentFilePath)) && $gitStatusStore[$currentFilePath] && $gitStatusStore[$currentFilePath] !== "clean"}
             <button
               class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap transition-all
                 {$gitStatusStore[$currentFilePath] === 'modified'
@@ -310,6 +329,16 @@
             <span class="text-amber-500 font-bold ml-1" title="Unsaved changes"
               >*</span
             >
+          {/if}
+          {#if openRepoSummary && openRepoSummary.changeCount > 0}
+            <button
+              class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap bg-purple-100 border-purple-200 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/50 dark:border-purple-700 dark:text-purple-300"
+              title="These changes are only on this device until you commit them to GitHub"
+              onclick={() => (showRepoCommit = true)}
+            >
+              <GithubIcon className="size-3 flex-shrink-0" />
+              {openRepoSummary.changeCount} not committed
+            </button>
           {/if}
         </div>
       {:else}
@@ -523,3 +552,11 @@
     </button>
   </div>
 </div>
+
+{#if openRepo && openRepoSummary}
+  <GitHubCommitDialog
+    bind:show={showRepoCommit}
+    repo={openRepo}
+    branch={openRepoSummary.branch}
+  />
+{/if}

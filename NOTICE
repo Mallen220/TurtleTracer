@@ -627,12 +627,19 @@ tests/install/sandbox-boot/run-in-docker.sh
 src/lib/exporters/poseTable.ts
 src/tests/poseTable.test.ts
 src/lib/exporters/commandLibraries/pedroImports.ts
+src/lib/components/github/GitHubCommitDialog.svelte
+src/lib/components/github/GitHubConflicts.svelte
+src/lib/components/github/GitHubOpenDialog.svelte
+src/lib/components/github/GitHubRepoBar.svelte
+src/lib/components/github/GitHubTokenForm.svelte
 src/lib/components/renderer/ElementCache.ts
 src/tests/github/api.test.ts
 src/tests/github/fakeGitHub.ts
+src/tests/github/githubDialogs.test.ts
 src/tests/github/paths.test.ts
 src/tests/github/repos.test.ts
 src/tests/github/router.test.ts
+src/tests/github/saveToRepo.test.ts
 src/tests/libraryVersionChecker.test.ts
 src/utils/github/api.ts
 src/utils/github/links.ts
@@ -646,5 +653,6 @@ src/tests/github/rules.test.ts
 src/tests/github/safety.test.ts
 src/tests/github/token.test.ts
 src/tests/javaClassNames.test.ts
+src/utils/github/copies.ts
 src/utils/github/rules.ts
 src/utils/versions.ts

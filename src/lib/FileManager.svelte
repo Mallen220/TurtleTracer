@@ -43,11 +43,25 @@
   import { mirrorPathData, reversePathData } from "../utils/pathTransform";
   import { scanEventsInDirectory } from "../utils/eventScanner";
   import { getElectronAPI } from "../utils/platform";
+  import {
+    githubPath,
+    isGitHubPath,
+    parseGitHubPath,
+    repoKey,
+  } from "../utils/github/paths";
+  import {
+    browsingRepo,
+    githubRepos,
+    type OpenedRepo,
+    type UpdateResult,
+  } from "../utils/github/repos";
   import { hookRegistry } from "./registries";
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
   import FileList from "./components/filemanager/FileList.svelte";
   import FileGrid from "./components/filemanager/FileGrid.svelte";
+  import GitHubOpenDialog from "./components/github/GitHubOpenDialog.svelte";
+  import GitHubRepoBar from "./components/github/GitHubRepoBar.svelte";
   import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
   import { filePreviews } from "./components/filemanager/fileBrowser.svelte";
   import {
@@ -61,6 +75,7 @@
     CodeBracketSquareIcon,
     ServerStackIcon,
     ArrowCircleIcon,
+    GithubIcon,
   } from "./components/icons";
 
   interface Props {
@@ -100,6 +115,13 @@
 
   let fileInput: HTMLInputElement | undefined = $state();
   let javaInput: HTMLInputElement | undefined = $state();
+
+  let showGitHubDialog = $state(false);
+  /** The GitHub repository being browsed, if not this device's files. */
+  let repo = $derived.by(() => {
+    const parsed = parseGitHubPath(baseDirectory);
+    return parsed && { owner: parsed.owner, repo: parsed.repo };
+  });
 
   let visibleFiles = $derived.by(() => {
     const query = searchQuery.toLowerCase();
@@ -160,6 +182,7 @@
     loading = true;
     errorMessage = "";
     try {
+      if (await showOpenRepo()) return;
       const saved = (await electronAPI.getSavedDirectory?.())?.trim();
       const dir = saved || (await electronAPI.getDirectory?.()) || "";
       baseDirectory = currentDirectory = dir;
@@ -172,12 +195,29 @@
     }
   }
 
+  /** Shows the repository the file manager was showing last, if it's still open. */
+  async function showOpenRepo(): Promise<boolean> {
+    const key = get(browsingRepo);
+    if (!key) return false;
+    const [owner, name] = key.split("/");
+    const record = await githubRepos.get({ owner, repo: name });
+    if (!record) {
+      browsingRepo.set(null);
+      return false;
+    }
+    baseDirectory = githubPath(record);
+    currentDirectory = githubRepos.startFolder(record);
+    await refreshDirectory();
+    return true;
+  }
+
   async function refreshDirectory() {
     if (!electronAPI || !currentDirectory.trim()) return;
 
     try {
       const listed = await electronAPI.listFiles(currentDirectory);
-      if (settings.gitIntegration) {
+      // Repositories opened from GitHub always show what's been edited.
+      if (settings.gitIntegration || isGitHubPath(currentDirectory)) {
         gitStatusStore.update((statuses) => {
           const next = { ...statuses };
           for (const f of listed) {
@@ -215,6 +255,48 @@
   async function openDirectory(dir: string) {
     currentDirectory = dir;
     await refreshDirectory();
+    if (isGitHubPath(dir)) void githubRepos.rememberFolder(dir);
+  }
+
+  async function showRepo({ record, folder, file }: OpenedRepo) {
+    browsingRepo.set(repoKey(record));
+    baseDirectory = githubPath(record);
+    await openDirectory(folder);
+    if (file) {
+      await loadFile({
+        name: fileNameOf(file),
+        path: file,
+        size: 0,
+        modified: new Date(),
+      });
+    }
+  }
+
+  async function leaveRepo() {
+    browsingRepo.set(null);
+    await loadDirectory();
+  }
+
+  /** After a commit or an update from GitHub. */
+  async function handleRepoChanged(update?: UpdateResult) {
+    await refreshDirectory();
+    if (update?.status !== "updated") return;
+
+    const open = get(currentFilePath);
+    if (!open || !update.changedOnGitHub.includes(open)) return;
+    if (get(isUnsaved)) {
+      notify(
+        `${fileNameOf(open)} changed on GitHub. Your unsaved edits are still open; reopen the file to see GitHub's version.`,
+        "warning",
+      );
+    } else if (await electronAPI?.fileExists(open)) {
+      await loadFile({
+        name: fileNameOf(open),
+        path: open,
+        size: 0,
+        modified: new Date(),
+      });
+    }
   }
 
   async function chooseBaseDirectory() {
@@ -228,6 +310,7 @@
     try {
       const dir = await electronAPI.setDirectory();
       if (!dir) return;
+      browsingRepo.set(null);
       baseDirectory = dir;
       await saveAutoPathsDirectory(dir);
       await openDirectory(dir);
@@ -769,6 +852,15 @@
         <FolderIcon className="size-5" />
         Files
       </h2>
+      <span class="flex-1"></span>
+      <button
+        onclick={() => (showGitHubDialog = true)}
+        class="p-1.5 mr-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300"
+        title="Open from GitHub"
+        aria-label="Open from GitHub"
+      >
+        <GithubIcon className="size-5" />
+      </button>
       <button
         onclick={() => (isOpen = false)}
         class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
@@ -801,6 +893,10 @@
       onchangeDirDialog={chooseBaseDirectory}
       ongoUp={goUpDirectory}
     />
+
+    {#if repo}
+      <GitHubRepoBar {repo} onleave={leaveRepo} onchanged={handleRepoChanged} />
+    {/if}
 
     <!-- Error Display -->
     {#if errorMessage}
@@ -946,6 +1042,17 @@
 
             <button
               onclick={() => {
+                showGitHubDialog = true;
+                showAddMenu = false;
+              }}
+              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+            >
+              <GithubIcon className="size-4" />
+              Open from GitHub
+            </button>
+
+            <button
+              onclick={() => {
                 isOpen = false;
                 showTelemetryDialog.set(true);
                 showAddMenu = false;
@@ -1017,6 +1124,7 @@
           onrenameCancel={() => (renamingFile = null)}
           onmenuAction={handleMenuAction}
           onmoveFile={moveFile}
+          lockFolders={!!repo}
         />
       {:else}
         <FileGrid
@@ -1024,7 +1132,7 @@
           selectedFilePath={selectedFile?.path ?? null}
           {sortMode}
           fieldImage={settings.fieldMap}
-          showGitStatus={settings.gitIntegration}
+          showGitStatus={settings.gitIntegration || !!repo}
           {renamingFile}
           onselect={(file) => (selectedFile = file)}
           onopen={(file) => handleOpen(file)}
@@ -1034,6 +1142,7 @@
           onrenameCancel={() => (renamingFile = null)}
           onmenuAction={handleMenuAction}
           onmoveFile={moveFile}
+          lockFolders={!!repo}
         />
       {/if}
     </div>
@@ -1063,3 +1172,5 @@
     </div>
   </div>
 </div>
+
+<GitHubOpenDialog bind:show={showGitHubDialog} onopened={showRepo} />

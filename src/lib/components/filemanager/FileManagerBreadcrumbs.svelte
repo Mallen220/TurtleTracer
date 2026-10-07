@@ -4,6 +4,7 @@
   import { tick } from "svelte";
   import { FolderIcon, UndoIcon } from "../icons";
   import { isBrowser } from "../../../utils/platform";
+  import { GITHUB_ROOT } from "../../../utils/github/paths";
 
   interface Props {
     currentPath: string;
@@ -28,6 +29,11 @@
   // Format path for display - tries to be smart about common paths
   function formatPath(pathStr: string): string {
     if (!pathStr) return "";
+
+    // Files in a GitHub repository: show owner/repo/folder.
+    if (pathStr.startsWith(GITHUB_ROOT + "/")) {
+      return pathStr.slice(GITHUB_ROOT.length + 1);
+    }
 
     if (pathStr.startsWith("/browser_fs")) {
       pathStr = pathStr.slice("/browser_fs".length);

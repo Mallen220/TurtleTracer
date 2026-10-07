@@ -37,6 +37,8 @@
     onrenameSave?: (name: string) => void;
     onrenameCancel?: () => void;
     onmoveFile?: (data: { sourceFile: FileInfo; targetDir: FileInfo }) => void;
+    /** Folders can't be renamed or deleted (in a GitHub repository). */
+    lockFolders?: boolean;
     onmenuAction?: (data: { action: string; file: FileInfo }) => void;
   }
 
@@ -53,6 +55,7 @@
     onrenameSave,
     onrenameCancel,
     onmoveFile,
+    lockFolders = false,
     onmenuAction,
   }: Props = $props();
 
@@ -352,6 +355,7 @@
     y={contextMenu.y}
     fileName={contextMenu.file.name}
     isDirectory={contextMenu.file.isDirectory}
+    canChange={!(lockFolders && contextMenu.file.isDirectory)}
     onclose={() => (contextMenu = null)}
     onaction={(action) => handleMenuAction(action)}
   />

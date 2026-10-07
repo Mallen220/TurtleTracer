@@ -24,6 +24,10 @@ import { hookRegistry } from "./registries";
 import { currentFilePath } from "../stores";
 import { getElectronAPI } from "../utils/platform";
 import { makeId } from "../utils/nameGenerator";
+import { isGitHubPath } from "../utils/github/paths";
+import { githubRepos } from "../utils/github/repos";
+import pkg from "../../package.json";
+import { compareVersions } from "../utils/versions";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
@@ -363,6 +367,22 @@ export async function loadMacro(filePath: string, force = false) {
 
 export async function loadProjectData(data: any, projectFilePath?: string) {
   await hookRegistry.run("onLoad", data);
+
+  // Saving a file from a repository mustn't quietly replace a version
+  // someone commits after this, so remember which version this is.
+  if (projectFilePath && isGitHubPath(projectFilePath)) {
+    await githubRepos.noteOpened(projectFilePath).catch(() => {});
+  }
+  if (
+    typeof data?.version === "string" &&
+    compareVersions(data.version, pkg.version) > 0
+  ) {
+    notification.set({
+      message: `This file was saved by a newer Turtle Tracer (${data.version}). Update the app before saving it, or newer settings in it may be lost.`,
+      type: "warning",
+      timeout: 8000,
+    });
+  }
 
   const sp = data.startPoint || {
     x: 72,

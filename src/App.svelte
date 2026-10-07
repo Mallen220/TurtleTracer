@@ -101,6 +101,9 @@
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
   import { trackMicrosoftStoreInstall } from "./utils/msStoreTracking";
   import { isBrowser, getElectronAPI } from "./utils/platform";
+  import { isGitHubPath } from "./utils/github/paths";
+  import { describeUncommitted, githubRepos } from "./utils/github/repos";
+  import { loadDesktopToken } from "./utils/github/token";
   import { firePotatoConfetti } from "./utils/potatoTheme";
   import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "./config";
   import type { Line } from "./types/index";
@@ -251,7 +254,10 @@
   // Desktop builds ask about unsaved changes through the main process
   // (see handleAppCloseRequested); this covers running in a browser.
   function handleBeforeUnload(e: BeforeUnloadEvent) {
-    if (isBrowser && get(isUnsaved)) {
+    if (!isBrowser) return;
+    // Edits not committed to GitHub are kept, but browsers can clear what
+    // a site stores, so leaving without committing gets the same warning.
+    if (get(isUnsaved) || describeUncommitted(get(githubRepos.summaries))) {
       e.preventDefault();
       e.returnValue = "";
     }
@@ -262,6 +268,16 @@
       await recordUsageTime();
     } catch (e) {
       console.error("Failed to save usage time", e);
+    }
+
+    const uncommitted = describeUncommitted(get(githubRepos.summaries));
+    if (
+      uncommitted &&
+      !confirm(
+        `You have ${uncommitted} that aren't committed to GitHub yet. They're kept on this computer, but your team won't see them until you commit. Close anyway?`,
+      )
+    ) {
+      return;
     }
 
     const unsaved = get(isUnsaved);
@@ -288,7 +304,10 @@
   // --- Git status and library version ---
   async function fetchGitStatus() {
     const dir = get(currentDirectoryStore);
-    if (!dir || !get(settingsStore).gitIntegration) return;
+    // Repositories opened from GitHub always show what's been edited.
+    if (!dir || !(get(settingsStore).gitIntegration || isGitHubPath(dir))) {
+      return;
+    }
     if (!electronAPI?.gitStatus) return;
     try {
       gitStatusStore.set(await electronAPI.gitStatus(dir));
@@ -348,6 +367,7 @@
 
   async function startUp() {
     if (!isBrowser) await PluginManager.init();
+    void loadDesktopToken();
 
     const savedSettings = await loadSettings();
     settingsStore.set({ ...savedSettings });

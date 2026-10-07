@@ -40,6 +40,19 @@ import {
   stripProjectExtension,
 } from "./fileExtensions";
 import { diskPathOf, getElectronAPI } from "./platform";
+import {
+  githubPath,
+  isGitHubPath,
+  parseGitHubPath,
+  relativeGitHubPath,
+} from "./github/paths";
+import {
+  isCompiledJavaPath,
+  packageForJavaFile,
+  suggestedJavaFolder,
+} from "./github/rules";
+import { githubRepos, StaleFileError } from "./github/repos";
+import { javaClassName } from "../lib/exporters/javaFormat";
 import { hookRegistry } from "../lib/registries";
 import pkg from "../../package.json";
 
@@ -305,10 +318,10 @@ export async function saveProject({
     return true;
   }
 
+  let targetPath = saveAs
+    ? undefined
+    : path || get(currentFilePath) || undefined;
   try {
-    let targetPath = saveAs
-      ? undefined
-      : path || get(currentFilePath) || undefined;
     if (!targetPath) {
       targetPath =
         (await electronAPI.showSaveDialog?.({
@@ -345,11 +358,18 @@ export async function saveProject({
               type: "warning",
               timeout: 6000,
             }
-          : {
-              message: `Project saved to ${savedPath}`,
-              type: "success",
-              timeout: 3000,
-            },
+          : isGitHubPath(savedPath)
+            ? {
+                message:
+                  "Saved here. Commit it from the Files panel to send it to GitHub.",
+                type: "success",
+                timeout: 4000,
+              }
+            : {
+                message: `Project saved to ${savedPath}`,
+                type: "success",
+                timeout: 3000,
+              },
       );
     }
 
@@ -373,6 +393,21 @@ export async function saveProject({
     return true;
   } catch (err) {
     console.error("Save error:", err);
+    if (err instanceof StaleFileError && targetPath) {
+      // Someone committed this file since it was opened: ask first.
+      const stalePath = targetPath;
+      notification.set({
+        message: err.message,
+        type: "warning",
+        timeout: 0,
+        actionLabel: "Save anyway",
+        action: async () => {
+          await githubRepos.acceptGitHubVersion(stalePath);
+          await saveProject({ path: stalePath, quiet });
+        },
+      });
+      return false;
+    }
     notification.set({
       message: `Save failed: ${(err as Error).message}`,
       type: "error",
@@ -593,25 +628,61 @@ export async function handleAutoExport(
   if (!settings.autoExportCode || !electronAPI?.resolvePath) return;
 
   try {
-    const exportDirName = settings.autoExportPath || "GeneratedCode";
-    const exportDir = await electronAPI.resolvePath(targetPath, exportDirName);
-    await electronAPI.createDirectory?.(exportDir);
-
+    const format = settings.autoExportFormat;
+    const extension =
+      format === "json" ? "json" : format === "points" ? "txt" : "java";
     const baseName =
       stripProjectExtension(fileNameOf(targetPath)) || "AutoPath";
-    let content: string;
-    let extension: string;
+    // Java needs a public class's file to share its name.
+    const fileStem =
+      extension === "java"
+        ? javaClassName(
+            baseName,
+            format === "java" ? "TurtleTracerAutonomous" : "AutoPath",
+          )
+        : baseName;
+    const filename = `${fileStem}.${extension}`;
 
-    if (settings.autoExportFormat === "json") {
+    const exportDirName = settings.autoExportPath || "GeneratedCode";
+    const exportDir = await electronAPI.resolvePath(targetPath, exportDirName);
+    const finalPath = await electronAPI.resolvePath(
+      targetPath,
+      `${exportDirName}/${filename}`,
+    );
+
+    // Code committed to a repository has to compile: a whole class, in the
+    // package its folder says.
+    const inRepository = isGitHubPath(targetPath);
+    if (
+      inRepository &&
+      format === "java" &&
+      settings.autoExportFullClass === false
+    ) {
+      throw new Error(
+        'Turn on "Generate Full Class" in the Code Export settings to export code into a GitHub repository. On its own, the Paths class won\'t compile.',
+      );
+    }
+    if (
+      inRepository &&
+      extension === "java" &&
+      !isCompiledJavaPath(finalPath)
+    ) {
+      suggestJavaExportPath(targetPath, finalPath, filename, settings);
+      return;
+    }
+    const packageName =
+      (inRepository && packageForJavaFile(finalPath)) ||
+      settings.javaPackageName;
+
+    await electronAPI.createDirectory?.(exportDir);
+
+    let content: string;
+    if (format === "json") {
       content = JSON.stringify(projectData, null, 2);
-      extension = "json";
     } else {
-      const exporter =
-        get(exporterRegistry)[settings.autoExportFormat as string];
+      const exporter = get(exporterRegistry)[format as string];
       if (!exporter) {
-        throw new Error(
-          `Auto export format ${settings.autoExportFormat} not found.`,
-        );
+        throw new Error(`Auto export format ${format} not found.`);
       }
       content = await exporter.exportCode(
         { startPoint, lines, shapes: projectData.shapes ?? shapes, sequence },
@@ -619,20 +690,14 @@ export async function handleAutoExport(
           ...settings,
           fileName: baseName,
           exportFullCode: settings.autoExportFullClass ?? true,
-          packageName: settings.javaPackageName,
+          packageName,
           telemetryImpl: settings.telemetryImplementation,
           hardcodeValues: settings.autoExportEmbedPoseData,
           targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib",
         },
       );
-      extension = settings.autoExportFormat === "points" ? "txt" : "java";
     }
 
-    const filename = `${baseName}.${extension}`;
-    const finalPath = await electronAPI.resolvePath(
-      targetPath,
-      `${exportDirName}/${filename}`,
-    );
     await electronAPI.writeFile(finalPath, content);
 
     notification.set({
@@ -649,6 +714,47 @@ export async function handleAutoExport(
       timeout: 5000,
     });
   }
+}
+
+/**
+ * Generated Java in a repository has to go where it's compiled. Says where
+ * it would have gone, and offers the Auto Export path that puts it in the
+ * project's package folder instead.
+ */
+function suggestJavaExportPath(
+  projectPath: string,
+  wouldBe: string,
+  filename: string,
+  settings: Settings,
+) {
+  const project = parseGitHubPath(projectPath)!;
+  const folder = suggestedJavaFolder(
+    project.repoPath,
+    settings.javaPackageName,
+  );
+  const exportPath = relativeGitHubPath(
+    projectPath,
+    githubPath(project, folder),
+  );
+  const wouldBeFolder = parseGitHubPath(directoryOf(wouldBe))?.repoPath;
+  notification.set({
+    message: `${filename} wasn't exported: ${wouldBeFolder || "that folder"} isn't compiled. Set the Auto Export path to ${exportPath} to put it in ${folder}.`,
+    type: "warning",
+    timeout: 0,
+    actionLabel: "Use this path",
+    action: async () => {
+      settingsStore.update((s) => ({
+        ...s,
+        autoExportPath: exportPath,
+        autoExportPathMode: "relative",
+      }));
+      // The notice stays up, so another project may be open by now; it
+      // will export with the new path when it's saved.
+      if (get(currentFilePath) === projectPath) {
+        await autoExportAfterChange(projectPath);
+      }
+    },
+  });
 }
 
 export { loadProjectData } from "../lib/projectStore";
