@@ -18,6 +18,7 @@ import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequenceMacroItem, TurtleData } from "../types";
 import { exporterRegistry } from "../lib/exporters";
 import pkg from "../../package.json";
+import { pathInMessage } from "../utils/messagePaths";
 
 const macroKind = (): SequenceMacroItem["kind"] =>
   (actionRegistry.getAll().find((a: any) => a.isMacro)
@@ -885,7 +886,7 @@ describe("saving and closing", () => {
       await fileHandlers.saveProject({ path: "/p/a.turt" });
       expect(get(notification)).toMatchObject({
         type: "success",
-        message: "Project saved to /p/a.turt",
+        message: `Project saved to ${pathInMessage("/p/a.turt")}`,
       });
       notification.set(null);
       await fileHandlers.saveProject({ path: "/p/a.turt", quiet: true });

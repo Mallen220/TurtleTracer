@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { get } from "svelte/store";
 import { githubPath } from "../../utils/github/paths";
+import { pathInMessage } from "../../utils/messagePaths";
 import type { FakeGitHub } from "./fakeGitHub";
 
 const AUTO = "TeamCode/src/main/assets/AutoPaths";
@@ -161,7 +162,7 @@ describe("saving a project from a GitHub repository", () => {
       actionLabel: "Use this path",
     });
     expect(notice.message).toBe(
-      `Assets.java wasn't exported: ${AUTO}/GeneratedCode isn't compiled. Set the Auto Export path to ../../java/org/firstinspires/ftc/teamcode/wrong to put it in TeamCode/src/main/java/org/firstinspires/ftc/teamcode/wrong.`,
+      `Assets.java wasn't exported: ${pathInMessage(`${AUTO}/GeneratedCode`)} isn't compiled. Set the Auto Export path to ${pathInMessage("../../java/org/firstinspires/ftc/teamcode/wrong")} to put it in ${pathInMessage("TeamCode/src/main/java/org/firstinspires/ftc/teamcode/wrong")}.`,
     );
     const changed = async () =>
       (await githubRepos.changes(ref)).map((c) => c.repoPath);

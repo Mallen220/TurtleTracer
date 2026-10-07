@@ -11,6 +11,8 @@
     type OpenedRepo,
   } from "../../../utils/github/repos";
   import { CloseIcon, GithubIcon } from "../icons";
+  import MessageText from "../MessageText.svelte";
+  import PathText from "../PathText.svelte";
   import GitHubTokenForm from "./GitHubTokenForm.svelte";
 
   interface Props {
@@ -173,8 +175,8 @@
             {repoKey(target)}
             {#if target.path}
               <span
-                class="block text-xs font-normal text-neutral-500 dark:text-neutral-400 font-mono truncate"
-                >{target.path}</span
+                class="block text-xs font-normal text-neutral-500 dark:text-neutral-400 font-mono [overflow-wrap:anywhere]"
+                ><PathText path={target.path} /></span
               >
             {/if}
           </div>
@@ -206,8 +208,11 @@
       {/if}
 
       {#if error}
-        <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-          {error}
+        <p
+          class="text-sm text-red-600 dark:text-red-400 [overflow-wrap:anywhere]"
+          role="alert"
+        >
+          <MessageText message={error} />
         </p>
       {/if}
 

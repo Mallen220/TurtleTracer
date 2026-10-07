@@ -21,6 +21,8 @@
   } from "../../../utils/github/repos";
   import { githubLogin, githubToken } from "../../../utils/github/token";
   import { CloseIcon, GithubIcon } from "../icons";
+  import MessageText from "../MessageText.svelte";
+  import PathText from "../PathText.svelte";
   import GitHubConflicts from "./GitHubConflicts.svelte";
   import GitHubTokenForm from "./GitHubTokenForm.svelte";
 
@@ -273,8 +275,8 @@
                   >{STATUS_LABEL[change.status]}</span
                 >
                 <span
-                  class="font-mono text-xs truncate text-neutral-800 dark:text-neutral-200"
-                  title={change.repoPath}>{change.repoPath}</span
+                  class="font-mono text-xs min-w-0 [overflow-wrap:anywhere] text-neutral-800 dark:text-neutral-200"
+                  ><PathText path={change.repoPath} /></span
                 >
               </li>
             {/each}
@@ -346,8 +348,11 @@
         {/if}
 
         {#if error}
-          <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-            {error}
+          <p
+            class="text-sm text-red-600 dark:text-red-400 [overflow-wrap:anywhere]"
+            role="alert"
+          >
+            <MessageText message={error} />
           </p>
         {/if}
         {#if conflicts.length > 0}

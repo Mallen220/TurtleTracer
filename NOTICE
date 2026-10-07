@@ -659,3 +659,8 @@ src/tests/javaClassNames.test.ts
 src/utils/github/copies.ts
 src/utils/github/rules.ts
 src/utils/versions.ts
+src/lib/components/MessageText.svelte
+src/lib/components/PathText.svelte
+src/tests/displayPaths.test.ts
+src/utils/displayPaths.ts
+src/utils/messagePaths.ts

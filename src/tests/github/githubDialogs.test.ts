@@ -85,7 +85,7 @@ describe("GitHubOpenDialog", () => {
       },
     });
     await fireEvent.click(screen.getByText("Find"));
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     expect(screen.getByRole("combobox")).toHaveValue("dev");
     await fireEvent.click(screen.getByText("Open"));
 
@@ -133,7 +133,7 @@ describe("GitHubCommitDialog", () => {
 
   it("asks for a token before committing", async () => {
     render(GitHubCommitDialog, { show: true, repo: ref, branch: "main" });
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     expect(screen.getByLabelText("GitHub token")).toBeInTheDocument();
     expect(screen.getByText("Commit")).toBeDisabled();
   });
@@ -148,9 +148,9 @@ describe("GitHubCommitDialog", () => {
       onchanged,
     });
 
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     expect(
-      screen.getByText("TeamCode/src/main/java/Far.java"),
+      screen.getByTitle("TeamCode/src/main/java/Far.java"),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Message")).toHaveValue(
       "Update Far.turt, Far.java",
@@ -169,7 +169,7 @@ describe("GitHubCommitDialog", () => {
     await setGitHubToken("token", false);
     github.push(ref.owner, ref.repo, "main", { "README.md": "theirs" });
     render(GitHubCommitDialog, { show: true, repo: ref, branch: "main" });
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
 
     await fireEvent.click(screen.getByText("Commit"));
     await fireEvent.click(await screen.findByText("Update from GitHub"));
@@ -203,7 +203,7 @@ describe("GitHubRepoBar", () => {
     render(GitHubRepoBar, { repo: ref, onleave: vi.fn(), onchanged });
 
     await fireEvent.click(screen.getByText("Update"));
-    expect(await screen.findByText(`${AUTO}/Far.turt`)).toBeInTheDocument();
+    expect(await screen.findByTitle(`${AUTO}/Far.turt`)).toBeInTheDocument();
     await fireEvent.click(screen.getByText("Use GitHub's"));
 
     await waitFor(() => expect(onchanged).toHaveBeenCalled());
@@ -277,7 +277,7 @@ describe("committing safely", () => {
   it("makes you confirm before deleting files from GitHub", async () => {
     await githubRepos.deleteFile(at(`${AUTO}/Far.turt`));
     render(GitHubCommitDialog, { show: true, repo: ref, branch: "main" });
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     const commit = screen.getByRole("button", { name: "Commit" });
     expect(commit).toBeDisabled();
     await fireEvent.click(
@@ -295,7 +295,7 @@ describe("committing safely", () => {
   it("commits to a new branch and links to a pull request", async () => {
     await githubRepos.writeFile(at(`${AUTO}/Far.turt`), "edited");
     render(GitHubCommitDialog, { show: true, repo: ref, branch: "main" });
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     await fireEvent.click(screen.getByLabelText(/Commit to a new branch/));
     expect(
       (screen.getByLabelText("New branch name") as HTMLInputElement).value,
@@ -325,7 +325,7 @@ describe("committing safely", () => {
     github.protectedBranches.add("main");
     await githubRepos.writeFile(at(`${AUTO}/Far.turt`), "edited");
     render(GitHubCommitDialog, { show: true, repo: ref, branch: "main" });
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     await fireEvent.click(screen.getByRole("button", { name: "Commit" }));
     await screen.findByRole("alert");
     expect(screen.getByLabelText(/Commit to a new branch/)).toBeChecked();
@@ -336,7 +336,7 @@ describe("committing safely", () => {
     await githubRepos.writeFile(at(`${AUTO}/Far.turt`), "edited");
     githubRepos.editable.set(false);
     render(GitHubCommitDialog, { show: true, repo: ref, branch: "main" });
-    await screen.findByText(`${AUTO}/Far.turt`);
+    await screen.findByTitle(`${AUTO}/Far.turt`);
     expect(screen.getByText(/another Turtle Tracer tab/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Commit" })).toBeDisabled();
     githubRepos.editable.set(true);

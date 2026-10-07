@@ -11,6 +11,7 @@
     CloseIcon,
     GithubIcon,
   } from "./icons";
+  import MessageText from "./MessageText.svelte";
 
   let visible = $state(false);
   let currentNotification: import("../../types/index").Notification | null =
@@ -96,7 +97,7 @@
       </div>
       <!-- min-w-0 and overflow-wrap let long paths wrap instead of running off screen. -->
       <div class="flex-1 min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
-        {currentNotification.message}
+        <MessageText message={currentNotification.message} />
       </div>
       {#if currentNotification && currentNotification.action && currentNotification.actionLabel}
         <button

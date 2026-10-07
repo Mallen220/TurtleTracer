@@ -18,6 +18,7 @@ import {
 } from "../utils/math";
 import { startingHeading } from "../utils/timeCalculator/pathCalculator";
 import { makeId } from "../utils/nameGenerator";
+import { pathInMessage } from "../utils/messagePaths";
 
 type XY = { x: number; y: number };
 
@@ -238,11 +239,13 @@ export function expandMacro(
   endHeading: number;
 } {
   if (depth > MAX_MACRO_DEPTH) {
-    throw new Error(`Maximum macro depth exceeded: ${macroItem.filePath}`);
+    throw new Error(
+      `Maximum macro depth exceeded: ${pathInMessage(macroItem.filePath)}`,
+    );
   }
   const normalizedPath = normalizePath(macroItem.filePath);
   if (visitedPaths.has(normalizedPath)) {
-    throw new Error(`Recursion detected: ${macroItem.filePath}`);
+    throw new Error(`Recursion detected: ${pathInMessage(macroItem.filePath)}`);
   }
   const visited = new Set(visitedPaths).add(normalizedPath);
 

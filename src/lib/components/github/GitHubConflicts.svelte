@@ -3,6 +3,7 @@
 <script lang="ts">
   import { parseGitHubPath } from "../../../utils/github/paths";
   import type { Resolution } from "../../../utils/github/repos";
+  import PathText from "../PathText.svelte";
 
   interface Props {
     /** App paths of the files. */
@@ -28,7 +29,7 @@
   </p>
   <ul class="font-mono list-disc pl-4">
     {#each names as name (name)}
-      <li class="truncate">{name}</li>
+      <li class="[overflow-wrap:anywhere]"><PathText path={name} /></li>
     {/each}
   </ul>
   <p>

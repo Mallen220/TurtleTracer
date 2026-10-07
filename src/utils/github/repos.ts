@@ -32,6 +32,7 @@ import {
   isProjectFile,
   RepoRuleError,
 } from "./rules";
+import { pathInMessage } from "../messagePaths";
 
 /** Where FTC projects keep the paths TurtleTracerLib reads. */
 export const AUTO_PATHS_FOLDER = "TeamCode/src/main/assets/AutoPaths";
@@ -424,7 +425,7 @@ export class GitHubRepos {
   async listFiles(dir: string): Promise<FileInfo[]> {
     const { record, repoPath } = await this.#locate(dir);
     if (!this.#isFolder(record, repoPath)) {
-      throw new Error(`Folder not found: ${repoPath || "/"}`);
+      throw new Error(`Folder not found: ${pathInMessage(repoPath || "/")}`);
     }
     const prefix = repoPath ? repoPath + "/" : "";
     const synced = new Date(record.syncedAt);
@@ -480,11 +481,13 @@ export class GitHubRepos {
     const { record, repoPath } = await this.#locate(path);
     this.#checkEditable();
     if (!repoPath || this.#isFolder(record, repoPath)) {
-      throw new Error(`Can't write a file over the folder ${repoPath || "/"}`);
+      throw new Error(
+        `Can't write a file over the folder ${pathInMessage(repoPath || "/")}`,
+      );
     }
     if (byteLength(content) > MAX_FILE_BYTES) {
       throw new Error(
-        `${repoPath} is too big to save here (${sizeText(byteLength(content))}).`,
+        `${pathInMessage(repoPath)} is too big to save here (${sizeText(byteLength(content))}).`,
       );
     }
     const opened = this.#openedVersions.get(path);
@@ -527,7 +530,7 @@ export class GitHubRepos {
       checkRemove(repoPath);
       this.#remove(record, repoPath);
     } else {
-      throw new Error(`File not found: ${repoPath}`);
+      throw new Error(`File not found: ${pathInMessage(repoPath)}`);
     }
     await this.#save(record);
     return true;
@@ -542,7 +545,7 @@ export class GitHubRepos {
     const { record, repoPath } = await this.#locate(dir);
     this.#checkEditable();
     if (this.#isFile(record, repoPath)) {
-      throw new Error(`A file named ${repoPath} already exists`);
+      throw new Error(`A file named ${pathInMessage(repoPath)} already exists`);
     }
     if (!this.#isFolder(record, repoPath)) {
       record.folders.push(repoPath);
@@ -562,7 +565,7 @@ export class GitHubRepos {
     const [src, dest] = [source.repoPath, target.repoPath];
     if (src === dest) return { success: true, newPath: to };
     if (this.#isFile(record, dest) || this.#isFolder(record, dest)) {
-      throw new Error(`${dest} already exists`);
+      throw new Error(`${pathInMessage(dest)} already exists`);
     }
 
     const isFolder = this.#isFolder(record, src);
@@ -934,11 +937,11 @@ export class GitHubRepos {
     const change = record.changes[repoPath];
     if (change) {
       if (change.content === null)
-        throw new Error(`File not found: ${repoPath}`);
+        throw new Error(`File not found: ${pathInMessage(repoPath)}`);
       return change.content;
     }
     const file = record.files[repoPath];
-    if (!file) throw new Error(`File not found: ${repoPath}`);
+    if (!file) throw new Error(`File not found: ${pathInMessage(repoPath)}`);
     return this.#download(record, repoPath, file.sha);
   }
 
@@ -991,7 +994,7 @@ export class GitHubRepos {
     const size = record.files[repoPath]?.size ?? 0;
     if (size > MAX_FILE_BYTES) {
       throw new Error(
-        `${repoPath} is too big to open here (${sizeText(size)}).`,
+        `${pathInMessage(repoPath)} is too big to open here (${sizeText(size)}).`,
       );
     }
 

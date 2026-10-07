@@ -28,6 +28,7 @@ import { isGitHubPath } from "../utils/github/paths";
 import { githubRepos } from "../utils/github/repos";
 import pkg from "../../package.json";
 import { compareVersions } from "../utils/versions";
+import { pathInMessage } from "../utils/messagePaths";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
@@ -353,7 +354,7 @@ export async function loadMacro(filePath: string, force = false) {
     } catch (e) {
       console.error("Failed to load macro:", filePath, e);
       notification.set({
-        message: `Macro file not found or failed to load: ${filePath}. Please update references.`,
+        message: `Macro file not found or failed to load: ${pathInMessage(filePath)}. Please update references.`,
         type: "warning",
         timeout: 5000,
       });
@@ -460,7 +461,7 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
             } catch (err) {
               console.error("Error resolving macro path:", item.filePath, err);
               notification.set({
-                message: `Failed to resolve macro path: ${item.filePath}`,
+                message: `Failed to resolve macro path: ${pathInMessage(item.filePath)}`,
                 type: "warning",
                 timeout: 5000,
               });

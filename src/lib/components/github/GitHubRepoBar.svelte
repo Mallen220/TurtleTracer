@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- Shown above the file list while browsing a GitHub repository. -->
 <script lang="ts">
+  import { pathInMessage } from "../../../utils/messagePaths";
   import { notification } from "../../../stores";
   import { saveCopiesOnDevice } from "../../../utils/github/copies";
   import { repoKey, type RepoRef } from "../../../utils/github/paths";
@@ -129,7 +130,7 @@
       notify(
         count === 0
           ? "There are no edited files to copy."
-          : `Copied ${count} edited file${count === 1 ? "" : "s"} to ${folder}`,
+          : `Copied ${count} edited file${count === 1 ? "" : "s"} to ${pathInMessage(folder)}`,
         "success",
       );
     } catch (e) {

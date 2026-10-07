@@ -55,6 +55,7 @@ import { githubRepos, StaleFileError } from "./github/repos";
 import { javaClassName } from "../lib/exporters/javaFormat";
 import { hookRegistry } from "../lib/registries";
 import pkg from "../../package.json";
+import { pathInMessage } from "./messagePaths";
 
 export interface SaveOptions {
   /** Save to this path instead of the currently open file. */
@@ -366,7 +367,7 @@ export async function saveProject({
                 timeout: 4000,
               }
             : {
-                message: `Project saved to ${savedPath}`,
+                message: `Project saved to ${pathInMessage(savedPath)}`,
                 type: "success",
                 timeout: 3000,
               },
@@ -738,7 +739,7 @@ function suggestJavaExportPath(
   );
   const wouldBeFolder = parseGitHubPath(directoryOf(wouldBe))?.repoPath;
   notification.set({
-    message: `${filename} wasn't exported: ${wouldBeFolder || "that folder"} isn't compiled. Set the Auto Export path to ${exportPath} to put it in ${folder}.`,
+    message: `${filename} wasn't exported: ${wouldBeFolder ? pathInMessage(wouldBeFolder) : "that folder"} isn't compiled. Set the Auto Export path to ${pathInMessage(exportPath)} to put it in ${pathInMessage(folder)}.`,
     type: "warning",
     timeout: 0,
     actionLabel: "Use this path",

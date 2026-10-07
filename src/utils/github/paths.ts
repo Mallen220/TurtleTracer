@@ -3,6 +3,8 @@
 // /@github/<owner>/<repo>/<path in the repository>. The rest of the app can
 // then treat them like any other file.
 
+import { pathInMessage } from "../messagePaths";
+
 export const GITHUB_ROOT = "/@github";
 
 export interface RepoRef {
@@ -77,7 +79,7 @@ const outsideRepoError = (path: string) =>
  */
 export function resolveGitHubPath(base: string, relative: string): string {
   if (isAbsolute(relative) && !isGitHubPath(relative)) {
-    throw outsideRepoError(`"${relative}" on this computer`);
+    throw outsideRepoError(`"${pathInMessage(relative)}" on this computer`);
   }
   const from = parseGitHubPath(base);
   if (!from) throw new Error(`Not a GitHub path: ${base}`);
@@ -105,7 +107,8 @@ export function relativeGitHubPath(base: string, target: string): string {
   const from = parseGitHubPath(base);
   const to = parseGitHubPath(target);
   if (!from) return target;
-  if (!to) throw outsideRepoError(`"${target}" on this computer`);
+  if (!to)
+    throw outsideRepoError(`"${pathInMessage(target)}" on this computer`);
   if (repoKey(from) !== repoKey(to)) {
     throw outsideRepoError("another repository");
   }
