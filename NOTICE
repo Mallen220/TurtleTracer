@@ -666,3 +666,7 @@ src/utils/displayPaths.ts
 src/utils/messagePaths.ts
 src/lib/components/filemanager/LegacyFileBadge.svelte
 src/tests/legacyFileBadge.test.ts
+src/tests/travelSpeed.test.ts
+src/utils/timeCalculator/travelSpeed.ts
+src/tests/chainRecovery.test.ts
+src/utils/timeCalculator/chainRecovery.ts

@@ -6,11 +6,21 @@ import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point, TimelineEvent } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
 import { drivenRange } from "../../../utils/timeCalculator/drivenRange";
+import { travelSpeeds } from "../../../utils/timeCalculator/travelSpeed";
 import { type RenderContext, createLineElement } from "./GeneratorUtils";
 import type { ElementCache } from "./ElementCache";
 
 /** The heatmap colour of the part of a line the robot doesn't drive. */
 const UNDRIVEN_COLOR = "hsl(0, 0%, 60%)";
+
+/**
+ * The heatmap colour for a speed: green when stopped to red at top speed, to
+ * the nearest degree so stretches at one speed are drawn as one.
+ */
+export function speedColor(speed: number, topSpeed: number): string {
+  const ratio = Math.min(1, Math.max(0, speed / topSpeed));
+  return `hsl(${Math.round(120 - ratio * 120)}, 100%, 40%)`;
+}
 
 export type PathElement = Path | PathLine;
 
@@ -124,17 +134,14 @@ function heatmapSegments(
 ): PathElement[] {
   const { x, y, uiLength, settings } = ctx;
   const segments: PathElement[] = [];
-  if (!event.velocityProfile || event.velocityProfile.length === 0) {
-    return segments;
-  }
+  const cps = [startPoint, ...line.controlPoints, line.endPoint];
+  const speedAt = travelSpeeds(event, cps);
+  if (!speedAt) return segments;
 
-  const vProfile = event.velocityProfile as number[];
-  const maxVel = Math.max(1, settings.maxVelocity);
-
-  // Re-sample geometry to match profile (100 samples)
+  // The same top speed the time calculator drives at.
+  const topSpeed = settings.maxVelocity || 100;
   const samples = 100;
   const drivenParts = drivenRange(event);
-  let cps = [startPoint, ...line.controlPoints, line.endPoint];
   let prevPt = getCurvePoint(0, cps);
 
   let currentAnchors: Anchor[] = [];
@@ -148,7 +155,10 @@ function heatmapSegments(
   ) => {
     const path = new Two.Path(anchors, false, false);
     path.noFill();
-    path.linewidth = style.width;
+    // At a chained corner the robot leaves the line (its route there is the
+    // swing, coloured by speed), so the part it cuts across is only outlined.
+    const undriven = color === UNDRIVEN_COLOR;
+    path.linewidth = undriven ? style.width / 2 : style.width;
     path.id = `${style.id}-heatmap-${segIdx}`;
 
     path.stroke = style.isDimmed ? "#9ca3af" : color;
@@ -159,6 +169,8 @@ function heatmapSegments(
     } else if (style.isDimmed) {
       path.dashes = [uiLength(1), uiLength(1)];
       path.opacity = 0.3;
+    } else if (undriven) {
+      path.dashes = [uiLength(1), uiLength(1)];
     }
     return path;
   };
@@ -167,18 +179,17 @@ function heatmapSegments(
     const t = i / samples;
     const currPt = getCurvePoint(t, cps);
 
-    // Calculate the proportional index in the velocity profile
-    const profileIndex = Math.floor(t * (vProfile.length - 1));
-    const safeIndex = Math.min(vProfile.length - 1, Math.max(0, profileIndex));
-
-    const vAvg = vProfile[safeIndex] || 0;
-    const ratio = Math.min(1, Math.max(0, vAvg / maxVel));
-
-    // Green (120) -> Red (0). The part of the line the robot doesn't
-    // drive (handed over early, or picked up after a swing) is grey.
-    const hue = 120 - ratio * 120;
+    // The speed in the middle of this stretch, where the robot drives it.
+    const middle = Math.min(
+      Math.max((i - 0.5) / samples, drivenParts.from),
+      drivenParts.to,
+    );
+    // The part of the line the robot doesn't drive (handed over early, or
+    // picked up after a swing) is grey.
     const driven = t > drivenParts.from && t - 1 / samples < drivenParts.to;
-    const color = driven ? `hsl(${hue}, 100%, 40%)` : UNDRIVEN_COLOR;
+    const color = driven
+      ? speedColor(speedAt(middle), topSpeed)
+      : UNDRIVEN_COLOR;
 
     if (color === currentColor) {
       // Extend current path
