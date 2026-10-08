@@ -7,9 +7,9 @@
 // Its momentum doesn't turn with the path, so it swings wide and is pulled
 // back by the translational correction. This simulates that, as a point mass,
 // from the moment of handover until the robot is back on the new path. If it
-// runs out of path first it holds the end point, as the follower does; if it
-// can't get back at all it is brought across at its top speed, so it never
-// jumps.
+// runs out of path first it holds the end point, as the follower does. What
+// is left between it and the path at the end is crossed, never jumped: at the
+// robot's own speed, or at its top speed if it never got back.
 import type { BasePoint, Settings } from "../../types";
 import { DEFAULT_SETTINGS } from "../../config/defaults";
 import { brakingDistance } from "./braking";
@@ -49,6 +49,8 @@ const MAX_BLEND_SPEED = 0.3;
 /** Holding the end of the path: close enough, and (nearly) still. */
 const HOLD_DISTANCE = 0.75;
 const HOLD_SPEED = 2;
+/** The slowest a robot back on the path crosses what's left of the gap. */
+const MIN_CROSSING_SPEED = HOLD_SPEED;
 /** How much of critical damping the hold uses (1 settles without overshoot). */
 const HOLD_DAMPING = 0.8;
 /**
@@ -434,23 +436,31 @@ class Recovery {
 
     // A gap that can't be closed quietly over the time the recovery took (a
     // robot that never got back onto the path, or a recovery over in an
-    // instant) is crossed at the robot's top speed, not jumped.
+    // instant, ending to one side of it) is crossed, not jumped. A robot back
+    // on the path crosses it at the speed it's going and carries that speed
+    // on, so its speed doesn't jump either; one that never got back is
+    // brought across at its top speed.
     const gap = Math.hypot(rejoin.x - this.px, rejoin.y - this.py);
     if (
       gap > MAX_BLEND ||
       gap > MAX_BLEND_SPEED * this.maxSpeed * time.at(-1)!
     ) {
-      const glideSteps = Math.ceil(gap / (this.maxSpeed * TIME_STEP));
+      const speed = this.settled
+        ? Math.max(Math.hypot(this.vx, this.vy), MIN_CROSSING_SPEED)
+        : this.maxSpeed;
+      const glideSteps = Math.ceil(gap / (speed * TIME_STEP));
       for (let k = 1; k <= glideSteps; k++) {
         const share = k / glideSteps;
         time.push(time.at(-1)! + TIME_STEP);
         xs.push(this.px + (rejoin.x - this.px) * share);
         ys.push(this.py + (rejoin.y - this.py) * share);
-        this.speeds.push(this.maxSpeed);
+        this.speeds.push(speed);
         this.alongs.push(here.u);
       }
-      this.vx = ((rejoin.x - this.px) / gap) * this.maxSpeed;
-      this.vy = ((rejoin.y - this.py) / gap) * this.maxSpeed;
+      if (!this.settled) {
+        this.vx = ((rejoin.x - this.px) / gap) * this.maxSpeed;
+        this.vy = ((rejoin.y - this.py) / gap) * this.maxSpeed;
+      }
     }
 
     // End exactly where the path is picked up: what is left of the gap (under
