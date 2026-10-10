@@ -63,6 +63,8 @@
   import GitHubOpenDialog from "./components/github/GitHubOpenDialog.svelte";
   import GitHubRepoBar from "./components/github/GitHubRepoBar.svelte";
   import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
+  import { followJavaFile } from "./javaFollow";
+  import { importJavaProject } from "../utils/javaImporter";
   import { filePreviews } from "./components/filemanager/fileBrowser.svelte";
   import {
     FolderIcon,
@@ -73,6 +75,7 @@
     FolderPlusIcon,
     ArrowDownTrayIcon,
     CodeBracketSquareIcon,
+    EyeIcon,
     ServerStackIcon,
     ArrowCircleIcon,
     GithubIcon,
@@ -94,6 +97,7 @@
   let sortMode: "name" | "date" = $state(
     settings.fileManagerSortMode ?? session.sortMode ?? "date",
   );
+  let showJavaFiles = $state(session.showJavaFiles ?? false);
 
   /** The folder the user chose; browsing never goes above it. */
   let baseDirectory = $state("");
@@ -138,7 +142,12 @@
   });
 
   $effect(() => {
-    fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
+    fileManagerSessionState.set({
+      searchQuery,
+      viewMode,
+      sortMode,
+      showJavaFiles,
+    });
   });
   $effect(() => {
     if (currentDirectory) currentDirectoryStore.set(currentDirectory);
@@ -211,6 +220,16 @@
     return true;
   }
 
+  const javaImportCache = new Map<
+    string,
+    { mtime: number; hasImportablePaths: boolean }
+  >();
+
+  function toggleShowJavaFiles() {
+    showJavaFiles = !showJavaFiles;
+    refreshDirectory();
+  }
+
   async function refreshDirectory() {
     if (!electronAPI || !currentDirectory.trim()) return;
 
@@ -231,9 +250,38 @@
         });
       }
 
-      files = listed.filter(
-        (f) => f.isDirectory || isSupportedProjectFileName(f.name),
-      );
+      const validFiles: FileInfo[] = [];
+      for (const f of listed) {
+        if (f.isDirectory || isSupportedProjectFileName(f.name)) {
+          validFiles.push(f);
+        } else if (showJavaFiles && f.name.toLowerCase().endsWith(".java")) {
+          const mtime = new Date(f.modified).getTime();
+          const cached = javaImportCache.get(f.path);
+          let hasPaths = false;
+          if (cached && cached.mtime === mtime) {
+            hasPaths = cached.hasImportablePaths;
+          } else {
+            try {
+              const content = await electronAPI.readFile?.(f.path);
+              if (content) {
+                const imported = importJavaProject(content);
+                hasPaths = !!(imported.lines && imported.lines.length > 0);
+              }
+            } catch {
+              hasPaths = false;
+            }
+            javaImportCache.set(f.path, {
+              mtime,
+              hasImportablePaths: hasPaths,
+            });
+          }
+          if (hasPaths) {
+            validFiles.push(f);
+          }
+        }
+      }
+
+      files = validFiles;
       if (currentDirectory !== baseDirectory) {
         files.unshift({
           name: "..",
@@ -355,6 +403,14 @@
   // --- Opening and importing ---
 
   async function loadFile(file: FileInfo) {
+    if (file.name.toLowerCase().endsWith(".java")) {
+      const ok = await followJavaFile(file.path);
+      if (ok) {
+        isOpen = false;
+        selectedFile = file;
+      }
+      return;
+    }
     await autosaveBeforeLeaving();
     try {
       if (!electronAPI?.readFile) {
@@ -438,7 +494,6 @@
     if (!confirmDiscardChanges("a new Java file")) return;
 
     try {
-      const { importJavaProject } = await import("../utils/javaImporter");
       const imported = importJavaProject(await file.text());
       startPointStore.set(imported.startPoint);
       linesStore.set(imported.lines);
@@ -651,7 +706,9 @@
 
     // Keep the extension if the user leaves it off.
     const fileName =
-      file.isDirectory || isSupportedProjectFileName(cleanName)
+      file.isDirectory ||
+      isSupportedProjectFileName(cleanName) ||
+      cleanName.toLowerCase().endsWith(".java")
         ? cleanName
         : cleanName + getProjectExtensionFromPath(file.name);
     if (fileName === file.name) return;
@@ -876,12 +933,14 @@
         {searchQuery}
         {sortMode}
         {viewMode}
+        {showJavaFiles}
         onsearch={(val) => (searchQuery = val)}
         onsortchange={setSortMode}
         onviewchange={(val) => {
           viewMode = val;
           filePreviews.reloadFailed();
         }}
+        ontogglejava={toggleShowJavaFiles}
       />
     </div>
 
@@ -1039,6 +1098,20 @@
               <CodeBracketSquareIcon className="size-4 text-orange-500" />
               Import Java
             </button>
+
+            {#if electronAPI?.followJavaFile}
+              <button
+                onclick={async () => {
+                  showAddMenu = false;
+                  if (await followJavaFile()) isOpen = false;
+                }}
+                title="Show a Java file's paths on the field, updated each time you save it in your editor"
+                class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              >
+                <EyeIcon className="size-4 text-green-600" />
+                Follow Java File
+              </button>
+            {/if}
 
             <button
               onclick={() => {
