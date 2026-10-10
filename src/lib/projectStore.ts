@@ -19,9 +19,15 @@ import {
 } from "../config/defaults";
 import { getRandomColor } from "../utils";
 import { regenerateProjectMacros } from "./macroUtils";
-import { notification } from "../stores";
 import { hookRegistry } from "./registries";
-import { currentFilePath } from "../stores";
+import {
+  notification,
+  currentFilePath,
+  selectedPointId,
+  selectedLineId,
+  multiSelectedPointIds,
+  multiSelectedLineIds,
+} from "../stores";
 import { getElectronAPI } from "../utils/platform";
 import { makeId } from "../utils/nameGenerator";
 import { isGitHubPath } from "../utils/github/paths";
@@ -232,6 +238,10 @@ export function resetProject() {
   );
   extraDataStore.set({});
   macrosStore.set(new Map());
+  selectedPointId?.set?.(null);
+  selectedLineId?.set?.(null);
+  multiSelectedPointIds?.set?.([]);
+  multiSelectedLineIds?.set?.([]);
 }
 
 export function updateMacroContent(filePath: string, data: TurtleData) {
@@ -367,6 +377,11 @@ export async function loadMacro(filePath: string, force = false) {
 }
 
 export async function loadProjectData(data: any, projectFilePath?: string) {
+  selectedPointId?.set?.(null);
+  selectedLineId?.set?.(null);
+  multiSelectedPointIds?.set?.([]);
+  multiSelectedLineIds?.set?.([]);
+
   await hookRegistry.run("onLoad", data);
 
   // Saving a file from a repository mustn't quietly replace a version

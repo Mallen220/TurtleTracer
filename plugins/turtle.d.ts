@@ -1060,6 +1060,12 @@ interface ElectronAPI {
     error?: string;
   }>;
 
+  // Following a Java file (desktop): told each time it's saved in an editor.
+  chooseJavaFile?: () => Promise<string | null>;
+  followJavaFile?: (filePath: string) => Promise<boolean>;
+  unfollowJavaFile?: () => Promise<boolean>;
+  onJavaFileChanged?: (callback: (filePath: string) => void) => () => void;
+
   // Renderer ready signal
   rendererReady?: () => Promise<void>;
 

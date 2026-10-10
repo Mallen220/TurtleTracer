@@ -156,10 +156,12 @@ export const fileManagerSessionState = writable<{
   searchQuery: string;
   viewMode: "list" | "grid";
   sortMode: "name" | "date";
+  showJavaFiles: boolean;
 }>({
   searchQuery: "",
   viewMode: "grid",
   sortMode: "date",
+  showJavaFiles: false,
 });
 
 export const hoveredMarkerId = writable<string | null>(null);
