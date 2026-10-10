@@ -10,6 +10,10 @@ import { parse } from "java-parser";
 import { getRandomColor } from "./draw";
 import { makeId } from "./nameGenerator";
 import { walkAST, extractTokens } from "./javaImporter/visitor";
+import {
+  readPedroJava,
+  type PedroReadOptions,
+} from "./javaImporter/pedroReader";
 import type {
   TurtleData,
   Point,
@@ -362,7 +366,21 @@ function readTurn(tokens: string[], points: Map<string, Point>): number | null {
   return readAngles(argsAfter(tokens, turnAt), points)[0] ?? 0;
 }
 
-export function importJavaProject(javaCode: string): TurtleData {
+/**
+ * The paths in a Java file, as a project. Pedro Pathing 3 code (what the app
+ * exports now) is read by readPedroJava; older pathBuilder() code by the
+ * reader below.
+ */
+export function importJavaProject(
+  javaCode: string,
+  options: PedroReadOptions = {},
+): TurtleData {
+  const pedro = readPedroJava(javaCode, options);
+  if (pedro.project.lines.length > 0) return pedro.project;
+  return importOlderJava(javaCode);
+}
+
+function importOlderJava(javaCode: string): TurtleData {
   let ast;
   try {
     ast = parse(javaCode);
