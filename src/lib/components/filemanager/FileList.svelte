@@ -4,6 +4,7 @@
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
   import LegacyFileBadge from "./LegacyFileBadge.svelte";
+  import JavaFileBadge from "./JavaFileBadge.svelte";
   import { isLegacyProjectFileName } from "../../../utils/fileExtensions";
   import {
     FolderIcon,
@@ -239,10 +240,14 @@
                     class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
                     title={file.name}
                   >
-                    {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                    {file.name.replaceAll(/\.(pp|turt|java)$/gi, "")}
                   </span>
                   {#if !file.isDirectory && isLegacyProjectFileName(file.name)}
                     <LegacyFileBadge />
+                  {:else if !file.isDirectory && file.name
+                      .toLowerCase()
+                      .endsWith(".java")}
+                    <JavaFileBadge />
                   {/if}
                 </span>
                 <div class="flex items-center gap-1">
