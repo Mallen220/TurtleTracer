@@ -13,6 +13,8 @@
   } from "../stores";
   import { GithubIcon, SaveIcon } from "./components/icons";
   import GitHubCommitDialog from "./components/github/GitHubCommitDialog.svelte";
+  import JavaFollowStatus from "./components/JavaFollowStatus.svelte";
+  import { followedJava } from "./javaFollow";
   import { getShortcutFromSettings, isBrowser } from "../utils";
   import {
     ChevronUpIcon,
@@ -341,6 +343,8 @@
             </button>
           {/if}
         </div>
+      {:else if $followedJava}
+        <JavaFollowStatus />
       {:else}
         <span class="text-xs text-neutral-500 dark:text-neutral-400"
           >Untitled Project</span
