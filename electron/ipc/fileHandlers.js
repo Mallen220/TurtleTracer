@@ -66,7 +66,10 @@ export function registerFileHandlers() {
     try {
       const dirents = await fs.readdir(resolvedDir, { withFileTypes: true });
       const projectFilesAndDirs = dirents.filter(
-        (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
+        (dirent) =>
+          dirent.isDirectory() ||
+          isProjectFilePath(dirent.name) ||
+          dirent.name.toLowerCase().endsWith(".java"),
       );
 
       const gitStatuses = await getGitStatuses(resolvedDir);

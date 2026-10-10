@@ -64,6 +64,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     clear: () => ipcRenderer.invoke("github:token-clear"),
   },
   githubFetch: (url, init) => ipcRenderer.invoke("github:fetch", url, init),
+
+  // Following a Java file: told each time it's saved in an editor.
+  chooseJavaFile: () => ipcRenderer.invoke("java:choose-file"),
+  followJavaFile: (filePath) => ipcRenderer.invoke("java:follow", filePath),
+  unfollowJavaFile: () => ipcRenderer.invoke("java:unfollow"),
+  onJavaFileChanged: (callback) => {
+    const listener = (_event, filePath) => callback(filePath);
+    ipcRenderer.on("java:changed", listener);
+    return () => ipcRenderer.removeListener("java:changed", listener);
+  },
   gitStatus: (directory) => ipcRenderer.invoke("git:status", directory),
 
   // Renderer ready signal

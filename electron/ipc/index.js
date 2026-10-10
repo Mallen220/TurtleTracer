@@ -4,6 +4,7 @@ import { registerDirectoryHandlers } from "./directoryHandlers.js";
 import { registerFileHandlers } from "./fileHandlers.js";
 import { registerGitHandlers } from "./gitHandlers.js";
 import { registerGitHubHandlers } from "./githubHandlers.js";
+import { registerJavaFollowHandlers } from "./javaFollowHandlers.js";
 import { registerPluginHandlers } from "./pluginHandlers.js";
 import { registerTelemetryHandlers } from "./telemetryHandlers.js";
 
@@ -13,6 +14,7 @@ export function registerIpcHandlers(state) {
   registerFileHandlers();
   registerGitHandlers();
   registerGitHubHandlers();
+  registerJavaFollowHandlers();
   registerPluginHandlers();
   registerTelemetryHandlers();
 }
