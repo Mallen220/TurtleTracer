@@ -670,3 +670,14 @@ src/tests/travelSpeed.test.ts
 src/utils/timeCalculator/travelSpeed.ts
 src/tests/chainRecovery.test.ts
 src/utils/timeCalculator/chainRecovery.ts
+electron/ipc/javaFollowHandlers.js
+electron/ipc/javaFollowHandlers.test.js
+src/lib/components/JavaFollowStatus.svelte
+src/lib/javaFollow.ts
+src/tests/javaFollow.test.ts
+src/tests/pedroReader.test.ts
+src/utils/javaImporter/javaTokens.ts
+src/utils/javaImporter/pedroReader.ts
+mac/README.txt
+src/lib/components/filemanager/fileBrowser.svelte.ts
+src/lib/components/filemanager/JavaFileBadge.svelte

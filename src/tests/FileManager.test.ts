@@ -117,6 +117,13 @@ describe("FileManager", () => {
     currentFilePath.set(null);
     isUnsaved.set(false);
     notification.set(null);
+    const { fileManagerSessionState } = await import("../stores");
+    fileManagerSessionState.set({
+      searchQuery: "",
+      viewMode: "grid",
+      sortMode: "date",
+      showJavaFiles: false,
+    });
     settingsStore.set({ ...DEFAULT_SETTINGS, autosaveMode: "never" } as any);
     startPointStore.set({ x: 5, y: 5, heading: "tangential", reverse: false });
     linesStore.set([
@@ -662,6 +669,81 @@ describe("FileManager", () => {
       await fireEvent.click(document.querySelector('[aria-label="Refresh"]')!);
       await waitFor(() => expect(fileNamed("late.turt")).toBeTruthy());
       expect(lastNote()?.message).toBe("Refreshed files and previews");
+    });
+  });
+
+  describe("java file toggle and mtime caching", () => {
+    const validJavaContent = `
+      public class ValidAuto {
+        public static class Paths {
+          public PathChain a;
+          public Paths(Follower follower) {
+            a = follower.pathBuilder().addPath(new BezierLine(new Pose(56.000, 8.000), new Pose(56.000, 36.000))).setConstantHeadingInterpolation(Math.toRadians(90)).build();
+          }
+        }
+      }`;
+    const emptyJavaContent = `
+      public class EmptyAuto {
+        // no paths here
+      }`;
+
+    it("hides java files by default and shows only importable ones when toggled", async () => {
+      disk.fs.set("/proj/ValidAuto.java", validJavaContent);
+      disk.fs.set("/proj/EmptyAuto.java", emptyJavaContent);
+
+      await fireEvent.click(document.querySelector('[aria-label="Refresh"]')!);
+      await waitFor(() => {
+        const fileNames = list().files.map((f: FileInfo) => f.name);
+        expect(fileNames).not.toContain("ValidAuto.java");
+        expect(fileNames).not.toContain("EmptyAuto.java");
+      });
+
+      const toggleBtn =
+        document.querySelector('[title="Show Importable Java Files"]') ||
+        document.querySelector('[aria-label="Show Importable Java Files"]');
+      expect(toggleBtn).not.toBeNull();
+      await fireEvent.click(toggleBtn!);
+
+      await waitFor(() => {
+        const fileNames = list().files.map((f: FileInfo) => f.name);
+        expect(fileNames).toContain("ValidAuto.java");
+        expect(fileNames).not.toContain("EmptyAuto.java");
+      });
+    });
+
+    it("caches Java import checks using mtime", async () => {
+      disk.fs.set("/proj/ValidAuto.java", validJavaContent);
+      const toggleBtn =
+        document.querySelector('[title="Show Importable Java Files"]') ||
+        document.querySelector('[aria-label="Show Importable Java Files"]');
+      expect(toggleBtn).not.toBeNull();
+      await fireEvent.click(toggleBtn!);
+
+      await waitFor(() =>
+        expect(
+          list().files.some((f: FileInfo) => f.name === "ValidAuto.java"),
+        ).toBe(true),
+      );
+
+      const getJavaReadCount = () =>
+        disk.api.readFile.mock.calls.filter(
+          (call: any) => call[0] === "/proj/ValidAuto.java",
+        ).length;
+
+      const readCallsInitial = getJavaReadCount();
+      expect(readCallsInitial).toBe(1);
+
+      // Refresh without changing mtime/content
+      await fireEvent.click(document.querySelector('[aria-label="Refresh"]')!);
+      await waitFor(() =>
+        expect(
+          list().files.some((f: FileInfo) => f.name === "ValidAuto.java"),
+        ).toBe(true),
+      );
+
+      // readFile should not have been called again for ValidAuto.java due to mtime cache
+      const readCallsAfterRefresh = getJavaReadCount();
+      expect(readCallsAfterRefresh).toBe(1);
     });
   });
 });

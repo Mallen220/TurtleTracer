@@ -25,9 +25,11 @@ const macroKind = (): SequenceMacroItem["kind"] =>
     ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 // Mock Svelte stores
-vi.mock("../stores", async () => {
+vi.mock("../stores", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../stores")>();
   const { writable } = await import("svelte/store");
   return {
+    ...actual,
     currentFilePath: writable(""),
     isUnsaved: writable(false),
     notification: writable(null),
