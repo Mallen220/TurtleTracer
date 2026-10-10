@@ -104,6 +104,7 @@
   import { isGitHubPath } from "./utils/github/paths";
   import { describeUncommitted, githubRepos } from "./utils/github/repos";
   import { loadDesktopToken } from "./utils/github/token";
+  import { followedJava, confirmFollowedJavaEdit } from "./lib/javaFollow";
   import { firePotatoConfetti } from "./utils/potatoTheme";
   import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "./config";
   import type { Line } from "./types/index";
@@ -209,15 +210,31 @@
     isUnsaved.set(getCurrentState() !== lastSavedState);
   }
 
+  // A Java file being followed can't be changed here; its editor has the
+  // history.
   function undoAction() {
+    if (get(followedJava)) return;
     const prev = history.undo();
     if (prev) restoreHistoryState(prev);
   }
 
   function redoAction() {
+    if (get(followedJava)) return;
     const next = history.redo();
     if (next) restoreHistoryState(next);
   }
+
+  // Hide the control panel while following a Java file, and restore it when switching back.
+  let wasFollowingJava = false;
+  $effect(() => {
+    const isFollowing = !!$followedJava;
+    if (isFollowing && !wasFollowingJava) {
+      layout.showSidebar = false;
+    } else if (!isFollowing && wasFollowingJava) {
+      layout.showSidebar = true;
+    }
+    wasFollowingJava = isFollowing;
+  });
 
   // --- Saving, resetting and closing ---
   let unsavedGuard: UnsavedChangesGuard | undefined = $state();
@@ -523,6 +540,7 @@
   }
 
   function handleSplitPath() {
+    if (!confirmFollowedJavaEdit()) return;
     const prediction = playback.timePrediction;
     if (!prediction?.totalTime) return;
     const res = splitPathAtPercent(
