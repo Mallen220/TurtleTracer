@@ -463,7 +463,7 @@
   );
 </script>
 
-<div class="{ui.card} flex flex-col w-full">
+<div class="{ui.card} flex flex-col w-full overflow-hidden">
   <SectionHeader
     title="Event Markers"
     bind:collapsed={collapsedMarkers}
