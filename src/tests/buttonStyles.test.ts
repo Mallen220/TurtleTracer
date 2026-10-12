@@ -6,7 +6,7 @@ describe("buttonStyles", () => {
   describe("getButtonFilledClass", () => {
     it("returns correct class string for 'green'", () => {
       expect(getButtonFilledClass("green")).toBe(
-        "bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 focus:ring-green-300 dark:focus:ring-green-700",
+        "bg-green-700 dark:bg-green-700 hover:bg-green-800 dark:hover:bg-green-800 focus:ring-green-300 dark:focus:ring-green-700",
       );
     });
 
@@ -24,7 +24,7 @@ describe("buttonStyles", () => {
 
     it("returns correct class string for 'amber'", () => {
       expect(getButtonFilledClass("amber")).toBe(
-        "bg-amber-600 dark:bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-500 focus:ring-amber-300 dark:focus:ring-amber-500",
+        "bg-amber-700 dark:bg-amber-700 hover:bg-amber-800 dark:hover:bg-amber-800 focus:ring-amber-300 dark:focus:ring-amber-700",
       );
     });
 

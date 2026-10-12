@@ -65,7 +65,9 @@
   onRename={(name) => onUpdate({ ...item, name })}
 >
   {#snippet cells()}
-    <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
+    <td class="px-3 py-2 text-neutral-500 dark:text-neutral-400 text-xs italic">
+      -
+    </td>
     <td class="px-3 py-2">
       <div class="flex items-center gap-1">
         <input

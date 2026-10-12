@@ -864,14 +864,14 @@
   <!-- Drop Zone (Right Area) -->
   {#if isOpen && isDraggingPath}
     <div
-      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 z-[1015]"
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-emerald-500/10 z-[1015]"
       style="left: {sidebarWidth}px;"
     >
       <div
-        class="bg-white dark:bg-neutral-800 p-8 rounded-md shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+        class="bg-white dark:bg-neutral-800 p-8 rounded-md shadow-2xl flex flex-col items-center border-4 border-dashed border-emerald-500 animate-pulse"
       >
         <CloudArrowDownIcon
-          className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
+          className="h-16 w-16 text-emerald-600 dark:text-emerald-400 mb-4"
         />
         <h2
           class="text-2xl font-bold mb-2 text-neutral-900 dark:text-neutral-100"
@@ -887,11 +887,12 @@
 
   <!-- Sidebar -->
   <div
+    role="complementary"
+    aria-label="File manager"
     class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-700 pointer-events-auto"
     style="width: {isOpen ? sidebarWidth : 384}px"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
-    role="presentation"
     ondragstart={() => (isDraggingPath = true)}
     ondragend={() => (isDraggingPath = false)}
     ondragover={(e) => {
@@ -980,7 +981,9 @@
       <div
         class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
       >
-        <div class="text-xs font-medium text-neutral-500 mb-1">
+        <div
+          class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+        >
           New Folder Name
         </div>
         <input
@@ -1012,7 +1015,9 @@
       <div
         class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
       >
-        <div class="text-xs font-medium text-neutral-500 mb-1">
+        <div
+          class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+        >
           New File Name
         </div>
         <input
@@ -1065,7 +1070,9 @@
               }}
               class={ui.menuItem}
             >
-              <DocumentIcon className="size-4 text-green-500" />
+              <DocumentIcon
+                className="size-4 text-green-600 dark:text-green-400"
+              />
               New File
             </button>
 
@@ -1093,7 +1100,7 @@
               }}
               class={ui.menuItem}
             >
-              <ArrowDownTrayIcon className="size-4 text-purple-500" />
+              <ArrowDownTrayIcon className="size-4 text-emerald-500" />
               Import File
             </button>
 
@@ -1169,25 +1176,24 @@
       <!-- File List / Grid -->
       {#if loading}
         <div
-          class="flex-1 flex items-center justify-center text-neutral-400 text-sm h-full"
+          class="flex-1 flex items-center justify-center text-neutral-500 dark:text-neutral-400 text-sm h-full"
         >
           <LoadingSpinner />
         </div>
       {:else if visibleFiles.length === 0}
         <div
-          class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center h-full"
+          class="flex-1 flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400 p-8 text-center h-full"
         >
           <DocumentIcon className="size-12 mb-2 opacity-30" />
           <p class="text-sm">No files found</p>
           {#if searchQuery}
             <button
-              class="text-xs text-blue-500 mt-2 hover:underline"
+              class="{ui.link} text-xs mt-2"
               onclick={() => (searchQuery = "")}>Clear search</button
             >
           {:else}
-            <button
-              class="text-xs text-blue-500 mt-2 hover:underline"
-              onclick={startNewFile}>Create a new file</button
+            <button class="{ui.link} text-xs mt-2" onclick={startNewFile}
+              >Create a new file</button
             >
           {/if}
         </div>
@@ -1231,7 +1237,7 @@
 
     <!-- Footer Status -->
     <div
-      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
+      class="p-2 text-xs text-neutral-500 dark:text-neutral-400 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
     >
       <div class="flex items-center gap-2">
         <button

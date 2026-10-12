@@ -297,7 +297,7 @@
 
         <!-- Table Header (desktop only) -->
         <div
-          class="hidden sm:grid grid-cols-12 gap-2 px-6 py-2 bg-neutral-100 dark:bg-neutral-900/30 border-y border-neutral-200 dark:border-neutral-700 text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider flex-shrink-0"
+          class="hidden sm:grid grid-cols-12 gap-2 px-6 py-2 bg-neutral-100 dark:bg-neutral-900/30 border-y border-neutral-200 dark:border-neutral-700 text-xs font-medium text-neutral-600 dark:text-neutral-400 uppercase tracking-wider flex-shrink-0"
         >
           <div class="col-span-3">Segment</div>
           <div class="col-span-2 text-right">Length</div>
@@ -315,13 +315,12 @@
                 role="button"
                 tabindex="0"
                 title="Go to {seg.name} at {formatTime(seg.startTime)}"
-                aria-label="Go to {seg.name} at {formatTime(seg.startTime)}"
                 onclick={() => seekToTime(seg.startTime)}
                 onkeydown={activateOnKey(() => seekToTime(seg.startTime))}
-                class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 rounded-md border transition-colors items-start text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 {onSeek
+                class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 rounded-md border transition-colors items-start text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 {onSeek
                   ? 'cursor-pointer'
                   : ''} {isPlayingSegment(seg)
-                  ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
                   : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-700/30'}"
               >
                 <div
@@ -381,7 +380,14 @@
 
         <!-- Graphs Tab -->
       {:else if activeTab === "graphs"}
-        <div class="overflow-y-auto flex-1 p-4 min-h-0 space-y-6">
+        <!-- Scrolls, so keyboard users need to be able to focus it. -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <div
+          class="overflow-y-auto flex-1 p-4 min-h-0 space-y-6"
+          role="region"
+          aria-label="Graphs"
+          tabindex="0"
+        >
           <div class="{ui.card} simple-chart-container p-4">
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
@@ -464,7 +470,7 @@
         <div class="overflow-y-auto flex-1 p-4 min-h-0">
           {#if pathStats.insights.length === 0}
             <div
-              class="flex flex-col items-center justify-center h-full text-neutral-500"
+              class="flex flex-col items-center justify-center h-full text-neutral-500 dark:text-neutral-400"
             >
               <SuccessIcon className="size-12 mb-2 opacity-50" />
               <p>No warnings or insights detected.</p>
@@ -484,7 +490,7 @@
                       : insight.type === 'warning'
                         ? 'warning'
                         : 'info'
-                  ]} flex items-start gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 {onSeek
+                  ]} flex items-start gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 {onSeek
                     ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-125 transition'
                     : ''}"
                 >

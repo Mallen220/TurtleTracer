@@ -213,7 +213,7 @@ describe("chaining", () => {
 describe("adding steps", () => {
   it("adds a path at the end", async () => {
     const t = setup([line("a", 10, 0)], [pathStep("a")]);
-    await fireEvent.click(screen.getByLabelText("Add new path segment"));
+    await fireEvent.click(screen.getByTitle(/^Add new path segment/));
     await waitFor(() => expect(t.project.lines).toHaveLength(2));
     expect(t.project.sequence.map((s) => s.kind)).toEqual(["path", "path"]);
   });

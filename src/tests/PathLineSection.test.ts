@@ -118,7 +118,7 @@ describe("the card header", () => {
 
   it("selects the path when its card is clicked or activated from the keyboard", async () => {
     mount([line("a")]);
-    const card = screen.getByRole("button", { pressed: false });
+    const card = screen.getByRole("group", { name: "Path 1" });
     await fireEvent.click(card);
     expect(get(selectedLineId)).toBe("a");
 
@@ -133,11 +133,28 @@ describe("the card header", () => {
     expect(get(selectedLineId)).toBeNull();
   });
 
+  it("leaves Space and Enter to the fields inside the card", async () => {
+    mount([line("a")]);
+    const name = screen.getByLabelText("Path name");
+    // Typing a space in the name must neither be swallowed nor select the card.
+    const typed = new KeyboardEvent("keydown", {
+      key: " ",
+      bubbles: true,
+      cancelable: true,
+    });
+    name.dispatchEvent(typed);
+    expect(typed.defaultPrevented).toBe(false);
+    expect(get(selectedLineId)).toBeNull();
+  });
+
   it("marks the selected path", async () => {
     mount([line("a")]);
     selectedLineId.set("a");
     await waitFor(() =>
-      expect(screen.getByRole("button", { pressed: true })).toBeInTheDocument(),
+      expect(screen.getByRole("group", { name: "Path 1" })).toHaveAttribute(
+        "aria-current",
+        "true",
+      ),
     );
   });
 });

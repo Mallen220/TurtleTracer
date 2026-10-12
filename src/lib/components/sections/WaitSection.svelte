@@ -78,7 +78,7 @@
     </label>
     <div class="relative">
       <ClockIcon
-        className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-500 dark:text-neutral-400"
       />
       <input
         id="wait-duration-{wait.id}"

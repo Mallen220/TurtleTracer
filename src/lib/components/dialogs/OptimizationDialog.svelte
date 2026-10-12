@@ -368,7 +368,9 @@
               </label>
             {/each}
             {#if lines.length === 0}
-              <div class="text-xs text-neutral-400 italic text-center py-2">
+              <div
+                class="text-xs text-neutral-500 dark:text-neutral-400 italic text-center py-2"
+              >
                 No paths available
               </div>
             {/if}

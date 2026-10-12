@@ -125,7 +125,9 @@
       {#if activeTab === "translate"}
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500">
+            <label
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+            >
               <span class="block mb-1">X Delta</span>
               <input
                 type="number"
@@ -135,7 +137,9 @@
             </label>
           </div>
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500">
+            <label
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+            >
               <span class="block mb-1">Y Delta</span>
               <input
                 type="number"
@@ -148,7 +152,9 @@
       {:else if activeTab === "rotate"}
         <div class="space-y-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500">
+            <label
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+            >
               <span class="block mb-1">Angle (deg)</span>
               <input
                 type="number"
@@ -159,7 +165,9 @@
           </div>
 
           <div>
-            <div class="block text-[10px] font-medium text-neutral-500 mb-1">
+            <div
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+            >
               Pivot
             </div>
             <div class="flex flex-wrap gap-2">
@@ -215,7 +223,9 @@
       {:else}
         <div class="space-y-2">
           <div>
-            <div class="block text-[10px] font-medium text-neutral-500 mb-1">
+            <div
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+            >
               Axis
             </div>
             <div class="flex gap-2">
@@ -241,7 +251,9 @@
           </div>
 
           <div>
-            <div class="block text-[10px] font-medium text-neutral-500 mb-1">
+            <div
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+            >
               Around
             </div>
             <div class="flex flex-wrap gap-2">
@@ -326,7 +338,7 @@
               class="font-medium text-neutral-900 dark:text-neutral-100 capitalize"
               >{t.type}</span
             >
-            <span class="text-neutral-500">
+            <span class="text-neutral-500 dark:text-neutral-400">
               {#if t.type === "translate"}
                 ({t.dx ?? 0}, {t.dy ?? 0})
               {:else if t.type === "rotate"}
@@ -344,7 +356,7 @@
               onclick={() => moveTransform(i, -1)}
               disabled={i === 0}
               aria-label="Move transform up"
-              class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
+              class="p-0.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <ChevronUpIcon className="size-3" />
             </button>
@@ -352,7 +364,7 @@
               onclick={() => moveTransform(i, 1)}
               disabled={i === (macro.transformations?.length ?? 0) - 1}
               aria-label="Move transform down"
-              class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
+              class="p-0.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <ChevronDownIcon className="size-3" />
             </button>

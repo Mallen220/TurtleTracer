@@ -257,7 +257,7 @@
         value={settings.sidebarIconSize || 20}
         oninput={(e) =>
           setNumber("sidebarIconSize", e.currentTarget.value, 16, 32)}
-        class="w-32 accent-purple-600"
+        class="w-32 accent-emerald-600"
       />
       <span
         class="text-xs font-mono text-neutral-500 dark:text-neutral-400 w-8 text-right"
@@ -275,7 +275,7 @@
     description="Drag rows to reorder, use arrows for precision, or click × to remove."
     {searchQuery}
   >
-    <div class="mt-2 flex flex-col gap-1.5">
+    <div class="mt-2 flex flex-col gap-1.5" role="list">
       {#each activeSidebarList as item, idx}
         <div
           role="listitem"
@@ -304,7 +304,7 @@
           </div>
           <!-- Icon -->
           <div
-            class="flex-none w-5 h-5 flex items-center justify-center text-neutral-500"
+            class="flex-none w-5 h-5 flex items-center justify-center text-neutral-500 dark:text-neutral-400"
           >
             {#if item.iconComponent}
               <item.iconComponent className="size-5" />
@@ -368,11 +368,11 @@
     </div>
 
     <div class="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
-      <h5
+      <h4
         class="text-sm font-semibold mb-3 text-neutral-900 dark:text-neutral-100"
       >
         Available Built-in Tools
-      </h5>
+      </h4>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {#each unusedAvailableTools as available}
           <div class="{ui.well} flex items-center group overflow-hidden">
@@ -381,7 +381,7 @@
               class="{ui.btnSm.ghost} flex-grow min-w-0"
             >
               <span
-                class="w-5 h-5 flex-none flex items-center justify-center text-neutral-500"
+                class="w-5 h-5 flex-none flex items-center justify-center text-neutral-500 dark:text-neutral-400"
               >
                 {#if available.iconComponent}
                   <available.iconComponent className="size-4" />
@@ -416,7 +416,9 @@
           </div>
         {/each}
         {#if unusedAvailableTools.length === 0}
-          <div class="text-xs text-neutral-500 italic py-1">
+          <div
+            class="text-xs text-neutral-500 dark:text-neutral-400 italic py-1"
+          >
             All built-in tools are already in the sidebar.
           </div>
         {/if}
@@ -426,11 +428,11 @@
         class="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700"
       >
         <div class="flex items-start justify-between gap-3">
-          <h5
+          <h4
             class="text-sm font-semibold mb-3 text-neutral-900 dark:text-neutral-100"
           >
             Create Custom Tool
-          </h5>
+          </h4>
           <button
             onclick={resetSidebarSettings}
             class={ui.btnSm.dangerSoft}
@@ -467,7 +469,7 @@
               </h6>
               <button
                 onclick={() => (showCustomSidebarForm = false)}
-                class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+                class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
               >
                 <ICONS.CloseIcon className="size-4" />
               </button>
@@ -488,7 +490,7 @@
                         >{selectedCommand.label}</span
                       >
                       <span
-                        class="text-[10px] text-neutral-400 font-mono uppercase tracking-tighter"
+                        class="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono uppercase tracking-tighter"
                         >{selectedCommand.id}</span
                       >
                     </div>
@@ -505,7 +507,7 @@
                 {:else}
                   <div class="relative">
                     <div
-                      class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400"
+                      class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-500 dark:text-neutral-400"
                     >
                       <ICONS.SearchIcon className="size-4" strokeWidth={2} />
                     </div>
@@ -530,14 +532,16 @@
                         >
                         {#if cmd.shortcut}
                           <kbd
-                            class="text-[10px] bg-neutral-100 dark:bg-neutral-700 px-1.5 py-0.5 rounded text-neutral-400"
+                            class="text-[10px] bg-neutral-100 dark:bg-neutral-700 px-1.5 py-0.5 rounded text-neutral-600 dark:text-neutral-400"
                             >{cmd.shortcut}</kbd
                           >
                         {/if}
                       </button>
                     {/each}
                     {#if filteredSidebarCommands.length === 0}
-                      <div class="px-4 py-3 text-xs text-neutral-500 italic">
+                      <div
+                        class="px-4 py-3 text-xs text-neutral-500 dark:text-neutral-400 italic"
+                      >
                         No matching commands found.
                       </div>
                     {/if}
@@ -554,7 +558,7 @@
                   <div class="space-y-1.5">
                     <label
                       for="customActionLabel"
-                      class="block text-xs font-medium text-neutral-500 ml-1"
+                      class="block text-xs font-medium text-neutral-500 dark:text-neutral-400 ml-1"
                       >Button text</label
                     >
                     <input
@@ -569,7 +573,7 @@
                   <!-- Icon Selection -->
                   <div class="space-y-1.5">
                     <div
-                      class="block text-xs font-medium text-neutral-500 ml-1"
+                      class="block text-xs font-medium text-neutral-500 dark:text-neutral-400 ml-1"
                     >
                       Icon
                     </div>
@@ -658,7 +662,7 @@
                 <div class="{ui.card} p-4 flex items-center gap-5">
                   <div class="flex flex-col items-center gap-1">
                     <span
-                      class="text-[10px] text-neutral-400 uppercase font-bold tracking-tighter"
+                      class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase font-bold tracking-tighter"
                       >Preview</span
                     >
                     <div
@@ -673,7 +677,9 @@
                     >
                       {customActionLabel || "Tool Label"}
                     </div>
-                    <div class="text-[10px] text-neutral-400 line-clamp-1">
+                    <div
+                      class="text-[10px] text-neutral-500 dark:text-neutral-400 line-clamp-1"
+                    >
                       Executes: <span class="text-blue-500 font-medium italic"
                         >{selectedCommand?.label || "None"}</span
                       >

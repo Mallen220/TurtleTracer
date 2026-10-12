@@ -457,12 +457,12 @@
         aria-orientation="horizontal"
         aria-valuenow={loopRange[0]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         style="left: {loopRange[0]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "min")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-emerald-500 hover:bg-emerald-400 shadow-md"
         ></div>
       </div>
       <!-- B Handle -->
@@ -475,12 +475,12 @@
         aria-orientation="horizontal"
         aria-valuenow={loopRange[1]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         style="left: {loopRange[1]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "max")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-emerald-500 hover:bg-emerald-400 shadow-md"
         ></div>
       </div>
     {/if}
@@ -525,7 +525,7 @@
     {#each timelineItems as item, index}
       {#if item.type === "marker"}
         <div
-          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
+          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
           onmousedown={(e) => handleMarkerDragStart(e, index, item)}
@@ -743,7 +743,7 @@
           onfocus={handleTimeFocus}
           onblur={commitTime}
           onkeydown={handleTimeKey}
-          class="w-20 px-2 py-1 text-xs font-mono text-center bg-transparent border border-transparent rounded hover:border-neutral-300 dark:hover:border-neutral-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all text-neutral-500 dark:text-neutral-400"
+          class="w-20 px-2 py-1 text-xs font-mono text-center bg-transparent border border-transparent rounded hover:border-neutral-300 dark:hover:border-neutral-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-neutral-700 dark:text-neutral-300"
           aria-label="Current time"
         />
       </div>
@@ -760,11 +760,11 @@
             loopRangeStore.set([Math.floor(percent), 100]);
           }
         }}
-        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-        class:bg-purple-100={loopRangeActive}
-        class:text-purple-700={loopRangeActive}
-        class:dark:bg-purple-900={loopRangeActive}
-        class:dark:text-purple-300={loopRangeActive}
+        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        class:bg-emerald-100={loopRangeActive}
+        class:text-emerald-700={loopRangeActive}
+        class:dark:bg-emerald-900={loopRangeActive}
+        class:dark:text-emerald-300={loopRangeActive}
         class:text-neutral-500={!loopRangeActive}
         class:hover:text-neutral-700={!loopRangeActive}
         class:dark:hover:text-neutral-300={!loopRangeActive}

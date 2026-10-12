@@ -744,9 +744,9 @@
 
 <div class="w-full flex flex-col gap-4 text-sm p-1">
   <div class="flex justify-between items-center">
-    <h3 class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+    <h2 class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
       Sequence
-    </h3>
+    </h2>
     <div class="flex items-center gap-2">
       <button
         title={copyButtonText}
@@ -756,7 +756,10 @@
       >
         <span>{copyButtonText}</span>
         {#if copyButtonText === "Copied!"}
-          <CheckIcon className="size-6 text-green-500" strokeWidth={1.5} />
+          <CheckIcon
+            className="size-6 text-green-600 dark:text-green-400"
+            strokeWidth={1.5}
+          />
         {:else}
           <ClipboardIcon className="size-6" strokeWidth={1.5} />
         {/if}
@@ -781,12 +784,13 @@
 >
   <table class="w-full text-left bg-white dark:bg-neutral-900 border-collapse">
     <thead
-      class="bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
+      class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
     >
       <tr>
         <th
           class="w-8 px-2 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-        ></th>
+          ><span class="sr-only">Reorder</span></th
+        >
         <th
           class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
           >Name</th
@@ -801,7 +805,8 @@
         >
         <th
           class="px-3 py-2 border-b dark:border-neutral-700 w-10 bg-neutral-100 dark:bg-neutral-800"
-        ></th>
+          ><span class="sr-only">Actions</span></th
+        >
       </tr>
     </thead>
     <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
@@ -870,7 +875,7 @@
           {#if startPoint.locked}
             <span
               title="Locked"
-              class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+              class="inline-flex items-center justify-center h-6 w-6 text-neutral-500 dark:text-neutral-400"
             >
               <LockIcon className="h-4 w-4" />
             </span>
@@ -900,13 +905,13 @@
                   aria-label="Toggle Path Chain"
                 >
                   <LinkIcon
-                    className={`w-3.5 h-3.5 ${item.isChain ? "text-green-500 dark:text-green-400" : "text-neutral-400 opacity-50"}`}
+                    className={`w-3.5 h-3.5 ${item.isChain ? "text-purple-500 dark:text-purple-400" : "text-neutral-400 opacity-50"}`}
                     strokeWidth={item.isChain ? 2.5 : 1.5}
                   />
                 </button>
                 {#if item.isChain}
                   <div
-                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-green-500 dark:bg-green-400 -z-10 opacity-30"
+                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-purple-500 dark:bg-purple-400 -z-10 opacity-30"
                   ></div>
                 {/if}
               </td>
@@ -923,7 +928,7 @@
               ondragstart={(e) => handleDragStart(e, seqIndex)}
               ondragend={handleDragEnd}
               oncontextmenu={(e) => handleContextMenu(e, seqIndex)}
-              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
+              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-purple-50 dark:bg-purple-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(endPointId) ? "bg-purple-100 dark:bg-purple-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
               class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
               class:border-b-2={dragOverIndex === seqIndex &&
@@ -934,7 +939,7 @@
               onclick={(e) => handleRowClick(e, endPointId, line.id || null)}
             >
               <td
-                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               >
                 <Bars3Icon className="w-4 h-4 mx-auto" />
               </td>
@@ -981,7 +986,7 @@
                       {@const timing = pathStatsMap.get(line.id)!}
                       <div
                         role="presentation"
-                        class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
+                        class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
                         onmouseenter={(e) =>
                           handleStatsHoverEnter(e, line.id || null)}
                         onmouseleave={handleStatsHoverLeave}
@@ -1054,7 +1059,7 @@
                     }}
                     disabled={line.locked}
                   />
-                  <span class="text-xs text-neutral-500"
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
                     >{line.waitBeforeName || line.waitBeforeMs || ""}</span
                   >
                 </div>
@@ -1099,7 +1104,9 @@
                   class="{ui.iconBtnSm.neutral} h-6 w-6"
                 >
                   {#if line.hidden}
-                    <EyeSlashIcon className="size-5 text-neutral-400" />
+                    <EyeSlashIcon
+                      className="size-5 text-neutral-500 dark:text-neutral-400"
+                    />
                   {:else}
                     <EyeIcon className="size-5 text-gray-400" />
                   {/if}
@@ -1157,7 +1164,7 @@
               )}
               {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
               <tr
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-purple-50 dark:bg-purple-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-purple-100 dark:bg-purple-800/40" : ""}`}
                 onclick={(e) => handleRowClick(e, pointId, line.id || null)}
               >
                 <td class="w-8 px-2 py-2">
@@ -1212,7 +1219,7 @@
                   {#if line.locked}
                     <span
                       title="Locked"
-                      class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+                      class="inline-flex items-center justify-center h-6 w-6 text-neutral-500 dark:text-neutral-400"
                     >
                       <LockIcon className="h-4 w-4" />
                     </span>
@@ -1271,14 +1278,14 @@
             <div class="flex flex-col items-center gap-4">
               <div class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full">
                 <PlusIcon
-                  className="size-6 text-neutral-400 strokeWidth={1.5}"
+                  className="size-6 text-neutral-500 dark:text-neutral-400 strokeWidth={1.5}"
                 />
               </div>
               <div class="text-sm">
                 <p class="font-medium text-neutral-900 dark:text-neutral-100">
                   No path segments yet
                 </p>
-                <p class="text-neutral-500 mt-1">
+                <p class="text-neutral-500 dark:text-neutral-400 mt-1">
                   Start your path by adding a segment or wait command.
                 </p>
               </div>
@@ -1290,7 +1297,7 @@
   </table>
 </div>
 <div class="flex items-center justify-between mt-2 px-1">
-  <div class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words">
+  <div class="text-xs text-neutral-500 dark:text-neutral-400 w-2/3 break-words">
     <div>
       * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
     </div>
@@ -1304,8 +1311,7 @@
   <div class="flex gap-2 flex-shrink-0">
     <button
       onclick={() => insertAction("path", sequence.length)}
-      class={ui.kindBtn("green", true)}
-      aria-label="Add new path segment"
+      class={ui.kindBtn("purple", true)}
       title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
     >
       <PlusIcon className="size-3" strokeWidth={2} />

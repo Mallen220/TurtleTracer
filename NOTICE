@@ -694,3 +694,9 @@ src/tests/ControlPointsSection.test.ts
 src/tests/ControlPointsSectionWrapper.svelte
 src/tests/ControlPointDragDrop.test.ts
 src/tests/PathTabWrapper.svelte
+src/lib/components/ResizeHandle.svelte
+src/tests/PathLineSection.test.ts
+src/tests/SequenceItemCard.test.ts
+src/tests/uiContrast.test.ts
+src/tests/WaypointTableEditing.test.ts
+src/lib/components/dialogs/ProjectFolderDialog.test.ts

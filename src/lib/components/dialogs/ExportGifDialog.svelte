@@ -257,17 +257,23 @@
       start: 0.95,
     }}
   >
-    <div class="{ui.dialog} w-full max-w-2xl flex flex-col max-h-[90vh]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="export-animation-title"
+      class="{ui.dialog} w-full max-w-2xl flex flex-col max-h-[90vh]"
+    >
       <!-- Header -->
       <div class={ui.dialogHeader}>
         <h2
+          id="export-animation-title"
           class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Animation
         </h2>
         <button
           title="Close"
-          class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           onclick={close}
           aria-label="Close"
         >
@@ -314,7 +320,7 @@
               step="1"
               bind:value={fps}
               disabled={status === "generating"}
-              class="w-full accent-purple-600"
+              class="w-full accent-emerald-600"
             />
           </div>
 
@@ -360,7 +366,7 @@
               step="1"
               bind:value={sliderQuality}
               disabled={status === "generating"}
-              class="w-full accent-purple-600"
+              class="w-full accent-emerald-600"
               title={format === "gif"
                 ? "Right is better quality"
                 : "Left: 256 Colors, Right: Lossless"}
@@ -397,7 +403,7 @@
               class="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2.5"
             >
               <div
-                class="bg-purple-600 h-2.5 rounded-full transition-all duration-300"
+                class="bg-emerald-600 h-2.5 rounded-full transition-all duration-300"
                 style="width: {progress * 100}%"
               ></div>
             </div>
@@ -428,7 +434,7 @@
             />
           {:else}
             <div
-              class="text-neutral-400 dark:text-neutral-500 flex flex-col items-center gap-2"
+              class="text-neutral-500 dark:text-neutral-400 flex flex-col items-center gap-2"
             >
               <PhotoIcon className="w-12 h-12" />
               <span>Preview will appear here</span>

@@ -199,7 +199,7 @@
           title: titled("Open File Manager", "toggle-file-manager"),
           "aria-label": "Open File Manager",
           onclick: () => showFileManager.set(true),
-          extraClass: "hover:text-purple-600 dark:hover:text-purple-400",
+          extraClass: "hover:text-emerald-600 dark:hover:text-emerald-400",
         };
       case "keyboardShortcuts":
         return {
@@ -307,7 +307,7 @@
           id: "sidebar-feedback-btn",
           icon: FeedbackIcon,
           iconClass:
-            "sidebar-icon-small flex-none text-purple-600 dark:text-purple-400",
+            "sidebar-icon-small flex-none text-emerald-600 dark:text-emerald-400",
           title: "Report Issue / Rating",
           "aria-label": "Report Issue / Rating",
           onclick: () => showFeedbackDialog.set(true),
@@ -580,12 +580,12 @@
                     class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future
                       ? 'opacity-50 hover:opacity-100 text-neutral-500 dark:text-neutral-400'
                       : i === currentIndex
-                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-medium'
                         : 'text-neutral-700 dark:text-neutral-300'}"
                   >
                     <span class="truncate">{entry.item.description}</span>
                     <span
-                      class="text-xs text-neutral-400 dark:text-neutral-500 ml-2"
+                      class="text-xs text-neutral-500 dark:text-neutral-400 ml-2"
                     >
                       {formatTime(entry.item.timestamp)}
                     </span>
@@ -664,7 +664,7 @@
                 </div>
                 {#if sidebarExpanded}
                   <span
-                    class="ml-3 text-[10px] text-neutral-400 uppercase tracking-tight"
+                    class="ml-3 text-[10px] text-neutral-500 dark:text-neutral-400 uppercase tracking-tight"
                     >Grid Size</span
                   >
                 {/if}
@@ -734,7 +734,7 @@
       aria-valuemax={MAX_WIDTH}
       aria-valuetext="{sidebarWidth} pixels"
       aria-orientation="vertical"
-      class="absolute right-0 top-0 w-1.5 h-full cursor-col-resize hover:bg-purple-500/20 transition-colors z-[60] group focus:outline-none focus:bg-purple-500/30 appearance-none border-none bg-transparent"
+      class="absolute right-0 top-0 w-1.5 h-full cursor-col-resize hover:bg-emerald-500/20 transition-colors z-[60] group focus:outline-none focus:bg-emerald-500/30 appearance-none border-none bg-transparent"
       onmousedown={startResizing}
       onkeydown={(e) => {
         if (e.key === "ArrowLeft") setWidth(sidebarWidth - 10);
@@ -742,7 +742,7 @@
       }}
     >
       <div
-        class="absolute right-0 top-0 w-px h-full bg-neutral-200 dark:border-neutral-700 group-hover:bg-purple-500/50 group-focus:bg-purple-500/50"
+        class="absolute right-0 top-0 w-px h-full bg-neutral-200 dark:border-neutral-700 group-hover:bg-emerald-500/50 group-focus:bg-emerald-500/50"
         role="presentation"
         aria-hidden="true"
       ></div>

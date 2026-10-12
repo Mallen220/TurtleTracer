@@ -81,6 +81,8 @@
         disabled={isLocked}
       />
     </td>
-    <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
+    <td class="px-3 py-2 text-neutral-500 dark:text-neutral-400 text-xs italic">
+      -
+    </td>
   {/snippet}
 </StepTableRow>

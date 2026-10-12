@@ -728,7 +728,8 @@
   class="h-screen w-full flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans"
 >
   {#if !$isPresentationMode}
-    <div class="flex-none z-50">
+    <div class="flex-none z-50" role="banner">
+      <h1 class="sr-only">Turtle Tracer</h1>
       <NavbarComponent
         bind:lines={$linesStore}
         bind:startPoint={$startPointStore}
@@ -754,6 +755,7 @@
   {/if}
 
   <div
+    role="main"
     class="flex-1 min-h-0 flex flex-row items-stretch overflow-hidden relative gap-0 w-full"
   >
     {#if !$isPresentationMode}

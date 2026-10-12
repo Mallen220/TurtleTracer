@@ -151,7 +151,7 @@
         value={settings.programFontSize}
         oninput={(e) =>
           set("programFontSize", Number.parseInt(e.currentTarget.value))}
-        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-purple-600"
+        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-emerald-600"
       />
       <span
         class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
@@ -238,7 +238,9 @@
   >
     <div class="flex items-center gap-2">
       <div class="flex flex-col flex-1">
-        <label for="field-width" class="text-xs text-neutral-500 mb-1"
+        <label
+          for="field-width"
+          class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
           >Width (X)</label
         >
         <input
@@ -255,9 +257,11 @@
           class="{ui.input} w-full"
         />
       </div>
-      <span class="text-neutral-500 mt-4">×</span>
+      <span class="text-neutral-500 dark:text-neutral-400 mt-4">×</span>
       <div class="flex flex-col flex-1">
-        <label for="field-height" class="text-xs text-neutral-500 mb-1"
+        <label
+          for="field-height"
+          class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
           >Height (Y)</label
         >
         <input
@@ -384,7 +388,7 @@
                 "onionLayerSpacing",
                 Number.parseFloat(e.currentTarget.value) || 0,
               )}
-            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-purple-600"
+            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-emerald-600"
           />
           <span
             class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"

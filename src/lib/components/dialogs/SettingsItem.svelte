@@ -27,6 +27,31 @@
     children,
   }: Props = $props();
 
+  const uid = $props.id();
+  const labelId = `${uid}-label`;
+
+  /**
+   * Names the form controls inside by this item's label, unless something else
+   * already does. Most settings put a bare checkbox or select in a SettingsItem
+   * and would otherwise have no name for a screen reader.
+   */
+  function labelControls(node: HTMLElement) {
+    const apply = () => {
+      for (const control of node.querySelectorAll<HTMLInputElement>(
+        "input:not([type=hidden]), select, textarea",
+      )) {
+        if (control.labels?.length) continue;
+        if (control.hasAttribute("aria-label")) continue;
+        if (control.hasAttribute("aria-labelledby")) continue;
+        control.setAttribute("aria-labelledby", labelId);
+      }
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(node, { childList: true, subtree: true });
+    return { destroy: () => observer.disconnect() };
+  }
+
   let isVisible = $derived(
     searchQuery === "" ||
       label.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,7 +70,7 @@
     {@render children?.()}
   {:else if layout === "col"}
     <div class="flex items-start justify-between mb-1">
-      <label for={forId} class="{ui.label} block">
+      <label for={forId} id={labelId} class="{ui.label} block">
         {label}
         {#if description}
           <div
@@ -67,12 +92,14 @@
         </button>
       {/if}
     </div>
-    {@render children?.()}
+    <div class="contents" use:labelControls>
+      {@render children?.()}
+    </div>
   {:else}
     <div class="{ui.card} flex items-center justify-between p-3">
       <div class="flex-1 mr-4">
         <div class="flex items-center gap-2 mb-1">
-          <label for={forId} class="{ui.label} block">
+          <label for={forId} id={labelId} class="{ui.label} block">
             {label}
           </label>
           {#if onReset && isModified}
@@ -93,7 +120,9 @@
           </div>
         {/if}
       </div>
-      {@render children?.()}
+      <div class="contents" use:labelControls>
+        {@render children?.()}
+      </div>
     </div>
   {/if}
 </div>

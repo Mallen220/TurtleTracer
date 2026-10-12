@@ -97,13 +97,13 @@
 
 {#if isDraggingFile}
   <div
-    class="fixed inset-0 z-[100] bg-purple-500/20 border-4 border-purple-500 flex items-center justify-center pointer-events-none"
+    class="fixed inset-0 z-[100] bg-emerald-500/20 border-4 border-emerald-500 flex items-center justify-center pointer-events-none"
   >
     <div
       class="{ui.popover} p-8 flex flex-col items-center animate-bounce-slight"
     >
       <CloudArrowDownIcon
-        className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
+        className="h-16 w-16 text-emerald-600 dark:text-emerald-400 mb-4"
       />
       <h2 class="text-2xl font-bold mb-2 dark:text-white">Drop to Open</h2>
       <p class="text-neutral-500 dark:text-neutral-400">

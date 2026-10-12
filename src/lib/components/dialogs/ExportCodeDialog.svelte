@@ -76,8 +76,8 @@
       ring: "focus-visible:ring-blue-500",
     },
     NextFTC: {
-      active: "text-purple-600 dark:text-purple-300",
-      ring: "focus-visible:ring-purple-500",
+      active: "text-emerald-600 dark:text-emerald-300",
+      ring: "focus-visible:ring-emerald-500",
     },
     Ivy: {
       active: "text-emerald-600 dark:text-emerald-300",
@@ -433,7 +433,9 @@
                 }}
                 class="bg-transparent border-none text-sm px-2 py-1 w-32 focus:ring-0 focus:outline-none text-neutral-900 dark:text-neutral-100 placeholder-neutral-500"
               />
-              <span class="text-xs text-neutral-400 min-w-[3rem] text-center">
+              <span
+                class="text-xs text-neutral-500 dark:text-neutral-400 min-w-[3rem] text-center"
+              >
                 {#if searchMatches.length > 0}
                   {currentMatchIndex + 1}/{searchMatches.length}
                 {:else if searchQuery}
@@ -676,7 +678,7 @@
 
       <!-- Footer -->
       <div class="{ui.dialogFooter} justify-between rounded-b-xl shrink-0">
-        <div class="text-xs text-neutral-500 font-mono">
+        <div class="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
           {lineCount} lines generated
         </div>
         <div class="flex gap-3">

@@ -46,7 +46,7 @@
     <!-- Search (Full Width) -->
     <div class="relative flex-1">
       <div
-        class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-neutral-400"
+        class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-neutral-500 dark:text-neutral-400"
       >
         <SearchIcon className="size-4" strokeWidth={2} />
       </div>

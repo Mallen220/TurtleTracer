@@ -83,11 +83,11 @@
     aria-label="Toggle Validation"
   >
     {#if $settingsStore.validationDisabled}
-      <DisabledIcon className="size-5 text-neutral-400" />
+      <DisabledIcon className="size-5 text-neutral-500 dark:text-neutral-400" />
     {:else if errorCount === 0}
-      <ValidIcon className="size-5 text-green-500" />
+      <ValidIcon className="size-5 text-green-600 dark:text-green-400" />
     {:else if errorCount === 1}
-      <WarningIcon className="size-5 text-amber-500" />
+      <WarningIcon className="size-5 text-amber-600 dark:text-amber-400" />
     {:else if errorCount === 2}
       <ErrorIcon className="size-5 text-orange-500" />
     {:else}

@@ -70,7 +70,7 @@
           Following {followed.name}
         </div>
         <div
-          class="font-mono text-[11px] text-neutral-500 [overflow-wrap:anywhere]"
+          class="font-mono text-[11px] text-neutral-500 dark:text-neutral-400 [overflow-wrap:anywhere]"
         >
           <PathText path={followed.path} />
         </div>

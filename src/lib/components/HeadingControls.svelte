@@ -225,7 +225,7 @@
   </select>
 
   <label
-    class="{ui.inputSm} self-stretch flex items-center justify-center shrink-0 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus-within:ring-2 focus-within:ring-purple-500/40 focus-within:border-purple-500 {locked
+    class="{ui.inputSm} self-stretch flex items-center justify-center shrink-0 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus-within:ring-2 focus-within:ring-emerald-500/40 focus-within:border-emerald-500 {locked
       ? 'opacity-50 cursor-not-allowed'
       : 'cursor-pointer'} {endPoint.heading === 'piecewise' ? 'hidden' : ''}"
     title="Reverse the direction of the heading interpolation"
@@ -244,7 +244,7 @@
       class="sr-only"
     />
     <ArrowCircleIcon
-      className={`size-4 ${endPoint.reverse ? "text-purple-500" : "text-neutral-400"}`}
+      className={`size-4 ${endPoint.reverse ? "text-emerald-500" : "text-neutral-500 dark:text-neutral-400"}`}
     />
   </label>
 
@@ -301,7 +301,7 @@
       class="{ui.well} flex items-center justify-center gap-2 flex-[2] px-3 min-w-0"
     >
       <ArrowRightIcon
-        className="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse
+        className="size-4 text-neutral-500 dark:text-neutral-400 shrink-0 {endPoint.reverse
           ? 'scale-x-[-1]'
           : ''}"
       />
@@ -364,13 +364,14 @@
       {#each segments as segment, i}
         <div class="flex items-center -ml-[13px]">
           <div
-            class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 z-10 shrink-0"
+            class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2 z-10 shrink-0"
           ></div>
           {#if i === 0}
             <span class="{ui.badge.neutral} select-none"> t = 0.00 </span>
           {:else}
             <div class="{ui.well} flex items-center gap-2 px-1.5 py-0.5">
-              <span class="text-[10px] text-neutral-500 font-bold select-none"
+              <span
+                class="text-[10px] text-neutral-500 dark:text-neutral-400 font-bold select-none"
                 >t =</span
               >
               <input
@@ -398,7 +399,7 @@
         </div>
 
         <div
-          class="border-l-2 border-purple-500/30 ml-[-7px] pl-4 py-2 relative"
+          class="border-l-2 border-emerald-500/30 ml-[-7px] pl-4 py-2 relative"
           data-seg-index={i}
           role="listitem"
           draggable={!locked}
@@ -409,15 +410,15 @@
             class="relative transition-all duration-200 flex items-center gap-2 group"
             class:border-t-4={dragOverIndex === i && dragPosition === "top"}
             class:border-b-4={dragOverIndex === i && dragPosition === "bottom"}
-            class:border-purple-500={dragOverIndex === i}
-            class:dark:border-purple-400={dragOverIndex === i}
+            class:border-emerald-500={dragOverIndex === i}
+            class:dark:border-emerald-400={dragOverIndex === i}
             class:opacity-50={draggingIndex === i}
             class:cursor-move={!locked}
           >
             <!-- Drag Handle Column -->
             {#if !locked}
               <div
-                class="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 shrink-0"
+                class="cursor-grab active:cursor-grabbing text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 shrink-0"
               >
                 <EllipsisVerticalIcon className="size-4" />
               </div>
@@ -472,7 +473,7 @@
 
       <div class="flex items-center -ml-[13px] pb-1 mt-1">
         <div
-          class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 z-10 shrink-0"
+          class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2 z-10 shrink-0"
         ></div>
         <span class="{ui.badge.neutral} select-none"> t = 1.00 </span>
       </div>

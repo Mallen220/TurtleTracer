@@ -16,7 +16,9 @@
 <div
   class="flex items-center gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-700 flex-wrap"
 >
-  <span class="text-xs font-medium text-neutral-400 mr-auto">Insert after:</span
+  <span
+    class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mr-auto"
+    >Insert after:</span
   >
   {#each Object.values($actionRegistry) as def (def.kind)}
     {#if def.createDefault || def.isPath}

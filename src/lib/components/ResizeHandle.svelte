@@ -15,7 +15,7 @@
 </script>
 
 <button
-  class="group flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-neutral-300 dark:border-neutral-700 {horizontal
+  class="group flex justify-center items-center hover:bg-emerald-500/10 active:bg-emerald-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-neutral-300 dark:border-neutral-700 {horizontal
     ? 'w-4 cursor-col-resize border-l border-r'
     : 'h-3 w-full cursor-row-resize border-t border-b touch-none'}"
   onmousedown={onstart}
@@ -33,7 +33,7 @@
     : 'height'}."
 >
   <div
-    class="bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full {horizontal
+    class="bg-neutral-400 dark:bg-neutral-600 group-hover:bg-emerald-500 dark:group-hover:bg-emerald-400 group-focus-visible:bg-emerald-500 dark:group-focus-visible:bg-emerald-400 transition-colors rounded-full {horizontal
       ? 'w-0.5 h-8'
       : 'h-1 w-8'}"
   ></div>

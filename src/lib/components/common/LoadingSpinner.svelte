@@ -12,7 +12,7 @@
 
   let {
     size = "md",
-    color = "text-purple-600 dark:text-purple-400",
+    color = "text-emerald-600 dark:text-emerald-400",
     showText = true,
     text = "Loading...",
   }: Props = $props();

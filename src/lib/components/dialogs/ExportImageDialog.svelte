@@ -210,17 +210,23 @@
     class="{ui.overlay} z-[100]"
     transition:scale={{ duration: 200, start: 0.95 }}
   >
-    <div class="{ui.dialog} w-full max-w-2xl flex flex-col max-h-[90vh]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="export-image-title"
+      class="{ui.dialog} w-full max-w-2xl flex flex-col max-h-[90vh]"
+    >
       <!-- Header -->
       <div class={ui.dialogHeader}>
         <h2
+          id="export-image-title"
           class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Image
         </h2>
         <button
           title="Close"
-          class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           onclick={close}
           aria-label="Close"
         >
@@ -291,7 +297,7 @@
                 step="0.1"
                 bind:value={quality}
                 onchange={generatePreview}
-                class="w-full accent-purple-600"
+                class="w-full accent-emerald-600"
               />
             </div>
           {/if}
@@ -314,7 +320,7 @@
           <div
             class="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400"
           >
-            <SpinnerIcon className="animate-spin h-4 w-4 text-purple-600" />
+            <SpinnerIcon className="animate-spin h-4 w-4 text-emerald-600" />
             <span>{statusMessage}</span>
           </div>
         {:else if status === "error"}

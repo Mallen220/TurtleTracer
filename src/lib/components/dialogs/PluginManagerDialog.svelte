@@ -74,7 +74,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="flex items-center justify-center w-10 h-10 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+              class="flex items-center justify-center w-10 h-10 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
             >
               <PuzzleIcon className="size-6" />
             </div>
@@ -104,7 +104,7 @@
             class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
           >
             <SearchIcon
-              className="size-5 text-neutral-400 group-focus-within:text-purple-500 transition-colors"
+              className="size-5 text-neutral-500 dark:text-neutral-400 group-focus-within:text-emerald-500 transition-colors"
             />
           </div>
           <input
@@ -157,7 +157,9 @@
             <div
               class="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-full mb-4"
             >
-              <SearchIcon className="size-8 text-neutral-400" />
+              <SearchIcon
+                className="size-8 text-neutral-500 dark:text-neutral-400"
+              />
             </div>
             <p class="text-neutral-500 dark:text-neutral-400 text-lg">
               No plugins match "<span
@@ -181,14 +183,14 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
+                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
               >
                 <div class="flex items-start justify-between gap-4 mb-3">
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="flex-shrink-0 p-2.5 rounded-md {plugin.enabled
                         ? 'bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400'
-                        : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'}"
+                        : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}"
                     >
                       <PuzzleIcon className="size-5" />
                     </div>
@@ -243,7 +245,7 @@
                         class="sr-only peer"
                       />
                       <div
-                        class="w-9 h-5 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500/20 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-purple-600"
+                        class="w-9 h-5 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500/20 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-emerald-600"
                       ></div>
                       <span
                         class="ml-2 text-xs font-medium text-neutral-500 group-hover/toggle:text-neutral-700 dark:text-neutral-400 dark:group-hover/toggle:text-neutral-200 transition-colors"

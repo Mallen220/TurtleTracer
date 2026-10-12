@@ -160,8 +160,8 @@
           aria-selected={index === highlightedIndex}
           class="w-full text-left px-3 py-1.5 text-sm cursor-pointer
             {index === highlightedIndex
-            ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-100'
-            : 'hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-300'}"
+            ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-100'
+            : 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-neutral-700 dark:text-neutral-300'}"
           onmousedown={(e) => {
             e.preventDefault();
             selectOption(option);

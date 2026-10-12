@@ -285,7 +285,11 @@
           class="flex items-center gap-2 text-neutral-700 dark:text-neutral-300"
         >
           Take your changes to
-          <select bind:value={chosenBranch} class="{ui.inputXs} font-mono">
+          <select
+            bind:value={chosenBranch}
+            aria-label="Branch"
+            class="{ui.inputXs} font-mono"
+          >
             {#each branches as name (name)}
               <option value={name}>{name}</option>
             {/each}

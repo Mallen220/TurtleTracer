@@ -184,7 +184,11 @@
             class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300"
           >
             Branch
-            <select bind:value={branch} class="{ui.inputXs} flex-1">
+            <select
+              bind:value={branch}
+              aria-label="Branch"
+              class="{ui.inputXs} flex-1"
+            >
               {#each target.branches as name (name)}
                 <option value={name}
                   >{name}{name === target.defaultBranch
@@ -222,7 +226,9 @@
               class="{ui.menuItem} justify-between"
             >
               <span class="truncate">{repoKey(repo)}</span>
-              <span class="shrink-0 text-xs text-neutral-500">
+              <span
+                class="shrink-0 text-xs text-neutral-500 dark:text-neutral-400"
+              >
                 {repo.branch}{repo.changeCount
                   ? ` · ${repo.changeCount} not committed`
                   : ""}
@@ -234,7 +240,7 @@
 
       <div class="border-t border-neutral-200 dark:border-neutral-700 pt-3">
         <button
-          class="text-xs font-semibold uppercase tracking-wider text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          class="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           aria-expanded={showToken}
           onclick={() => (showToken = !showToken)}
         >

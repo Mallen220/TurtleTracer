@@ -64,11 +64,11 @@
     <HeadingIndicator
       degrees={indicator}
       size={16}
-      className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
+      className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-500 dark:text-neutral-400"
     />
   {/if}
   <span
-    class="absolute left-2 top-1/2 -translate-y-1/2 font-bold text-neutral-400 select-none {labelClass}"
+    class="absolute left-2 top-1/2 -translate-y-1/2 font-bold text-neutral-500 dark:text-neutral-400 select-none {labelClass}"
     >{label}</span
   >
   <input

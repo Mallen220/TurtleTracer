@@ -7,8 +7,8 @@ import { settingsStore } from "../projectStore";
 import { get } from "svelte/store";
 
 // Tailwind Safelist for dynamic classes:
-// bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 focus:ring-green-300 dark:focus:ring-green-700
-// bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800/30
+// bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 focus:ring-purple-300 dark:focus:ring-purple-700
+// bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-800/30
 
 /**
  * The end point for a new path at (x, y), turning the way the path before
@@ -81,7 +81,7 @@ export function insertPath(
 export const PathAction: ActionDefinition = {
   kind: "path",
   label: "Path",
-  buttonColor: "green",
+  buttonColor: "purple",
   isPath: true,
   color: "#16a34a", // Green-600
   showInToolbar: true,

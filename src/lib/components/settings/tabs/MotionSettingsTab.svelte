@@ -86,7 +86,7 @@
         href="https://pedropathing.com/docs/pathing/tuning/foresight"
         target="_blank"
         rel="noopener noreferrer"
-        class={ui.link}>Tuning Foresight</a
+        class="{ui.link} underline">Tuning Foresight</a
       >. Each setting below says which value to copy. Otherwise, time your robot
       over a measured distance, or start with the defaults.
     </p>

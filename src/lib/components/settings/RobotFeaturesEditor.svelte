@@ -283,7 +283,7 @@
       </svg>
     </div>
     <div
-      class="text-[10px] text-neutral-400 dark:text-neutral-500 text-center w-full mt-1"
+      class="text-[10px] text-neutral-500 dark:text-neutral-400 text-center w-full mt-1"
     >
       Drag features to move them, or edit properties below. Shift-drag to snap.
     </div>
@@ -292,7 +292,7 @@
   <!-- Right Side: Properties Editor -->
   <div class="flex flex-col w-full min-w-0 flex-1">
     <div
-      class="text-xs font-medium text-neutral-500 uppercase flex justify-between items-center mb-2"
+      class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase flex justify-between items-center mb-2"
     >
       <span>Properties</span>
       {#if settings.robotFeatures && settings.robotFeatures.length > 0}
@@ -319,7 +319,7 @@
 
     {#if !settings.robotFeatures || settings.robotFeatures.length === 0}
       <div
-        class="{ui.well} flex flex-col items-center justify-center h-[250px] border-dashed text-sm text-neutral-500 p-4 text-center"
+        class="{ui.well} flex flex-col items-center justify-center h-[250px] border-dashed text-sm text-neutral-500 dark:text-neutral-400 p-4 text-center"
       >
         <div class="mb-2 opacity-50">
           <PlusIcon className="w-8 h-8 mx-auto" />
@@ -374,7 +374,7 @@
                   {/if}
                 </button>
                 <button
-                  class="text-neutral-400 hover:text-red-500 transition-colors p-1"
+                  class="text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors p-1"
                   onclick={(e) => {
                     e.stopPropagation();
                     removeFeature(feature.id);
@@ -391,7 +391,7 @@
               <div class="flex flex-col">
                 <label
                   for="feature-{feature.id}-x"
-                  class="text-[10px] text-neutral-500 uppercase"
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                   >X Offset (in)</label
                 >
                 <input
@@ -409,7 +409,7 @@
               <div class="flex flex-col">
                 <label
                   for="feature-{feature.id}-y"
-                  class="text-[10px] text-neutral-500 uppercase"
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                   >Y Offset (in)</label
                 >
                 <input
@@ -430,7 +430,7 @@
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-width"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Width (in)</label
                   >
                   <input
@@ -452,7 +452,7 @@
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-height"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Height (in)</label
                   >
                   <input
@@ -475,7 +475,7 @@
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-radius"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Radius (in)</label
                   >
                   <input
@@ -498,7 +498,7 @@
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-length"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Length (in)</label
                   >
                   <input
@@ -520,7 +520,7 @@
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-angle"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Angle (deg)</label
                   >
                   <input
@@ -538,7 +538,7 @@
                 <div class="flex flex-col col-span-2">
                   <label
                     for="feature-{feature.id}-thickness"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Thickness (in)</label
                   >
                   <input
@@ -563,7 +563,8 @@
               <div class="flex flex-col col-span-1">
                 <label
                   for="feature-{feature.id}-color"
-                  class="text-[10px] text-neutral-500 uppercase">Color</label
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
+                  >Color</label
                 >
                 <div class="flex items-center gap-2 mt-1">
                   <ColorPicker

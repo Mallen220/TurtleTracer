@@ -163,7 +163,7 @@
         >
       </div>
       {#if $isConnected}
-        <span class="text-neutral-500">{fps} FPS</span>
+        <span class="text-neutral-500 dark:text-neutral-400">{fps} FPS</span>
       {/if}
     </div>
   </div>
@@ -180,7 +180,7 @@
     <div class="flex-1 overflow-y-auto p-2">
       {#if sortedKeys.length === 0}
         <div
-          class="h-full flex items-center justify-center text-neutral-400 text-sm italic"
+          class="h-full flex items-center justify-center text-neutral-500 dark:text-neutral-400 text-sm italic"
         >
           No data received
         </div>

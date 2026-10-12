@@ -107,7 +107,7 @@
   tabindex="-1"
 >
   <div
-    class="px-3 py-1.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500 border-b border-neutral-200 dark:border-neutral-700 mb-1 truncate max-w-[200px]"
+    class="px-3 py-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 mb-1 truncate max-w-[200px]"
   >
     {fileName}
   </div>

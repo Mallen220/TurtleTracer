@@ -63,7 +63,7 @@ describe("Path statistics jump the timeline", () => {
     const out = segment("Out");
     expect(out.startTime).toBeGreaterThan(0);
 
-    await fireEvent.click(screen.getByRole("button", { name: /Go to Out at/ }));
+    await fireEvent.click(screen.getByTitle(/Go to Out at/));
 
     expect(onSeek).toHaveBeenCalledTimes(1);
     expect(onSeek.mock.calls[0][0]).toBeCloseTo(percentOf(out.startTime));
@@ -73,10 +73,9 @@ describe("Path statistics jump the timeline", () => {
     const onSeek = open();
     const hold = segment("Hold");
 
-    await fireEvent.keyDown(
-      screen.getByRole("button", { name: /Go to Hold at/ }),
-      { key: "Enter" },
-    );
+    await fireEvent.keyDown(screen.getByTitle(/Go to Hold at/), {
+      key: "Enter",
+    });
 
     expect(onSeek.mock.calls[0][0]).toBeCloseTo(percentOf(hold.startTime));
   });
@@ -117,7 +116,7 @@ describe("Path statistics jump the timeline", () => {
     const onSeek = open({ totalSeconds: stats.totalTime * 2 });
     const out = segment("Out");
 
-    await fireEvent.click(screen.getByRole("button", { name: /Go to Out at/ }));
+    await fireEvent.click(screen.getByTitle(/Go to Out at/));
 
     expect(onSeek.mock.calls[0][0]).toBeCloseTo(percentOf(out.startTime) / 2);
   });
@@ -126,17 +125,13 @@ describe("Path statistics jump the timeline", () => {
     const out = segment("Out");
     open({ percent: percentOf(out.startTime + out.time / 2) });
 
-    expect(screen.getByRole("button", { name: /Go to Out at/ })).toHaveClass(
-      "bg-purple-50",
-    );
-    expect(
-      screen.getByRole("button", { name: /Go to Hold at/ }),
-    ).not.toHaveClass("bg-purple-50");
+    expect(screen.getByTitle(/Go to Out at/)).toHaveClass("bg-emerald-50");
+    expect(screen.getByTitle(/Go to Hold at/)).not.toHaveClass("bg-emerald-50");
   });
 
   it("does nothing, and shows no pointer, when there is no timeline to move", async () => {
     open({ onSeek: undefined });
-    const row = screen.getByRole("button", { name: /Go to Out at/ });
+    const row = screen.getByTitle(/Go to Out at/);
     expect(row).not.toHaveClass("cursor-pointer");
     await fireEvent.click(row);
   });

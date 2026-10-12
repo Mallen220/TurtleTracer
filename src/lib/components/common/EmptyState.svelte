@@ -25,12 +25,15 @@
   >
     {#if icon}{@render icon()}{:else}
       <!-- Default Icon -->
-      <DocumentIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
+      <DocumentIcon
+        className="size-6 text-neutral-500 dark:text-neutral-400"
+        strokeWidth={1.5}
+      />
     {/if}
   </div>
-  <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+  <h2 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
     {title}
-  </h3>
+  </h2>
   <p
     class="text-sm text-neutral-500 dark:text-neutral-400 mt-1 max-w-xs mx-auto"
   >

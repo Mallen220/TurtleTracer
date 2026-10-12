@@ -346,7 +346,7 @@
   <div class="flex flex-col gap-2">
     {#if profiles.length === 0}
       <div
-        class="text-xs text-neutral-400 text-center py-4 italic border border-dashed border-neutral-200 dark:border-neutral-700 rounded"
+        class="text-xs text-neutral-500 dark:text-neutral-400 text-center py-4 italic border border-dashed border-neutral-200 dark:border-neutral-700 rounded"
       >
         No saved profiles yet.
       </div>
@@ -376,7 +376,7 @@
 
       {#if selectedProfileId}
         <div class="flex justify-between items-center mt-1 px-1 h-8">
-          <div class="text-xs text-neutral-400">
+          <div class="text-xs text-neutral-500 dark:text-neutral-400">
             Actions for selected profile:
           </div>
           <div class="flex items-center gap-1">
@@ -387,7 +387,7 @@
               class={`ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 updateConfirming
                   ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/50 w-20"
-                  : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-400 hover:text-blue-500 w-8"
+                  : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-500 dark:text-neutral-400 hover:text-blue-500 w-8"
               }`}
               title="Overwrite profile with current settings"
               aria-label="Overwrite profile with current settings"

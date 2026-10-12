@@ -221,7 +221,7 @@
         <div class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
           {#if viewMode === "features"}
             <div
-              class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
+              class="mb-3 px-2 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
             >
               Version {currentRelease?.id.replaceAll(/^v/g, "")}
             </div>
@@ -251,7 +251,7 @@
         >
           {#if viewMode === "features"}
             <button
-              class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
               onclick={() => {
                 viewMode = "releases";
                 activeReleaseId = currentRelease?.id || allReleases[0]?.id;
@@ -262,7 +262,7 @@
             </button>
           {:else}
             <button
-              class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
               onclick={() => (viewMode = "features")}
             >
               <ChevronLeftIcon className="h-4 w-4" />
@@ -285,7 +285,7 @@
           <!-- Mobile Back Button (only when in releases view on small screens) -->
           <button
             onclick={() => (viewMode = "features")}
-            class="md:hidden flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+            class="md:hidden flex items-center gap-1 text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
           >
             <ChevronLeftIcon className="h-4 w-4" />
             Back
@@ -329,7 +329,7 @@
                       {feature.title}
                     </h2>
                     <div
-                      class="prose dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-purple-600 dark:prose-a:text-purple-400 text-lg md:text-xl leading-relaxed"
+                      class="prose dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-emerald-600 dark:prose-a:text-emerald-400 text-lg md:text-xl leading-relaxed"
                     >
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                       {@html DOMPurify.sanitize(md.render(feature.content))}

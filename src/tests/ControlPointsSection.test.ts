@@ -47,7 +47,7 @@ describe("ControlPointsSection", () => {
 
   it("says how many points there are", () => {
     show(makeLine({ controlPoints: [{ x: 1, y: 2 }] }));
-    const header = screen.getByRole("button", { name: "Hide control points" });
+    const header = screen.getByTitle("Hide control points");
     expect(header).toHaveTextContent("Control Points");
     expect(
       header.querySelector("[title='Control Point Count']"),
@@ -67,9 +67,7 @@ describe("ControlPointsSection", () => {
       { startCollapsed: true },
     );
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Add Control Point" }),
-    );
+    await fireEvent.click(screen.getByRole("button", { name: "Add Point" }));
 
     expect(currentLine().controlPoints).toHaveLength(1);
     expect(isCollapsed()).toBe(false);
@@ -95,8 +93,8 @@ describe("ControlPointsSection", () => {
     selectedPointId.set("point-1-2");
     show();
     const [first, second] = screen.getAllByRole("listitem");
-    expect(second).toHaveClass("border-purple-400");
-    expect(first).not.toHaveClass("border-purple-400");
+    expect(second).toHaveClass("border-emerald-600");
+    expect(first).not.toHaveClass("border-emerald-600");
   });
 
   it("moves a point as you type, and records the edit once, when you leave the field", async () => {
@@ -168,21 +166,18 @@ describe("ControlPointsSection", () => {
 
   it("hides the list when collapsed", async () => {
     show();
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Hide control points" }),
-    );
+    await fireEvent.click(screen.getByTitle("Hide control points"));
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-    expect(
-      screen.getByRole("button", { name: "Show control points" }),
-    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTitle("Show control points")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it("is read-only on a locked path", () => {
     show(makeLine({ locked: true }));
     expect(input(1, "X")).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Add Control Point" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Point" })).toBeDisabled();
     expect(screen.queryByTitle("Drag to reorder")).toBeNull();
   });
 });

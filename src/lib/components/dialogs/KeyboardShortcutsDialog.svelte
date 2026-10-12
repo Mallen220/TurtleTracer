@@ -373,7 +373,7 @@
           <!-- Search -->
           <div class="relative flex-1">
             <SearchIcon
-              className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-500 dark:text-neutral-400"
             />
             <input
               type="text"
@@ -384,7 +384,11 @@
           </div>
 
           <!-- Category Filter -->
-          <select bind:value={selectedCategory} class={ui.input}>
+          <select
+            bind:value={selectedCategory}
+            aria-label="Filter by category"
+            class={ui.input}
+          >
             {#each categories as category}
               <option value={category}>{category}</option>
             {/each}
@@ -451,7 +455,7 @@
                       {#if isModified(binding)}
                         <button
                           onclick={() => resetBinding(binding.id)}
-                          class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                          class="text-xs text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
                         >
                           <ArrowCircleIcon className="size-4" strokeWidth={2} />
@@ -468,7 +472,7 @@
                         class:bg-white={recordingKeyFor !== binding.id}
                         class:text-neutral-700={recordingKeyFor !==
                           binding.id && binding.key}
-                        class:text-neutral-400={recordingKeyFor !==
+                        class:text-neutral-500={recordingKeyFor !==
                           binding.id && !binding.key}
                         class:italic={!binding.key &&
                           recordingKeyFor !== binding.id}
@@ -484,7 +488,7 @@
                           binding.id}
                         class:dark:text-neutral-300={recordingKeyFor !==
                           binding.id && binding.key}
-                        class:dark:text-neutral-500={recordingKeyFor !==
+                        class:dark:text-neutral-400={recordingKeyFor !==
                           binding.id && !binding.key}
                         class:dark:border-neutral-700={recordingKeyFor !==
                           binding.id}
@@ -525,7 +529,7 @@
             <InfoIcon className="size-4" />
             <span
               >Click a keybinding to record a new one. Press <kbd
-                class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded"
+                class="font-mono bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 px-1 rounded"
                 >Esc</kbd
               > while recording to unbind.</span
             >

@@ -331,19 +331,25 @@
   }
 </script>
 
+<!-- A group, not a button: it holds buttons and fields of its own. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-  role="button"
+  role="group"
   tabindex="0"
-  aria-pressed={isSelected}
+  aria-label="Path {idx + 1}"
+  aria-current={isSelected ? "true" : undefined}
   class={`bg-white dark:bg-neutral-800 rounded-md shadow-sm border transition-all duration-200 ${
     isSelected
-      ? "border-purple-500 ring-1 ring-purple-500/20"
+      ? "border-emerald-500 ring-1 ring-emerald-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
   onclick={() => {
     if (line.id) selectedLineId.set(line.id);
   }}
   onkeydown={(e) => {
+    // Keys typed into the fields inside belong to them.
+    if (e.target !== e.currentTarget) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (line.id) selectedLineId.set(line.id);
@@ -380,8 +386,8 @@
             placeholder="Path Name"
             aria-label="Path name"
             title="Edit path name"
-            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all placeholder-neutral-400 truncate"
-            class:text-green-500={hoveredLinkId === line.id}
+            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all placeholder-neutral-400 truncate"
+            class:text-purple-500={hoveredLinkId === line.id}
             disabled={line.locked}
             oninput={handleNameInput}
             onblur={() => recordChange && recordChange("Rename Path")}
@@ -392,7 +398,7 @@
           {#if line.id && isLineLinked(lines, line.id)}
             <div
               role="presentation"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 cursor-help"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-purple-500 cursor-help"
               onmouseenter={(e) => handleLinkHoverEnter(e, line.id || null)}
               onmouseleave={handleLinkHoverLeave}
             >
@@ -400,7 +406,7 @@
               {#if hoveredLinkId === line.id}
                 <div
                   use:tooltipPortal={hoveredLinkAnchor}
-                  class="w-64 p-2 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded shadow-lg text-xs text-green-900 dark:text-green-100 z-50 pointer-events-none"
+                  class="w-64 p-2 bg-purple-100 dark:bg-purple-900 border border-purple-300 dark:border-purple-700 rounded shadow-lg text-xs text-purple-900 dark:text-purple-100 z-50 pointer-events-none"
                 >
                   <strong>Linked Path</strong><br />
                   Logic: Same Name = Shared Position.<br />
@@ -441,7 +447,10 @@
         aria-label={isHidden ? "Show Path" : "Hide Path"}
       >
         {#if isHidden}
-          <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={2} />
+          <EyeSlashIcon
+            className="size-4 text-neutral-500 dark:text-neutral-400"
+            strokeWidth={2}
+          />
         {:else}
           <EyeIcon className="size-4" strokeWidth={2} />
         {/if}
@@ -461,7 +470,7 @@
         aria-label={line.locked ? "Unlock Path" : "Lock Path"}
       >
         {#if line.locked}
-          <LockIcon className="size-4 text-amber-500" />
+          <LockIcon className="size-4 text-amber-600 dark:text-amber-400" />
         {:else}
           <UnlockIcon className="size-4" strokeWidth={2} />
         {/if}
@@ -530,7 +539,7 @@
           <div class="flex items-center gap-2">
             <div class="relative flex-[0.5] min-w-0 max-w-[200px]">
               <span
-                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500 dark:text-neutral-400 select-none"
                 >X</span
               >
               <input
@@ -563,7 +572,7 @@
             </div>
             <div class="relative flex-[0.5] min-w-0 max-w-[200px]">
               <span
-                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500 dark:text-neutral-400 select-none"
                 >Y</span
               >
               <input
@@ -633,7 +642,7 @@
               >Heading</span
             >
             <button
-              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-md flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              class="w-full text-left text-sm text-neutral-500 dark:text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-md flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               onclick={() => {
                 if (onScrollToItem && chainGlobalSourceLine?.id) {
                   onScrollToItem(chainGlobalSourceLine.id);
@@ -641,7 +650,7 @@
               }}
               title="Jump to global source"
             >
-              <LinkIcon className="size-4 shrink-0 text-purple-500" />
+              <LinkIcon className="size-4 shrink-0 text-emerald-500" />
               Overridden by Global Chain Heading
             </button>
           </div>
@@ -729,7 +738,7 @@
             </label>
 
             {#if hasGlobalHeadingDef}
-              <div class="pl-2 mt-2 ml-1 border-l-2 border-purple-500/30">
+              <div class="pl-2 mt-2 ml-1 border-l-2 border-emerald-500/30">
                 <HeadingControls
                   endPoint={pseudoGlobalEndPoint}
                   locked={line.locked}

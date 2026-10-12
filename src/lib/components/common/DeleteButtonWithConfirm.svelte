@@ -60,7 +60,7 @@
   let stateClasses = $derived(
     confirming
       ? "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 ring-1 ring-red-500/50 w-20"
-      : "hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-400 hover:text-red-500 w-8",
+      : "hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-500 dark:text-neutral-400 hover:text-red-500 w-8",
   );
 </script>
 

@@ -71,7 +71,9 @@
               )}</span
             >
             {#if result.statsDiff.distance.diff !== 0}
-              <span class="text-sm font-semibold text-neutral-500">
+              <span
+                class="text-sm font-semibold text-neutral-500 dark:text-neutral-400"
+              >
                 {(result.statsDiff.distance.diff > 0 ? "+" : "") +
                   formatDisplayDistance(
                     Math.abs(result.statsDiff.distance.diff),
@@ -177,7 +179,7 @@
                     </p>
                     {#if item.parentName}
                       <span
-                        class="text-xs text-neutral-400 dark:text-neutral-500"
+                        class="text-xs text-neutral-500 dark:text-neutral-400"
                         >in {item.parentName}</span
                       >
                     {/if}
@@ -195,7 +197,9 @@
                           class="text-red-500 line-through dark:text-red-400"
                           >{detail.oldVal}</span
                         >
-                        <span class="text-neutral-400">→</span>
+                        <span class="text-neutral-500 dark:text-neutral-400"
+                          >→</span
+                        >
                         <span
                           class="text-green-600 dark:text-green-400 font-medium"
                           >{detail.newVal}</span
@@ -219,7 +223,7 @@
       class="flex flex-col items-center justify-center h-full gap-4 text-center p-8"
     >
       <div
-        class="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"
+        class="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"
       ></div>
       <div>
         <p class="text-neutral-900 dark:text-neutral-100 font-medium">

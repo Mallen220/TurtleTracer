@@ -79,7 +79,7 @@ describe("ProjectFolderDialog", () => {
 
   it("cancels on Escape", async () => {
     render(ProjectFolderDialog);
-    await fireEvent.keyDown(window, { key: "Escape" });
+    await fireEvent.keyDown(globalThis, { key: "Escape" });
     expect(answer).toHaveBeenCalledWith("cancel");
   });
 });

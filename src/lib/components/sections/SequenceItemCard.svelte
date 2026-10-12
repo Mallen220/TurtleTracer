@@ -28,7 +28,7 @@
   const ACCENTS = {
     amber: {
       selected: "border-amber-400 ring-1 ring-amber-400/20",
-      text: "text-amber-500",
+      text: "text-amber-700 dark:text-amber-400",
       focus: "focus-visible:ring-amber-500",
       input: "focus:ring-amber-500/20 focus:border-amber-500",
       tooltip:
@@ -36,7 +36,7 @@
     },
     pink: {
       selected: "border-pink-500 ring-1 ring-pink-500/20",
-      text: "text-pink-500",
+      text: "text-pink-600 dark:text-pink-400",
       focus: "focus-visible:ring-pink-500",
       input: "focus:ring-pink-500/20 focus:border-pink-500",
       tooltip:
@@ -44,7 +44,7 @@
     },
     teal: {
       selected: "border-teal-400 ring-1 ring-teal-400/20",
-      text: "text-teal-500",
+      text: "text-teal-700 dark:text-teal-400",
       focus: "focus-visible:ring-teal-500",
       input: "focus:ring-teal-500/20 focus:border-teal-500",
       tooltip:
@@ -115,14 +115,18 @@
   }
 
   const stop = (e: Event) => e.stopPropagation();
-  const iconButton = `p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2`;
-  const moveButton = `p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2`;
+  const iconButton = `p-1.5 min-h-6 min-w-6 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2`;
+  const moveButton = `p-1 min-h-6 min-w-6 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2`;
 </script>
 
+<!-- A group, not a button: it holds buttons and fields of its own. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-  role="button"
+  role="group"
   tabindex="0"
-  aria-pressed={isSelected}
+  aria-label={label}
+  aria-current={isSelected ? "true" : undefined}
   class="bg-white dark:bg-neutral-800 rounded-md shadow-sm border transition-all duration-200 {isSelected
     ? colors.selected
     : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} {isHidden
@@ -133,6 +137,8 @@
     select();
   }}
   onkeydown={(e) => {
+    // Keys typed into the fields inside belong to them.
+    if (e.target !== e.currentTarget) return;
     e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -147,7 +153,7 @@
           e.stopPropagation();
           collapsed = !collapsed;
         }}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 {colors.focus}"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 {colors.focus}"
         title="{collapsed ? 'Expand' : 'Collapse'} {label.toLowerCase()}"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} {label.toLowerCase()}"
         aria-expanded={!collapsed}
@@ -210,7 +216,10 @@
         aria-label="{isHidden ? 'Show' : 'Hide'} {label}"
       >
         {#if isHidden}
-          <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={2} />
+          <EyeSlashIcon
+            className="size-4 text-neutral-500 dark:text-neutral-400"
+            strokeWidth={2}
+          />
         {:else}
           <EyeIcon className="size-4" strokeWidth={2} />
         {/if}

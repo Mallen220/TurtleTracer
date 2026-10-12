@@ -171,7 +171,10 @@
           class={ui.iconBtnSm.neutral}
           aria-label="Close"
         >
-          <CloseIcon className="w-5 h-5 text-neutral-500" strokeWidth={2} />
+          <CloseIcon
+            className="w-5 h-5 text-neutral-500 dark:text-neutral-400"
+            strokeWidth={2}
+          />
         </button>
       </div>
 

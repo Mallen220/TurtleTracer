@@ -233,7 +233,6 @@
       onclick={toggleCollapsed}
       class="{ui.btnSm.ghost} -ml-2"
       title="{collapsed ? 'Show' : 'Hide'} control points"
-      aria-label="{collapsed ? 'Show' : 'Hide'} control points"
       aria-expanded={!collapsed}
       aria-controls="control-points-list-{lineIdx}"
     >
@@ -254,7 +253,6 @@
       class={ui.btnSm.accentSoft}
       title="Add Control Point"
       disabled={line.locked}
-      aria-label="Add Control Point"
     >
       <PlusIcon className="size-3.5" strokeWidth={2.5} />
       Add Point
@@ -286,16 +284,16 @@
             selected,
           )} flex flex-wrap items-center gap-2 px-2 py-1.5"
           class:border-t-2={dragOverIndex === idx && dragPosition === "top"}
-          class:border-t-purple-500={dragOverIndex === idx &&
+          class:border-t-emerald-500={dragOverIndex === idx &&
             dragPosition === "top"}
           class:border-b-2={dragOverIndex === idx && dragPosition === "bottom"}
-          class:border-b-purple-500={dragOverIndex === idx &&
+          class:border-b-emerald-500={dragOverIndex === idx &&
             dragPosition === "bottom"}
           class:opacity-50={draggingIndex === idx}
         >
           {#if !line.locked}
             <div
-              class="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              class="cursor-grab active:cursor-grabbing text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               title="Drag to reorder"
             >
               <ViewListIcon className="w-4 h-4" />
@@ -315,7 +313,7 @@
           <div class="flex items-center gap-2 flex-1 min-w-[11rem]">
             <div class="relative flex-1 min-w-0 max-w-[200px]">
               <span
-                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500 dark:text-neutral-400 select-none"
                 >X</span
               >
               <input
@@ -340,7 +338,7 @@
             </div>
             <div class="relative flex-1 min-w-0 max-w-[200px]">
               <span
-                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500 dark:text-neutral-400 select-none"
                 >Y</span
               >
               <input

@@ -143,7 +143,11 @@
     <div class="{ui.bar} p-2 flex flex-row gap-2 items-center">
       <div class="{ui.heading} shrink-0">Presets</div>
       <div class="flex-1 min-w-0">
-        <select bind:value={selectedPresetId} class="{ui.inputXs} w-full h-7">
+        <select
+          bind:value={selectedPresetId}
+          aria-label="Obstacle preset"
+          class="{ui.inputXs} w-full h-7"
+        >
           <option value="">Select...</option>
           {#each $settingsStore.obstaclePresets || [] as preset}
             <option value={preset.id}>{preset.name}</option>
@@ -204,7 +208,9 @@
         >
           {#snippet icon()}
             <div>
-              <BoxIcon className="size-6 text-neutral-400" />
+              <BoxIcon
+                className="size-6 text-neutral-500 dark:text-neutral-400"
+              />
             </div>
           {/snippet}
         </EmptyState>
@@ -217,7 +223,6 @@
               <div class="flex flex-row items-center gap-2">
                 <button
                   onclick={() => toggleObstacle(shapeIdx)}
-                  aria-label="Toggle Obstacle Settings"
                   class={ui.btn.ghost}
                   title="{collapsedObstacles[shapeIdx]
                     ? 'Expand'
@@ -242,7 +247,7 @@
                   placeholder="{shape.type === 'keep-in'
                     ? 'Keep-In'
                     : 'Obstacle'} {shapeIdx + 1}"
-                  class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm font-medium h-7"
+                  class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm font-medium h-7"
                   disabled={shape.locked ?? false}
                   onblur={() => {
                     shapes = [...shapes];
@@ -254,6 +259,7 @@
                 <select
                   bind:value={shape.type}
                   class="{ui.inputXs} h-7"
+                  aria-label="Obstacle type"
                   disabled={shape.locked ?? false}
                   onchange={() => {
                     shapes = [...shapes];
@@ -306,7 +312,7 @@
                     <EyeIcon className="size-4" strokeWidth={1.5} />
                   {:else}
                     <EyeSlashIcon
-                      className="size-4 text-neutral-400"
+                      className="size-4 text-neutral-500 dark:text-neutral-400"
                       strokeWidth={1.5}
                     />
                   {/if}
@@ -333,7 +339,9 @@
                   class={ui.iconBtnSm.neutral}
                 >
                   {#if shape.locked}
-                    <LockIcon className="size-4 text-amber-500" />
+                    <LockIcon
+                      className="size-4 text-amber-600 dark:text-amber-400"
+                    />
                   {:else}
                     <UnlockIcon className="size-4" strokeWidth={2} />
                   {/if}
@@ -363,7 +371,9 @@
                     <div
                       class="flex flex-row justify-start items-center gap-2 group"
                     >
-                      <div class="font-mono text-xs text-neutral-500 w-4">
+                      <div
+                        class="font-mono text-xs text-neutral-500 dark:text-neutral-400 w-4"
+                      >
                         {vertexIdx + 1}
                       </div>
                       <div class="flex items-center gap-1">
@@ -454,7 +464,7 @@
                         <button
                           title="Add Vertex After"
                           aria-label="Add Vertex After"
-                          class="text-neutral-400 hover:text-purple-500 transition-colors p-1"
+                          class="text-neutral-500 dark:text-neutral-400 hover:text-emerald-500 transition-colors p-1"
                           onclick={() => {
                             // Duplicate current vertex for easier editing
                             const newVertex = { ...vertex };

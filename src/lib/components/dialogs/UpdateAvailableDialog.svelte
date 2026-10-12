@@ -193,7 +193,7 @@
         <!-- Top Section -->
         <div class="text-center space-y-2">
           <div
-            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
+            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-indigo-100 dark:from-emerald-900/30 dark:to-indigo-900/30 text-emerald-600 dark:text-emerald-400 mb-2 shadow-sm ring-1 ring-emerald-100 dark:ring-emerald-900/50"
           >
             <RocketIcon className="w-8 h-8" />
           </div>
@@ -205,7 +205,7 @@
           </h2>
           <p class="text-neutral-500 dark:text-neutral-400">
             Version <span
-              class="font-semibold text-purple-600 dark:text-purple-400"
+              class="font-semibold text-emerald-600 dark:text-emerald-400"
               >{updateData.version}</span
             > is ready for you.
           </p>
@@ -256,7 +256,7 @@
           <div
             class="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
           >
-            <ListIcon className="w-4 h-4 text-purple-500" />
+            <ListIcon className="w-4 h-4 text-emerald-500" />
             Release Notes
           </div>
           <div
@@ -316,7 +316,7 @@
 
         {#if currentVersion}
           <div
-            class="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500"
+            class="mt-3 text-center text-xs text-neutral-500 dark:text-neutral-400"
           >
             Current version: <span
               class="font-mono text-xs text-neutral-700 dark:text-neutral-300"

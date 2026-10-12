@@ -274,7 +274,7 @@
               />
               <SearchIcon
                 strokeWidth={1.5}
-                className="size-4 absolute left-3 top-2.5 text-neutral-400"
+                className="size-4 absolute left-3 top-2.5 text-neutral-500 dark:text-neutral-400"
               />
             </div>
           </div>

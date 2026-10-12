@@ -251,7 +251,7 @@
             <span
               class="ml-2 text-sm font-medium {rating > 0
                 ? 'text-neutral-700 dark:text-neutral-300'
-                : 'text-neutral-400'}"
+                : 'text-neutral-500 dark:text-neutral-400'}"
             >
               {rating === 0 ? "Select rating" : `${rating} / 5`}
             </span>

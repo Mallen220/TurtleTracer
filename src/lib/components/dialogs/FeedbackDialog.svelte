@@ -208,7 +208,7 @@
       <div class={ui.dialogHeader}>
         <h2 class="{ui.title} flex items-center gap-2">
           <FeedbackIcon
-            className="w-5 h-5 text-purple-600 dark:text-purple-400"
+            className="w-5 h-5 text-emerald-600 dark:text-emerald-400"
           />
           Report Issue / Feedback / Features
         </h2>

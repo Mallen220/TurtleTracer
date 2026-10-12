@@ -327,8 +327,9 @@
             </button>
           {/if}
           {#if $isUnsaved}
-            <span class="text-amber-500 font-bold ml-1" title="Unsaved changes"
-              >*</span
+            <span
+              class="text-amber-700 dark:text-amber-400 font-bold ml-1"
+              title="Unsaved changes">*</span
             >
           {/if}
           {#if openRepoSummary && openRepoSummary.changeCount > 0}
@@ -498,7 +499,7 @@
           {#if $customExportersStore.length > 0}
             <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
             <div
-              class="px-4 py-1 text-xs font-semibold text-neutral-500 uppercase tracking-wider"
+              class="px-4 py-1 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
             >
               Plugins
             </div>

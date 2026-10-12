@@ -354,6 +354,7 @@
           </div>
           <input
             type="checkbox"
+            aria-label="Show wheel arrows"
             checked={settings.showRobotArrows}
             onchange={(e) => set("showRobotArrows", e.currentTarget.checked)}
             class={ui.checkbox}

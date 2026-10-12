@@ -261,7 +261,7 @@
           title="Close"
           onclick={handleClose}
           aria-label="Close"
-          class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+          class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
         >
           <CloseIcon className="h-6 w-6" />
         </button>
@@ -273,7 +273,7 @@
         <div class="flex items-center justify-center gap-2 mb-4">
           {#each [1, 2, 3] as s}
             <div
-              class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" : step > s ? "bg-green-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"}`}
+              class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" : step > s ? "bg-green-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}
             >
               {step > s ? "✓" : s}
             </div>
@@ -289,7 +289,9 @@
           <div
             class="{ui.well} flex flex-col items-center justify-center h-64 border-2 border-dashed"
           >
-            <PhotoIcon className="h-12 w-12 text-neutral-400 mb-4" />
+            <PhotoIcon
+              className="h-12 w-12 text-neutral-500 dark:text-neutral-400 mb-4"
+            />
             <div class="w-full max-w-sm mb-4">
               <label for="mapName" class="{ui.label} block mb-1">Map Name</label
               >
@@ -534,7 +536,11 @@
                         </p>
 
                         <div class="{ui.card} mt-4 p-2">
-                          <p class="text-xs text-neutral-500 mb-1">Preview:</p>
+                          <p
+                            class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
+                          >
+                            Preview:
+                          </p>
                           <div
                             class="aspect-square w-full bg-neutral-100 relative overflow-hidden border border-neutral-300"
                           >
@@ -553,7 +559,9 @@
                               `}
                             />
                           </div>
-                          <p class="text-xs text-neutral-400 mt-1">
+                          <p
+                            class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                          >
                             Dashed box is the {$settingsStore.fieldWidth ??
                               144}x{$settingsStore.fieldHeight ?? 144} field.
                           </p>

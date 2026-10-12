@@ -76,9 +76,7 @@ describe("Dragging control points in the Paths tab", () => {
   afterEach(() => vi.restoreAllMocks());
 
   async function openFirstPathsPoints() {
-    await fireEvent.click(
-      screen.getAllByRole("button", { name: "Show control points" })[0],
-    );
+    await fireEvent.click(screen.getAllByTitle("Show control points")[0]);
     return Array.from(
       document.querySelectorAll<HTMLElement>(
         "#control-points-list-0 [data-cp-index]",

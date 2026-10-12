@@ -21,17 +21,17 @@
     amber: {
       row: "bg-amber-50 dark:bg-amber-900/20",
       ring: "focus:ring-amber-500",
-      text: "text-amber-500",
+      text: "text-amber-700 dark:text-amber-400",
     },
     pink: {
       row: "bg-pink-50 dark:bg-pink-900/20",
       ring: "focus:ring-pink-500",
-      text: "text-pink-500",
+      text: "text-pink-600 dark:text-pink-400",
     },
     teal: {
       row: "bg-teal-50 dark:bg-teal-900/20",
       ring: "focus:ring-teal-500",
-      text: "text-teal-500",
+      text: "text-teal-700 dark:text-teal-400",
     },
   };
 
@@ -100,7 +100,7 @@
   class:opacity-50={draggingIndex === index}
 >
   <td
-    class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+    class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
   >
     <Bars3Icon className="w-4 h-4 mx-auto" />
   </td>
