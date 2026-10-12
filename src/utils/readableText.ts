@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 const WHITE = "#ffffff";
 const BLACK = "#000000";
 

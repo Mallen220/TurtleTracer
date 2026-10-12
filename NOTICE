@@ -700,3 +700,4 @@ src/tests/SequenceItemCard.test.ts
 src/tests/uiContrast.test.ts
 src/tests/WaypointTableEditing.test.ts
 src/lib/components/dialogs/ProjectFolderDialog.test.ts
+src/utils/readableText.ts
