@@ -60,6 +60,7 @@ describe("Global Stores", () => {
         searchQuery: "test",
         viewMode: "list",
         sortMode: "name",
+        showJavaFiles: false,
       });
 
       const updatedState = get(stores.fileManagerSessionState);

@@ -79,7 +79,8 @@ describe("ProjectFolderDialog", () => {
 
   it("cancels on Escape", async () => {
     render(ProjectFolderDialog);
-    await fireEvent.keyDown(globalThis, { key: "Escape" });
+    const win = globalThis as unknown as Window;
+    await fireEvent.keyDown(win, { key: "Escape" });
     expect(answer).toHaveBeenCalledWith("cancel");
   });
 });
