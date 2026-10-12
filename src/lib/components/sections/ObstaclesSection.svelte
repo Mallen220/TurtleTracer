@@ -130,7 +130,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-800 overflow-hidden"
 >
   <SectionHeader
     title="Obstacles"

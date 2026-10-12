@@ -95,7 +95,7 @@
     class="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-50 opacity-0 hover:opacity-100 transition-opacity duration-300"
   >
     <div
-      class="flex flex-col gap-1 bg-white/90 dark:bg-neutral-800/90 p-1.5 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700"
+      class="flex flex-col gap-1 bg-white/90 dark:bg-neutral-800/90 p-1.5 rounded-md shadow-lg border border-neutral-200 dark:border-neutral-700"
     >
       {#if !lockFieldView}
         <button

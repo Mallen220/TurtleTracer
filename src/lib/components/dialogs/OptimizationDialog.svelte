@@ -286,7 +286,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
   <SectionHeader title="Path Optimization" bind:collapsed={internalCollapsed} />
 

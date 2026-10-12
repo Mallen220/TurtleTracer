@@ -59,7 +59,7 @@
 
     {#if open}
       <div
-        class="absolute left-0 top-full mt-2 z-[1100] w-80 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xl p-3 flex flex-col gap-2 text-xs text-neutral-700 dark:text-neutral-300"
+        class="absolute left-0 top-full mt-2 z-[1100] w-80 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xl p-3 flex flex-col gap-2 text-xs text-neutral-700 dark:text-neutral-300"
         role="dialog"
         aria-label="Following a Java file"
       >

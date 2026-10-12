@@ -123,7 +123,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 {isSelected
+  class="bg-white dark:bg-neutral-800 rounded-md shadow-sm border transition-all duration-200 {isSelected
     ? colors.selected
     : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} {isHidden
     ? 'opacity-50 grayscale-[50%]'
@@ -239,7 +239,7 @@
       ></div>
 
       <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
+        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-md p-0.5"
       >
         <button
           onclick={(e) => {

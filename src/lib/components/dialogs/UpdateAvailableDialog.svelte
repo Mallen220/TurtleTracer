@@ -219,10 +219,10 @@
             class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
           >
             <div
-              class="bg-white/60 dark:bg-white/5 border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
+              class="bg-white/60 dark:bg-white/5 border border-blue-100 dark:border-blue-900/50 rounded-md p-4 flex items-start gap-4"
             >
               <div
-                class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"
+                class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-md text-blue-600 dark:text-blue-400 shrink-0"
               >
                 <!-- Microsoft 4‑square logo (colored) — increased size -->
                 <MicrosoftStoreIcon className="w-6 h-6" />
@@ -262,7 +262,7 @@
             Release Notes
           </div>
           <div
-            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-xl p-4 max-h-40 overflow-y-auto custom-scrollbar"
+            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-md p-4 max-h-40 overflow-y-auto custom-scrollbar"
           >
             {#if isLoadingNotes}
               <div class="flex items-center justify-center h-20">
@@ -281,7 +281,7 @@
         <div class="flex flex-col gap-3 pt-2">
           <button
             onclick={handleDownload}
-            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
+            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-md transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
             Download & Install

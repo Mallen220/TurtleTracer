@@ -270,7 +270,7 @@
 </script>
 
 <div
-  class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-3 mb-4"
+  class="bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 p-3 mb-4"
 >
   <div class="flex items-center justify-between mb-3">
     <div>

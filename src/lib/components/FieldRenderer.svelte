@@ -602,7 +602,7 @@
 >
   <div
     bind:this={twoElement}
-    class="w-full h-full rounded-lg shadow-md bg-neutral-50 dark:bg-neutral-900 relative overflow-clip"
+    class="w-full h-full rounded-md shadow-md bg-neutral-50 dark:bg-neutral-900 relative overflow-clip"
     role="application"
     style="
       user-select: none;

@@ -88,7 +88,7 @@
 </script>
 
 <div
-  class="space-y-4 p-3 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-700/50"
+  class="space-y-4 p-3 bg-neutral-50 dark:bg-neutral-900/50 rounded-md border border-neutral-200 dark:border-neutral-700/50"
 >
   <div class="flex items-center justify-between">
     <h4 class="text-xs font-bold text-neutral-500 uppercase tracking-wide">

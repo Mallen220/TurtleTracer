@@ -100,13 +100,13 @@ img[alt="Robot"] {
   @apply bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono text-purple-700 dark:text-purple-300;
 }
 .prose pre {
-  @apply bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto mb-4 text-sm font-mono;
+  @apply bg-neutral-100 dark:bg-neutral-800 p-4 rounded-md overflow-x-auto mb-4 text-sm font-mono;
 }
 .prose blockquote {
   @apply border-l-4 border-purple-200 dark:border-purple-900 pl-4 italic my-4;
 }
 .prose img {
-  @apply rounded-lg shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
+  @apply rounded-md shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
 }
 
 /* Custom scrollbar to match the new UI (subtle) */

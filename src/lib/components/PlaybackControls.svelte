@@ -373,7 +373,7 @@
 
 <div
   id="playback-controls"
-  class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 flex flex-col justify-start items-center gap-2 shadow-lg"
+  class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 flex flex-col justify-start items-center gap-2 shadow-lg"
 >
   <!-- Timeline (Top Row) -->
   <div
@@ -461,7 +461,7 @@
         onmousedown={(e) => startDragLoopHandle(e, "min")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-purple-500 hover:bg-purple-400 shadow-md"
         ></div>
       </div>
       <!-- B Handle -->
@@ -479,7 +479,7 @@
         onmousedown={(e) => startDragLoopHandle(e, "max")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-purple-500 hover:bg-purple-400 shadow-md"
         ></div>
       </div>
     {/if}

@@ -87,7 +87,7 @@
     out:fade={{ duration: 200 }}
   >
     <div
-      class="flex items-center w-full px-4 py-3 rounded-lg shadow-lg border-l-4 {getBgColor(
+      class="flex items-center w-full px-4 py-3 rounded-md shadow-lg border-l-4 {getBgColor(
         currentNotification.type,
       )}"
       role="alert"

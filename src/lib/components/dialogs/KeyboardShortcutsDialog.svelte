@@ -336,7 +336,7 @@
       aria-modal="true"
       aria-labelledby="shortcuts-title"
       transition:fly={{ duration: 300, y: 20, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-800"
+      class="bg-white dark:bg-neutral-900 rounded-md shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-800"
     >
       <!-- Header -->
       <div
@@ -345,7 +345,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400"
+              class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-md text-indigo-600 dark:text-indigo-400"
             >
               <InfoIcon className="size-6" />
             </div>
@@ -363,7 +363,7 @@
           </div>
           <button
             onclick={() => (isOpen = false)}
-            class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
+            class="p-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
             aria-label="Close dialog"
           >
             <CloseIcon className="size-6" />
@@ -380,14 +380,14 @@
               type="text"
               bind:value={searchQuery}
               placeholder="Search shortcuts..."
-              class="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              class="w-full pl-10 pr-4 py-2 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
 
           <!-- Category Filter -->
           <select
             bind:value={selectedCategory}
-            class="px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            class="px-4 py-2 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           >
             {#each categories as category}
               <option value={category}>{category}</option>
@@ -431,7 +431,7 @@
               <div class="space-y-2">
                 {#each group.bindings as binding}
                   <div
-                    class={"flex items-center justify-between p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 " +
+                    class={"flex items-center justify-between p-3 rounded-md hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 " +
                       (recordingKeyFor === binding.id
                         ? "bg-blue-50 dark:bg-blue-900/20"
                         : "")}
@@ -541,7 +541,7 @@
         </div>
         <button
           onclick={() => (isOpen = false)}
-          class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-lg shadow-sm hover:opacity-90 transition-opacity"
+          class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-md shadow-sm hover:opacity-90 transition-opacity"
         >
           Done
         </button>

@@ -28,7 +28,7 @@
     aria-modal="true"
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-200"
+      class="bg-white dark:bg-neutral-800 rounded-md shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-200"
     >
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
         Unsaved Changes

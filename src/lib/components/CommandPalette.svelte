@@ -220,7 +220,7 @@
                 id="command-option-{index}"
                 role="option"
                 aria-selected={index === selectedIndex}
-                class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 rounded-lg mb-0.5
+                class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 rounded-md mb-0.5
                 {index === selectedIndex
                   ? 'bg-indigo-600 text-white shadow-md transform scale-[1.00]'
                   : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"

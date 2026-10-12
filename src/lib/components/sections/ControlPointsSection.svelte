@@ -211,7 +211,7 @@
           draggable={!line.locked}
           ondragstart={(e) => handleDragStart(e, idx)}
           ondragend={handleDragEnd}
-          class="flex items-center gap-3 p-2 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 transition-all duration-200 group"
+          class="flex items-center gap-3 p-2 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50/50 dark:bg-blue-900/10 transition-all duration-200 group"
           class:border-t-4={dragOverIndex === idx && dragPosition === "top"}
           class:border-b-4={dragOverIndex === idx && dragPosition === "bottom"}
           class:border-blue-500={dragOverIndex === idx}

@@ -154,7 +154,7 @@
         value={settings.programFontSize}
         oninput={(e) =>
           set("programFontSize", Number.parseInt(e.currentTarget.value))}
-        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-blue-500"
       />
       <span
         class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
@@ -390,7 +390,7 @@
                 "onionLayerSpacing",
                 Number.parseFloat(e.currentTarget.value) || 0,
               )}
-            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-indigo-500"
           />
           <span
             class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"

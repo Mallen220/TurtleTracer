@@ -249,7 +249,7 @@
   >
     <div
       transition:fly={{ y: 20, duration: 300, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+      class="bg-white dark:bg-neutral-900 rounded-md shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
     >
       <!-- Header -->
       <div
@@ -288,7 +288,7 @@
 
         {#if step === 1}
           <div
-            class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800/50"
+            class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-800/50"
           >
             <PhotoIcon className="h-12 w-12 text-neutral-400 mb-4" />
             <div class="w-full max-w-sm mb-4">
@@ -335,7 +335,7 @@
         {:else}
           <div class="flex flex-col lg:flex-row gap-4 h-full min-h-[400px]">
             <div
-              class="flex-1 relative bg-neutral-100 dark:bg-neutral-900 rounded-lg overflow-hidden flex items-center justify-center border border-neutral-200 dark:border-neutral-700 p-4"
+              class="flex-1 relative bg-neutral-100 dark:bg-neutral-900 rounded-md overflow-hidden flex items-center justify-center border border-neutral-200 dark:border-neutral-700 p-4"
             >
               <div
                 class="relative select-none touch-none"
@@ -494,7 +494,7 @@
             <div class="w-full lg:w-80 flex flex-col gap-4">
               {#if step === 2}
                 <div
-                  class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg h-full flex flex-col"
+                  class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md h-full flex flex-col"
                 >
                   <h3 class="font-bold text-blue-900 dark:text-blue-100 mb-2">
                     Step 2: Calibrate Field Bounds
@@ -525,7 +525,7 @@
                 </div>
               {:else if step === 3}
                 <div
-                  class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                  class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md"
                 >
                   <h3 class="font-bold text-green-900 dark:text-green-100 mb-2">
                     Step 3: Review

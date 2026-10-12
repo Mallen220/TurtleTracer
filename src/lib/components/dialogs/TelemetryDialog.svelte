@@ -140,7 +140,7 @@
   >
     <div
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="bg-white dark:bg-neutral-900 rounded-md shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
     >
       <div
         class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800"
@@ -186,7 +186,7 @@
 
         {#if errorMsg}
           <div
-            class="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm"
+            class="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-md text-sm"
           >
             {errorMsg}
           </div>
@@ -194,7 +194,7 @@
 
         {#if summary}
           <div
-            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm flex justify-between items-center"
+            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-md text-sm flex justify-between items-center"
           >
             <span>{summary}</span>
             <button
@@ -261,7 +261,7 @@
       >
         <button
           onclick={() => (isOpen = false)}
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors"
         >
           Done
         </button>

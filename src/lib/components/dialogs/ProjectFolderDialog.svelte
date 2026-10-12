@@ -52,7 +52,7 @@
         <br /><br />
         For most FTC projects, the best place is:<br />
         <code
-          class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5 rounded-lg text-green-700 dark:text-green-300 font-mono text-sm mt-3 inline-block"
+          class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5 rounded-md text-green-700 dark:text-green-300 font-mono text-sm mt-3 inline-block"
           >TeamCode/src/main/assets/AutoPaths/</code
         >
       </p>
@@ -60,13 +60,13 @@
         class="flex flex-col sm:flex-row items-center gap-3 w-full justify-center"
       >
         <button
-          class="px-6 py-3 text-neutral-500 dark:text-neutral-400 font-semibold rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors w-full sm:w-auto"
+          class="px-6 py-3 text-neutral-500 dark:text-neutral-400 font-semibold rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors w-full sm:w-auto"
           onclick={cancel}
         >
           Cancel
         </button>
         <button
-          class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors duration-200 flex items-center gap-3 text-lg w-full sm:w-auto justify-center"
+          class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md transition-colors duration-200 flex items-center gap-3 text-lg w-full sm:w-auto justify-center"
           onclick={chooseFolder}
         >
           <FolderIcon className="w-6 h-6" />

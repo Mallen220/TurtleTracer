@@ -72,7 +72,7 @@
     {@render children?.()}
   {:else}
     <div
-      class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+      class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700"
     >
       <div class="flex-1 mr-4">
         <div class="flex items-center gap-2 mb-1">

@@ -73,7 +73,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+              class="flex items-center justify-center w-10 h-10 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
             >
               <PuzzleIcon className="size-6" />
             </div>
@@ -92,7 +92,7 @@
           <button
             onclick={() => (isOpen = false)}
             aria-label="Close"
-            class="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+            class="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors"
           >
             <CloseIcon className="size-6" />
           </button>
@@ -110,7 +110,7 @@
             type="text"
             bind:value={searchQuery}
             placeholder="Search installed plugins..."
-            class="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:bg-white dark:focus:bg-neutral-900 focus:border-purple-500 rounded-xl text-neutral-900 dark:text-white placeholder-neutral-500 transition-all outline-none"
+            class="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:bg-white dark:focus:bg-neutral-900 focus:border-purple-500 rounded-md text-neutral-900 dark:text-white placeholder-neutral-500 transition-all outline-none"
           />
         </div>
       </div>
@@ -141,7 +141,7 @@
             </p>
             <button
               onclick={() => PluginManager.openPluginsFolder()}
-              class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all font-medium shadow-lg hover:shadow-purple-500/25 flex items-center gap-2"
+              class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-all font-medium shadow-lg hover:shadow-purple-500/25 flex items-center gap-2"
             >
               <FolderIcon className="size-5" />
               Open Plugins Folder
@@ -181,12 +181,12 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
+                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
               >
                 <div class="flex items-start justify-between gap-4 mb-3">
                   <div class="flex items-center gap-3 min-w-0">
                     <div
-                      class="flex-shrink-0 p-2.5 rounded-lg {plugin.enabled
+                      class="flex-shrink-0 p-2.5 rounded-md {plugin.enabled
                         ? 'bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400'
                         : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'}"
                     >
@@ -274,11 +274,11 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="flex flex-col p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800/50"
+                class="flex flex-col p-4 bg-red-50 dark:bg-red-900/10 rounded-md border border-red-200 dark:border-red-800/50"
               >
                 <div class="flex items-start gap-3 mb-2">
                   <div
-                    class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                    class="p-2 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
                   >
                     <TriangleWarningIcon className="size-5" />
                   </div>
@@ -318,14 +318,14 @@
         <div class="flex gap-3">
           <button
             onclick={() => PluginManager.openPluginsFolder()}
-            class="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors font-medium flex items-center gap-2"
+            class="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors font-medium flex items-center gap-2"
           >
             <FolderIcon className="size-5" />
             Open Folder
           </button>
           <button
             onclick={() => PluginManager.reloadPlugins()}
-            class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors font-medium flex items-center gap-2"
+            class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors font-medium flex items-center gap-2"
           >
             <ArrowCircleIcon className="size-4" />
             Reload All
@@ -334,7 +334,7 @@
 
         <button
           onclick={() => (isOpen = false)}
-          class="px-6 py-2 text-sm bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black rounded-lg transition-colors font-semibold shadow-sm"
+          class="px-6 py-2 text-sm bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black rounded-md transition-colors font-semibold shadow-sm"
         >
           Done
         </button>
@@ -367,13 +367,13 @@
             <div class="flex gap-3">
               <button
                 onclick={() => (pluginToDelete = null)}
-                class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
+                class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-md hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
               >
                 Cancel
               </button>
               <button
                 onclick={confirmDelete}
-                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium text-sm shadow-sm"
+                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors font-medium text-sm shadow-sm"
               >
                 Delete
               </button>

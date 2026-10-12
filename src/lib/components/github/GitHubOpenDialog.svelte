@@ -117,7 +117,7 @@
     }}
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-lg p-6 border border-neutral-200 dark:border-neutral-700 flex flex-col gap-4 max-h-full overflow-y-auto"
+      class="bg-white dark:bg-neutral-800 rounded-md shadow-xl w-full max-w-lg p-6 border border-neutral-200 dark:border-neutral-700 flex flex-col gap-4 max-h-full overflow-y-auto"
     >
       <div class="flex items-center justify-between">
         <h2

@@ -608,7 +608,7 @@
         role="listitem"
         data-index={sIdx}
         id={`sequence-item-${sequenceItemKey(item)}`}
-        class="w-full transition-all duration-200 rounded-lg {isChain
+        class="w-full transition-all duration-200 rounded-md {isChain
           ? '-mt-2'
           : ''} {isChainedWithNext ? '-mb-2' : ''}"
         draggable={!isSequenceItemLocked(item, lines)}

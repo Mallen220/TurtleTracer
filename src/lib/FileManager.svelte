@@ -867,7 +867,7 @@
       style="left: {sidebarWidth}px;"
     >
       <div
-        class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+        class="bg-white dark:bg-neutral-800 p-8 rounded-md shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
       >
         <CloudArrowDownIcon
           className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"

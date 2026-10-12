@@ -115,7 +115,7 @@
 </script>
 
 <div
-  class="flex flex-col md:flex-row gap-6 mt-2 p-4 bg-neutral-50 dark:bg-neutral-800/30 border border-neutral-200 dark:border-neutral-700 rounded-lg"
+  class="flex flex-col md:flex-row gap-6 mt-2 p-4 bg-neutral-50 dark:bg-neutral-800/30 border border-neutral-200 dark:border-neutral-700 rounded-md"
 >
   <!-- Left Side: Preview Canvas -->
   <div class="flex flex-col w-full md:w-[260px] shrink-0 items-center">

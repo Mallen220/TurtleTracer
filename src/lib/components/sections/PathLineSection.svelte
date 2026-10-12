@@ -334,7 +334,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class={`bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 ${
+  class={`bg-white dark:bg-neutral-800 rounded-md shadow-sm border transition-all duration-200 ${
     isSelected
       ? "border-purple-500 ring-1 ring-purple-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
@@ -476,7 +476,7 @@
       ></div>
 
       <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
+        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-md p-0.5"
       >
         <button
           onclick={(e) => {
@@ -537,7 +537,7 @@
               >
               <input
                 bind:this={xInput}
-                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
                 min={$settingsStore.coordinateSystem === "FTC"
@@ -570,7 +570,7 @@
               >
               <input
                 bind:this={yInput}
-                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 min={$settingsStore.coordinateSystem === "FTC"
                   ? -($settingsStore.fieldWidth ?? 144) / 2
@@ -635,7 +635,7 @@
               >Heading</span
             >
             <button
-              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/50 rounded-lg flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/50 rounded-md flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               onclick={() => {
                 if (onScrollToItem && chainGlobalSourceLine?.id) {
                   onScrollToItem(chainGlobalSourceLine.id);

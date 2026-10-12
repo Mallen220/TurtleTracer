@@ -206,7 +206,7 @@
     value={endPoint.heading}
     onchange={(e) =>
       setStyle(e.currentTarget.value as HeadingFields["heading"])}
-    class="w-full pl-3 pr-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all flex-1"
+    class="w-full pl-3 pr-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all flex-1"
     title="The heading style of the robot.
   With constant heading, the robot maintains the same heading throughout the line.
   With linear heading, heading changes linearly between given start and end angles.
@@ -224,7 +224,7 @@
   </select>
 
   <label
-    class="flex items-center justify-center px-2 py-1.5 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 {endPoint.heading ===
+    class="flex items-center justify-center px-2 py-1.5 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 {endPoint.heading ===
     'piecewise'
       ? 'hidden'
       : ''}"
@@ -298,7 +298,7 @@
     </div>
   {:else if endPoint.heading === "tangential"}
     <div
-      class="flex items-center justify-center gap-2 flex-[2] bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 min-w-0"
+      class="flex items-center justify-center gap-2 flex-[2] bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md px-3 min-w-0"
     >
       <ArrowRightIcon
         className="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse

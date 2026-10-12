@@ -156,7 +156,7 @@
   >
     <div
       transition:fly={{ duration: 200, y: 20, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
+      class="bg-white dark:bg-neutral-900 rounded-md shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
     >
       <div
         class="flex justify-between items-center p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50"
@@ -313,7 +313,7 @@
               {/if}
 
               <div
-                class="mt-4 p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800/50"
+                class="mt-4 p-4 border border-neutral-200 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-800/50"
               >
                 <label
                   for="pivot-mode"

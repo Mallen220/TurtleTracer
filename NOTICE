@@ -681,3 +681,7 @@ src/utils/javaImporter/pedroReader.ts
 mac/README.txt
 src/lib/components/filemanager/fileBrowser.svelte.ts
 src/lib/components/filemanager/JavaFileBadge.svelte
+src/app.scss
+src/lib/components/dialogs/ProjectFolderDialog.svelte
+src/lib/components/VelocityTooltip.svelte
+src/lib/components/FileDropZone.svelte

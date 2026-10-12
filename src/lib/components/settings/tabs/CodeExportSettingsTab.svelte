@@ -119,7 +119,7 @@
           layout="row"
         >
           <div
-            class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg border border-neutral-200 dark:border-neutral-700"
+            class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-md border border-neutral-200 dark:border-neutral-700"
           >
             <button
               class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
@@ -216,7 +216,7 @@
         </select>
         {#if settings.codeUnits === "metric" && !settings.autoExportEmbedPoseData && settings.autoExportFormat === "sequential"}
           <div
-            class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+            class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-md border border-yellow-200 dark:border-yellow-800/50"
             role="alert"
           >
             <ICONS.TriangleWarningIcon className="size-4 shrink-0" />

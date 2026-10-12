@@ -257,7 +257,7 @@
     }}
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+      class="bg-white dark:bg-neutral-800 rounded-md shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
     >
       <!-- Header -->
       <div
@@ -294,7 +294,7 @@
               id="anim-format"
               bind:value={format}
               disabled={status === "generating"}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
             >
               <option value="gif">GIF</option>
               <option value="apng">Animated PNG</option>
@@ -333,7 +333,7 @@
               id="gif-scale"
               bind:value={resolutionScale}
               disabled={status === "generating"}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
             >
               <option value={0.25}>25% (Smallest)</option>
               <option value={0.5}>50% (Recommended)</option>
@@ -409,7 +409,7 @@
           </div>
         {:else if status === "error"}
           <div
-            class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
+            class="p-4 mb-4 text-sm text-red-800 rounded-md bg-red-50 dark:bg-gray-800 dark:text-red-400"
             role="alert"
           >
             <span class="font-medium">Error!</span>
@@ -417,7 +417,7 @@
           </div>
         {:else if status === "done"}
           <div
-            class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400"
+            class="p-4 mb-4 text-sm text-green-800 rounded-md bg-green-50 dark:bg-gray-800 dark:text-green-400"
             role="alert"
           >
             <span class="font-medium">Success!</span>
@@ -453,14 +453,14 @@
         class="flex items-center justify-end px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
       >
         <button
-          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors"
           onclick={handleCancel}
         >
           Cancel
         </button>
 
         <button
-          class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onclick={generatePreview}
           disabled={status === "generating"}
         >
@@ -468,7 +468,7 @@
         </button>
 
         <button
-          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onclick={downloadAnimation}
           disabled={status === "generating"}
         >

@@ -241,7 +241,7 @@
           bind:this={saveDropdownRef}
           use:menuNavigation
           onclose={() => (saveDropdownOpen = false)}
-          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
+          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
           'left'
             ? 'right-full'
             : 'left-full'}"
@@ -448,7 +448,7 @@
           bind:this={exportMenuRef}
           use:menuNavigation
           onclose={() => (exportMenuOpen = false)}
-          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
+          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-md shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
         >
           <button
             onclick={() => handleExport("java")}
