@@ -8,6 +8,7 @@ vi.mock("electron", () => ({
 }));
 
 const { createJavaFollower } = await import("./javaFollowHandlers.js");
+const { offerJavaFile } = await import("./offeredJavaFiles.js");
 
 const FILE = "/team/TeamCode/src/main/java/Auto.java";
 
@@ -29,10 +30,15 @@ function windowSender(id = 1) {
 
 let watched;
 let follower;
+let offered;
 
 beforeEach(() => {
   watched = new Map();
+  offered = new Set();
+  offerJavaFile(FILE, offered);
+  offerJavaFile("/team/Other.java", offered);
   follower = createJavaFollower({
+    offered,
     watchFile: vi.fn((path, _options, listener) => watched.set(path, listener)),
     unwatchFile: vi.fn((path) => watched.delete(path)),
   });
@@ -71,6 +77,17 @@ describe("following a Java file", () => {
       "traversal",
     );
     expect(watched.size).toBe(0);
+  });
+
+  it("only follows a Java file it offered", () => {
+    const sender = windowSender();
+    expect(() => follower.follow(sender, "/etc/Secret.java")).toThrow(
+      "file dialog",
+    );
+    expect(watched.size).toBe(0);
+    offerJavaFile("/etc/Secret.java", offered);
+    expect(follower.follow(sender, "/etc/Secret.java")).toBe(true);
+    expect([...watched.keys()]).toEqual(["/etc/Secret.java"]);
   });
 
   it("follows one file per window, replacing the last", () => {

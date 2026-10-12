@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { isProjectFilePath, validateArbitraryPath } from "../utils.js";
 import { getGitStatuses } from "./gitHandlers.js";
+import { offerJavaFile } from "./offeredJavaFiles.js";
 
 export function registerFileHandlers() {
   ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
@@ -77,6 +78,8 @@ export function registerFileHandlers() {
       const fileDetails = await Promise.all(
         projectFilesAndDirs.map(async (dirent) => {
           const filePath = path.join(directory, dirent.name);
+          // The page may follow a Java file it was shown here.
+          offerJavaFile(filePath);
 
           const stats = await fs.stat(filePath);
           const resolvedPath = await fs.realpath(filePath);

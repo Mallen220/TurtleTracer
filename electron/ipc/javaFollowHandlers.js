@@ -4,6 +4,11 @@
 import { ipcMain, BrowserWindow, dialog } from "electron";
 import fs from "node:fs";
 import { validateArbitraryPath } from "../utils.js";
+import {
+  findOfferedJavaFile,
+  offerJavaFile,
+  sharedOfferedJavaFiles,
+} from "./offeredJavaFiles.js";
 
 /** How often the file is checked for a save, in milliseconds. */
 const CHECK_INTERVAL = 250;
@@ -16,6 +21,7 @@ const CHECK_INTERVAL = 250;
 export function createJavaFollower({
   watchFile = fs.watchFile,
   unwatchFile = fs.unwatchFile,
+  offered = sharedOfferedJavaFiles,
 } = {}) {
   /** What each window follows: the file and its listener, by sender id. */
   const following = new Map();
@@ -30,9 +36,17 @@ export function createJavaFollower({
   }
 
   function follow(sender, filePath) {
-    const resolved = validateArbitraryPath(filePath);
-    if (!resolved.toLowerCase().endsWith(".java")) {
+    const requested = validateArbitraryPath(filePath);
+    if (!requested.toLowerCase().endsWith(".java")) {
       throw new Error("Only Java files can be followed.");
+    }
+    // Only a file this process offered the page: picked in the dialog or listed
+    // in a folder. The path watched is the offered one, not the caller's.
+    const resolved = findOfferedJavaFile(requested, offered);
+    if (!resolved) {
+      throw new Error(
+        "Only a Java file chosen in the file dialog or listed in the file manager can be followed.",
+      );
     }
     stop(sender);
     const listener = (current, previous) => {
@@ -67,7 +81,9 @@ export function registerJavaFollowHandlers() {
       properties: ["openFile"],
       filters: [{ name: "Java", extensions: ["java"] }],
     });
-    return result.canceled ? null : (result.filePaths[0] ?? null);
+    const chosen = result.canceled ? null : (result.filePaths[0] ?? null);
+    if (chosen) offerJavaFile(chosen);
+    return chosen;
   });
   ipcMain.handle("java:follow", (event, filePath) =>
     follower.follow(event.sender, filePath),
