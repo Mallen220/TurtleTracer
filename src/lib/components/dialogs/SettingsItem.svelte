@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { ResetIcon } from "../icons/index";
+  import { ui } from "../../ui";
 
   interface Props {
     label: string;
@@ -44,10 +45,7 @@
     {@render children?.()}
   {:else if layout === "col"}
     <div class="flex items-start justify-between mb-1">
-      <label
-        for={forId}
-        class="block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-      >
+      <label for={forId} class="{ui.label} block">
         {label}
         {#if description}
           <div
@@ -60,7 +58,7 @@
       {#if onReset && isModified}
         <button
           type="button"
-          class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class={ui.iconBtnSm.neutral}
           title="Reset to default"
           onclick={onReset}
           aria-label="Reset to default"
@@ -71,21 +69,16 @@
     </div>
     {@render children?.()}
   {:else}
-    <div
-      class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700"
-    >
+    <div class="{ui.card} flex items-center justify-between p-3">
       <div class="flex-1 mr-4">
         <div class="flex items-center gap-2 mb-1">
-          <label
-            for={forId}
-            class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block"
-          >
+          <label for={forId} class="{ui.label} block">
             {label}
           </label>
           {#if onReset && isModified}
             <button
               type="button"
-              class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors flex-shrink-0"
+              class="{ui.iconBtnSm.neutral} flex-shrink-0"
               title="Reset to default"
               onclick={onReset}
               aria-label="Reset to default"

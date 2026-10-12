@@ -15,6 +15,7 @@
   import { GithubIcon } from "../icons";
   import GitHubCommitDialog from "./GitHubCommitDialog.svelte";
   import GitHubConflicts from "./GitHubConflicts.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     repo: RepoRef;
@@ -174,37 +175,33 @@
   }
 
   const menuItem =
-    "px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 disabled:opacity-50";
+    "px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 disabled:opacity-50";
 </script>
 
-<div
-  class="px-3 py-2 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 flex flex-col gap-2"
->
+<div class="{ui.bar} px-3 py-2 flex flex-col gap-2">
   <div class="flex items-center gap-2 text-xs">
     <GithubIcon
       className="size-4 shrink-0 text-neutral-700 dark:text-neutral-300"
     />
     <span
-      class="font-semibold text-neutral-800 dark:text-neutral-100 truncate"
+      class="font-semibold text-neutral-900 dark:text-neutral-100 truncate"
       title={repoKey(repo)}>{repoKey(repo)}</span
     >
     {#if summary}
-      <span
-        class="shrink-0 px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-mono"
-        >{summary.branch}</span
+      <span class="{ui.badge.neutral} shrink-0 font-mono">{summary.branch}</span
       >
     {/if}
     <span class="flex-1"></span>
     <button
       onclick={() => update()}
       disabled={busy || !$editable}
-      class="shrink-0 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 hover:bg-white dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 disabled:opacity-50"
+      class="{ui.btnSm.outline} shrink-0"
       title="Get the latest version from GitHub">Update</button
     >
     <button
       onclick={() => (showCommit = true)}
       disabled={changeCount === 0}
-      class="shrink-0 px-2 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white font-medium disabled:opacity-50"
+      class="{ui.btnSm.primary} shrink-0"
       title={changeCount
         ? "Send your changes to GitHub"
         : "Nothing to commit yet"}
@@ -213,14 +210,14 @@
     <div class="relative shrink-0">
       <button
         onclick={() => (showMenu = !showMenu)}
-        class="px-1.5 py-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300"
+        class={ui.btnSm.ghost}
         aria-label="More repository actions"
         aria-haspopup="true"
         aria-expanded={showMenu}>⋯</button
       >
       {#if showMenu}
         <div
-          class="absolute right-0 top-full mt-1 w-60 z-[100] bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col text-sm"
+          class="{ui.menu} absolute right-0 top-full mt-1 w-60 z-[100] flex flex-col text-sm"
         >
           <a
             href={`https://github.com/${repoKey(repo)}/tree/${summary?.branch ?? ""}`}
@@ -280,7 +277,7 @@
   {#if branches}
     <div class="flex items-center gap-2 text-xs">
       {#if branches.length === 0}
-        <span class="text-neutral-600 dark:text-neutral-400"
+        <span class="text-neutral-500 dark:text-neutral-400"
           >There are no other branches.</span
         >
       {:else}
@@ -288,10 +285,7 @@
           class="flex items-center gap-2 text-neutral-700 dark:text-neutral-300"
         >
           Take your changes to
-          <select
-            bind:value={chosenBranch}
-            class="px-1 py-0.5 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 font-mono"
-          >
+          <select bind:value={chosenBranch} class="{ui.inputXs} font-mono">
             {#each branches as name (name)}
               <option value={name}>{name}</option>
             {/each}
@@ -300,8 +294,7 @@
         <button
           onclick={() => switchBranch(chosenBranch)}
           disabled={busy || !chosenBranch}
-          class="px-2 py-1 rounded bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 font-medium disabled:opacity-50"
-          >Switch</button
+          class={ui.btnSm.primary}>Switch</button
         >
       {/if}
       <button class="hover:underline" onclick={() => (branches = null)}

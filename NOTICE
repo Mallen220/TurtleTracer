@@ -685,3 +685,7 @@ src/app.scss
 src/lib/components/dialogs/ProjectFolderDialog.svelte
 src/lib/components/VelocityTooltip.svelte
 src/lib/components/FileDropZone.svelte
+src/lib/components/settings/tabs/NumberSetting.svelte
+src/lib/components/settings/tabs/TranslationalPPreview.svelte
+src/lib/ui.ts
+src/tests/ui.test.ts

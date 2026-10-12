@@ -21,6 +21,7 @@
     type DragPosition,
   } from "../../../utils/dragDrop";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     line: Line;
@@ -160,7 +161,7 @@
   <div class="flex items-center justify-between w-full py-1">
     <button
       onclick={toggleCollapsed}
-      class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-200 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors"
+      class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors"
       title="{collapsed ? 'Show' : 'Hide'} control points"
       aria-label="{collapsed ? 'Show' : 'Hide'} control points"
       aria-expanded={!collapsed}
@@ -186,7 +187,7 @@
         ];
         recordChange();
       }}
-      class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
+      class={ui.btnSm.secondary}
       title="Add Control Point"
       disabled={line.locked}
       aria-label="Add Control Point"
@@ -250,7 +251,7 @@
                     e.stopPropagation();
                     moveControlPoint(idx, -1);
                   }}
-                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class={ui.iconBtnSm.neutral}
                   disabled={idx === 0 || line.locked}
                 >
                   <ChevronUpIcon className="size-3" />
@@ -267,7 +268,7 @@
                     e.stopPropagation();
                     moveControlPoint(idx, 1);
                   }}
-                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class={ui.iconBtnSm.neutral}
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}
                 >
@@ -308,7 +309,7 @@
                     ? ($settingsStore.fieldHeight ?? 144) / 2
                     : ($settingsStore.fieldWidth ?? 144)}
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                  class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  class="{ui.inputXs} w-full pl-5 pr-1"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
                   oninput={(e) => {
                     const val = Number.parseFloat(e.currentTarget.value);
@@ -349,7 +350,7 @@
                     ? ($settingsStore.fieldWidth ?? 144) / 2
                     : ($settingsStore.fieldHeight ?? 144)}
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                  class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  class="{ui.inputXs} w-full pl-5 pr-1"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
                   oninput={(e) => {
                     const val = Number.parseFloat(e.currentTarget.value);

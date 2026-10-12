@@ -12,6 +12,7 @@
   } from "../../../utils/coordinates";
   import { extraDataStore } from "../../projectStore";
   import { CloseIcon, DocumentIcon, ArrowDownTrayIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -456,7 +457,7 @@
   <!-- Backdrop (Hidden on Print) -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6 print:hidden"
+    class="{ui.overlay} z-[1000] print:hidden"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) handleClose();
@@ -466,34 +467,26 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-md shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none overflow-hidden"
+      class="{ui.dialog} w-full max-w-4xl h-[90vh] flex flex-col outline-none overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="strategy-sheet-title"
       tabindex="-1"
     >
       <!-- Header (Screen Only) -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0 bg-neutral-50 dark:bg-neutral-800/50"
-      >
+      <div class="{ui.dialogHeader} shrink-0">
         <h2
           id="strategy-sheet-title"
-          class="text-lg font-semibold text-neutral-900 dark:text-white"
+          class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Strategy Sheet Preview
         </h2>
         <div class="flex items-center gap-2">
-          <button
-            onclick={handlePrint}
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-          >
+          <button onclick={handlePrint} class={ui.btn.primary}>
             <DocumentIcon className="size-4" />
             Print
           </button>
-          <button
-            onclick={handleDownloadPdf}
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors"
-          >
+          <button onclick={handleDownloadPdf} class={ui.btn.success}>
             <ArrowDownTrayIcon className="size-4" />
             Download PDF
           </button>
@@ -501,7 +494,7 @@
             title="Close"
             onclick={handleClose}
             aria-label="Close"
-            class="p-2 rounded-md text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            class={ui.iconBtn.neutral}
           >
             <CloseIcon className="size-5" />
           </button>

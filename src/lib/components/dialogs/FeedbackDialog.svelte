@@ -18,6 +18,7 @@
   import { settingsStore } from "../../projectStore";
   import { saveSettings } from "../../../utils/settingsPersistence";
   import pkg from "../../../../package.json";
+  import { ui } from "../../ui";
 
   let description = $state("");
   let contactInfo = $state("");
@@ -187,7 +188,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     role="presentation"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+    class="{ui.overlay} z-[100]"
     onclick={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >
@@ -199,17 +200,13 @@
       onclick={(e) => {
         e.stopPropagation();
       }}
-      class="bg-white dark:bg-neutral-800 rounded-md shadow-2xl w-full max-w-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700"
+      class="{ui.dialog} w-full max-w-2xl overflow-hidden"
       in:fly={{ y: 20, duration: 200, delay: 50 }}
       out:fly={{ y: 20, duration: 150 }}
     >
       <!-- Header -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
-      >
-        <h2
-          class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-        >
+      <div class={ui.dialogHeader}>
+        <h2 class="{ui.title} flex items-center gap-2">
           <FeedbackIcon
             className="w-5 h-5 text-purple-600 dark:text-purple-400"
           />
@@ -229,10 +226,7 @@
       <!-- Content -->
       <div class="px-6 py-5 space-y-6">
         <div>
-          <label
-            for="description"
-            class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
-          >
+          <label for="description" class="{ui.label} block mb-2">
             Describe the issue, feature, or provide feedback
           </label>
           <textarea
@@ -241,7 +235,7 @@
             disabled={isSubmitting}
             rows="5"
             placeholder="What's on your mind? Found a bug? Have a suggestion?"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-md text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 resize-none"
+            class="{ui.input} w-full resize-none"
           ></textarea>
           <div
             class="mt-2 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400"
@@ -255,10 +249,7 @@
         </div>
 
         <div>
-          <label
-            for="contactInfo"
-            class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
-          >
+          <label for="contactInfo" class="{ui.label} block mb-2">
             Optional Contact Info (Discord / Email)
           </label>
           <input
@@ -267,21 +258,17 @@
             bind:value={contactInfo}
             disabled={isSubmitting}
             placeholder="User#1234 or email@example.com (Optional, only contacted if questions arise)"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-md text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
+            class="{ui.input} w-full"
           />
         </div>
 
         {#if status === "error"}
-          <div
-            class="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-sm rounded-md flex items-start gap-2 border border-red-200 dark:border-red-900/50"
-          >
+          <div class="{ui.alert.danger} flex items-start gap-2">
             <ErrorIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>{errorMessage}</p>
           </div>
         {:else if status === "success"}
-          <div
-            class="p-3 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm rounded-md flex items-center gap-2 border border-green-200 dark:border-green-900/50"
-          >
+          <div class="{ui.alert.success} flex items-center gap-2">
             <SuccessIcon className="w-5 h-5 flex-shrink-0" />
             <p>Feedback sent successfully! Thank you.</p>
           </div>
@@ -289,15 +276,13 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 flex items-center justify-between gap-3"
-      >
+      <div class="{ui.dialogFooter} justify-between">
         <div>
           {#if !($settingsStore.submittedRatings && $settingsStore.submittedRatings[pkg.version])}
             <button
               onclick={openRatingDialog}
               disabled={isSubmitting}
-              class="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors focus:outline-none hover:underline disabled:opacity-50"
+              class={ui.link}
             >
               Want to rate the app?
             </button>
@@ -307,7 +292,7 @@
           <button
             onclick={closeDialog}
             disabled={isSubmitting}
-            class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
+            class={ui.btn.ghost}
           >
             Cancel
           </button>
@@ -316,7 +301,7 @@
             disabled={isSubmitting ||
               status === "success" ||
               cooldownSeconds > 0}
-            class="px-5 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-sm shadow-purple-900/20 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 flex items-center gap-2"
+            class={ui.btn.primary}
           >
             {#if cooldownSeconds > 0}
               Wait {Math.floor(cooldownSeconds / 60) + 1}m

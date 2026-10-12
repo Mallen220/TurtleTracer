@@ -4,6 +4,7 @@
   import { saveAutoPathsDirectory } from "../../../utils/directorySettings";
   import { projectFolderPrompt } from "../../../stores";
   import { FolderIcon } from "../icons";
+  import { ui } from "../../ui";
 
   async function chooseFolder() {
     try {
@@ -25,13 +26,13 @@
 
 {#if $projectFolderPrompt}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/80 p-4 transition-all duration-300"
+    class="{ui.overlay} z-[1100] transition-all duration-300"
     role="dialog"
     aria-modal="true"
     aria-labelledby="project-folder-title"
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-2xl w-full max-w-2xl flex flex-col p-8 md:p-12 items-center text-center animate-fade-in border border-neutral-200 dark:border-neutral-700 max-h-[90vh] overflow-y-auto"
+      class="{ui.dialog} w-full max-w-2xl flex flex-col p-8 md:p-12 items-center text-center animate-fade-in max-h-[90vh] overflow-y-auto"
     >
       <div
         class="w-20 h-20 shrink-0 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mb-8"
@@ -40,12 +41,12 @@
       </div>
       <h2
         id="project-folder-title"
-        class="text-3xl font-extrabold text-neutral-900 dark:text-white mb-4"
+        class="text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-4"
       >
         Where Should Your Paths Live?
       </h2>
       <p
-        class="text-neutral-600 dark:text-neutral-300 mb-8 text-lg leading-relaxed"
+        class="text-neutral-700 dark:text-neutral-300 mb-8 text-lg leading-relaxed"
       >
         Pick a project folder to keep your paths together. Turtle Tracer will
         show it in the File Manager and open your saved paths from there.
@@ -59,14 +60,11 @@
       <div
         class="flex flex-col sm:flex-row items-center gap-3 w-full justify-center"
       >
-        <button
-          class="px-6 py-3 text-neutral-500 dark:text-neutral-400 font-semibold rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors w-full sm:w-auto"
-          onclick={cancel}
-        >
+        <button class="{ui.btn.ghost} w-full sm:w-auto" onclick={cancel}>
           Cancel
         </button>
         <button
-          class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md transition-colors duration-200 flex items-center gap-3 text-lg w-full sm:w-auto justify-center"
+          class="{ui.btn.success} w-full sm:w-auto"
           onclick={chooseFolder}
         >
           <FolderIcon className="w-6 h-6" />

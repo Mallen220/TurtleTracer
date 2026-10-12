@@ -4,6 +4,7 @@
   import { parseGitHubPath } from "../../../utils/github/paths";
   import type { Resolution } from "../../../utils/github/repos";
   import PathText from "../PathText.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     /** App paths of the files. */
@@ -19,10 +20,7 @@
   );
 </script>
 
-<div
-  class="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 text-xs text-amber-900 dark:text-amber-200 flex flex-col gap-2"
-  role="alert"
->
+<div class="{ui.alert.warning} flex flex-col gap-2" role="alert">
   <p>
     Someone committed changes to {conflicts.length === 1 ? "a file" : "files"} you've
     also edited here:
@@ -37,17 +35,16 @@
     next to it as "(my version)" so you can compare them.
   </p>
   <div class="flex flex-wrap gap-2">
-    <button
-      class="px-2 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-medium"
-      onclick={() => onresolve("both")}>Keep both</button
+    <button class={ui.btnSm.warning} onclick={() => onresolve("both")}
+      >Keep both</button
     >
     <button
-      class="px-2 py-1 rounded bg-white dark:bg-neutral-800 border border-amber-400 dark:border-amber-700 font-medium"
+      class={ui.btnSm.secondary}
       onclick={() => onresolve("theirs")}
       title="Your edits to these files are thrown away">Use GitHub's</button
     >
     <button
-      class="px-2 py-1 rounded bg-white dark:bg-neutral-800 border border-amber-400 dark:border-amber-700 font-medium"
+      class={ui.btnSm.secondary}
       onclick={() => onresolve("mine")}
       title="Committing will replace what your teammate committed"
       >Keep mine</button

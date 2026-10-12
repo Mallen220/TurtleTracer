@@ -36,6 +36,7 @@
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
   import ValidationButton from "./components/tools/ValidationButton.svelte";
+  import { ui } from "./ui";
 
   interface Props {
     robotLength: number;
@@ -199,7 +200,7 @@
 </script>
 
 <div
-  class="w-full z-50 bg-neutral-50 dark:bg-neutral-900 shadow-sm flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-800"
+  class="{ui.bar} w-full z-50 shadow-sm flex flex-wrap justify-between items-center px-4 md:px-6 py-3"
 >
   <!-- Left: Brand & File -->
   <div class="flex items-center gap-4">
@@ -214,7 +215,7 @@
           saveProject();
           saveDropdownOpen = false;
         }}
-        class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 first:rounded-l-md"
+        class="{ui.iconBtn.neutral} first:rounded-l-md"
         title={`Save${getShortcutFromSettings(settings, "save-project")}`}
         aria-label="Save"
       >
@@ -223,7 +224,7 @@
 
       <button
         bind:this={saveOptionsButtonRef}
-        class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 last:rounded-r-md"
+        class="{ui.iconBtn.neutral} last:rounded-r-md"
         aria-expanded={saveDropdownOpen}
         aria-label="Save options"
         title="Save options"
@@ -241,7 +242,7 @@
           bind:this={saveDropdownRef}
           use:menuNavigation
           onclose={() => (saveDropdownOpen = false)}
-          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
+          class="{ui.menu} absolute top-full mt-2 w-48 z-50 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
           'left'
             ? 'right-full'
             : 'left-full'}"
@@ -251,7 +252,7 @@
               saveProject();
               saveDropdownOpen = false;
             }}
-            class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Save${getShortcutFromSettings(settings, "save-project")}`}
           >
             <span class="font-medium">Save</span>
@@ -261,7 +262,7 @@
               saveFileAs();
               saveDropdownOpen = false;
             }}
-            class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Save As${getShortcutFromSettings(settings, "save-file-as")}`}
           >
             <span class="font-medium">Save As...</span>
@@ -281,7 +282,8 @@
             href="https://github.com/Mallen220/TurtleTracer/releases"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-300 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 dark:hover:border-purple-700 transition-colors whitespace-nowrap uppercase tracking-wider"
+            class="{ui.badge
+              .accent} hover:opacity-80 whitespace-nowrap uppercase tracking-wider"
             title="Faster, more stable, and better support/features"
           >
             Download Desktop App
@@ -297,12 +299,9 @@
           >
           {#if (settings.gitIntegration || isGitHubPath($currentFilePath)) && $gitStatusStore[$currentFilePath] && $gitStatusStore[$currentFilePath] !== "clean"}
             <button
-              class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap transition-all
-                {$gitStatusStore[$currentFilePath] === 'modified'
-                ? 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/70'
-                : $gitStatusStore[$currentFilePath] === 'staged'
-                  ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/70'
-                  : 'bg-neutral-100 border-neutral-200 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-600'}"
+              class="{ui.badge[
+                ui.gitTone($gitStatusStore[$currentFilePath])
+              ]} ml-2 whitespace-nowrap hover:opacity-80"
               title={`${
                 $gitStatusStore[$currentFilePath] === "modified"
                   ? "Git: Modified (Unstaged Changes)"
@@ -334,7 +333,7 @@
           {/if}
           {#if openRepoSummary && openRepoSummary.changeCount > 0}
             <button
-              class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap bg-purple-100 border-purple-200 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/50 dark:border-purple-700 dark:text-purple-300"
+              class="{ui.badge.accent} ml-2 whitespace-nowrap hover:opacity-80"
               title="These changes are only on this device until you commit them to GitHub"
               onclick={() => (showRepoCommit = true)}
             >
@@ -357,7 +356,7 @@
         title={action.title}
         aria-label={action.title}
         onclick={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtn.neutral}
       >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
@@ -369,11 +368,8 @@
   {#if true}
     <div class="flex items-center gap-6 text-sm hidden md:flex">
       <div class="flex flex-col items-center">
-        <span
-          class="text-xs text-neutral-400 font-medium uppercase tracking-wider"
-          >Est. Time</span
-        >
-        <span class="font-semibold text-neutral-800 dark:text-neutral-200"
+        <span class={ui.heading}>Est. Time</span>
+        <span class="font-semibold text-neutral-900 dark:text-neutral-100"
           >{formatEstimatedTime(timePrediction?.totalTime ?? 0)}</span
         >
       </div>
@@ -383,11 +379,8 @@
         aria-hidden="true"
       ></div>
       <div class="flex flex-col items-center">
-        <span
-          class="text-xs text-neutral-400 font-medium uppercase tracking-wider"
-          >Distance</span
-        >
-        <span class="font-semibold text-neutral-800 dark:text-neutral-200"
+        <span class={ui.heading}>Distance</span>
+        <span class="font-semibold text-neutral-900 dark:text-neutral-100"
           >{formatDisplayDistance(
             timePrediction?.totalDistance ?? 0,
             settings,
@@ -398,7 +391,7 @@
     </div>
     <!-- Mobile version of stats -->
     <div
-      class="flex flex-col md:hidden text-xs text-neutral-600 dark:text-neutral-300"
+      class="flex flex-col md:hidden text-xs text-neutral-700 dark:text-neutral-300"
     >
       <span>{formatEstimatedTime(timePrediction?.totalTime ?? 0)}</span>
       <span
@@ -415,7 +408,7 @@
         title={action.title}
         aria-label={action.title}
         onclick={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="{ui.iconBtn.neutral} hidden md:block"
       >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
@@ -434,7 +427,7 @@
         id="export-project-btn"
         bind:this={exportButtonRef}
         onclick={() => (exportMenuOpen = !exportMenuOpen)}
-        class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
+        class={ui.btn.primary}
       >
         <span>Export</span>
         <ChevronUpIcon
@@ -448,29 +441,29 @@
           bind:this={exportMenuRef}
           use:menuNavigation
           onclose={() => (exportMenuOpen = false)}
-          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-md shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
+          class="{ui.menu} absolute right-0 top-full mt-2 w-56 z-50 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
         >
           <button
             onclick={() => handleExport("java")}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Export Java${getShortcutFromSettings(settings, "export-java")}`}
             >Java Code</button
           >
           <button
             onclick={() => handleExport("points")}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Export Points${getShortcutFromSettings(settings, "export-points")}`}
             >Points Array</button
           >
           <button
             onclick={() => handleExport("sequential")}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Export Sequential${getShortcutFromSettings(settings, "export-sequential")}`}
             >Sequential Command</button
           >
           <button
             onclick={() => handleExport("json")}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Export .turt${getShortcutFromSettings(settings, "export-pp")}`}
             >.turt File</button
           >
@@ -481,7 +474,7 @@
               exportMenuOpen = false;
               showExportImage.set(true);
             }}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title="Export as Image">Export as Image</button
           >
           <button
@@ -489,7 +482,7 @@
               exportMenuOpen = false;
               exportGif && exportGif();
             }}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title={`Export GIF${getShortcutFromSettings(settings, "export-gif")}`}
             >Export Animated</button
           >
@@ -498,7 +491,7 @@
               exportMenuOpen = false;
               showStrategySheet.set(true);
             }}
-            class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            class={ui.menuItem}
             title="Print Strategy Sheet">Strategy Sheet</button
           >
 
@@ -512,7 +505,7 @@
             {#each $customExportersStore as exporter}
               <button
                 onclick={() => handleExport("custom", exporter.name)}
-                class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                class={ui.menuItem}
               >
                 {exporter.name}
               </button>
@@ -528,7 +521,7 @@
         title={action.title}
         aria-label={action.title}
         onclick={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtn.neutral}
       >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
@@ -541,7 +534,7 @@
       title={`${showSidebar ? "Hide Sidebar" : "Show Sidebar"}${getShortcutFromSettings(settings, "toggle-sidebar")}`}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       onclick={() => (showSidebar = !showSidebar)}
-      class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+      class={ui.iconBtn.neutral}
     >
       {#if showSidebar && isLargeScreen}
         <!-- Sidebar visible: show icon with left pane -->

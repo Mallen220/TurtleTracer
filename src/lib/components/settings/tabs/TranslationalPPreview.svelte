@@ -3,6 +3,7 @@
 <script lang="ts">
   import { previewTranslationalGain } from "../../../../utils/timeCalculator/gainPreview";
   import type { Settings } from "../../../../types";
+  import { ui } from "../../../ui";
 
   let { settings }: { settings: Settings } = $props();
 
@@ -52,7 +53,7 @@
 </script>
 
 <div
-  class="mb-4 -mt-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/40 p-3 text-xs text-neutral-600 dark:text-neutral-400"
+  class="{ui.well} mb-4 -mt-2 p-3 text-xs text-neutral-500 dark:text-neutral-400"
   data-testid="gain-preview"
 >
   <div class="flex flex-wrap items-start gap-3">

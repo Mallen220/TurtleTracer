@@ -12,6 +12,7 @@
     ArrowCircleIcon,
     TrashIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     x: number;
@@ -99,31 +100,25 @@
   use:menuNavigation
   onclose={() => onclose?.()}
   bind:this={menuElement}
-  class="fixed z-[1200] min-w-[160px] py-1 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 text-sm"
+  class="{ui.menu} fixed z-[1200] min-w-[160px] text-sm"
   style="top: {adjustedY}px; left: {adjustedX}px;"
   transition:fade={{ duration: 100 }}
   role="menu"
   tabindex="-1"
 >
   <div
-    class="px-3 py-1.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-700 mb-1 truncate max-w-[200px]"
+    class="px-3 py-1.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500 border-b border-neutral-200 dark:border-neutral-700 mb-1 truncate max-w-[200px]"
   >
     {fileName}
   </div>
 
-  <button
-    onclick={() => onaction?.("open")}
-    class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-  >
+  <button onclick={() => onaction?.("open")} class={ui.menuItem}>
     <ArrowRightIcon className="size-4" />
     Open
   </button>
 
   {#if !isDirectory}
-    <button
-      onclick={() => onaction?.("save-to")}
-      class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-    >
+    <button onclick={() => onaction?.("save-to")} class={ui.menuItem}>
       <ArrowDownTrayIcon className="size-4" />
       Save Current to File
     </button>
@@ -131,38 +126,26 @@
   {#if canChange}
     <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
-    <button
-      onclick={() => onaction?.("rename")}
-      class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-    >
+    <button onclick={() => onaction?.("rename")} class={ui.menuItem}>
       <PenIcon className="size-4" strokeWidth={1.5} />
       Rename
     </button>
   {/if}
 
   {#if !isDirectory}
-    <button
-      onclick={() => onaction?.("duplicate")}
-      class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-    >
+    <button onclick={() => onaction?.("duplicate")} class={ui.menuItem}>
       <DocumentIcon className="size-4" strokeWidth={1.5} />
       Duplicate
     </button>
 
-    <button
-      onclick={() => onaction?.("mirror")}
-      class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-    >
+    <button onclick={() => onaction?.("mirror")} class={ui.menuItem}>
       <!-- Need to flip vertically or similar for Mirror vs Reverse, we'll use ArrowCircleIcon or reverse its scale.
       <!-- Since ArrowCircleIcon is symmetrical, we'll just use it for both for now to replace SVG, or ArrowRightIcon -->
       <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
       Mirror Copy
     </button>
 
-    <button
-      onclick={() => onaction?.("reverse")}
-      class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-    >
+    <button onclick={() => onaction?.("reverse")} class={ui.menuItem}>
       <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
       Reverse Copy
     </button>
@@ -170,10 +153,7 @@
   {#if canChange}
     <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
-    <button
-      onclick={() => onaction?.("delete")}
-      class="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
-    >
+    <button onclick={() => onaction?.("delete")} class={ui.menuItemDanger}>
       <TrashIcon className="size-4" strokeWidth={1.5} />
       Delete
     </button>

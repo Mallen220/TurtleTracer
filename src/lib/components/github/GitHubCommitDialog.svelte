@@ -25,6 +25,7 @@
   import PathText from "../PathText.svelte";
   import GitHubConflicts from "./GitHubConflicts.svelte";
   import GitHubTokenForm from "./GitHubTokenForm.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     show?: boolean;
@@ -173,7 +174,7 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4"
+    class="{ui.overlay} z-[1100]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="github-commit-title"
@@ -183,13 +184,10 @@
     }}
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-md shadow-xl w-full max-w-lg p-6 border border-neutral-200 dark:border-neutral-700 flex flex-col gap-4 max-h-full overflow-y-auto"
+      class="{ui.dialog} w-full max-w-lg p-6 flex flex-col gap-4 max-h-full overflow-y-auto"
     >
       <div class="flex items-center justify-between">
-        <h2
-          id="github-commit-title"
-          class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-        >
+        <h2 id="github-commit-title" class="{ui.title} flex items-center gap-2">
           <GithubIcon className="size-5" />
           Commit to GitHub
         </h2>
@@ -219,51 +217,42 @@
                 href={committed.pullRequestUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                >Open a pull request</a
+                class={ui.link}>Open a pull request</a
               >
             {/if}
             <a
               href={committed.url}
               target="_blank"
               rel="noopener noreferrer"
-              class="text-blue-600 dark:text-blue-400 hover:underline"
-              >View the commit</a
+              class={ui.link}>View the commit</a
             >
           </div>
         </div>
-        <button
-          onclick={close}
-          class="self-end px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium"
-          >Done</button
-        >
+        <button onclick={close} class="{ui.btn.primary} self-end">Done</button>
       {:else}
         {#if !$editable}
-          <p
-            class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-3 text-xs text-amber-900 dark:text-amber-200"
-          >
+          <p class={ui.alert.warning}>
             {OTHER_TAB_MESSAGE}
           </p>
         {/if}
         {#if openFileUnsaved}
           <div
-            class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between gap-2"
+            class="{ui.alert.warning} flex items-center justify-between gap-2"
           >
             The open file has unsaved edits, which won't be committed.
-            <button
-              class="shrink-0 px-2 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-medium"
-              onclick={saveOpenFile}>Save now</button
+            <button class="{ui.btnSm.warning} shrink-0" onclick={saveOpenFile}
+              >Save now</button
             >
           </div>
         {/if}
 
         {#if changes.length === 0}
-          <p class="text-sm text-neutral-600 dark:text-neutral-400">
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
             Nothing has changed since the last commit.
           </p>
         {:else}
           <ul
-            class="text-sm border border-neutral-200 dark:border-neutral-700 rounded-md divide-y divide-neutral-200 dark:divide-neutral-700 max-h-48 overflow-y-auto"
+            class="{ui.card} text-sm divide-y divide-neutral-200 dark:divide-neutral-700 max-h-48 overflow-y-auto"
           >
             {#each changes as change (change.repoPath)}
               <li class="flex items-center gap-2 px-3 py-1.5">
@@ -275,7 +264,7 @@
                   >{STATUS_LABEL[change.status]}</span
                 >
                 <span
-                  class="font-mono text-xs min-w-0 [overflow-wrap:anywhere] text-neutral-800 dark:text-neutral-200"
+                  class="font-mono text-xs min-w-0 [overflow-wrap:anywhere] text-neutral-900 dark:text-neutral-100"
                   ><PathText path={change.repoPath} /></span
                 >
               </li>
@@ -283,13 +272,11 @@
           </ul>
 
           {#if deletions.length > 0}
-            <label
-              class="flex items-start gap-2 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 text-xs text-red-800 dark:text-red-200"
-            >
+            <label class="{ui.alert.danger} flex items-start gap-2">
               <input
                 type="checkbox"
                 bind:checked={confirmDeletes}
-                class="mt-0.5"
+                class="{ui.checkbox} mt-0.5"
               />
               <span>
                 Delete {deletions.length === 1
@@ -309,7 +296,7 @@
               bind:value={message}
               rows="2"
               onkeydown={(e) => e.stopPropagation()}
-              class="px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              class={ui.input}
             ></textarea>
           </label>
 
@@ -332,7 +319,7 @@
                 aria-label="New branch name"
                 spellcheck="false"
                 onkeydown={(e) => e.stopPropagation()}
-                class="ml-6 px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                class="{ui.inputSm} ml-6 font-mono"
               />
               {#if branchProblem}
                 <p class="ml-6 text-xs text-red-600 dark:text-red-400">
@@ -373,14 +360,13 @@
             <button
               onclick={() => update()}
               disabled={busy}
-              class="px-4 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 text-sm font-medium text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50"
-              >Update from GitHub</button
+              class={ui.btn.outline}>Update from GitHub</button
             >
           {/if}
           <button
             onclick={commit}
             disabled={busy || !canCommit}
-            class="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium disabled:opacity-50"
+            class={ui.btn.primary}
           >
             {busy ? "Working…" : "Commit"}
           </button>

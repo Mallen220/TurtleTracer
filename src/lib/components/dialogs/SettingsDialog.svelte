@@ -29,6 +29,7 @@
   import AdvancedSettingsTab from "../settings/tabs/AdvancedSettingsTab.svelte";
   import AboutSettingsTab from "../settings/tabs/AboutSettingsTab.svelte";
   import packageJson from "../../../../package.json";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -212,30 +213,25 @@
     }}
     tabindex="-1"
     transition:fade={{ duration: 300, easing: cubicInOut }}
-    class="bg-black bg-opacity-40 flex flex-col justify-center items-center fixed top-0 left-0 w-full h-full z-[1005]"
+    class="{ui.overlay} z-[1005]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="settings-title"
   >
     <div
       transition:fly={{ duration: 300, easing: cubicInOut, y: 20 }}
-      class="flex flex-col bg-white dark:bg-neutral-900 rounded-md w-full max-w-4xl h-[85vh] shadow-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800"
+      class="{ui.dialog} flex flex-col w-full max-w-4xl h-[85vh] overflow-hidden"
     >
       <!-- Main Layout -->
       <div class="flex h-full">
         <!-- Sidebar -->
         <div
-          class="w-64 bg-neutral-50 dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col"
+          class="w-64 bg-neutral-50 dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-700 flex flex-col"
         >
           <!-- Sidebar Header & Search -->
-          <div class="p-4 border-b border-neutral-200 dark:border-neutral-800">
+          <div class="p-4 border-b border-neutral-200 dark:border-neutral-700">
             <div class="flex items-center justify-between pr-1">
-              <h2
-                id="settings-title"
-                class="text-xl font-bold text-neutral-900 dark:text-white pl-1"
-              >
-                Settings
-              </h2>
+              <h2 id="settings-title" class="{ui.title} pl-1">Settings</h2>
               <div class="flex items-center gap-2">
                 <a
                   href="https://discord.gg/chHSzS4ewF"
@@ -274,7 +270,7 @@
                 type="text"
                 placeholder="Search settings..."
                 bind:value={searchQuery}
-                class="w-full pl-9 pr-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="{ui.input} w-full pl-9 pr-3"
               />
               <SearchIcon
                 strokeWidth={1.5}
@@ -291,10 +287,7 @@
                   activeTab = tab.id;
                   searchQuery = "";
                 }}
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors {activeTab ===
-                  tab.id && !searchQuery
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                  : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+                class={ui.navItem(activeTab === tab.id && !searchQuery)}
               >
                 <tab.iconComponent className="size-5" />
                 {tab.label}
@@ -303,11 +296,8 @@
           </nav>
 
           <!-- Sidebar Footer (Reset) -->
-          <div class="p-4 border-t border-neutral-200 dark:border-neutral-800">
-            <button
-              onclick={handleReset}
-              class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-md transition-colors"
-            >
+          <div class="p-4 border-t border-neutral-200 dark:border-neutral-700">
+            <button onclick={handleReset} class="{ui.btn.dangerSoft} w-full">
               <ArrowCircleIcon className="size-4" />
               Reset Defaults
             </button>
@@ -319,10 +309,10 @@
           class="flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-neutral-900"
         >
           <!-- Header (with close button) -->
-          <div
-            class="p-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 sticky top-0 z-10"
-          >
-            <h3 class="text-lg font-semibold text-neutral-900 dark:text-white">
+          <div class="{ui.dialogHeader} sticky top-0 z-10">
+            <h3
+              class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
+            >
               {#if searchQuery}
                 Search Results
               {:else}
@@ -330,17 +320,14 @@
               {/if}
             </h3>
             <div class="flex gap-2 items-center">
-              <button
-                onclick={handleSave}
-                class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm"
-              >
+              <button onclick={handleSave} class={ui.btn.primary}>
                 Save
               </button>
               <button
                 onclick={() => (isOpen = false)}
                 aria-label="Close settings"
                 title="Close settings"
-                class="p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-500"
+                class={ui.iconBtnSm.neutral}
               >
                 <CloseIcon className="size-6" />
               </button>
@@ -353,9 +340,7 @@
             class:is-searching={!!searchQuery}
           >
             <!-- Warning Banner -->
-            <div
-              class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-md flex gap-3"
-            >
+            <div class="{ui.alert.warning} mb-6 flex gap-3">
               <TriangleWarningIcon
                 className="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
               />

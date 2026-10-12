@@ -4,6 +4,7 @@
   import { fade } from "svelte/transition";
   import { menuNavigation } from "../../actions/menuNavigation";
   import type { MenuEntry } from "../../../types";
+  import { ui } from "../../ui";
 
   interface Props {
     x: number;
@@ -93,7 +94,7 @@
   use:menuNavigation
   onclose={() => onclose?.()}
   bind:this={menuElement}
-  class="fixed z-[9999] min-w-[180px] py-1 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 text-sm select-none"
+  class="{ui.menu} fixed z-[9999] min-w-[180px] text-sm select-none"
   style="top: {adjustedY}px; left: {adjustedX}px;"
   transition:fade={{ duration: 100 }}
   role="menu"
@@ -105,9 +106,9 @@
     {:else}
       <button
         onclick={() => handleItemClick(item)}
-        class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between {item.danger
-          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-          : 'text-neutral-700 dark:text-neutral-200'} {item.disabled
+        class="{item.danger
+          ? ui.menuItemDanger
+          : ui.menuItem} justify-between {item.disabled
           ? 'opacity-50 cursor-not-allowed'
           : ''}"
         disabled={item.disabled}

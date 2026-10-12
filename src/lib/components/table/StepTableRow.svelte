@@ -12,6 +12,7 @@
   import LinkIcon from "../icons/LinkIcon.svelte";
   import LockIcon from "../icons/LockIcon.svelte";
   import UnlockIcon from "../icons/UnlockIcon.svelte";
+  import { ui } from "../../ui";
 
   type Step = Extract<SequenceItem, { kind: "wait" | "rotate" | "macro" }>;
 
@@ -133,7 +134,7 @@
       }}
       title="{isLocked ? 'Unlock' : 'Lock'} {noun}"
       aria-label="{isLocked ? 'Unlock' : 'Lock'} {noun}"
-      class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+      class="{ui.iconBtnSm.neutral} h-6 w-6"
       aria-pressed={isLocked}
     >
       {#if isLocked}
@@ -152,7 +153,7 @@
         }}
         title="Delete {noun}"
         aria-label="Delete {noun}"
-        class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+        class="{ui.iconBtnSm.danger} h-6 w-6"
       >
         <TrashIcon className="size-4" strokeWidth={2} />
       </button>

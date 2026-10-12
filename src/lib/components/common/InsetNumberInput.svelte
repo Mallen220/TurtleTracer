@@ -8,6 +8,7 @@
   import { transformAngle } from "../../../utils/math";
   import HeadingIndicator from "./HeadingIndicator.svelte";
   import { TriangleWarningIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     value: number | undefined;
@@ -71,7 +72,7 @@
     >{label}</span
   >
   <input
-    class="w-full {inset} py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+    class="{ui.inputSm} w-full {inset}"
     class:pr-6={isOutOfBounds}
     class:pr-1={!isOutOfBounds}
     class:border-yellow-500={isOutOfBounds}

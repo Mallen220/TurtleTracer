@@ -22,6 +22,7 @@
     interpolateTFromProfile,
   } from "../../utils/math";
   import { startPointStore } from "../projectStore";
+  import { ui } from "../ui";
 
   interface Props {
     sequence: SequenceItem[];
@@ -462,9 +463,7 @@
   );
 </script>
 
-<div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-800"
->
+<div class="{ui.card} flex flex-col w-full">
   <SectionHeader
     title="Event Markers"
     bind:collapsed={collapsedMarkers}
@@ -525,7 +524,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-xs text-neutral-500">Type:</span>
                 <select
-                  class="rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs py-1 px-2 flex-1"
+                  class="{ui.inputXs} flex-1"
                   value={marker.ref.type || "parametric"}
                   onchange={(e) => {
                     marker.ref.type = e.currentTarget.value as any;
@@ -570,7 +569,7 @@
                   max={nonMacroCount}
                   step="0.01"
                   value={marker.globalPosition}
-                  class="flex-1 slider accent-purple-500"
+                  class="flex-1 slider accent-purple-600"
                   oninput={(e) =>
                     handleGlobalPositionInput(
                       marker,
@@ -589,7 +588,7 @@
                   max={nonMacroCount}
                   step="0.01"
                   value={Number.parseFloat(marker.globalPosition.toFixed(2))}
-                  class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
+                  class="{ui.inputXs} w-16 text-center"
                   onchange={(e) =>
                     handleGlobalPositionCommit(
                       marker,
@@ -622,7 +621,7 @@
                     max={(timePrediction?.totalTime ?? 10) * 1000}
                     step="1"
                     value={marker.ref.endTime ?? marker.ref.time ?? 500}
-                    class="flex-1 slider accent-purple-500"
+                    class="flex-1 slider accent-purple-600"
                     oninput={(e) =>
                       handleGlobalTimeInput(
                         marker,
@@ -640,7 +639,7 @@
                     aria-label="Event time in milliseconds"
                     min="0"
                     step="1"
-                    class="w-20 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
+                    class="{ui.inputXs} w-20 text-center"
                     onchange={(e) =>
                       handleGlobalTimeCommit(
                         marker,
@@ -657,7 +656,7 @@
                     type="number"
                     value={(marker.ref.poseX ?? 0).toFixed(2)}
                     step="0.01"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    class="{ui.inputXs} flex-1"
                     onchange={(e) => {
                       const val = Number.parseFloat(e.currentTarget.value);
                       marker.ref.poseX = Math.round(val * 100) / 100;
@@ -672,7 +671,7 @@
                     type="number"
                     value={(marker.ref.poseY ?? 0).toFixed(2)}
                     step="0.01"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    class="{ui.inputXs} flex-1"
                     onchange={(e) => {
                       const val = Number.parseFloat(e.currentTarget.value);
                       marker.ref.poseY = Math.round(val * 100) / 100;
@@ -701,7 +700,7 @@
                     min="0"
                     max={lines.length.toString()}
                     step="0.001"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    class="{ui.inputXs} flex-1"
                     oninput={(e) => {
                       const val = e.currentTarget.value;
                       if (val === "") {

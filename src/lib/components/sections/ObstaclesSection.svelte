@@ -27,6 +27,7 @@
     UnlockIcon,
     PlusIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     shapes: Shape[];
@@ -129,9 +130,7 @@
   });
 </script>
 
-<div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-800 overflow-hidden"
->
+<div class="{ui.card} flex flex-col w-full overflow-hidden">
   <SectionHeader
     title="Obstacles"
     bind:collapsed
@@ -141,19 +140,10 @@
 
   {#if !collapsed}
     <!-- Preset Controls (Compact Toolbar) -->
-    <div
-      class="p-2 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 flex flex-row gap-2 items-center"
-    >
-      <div
-        class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider shrink-0"
-      >
-        Presets
-      </div>
+    <div class="{ui.bar} p-2 flex flex-row gap-2 items-center">
+      <div class="{ui.heading} shrink-0">Presets</div>
       <div class="flex-1 min-w-0">
-        <select
-          bind:value={selectedPresetId}
-          class="w-full text-xs h-7 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
-        >
+        <select bind:value={selectedPresetId} class="{ui.inputXs} w-full h-7">
           <option value="">Select...</option>
           {#each $settingsStore.obstaclePresets || [] as preset}
             <option value={preset.id}>{preset.name}</option>
@@ -168,7 +158,7 @@
           disabled={!selectedPresetId}
           title="Load Selected Preset"
           aria-label="Load Selected Preset"
-          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="{ui.iconBtnSm.neutral} h-7 w-7"
         >
           <!-- Download/Load Icon -->
           <ArrowDownTrayIcon className="size-4" />
@@ -179,7 +169,7 @@
           disabled={shapes.length === 0}
           title="Save Current as Preset"
           aria-label="Save Current as Preset"
-          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="{ui.iconBtnSm.neutral} h-7 w-7"
         >
           <SaveIcon className="size-4" />
         </button>
@@ -189,7 +179,7 @@
           disabled={!selectedPresetId}
           title="Delete Selected Preset"
           aria-label="Delete Selected Preset"
-          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:hover:text-neutral-500 disabled:cursor-not-allowed transition-colors"
+          class="{ui.iconBtnSm.danger} h-7 w-7"
         >
           <TrashIcon className="size-4" />
         </button>
@@ -221,14 +211,14 @@
       {:else}
         {#each shapes as shape, shapeIdx}
           <div
-            class="flex flex-col w-full justify-start items-start gap-1 p-2 border rounded-md border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/30"
+            class="{ui.well} flex flex-col w-full justify-start items-start gap-1 p-2"
           >
             <div class="flex flex-row w-full justify-between items-center">
               <div class="flex flex-row items-center gap-2">
                 <button
                   onclick={() => toggleObstacle(shapeIdx)}
                   aria-label="Toggle Obstacle Settings"
-                  class="flex items-center gap-2 font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
+                  class={ui.btn.ghost}
                   title="{collapsedObstacles[shapeIdx]
                     ? 'Expand'
                     : 'Collapse'} {shape.type === 'keep-in'
@@ -263,7 +253,7 @@
 
                 <select
                   bind:value={shape.type}
-                  class="h-7 text-xs rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  class="{ui.inputXs} h-7"
                   disabled={shape.locked ?? false}
                   onchange={() => {
                     shapes = [...shapes];
@@ -310,7 +300,7 @@
                         : "Hide Obstacle",
                     );
                   }}
-                  class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+                  class={ui.iconBtnSm.neutral}
                 >
                   {#if shape.visible !== false}
                     <EyeIcon className="size-4" strokeWidth={1.5} />
@@ -340,7 +330,7 @@
                         : "Unlock Obstacle",
                     );
                   }}
-                  class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+                  class={ui.iconBtnSm.neutral}
                 >
                   {#if shape.locked}
                     <LockIcon className="size-4 text-amber-500" />
@@ -409,7 +399,7 @@
                             : ($settingsStore.fieldWidth ?? 144)}
                           step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                           title={snapToGridTitle}
-                          class="pl-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-purple-500 w-20 text-sm font-mono"
+                          class="{ui.inputXs} pl-1.5 w-20 font-mono"
                           disabled={shape.locked ?? false}
                           use:focusOnRequest={{
                             id: `obstacle-${shapeIdx}-${vertexIdx}`,
@@ -450,7 +440,7 @@
                             ? ($settingsStore.fieldHeight ?? 144) / 2
                             : ($settingsStore.fieldHeight ?? 144)}
                           step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                          class="pl-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-purple-500 w-20 text-sm font-mono"
+                          class="{ui.inputXs} pl-1.5 w-20 font-mono"
                           title={snapToGridTitle}
                           disabled={shape.locked ?? false}
                           use:focusOnRequest={{

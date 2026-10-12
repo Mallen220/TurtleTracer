@@ -12,6 +12,7 @@
     updateLinkedWaits,
   } from "../../../utils/pointLinking";
   import ClockIcon from "../icons/ClockIcon.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     wait: SequenceWaitItem;
@@ -72,10 +73,7 @@
   {canMoveDown}
 >
   <div class="space-y-2">
-    <label
-      for="wait-duration-{wait.id}"
-      class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-    >
+    <label for="wait-duration-{wait.id}" class="{ui.heading} block">
       Duration (ms)
     </label>
     <div class="relative">
@@ -84,7 +82,7 @@
       />
       <input
         id="wait-duration-{wait.id}"
-        class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+        class="{ui.inputSm} w-full pl-9 pr-2"
         type="number"
         min="0"
         step="50"

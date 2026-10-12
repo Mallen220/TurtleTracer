@@ -12,6 +12,7 @@
   import type Two from "two.js";
   import type { AnimationController } from "../../../utils/animation";
   import type { Settings } from "../../../types";
+  import { ui } from "../../ui";
 
   let format: "gif" | "apng" = $state("gif");
   let fps = $state(15);
@@ -250,21 +251,17 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+    class="{ui.overlay} z-[100]"
     transition:scale={{
       duration: (globalThis as any).vitest === undefined ? 200 : 0,
       start: 0.95,
     }}
   >
-    <div
-      class="bg-white dark:bg-neutral-800 rounded-md shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
-    >
+    <div class="{ui.dialog} w-full max-w-2xl flex flex-col max-h-[90vh]">
       <!-- Header -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700"
-      >
+      <div class={ui.dialogHeader}>
         <h2
-          class="text-xl font-semibold text-neutral-800 dark:text-neutral-100"
+          class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Animation
         </h2>
@@ -294,7 +291,7 @@
               id="anim-format"
               bind:value={format}
               disabled={status === "generating"}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="{ui.input} block w-full"
             >
               <option value="gif">GIF</option>
               <option value="apng">Animated PNG</option>
@@ -333,7 +330,7 @@
               id="gif-scale"
               bind:value={resolutionScale}
               disabled={status === "generating"}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="{ui.input} block w-full"
             >
               <option value={0.25}>25% (Smallest)</option>
               <option value={0.5}>50% (Recommended)</option>
@@ -379,9 +376,7 @@
 
         <!-- Info Blurb -->
         {#if format === "apng"}
-          <div
-            class="text-xs text-neutral-500 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800"
-          >
+          <div class={ui.alert.info}>
             <strong>Note:</strong> Animated PNGs support full 24-bit color and 8-bit
             transparency. However, they may not be supported by all web browsers and
             image viewers. Please ensure your target platform supports APNG before
@@ -393,7 +388,7 @@
         {#if status === "generating"}
           <div class="flex flex-col gap-1">
             <div
-              class="flex justify-between text-sm text-neutral-600 dark:text-neutral-400"
+              class="flex justify-between text-sm text-neutral-500 dark:text-neutral-400"
             >
               <span>{statusMessage}</span>
               <span>{Math.round(progress * 100)}%</span>
@@ -408,18 +403,12 @@
             </div>
           </div>
         {:else if status === "error"}
-          <div
-            class="p-4 mb-4 text-sm text-red-800 rounded-md bg-red-50 dark:bg-gray-800 dark:text-red-400"
-            role="alert"
-          >
+          <div class="{ui.alert.danger} mb-4" role="alert">
             <span class="font-medium">Error!</span>
             {statusMessage}
           </div>
         {:else if status === "done"}
-          <div
-            class="p-4 mb-4 text-sm text-green-800 rounded-md bg-green-50 dark:bg-gray-800 dark:text-green-400"
-            role="alert"
-          >
+          <div class="{ui.alert.success} mb-4" role="alert">
             <span class="font-medium">Success!</span>
             {statusMessage}
           </div>
@@ -428,7 +417,7 @@
         <!-- Preview Area -->
         <div
           bind:this={previewContainer}
-          class="flex-1 min-h-[200px] flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 rounded border border-neutral-300 dark:border-neutral-700 overflow-hidden relative p-2"
+          class="{ui.well} flex-1 min-h-[200px] flex items-center justify-center overflow-hidden relative p-2"
         >
           {#if previewUrl}
             <img
@@ -449,18 +438,11 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="flex items-center justify-end px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
-      >
-        <button
-          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors"
-          onclick={handleCancel}
-        >
-          Cancel
-        </button>
+      <div class="{ui.dialogFooter} justify-end">
+        <button class={ui.btn.ghost} onclick={handleCancel}> Cancel </button>
 
         <button
-          class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class={ui.btn.primary}
           onclick={generatePreview}
           disabled={status === "generating"}
         >
@@ -468,7 +450,7 @@
         </button>
 
         <button
-          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class={ui.btn.success}
           onclick={downloadAnimation}
           disabled={status === "generating"}
         >

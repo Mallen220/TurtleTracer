@@ -9,6 +9,7 @@
   import * as ICONS from "../../icons";
   import { isBrowser } from "../../../../utils/platform";
   import { COMMAND_LIBRARIES } from "../../../exporters/commandLibraries";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -87,11 +88,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      Code Export
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">Code Export</h4>
   {/if}
   <SettingsItem
     label="Auto Export Code"
@@ -104,7 +101,7 @@
       type="checkbox"
       checked={settings.autoExportCode}
       onchange={(e) => set("autoExportCode", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -118,23 +115,18 @@
           {searchQuery}
           layout="row"
         >
-          <div
-            class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-md border border-neutral-200 dark:border-neutral-700"
-          >
+          <div class={ui.tabList}>
             <button
-              class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
-                'relative' || !settings.autoExportPathMode
-                ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
+              class={ui.tab(
+                settings.autoExportPathMode === "relative" ||
+                  !settings.autoExportPathMode,
+              )}
               onclick={() => handleModeChange("relative")}
             >
               Relative
             </button>
             <button
-              class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
-              'absolute'
-                ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
+              class={ui.tab(settings.autoExportPathMode === "absolute")}
               onclick={() => handleModeChange("absolute")}
             >
               Absolute
@@ -155,14 +147,14 @@
             type="text"
             value={settings.autoExportPath}
             oninput={(e) => set("autoExportPath", e.currentTarget.value)}
-            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            class="{ui.input} w-full font-mono"
             placeholder="GeneratedCode"
           />
           {#if !isBrowser}
             <button
               aria-label="Browse Directory"
               onclick={handleBrowse}
-              class="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-md text-neutral-700 dark:text-neutral-300 transition-colors"
+              class={ui.btn.secondary}
               title="Browse Directory"
             >
               <!-- Folder Icon -->
@@ -190,7 +182,7 @@
           value={settings.autoExportFormat}
           onchange={(e) =>
             set("autoExportFormat", e.currentTarget.value as any)}
-          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="{ui.input} w-full"
         >
           <option value="java">Java Class</option>
           <option value="sequential">Sequential Command</option>
@@ -209,14 +201,14 @@
         <select
           value={settings.codeUnits}
           onchange={(e) => set("codeUnits", e.currentTarget.value as any)}
-          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="{ui.input} w-full"
         >
           <option value="imperial">Imperial (Inches)</option>
           <option value="metric">Metric (cm)</option>
         </select>
         {#if settings.codeUnits === "metric" && !settings.autoExportEmbedPoseData && settings.autoExportFormat === "sequential"}
           <div
-            class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-md border border-yellow-200 dark:border-yellow-800/50"
+            class="{ui.alert.warning} mt-2 flex items-center gap-2"
             role="alert"
           >
             <ICONS.TriangleWarningIcon className="size-4 shrink-0" />
@@ -242,7 +234,7 @@
               checked={settings.autoExportFullClass}
               onchange={(e) =>
                 set("autoExportFullClass", e.currentTarget.checked)}
-              class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              class={ui.checkbox}
             />
           </SettingsItem>
 
@@ -257,7 +249,7 @@
               value={settings.telemetryImplementation}
               onchange={(e) =>
                 set("telemetryImplementation", e.currentTarget.value as any)}
-              class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="{ui.input} w-full"
             >
               <option value="Panels">Panels (Bylazar)</option>
               <option value="Standard">Standard (FTC)</option>
@@ -279,7 +271,7 @@
               value={settings.autoExportTargetLibrary}
               onchange={(e) =>
                 set("autoExportTargetLibrary", e.currentTarget.value as any)}
-              class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="{ui.input} w-full"
             >
               {#each COMMAND_LIBRARIES as library (library.id)}
                 <option value={library.id}>{library.label}</option>
@@ -299,7 +291,7 @@
               checked={settings.autoExportEmbedPoseData}
               onchange={(e) =>
                 set("autoExportEmbedPoseData", e.currentTarget.checked)}
-              class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              class={ui.checkbox}
             />
           </SettingsItem>
         </div>
@@ -318,7 +310,7 @@
               type="text"
               value={settings.javaPackageName}
               oninput={(e) => set("javaPackageName", e.currentTarget.value)}
-              class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              class="{ui.input} w-full font-mono"
               placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
             />
           </SettingsItem>

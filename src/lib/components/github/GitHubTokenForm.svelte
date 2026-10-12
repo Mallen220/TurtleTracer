@@ -11,6 +11,7 @@
     REMEMBER_DAYS,
     setGitHubToken,
   } from "../../../utils/github/token";
+  import { ui } from "../../ui";
 
   interface Props {
     /** The repository the token is for, to tailor the steps and check access. */
@@ -62,7 +63,7 @@
 <div class="flex flex-col gap-2 text-sm">
   {#if $githubToken && !replacing}
     <div class="flex items-center justify-between gap-2">
-      <span class="text-neutral-700 dark:text-neutral-200">
+      <span class="text-neutral-700 dark:text-neutral-300">
         {$githubLogin
           ? `Commits are made as @${$githubLogin}.`
           : "A GitHub token is added."}
@@ -73,9 +74,8 @@
         </span>
       </span>
       <span class="flex gap-2 shrink-0">
-        <button
-          class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-          onclick={() => (replacing = true)}>Replace</button
+        <button class="{ui.link} text-xs" onclick={() => (replacing = true)}
+          >Replace</button
         >
         <button
           class="text-xs text-red-600 dark:text-red-400 hover:underline"
@@ -89,13 +89,13 @@
       </p>
     {/if}
   {:else}
-    <p class="text-neutral-600 dark:text-neutral-400">
+    <p class="text-neutral-500 dark:text-neutral-400">
       Committing needs a GitHub <strong>personal access token</strong>: a
       password-like key that lets Turtle Tracer commit as you, only to the
       repository you choose.
     </p>
     <button
-      class="self-start text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+      class="{ui.link} self-start"
       aria-expanded={showSteps}
       onclick={() => (showSteps = !showSteps)}
     >
@@ -103,7 +103,7 @@
     </button>
     {#if showSteps}
       <ol
-        class="list-decimal pl-5 text-xs text-neutral-600 dark:text-neutral-400 flex flex-col gap-1"
+        class="list-decimal pl-5 text-xs text-neutral-500 dark:text-neutral-400 flex flex-col gap-1"
       >
         <li>
           Open
@@ -111,8 +111,7 @@
             href={NEW_TOKEN_URL}
             target="_blank"
             rel="noopener noreferrer"
-            class="text-blue-600 dark:text-blue-400 hover:underline"
-            >GitHub's new fine-grained token page</a
+            class={ui.link}>GitHub's new fine-grained token page</a
           > (sign in as yourself).
         </li>
         <li>
@@ -153,20 +152,24 @@
           e.stopPropagation();
           if (e.key === "Enter") save();
         }}
-        class="flex-1 min-w-0 px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="{ui.inputSm} flex-1 min-w-0 font-mono"
       />
       <button
         onclick={save}
         disabled={checking || !input.trim()}
-        class="px-3 py-1.5 rounded-md bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 text-xs font-medium disabled:opacity-50"
+        class={ui.btnSm.primary}
       >
         {checking ? "Checking…" : "Add token"}
       </button>
     </div>
     <label
-      class="flex items-start gap-2 text-xs text-neutral-600 dark:text-neutral-400"
+      class="flex items-start gap-2 text-xs text-neutral-500 dark:text-neutral-400"
     >
-      <input type="checkbox" bind:checked={remember} class="mt-0.5" />
+      <input
+        type="checkbox"
+        bind:checked={remember}
+        class="{ui.checkbox} mt-0.5"
+      />
       <span>
         Remember on this device for {REMEMBER_DAYS} days{isDesktop
           ? ", locked with this computer's keychain"

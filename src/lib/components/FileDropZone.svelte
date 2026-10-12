@@ -6,6 +6,7 @@
   import { isSupportedProjectFileName } from "../../utils/fileExtensions";
   import { diskPathOf, getElectronAPI } from "../../utils/platform";
   import { CloudArrowDownIcon } from "./icons";
+  import { ui } from "../ui";
 
   interface Props {
     /** Saves the open project; resolves false if that failed or was cancelled. */
@@ -99,7 +100,7 @@
     class="fixed inset-0 z-[100] bg-purple-500/20 border-4 border-purple-500 flex items-center justify-center pointer-events-none"
   >
     <div
-      class="bg-white dark:bg-neutral-800 p-8 rounded-md shadow-2xl flex flex-col items-center animate-bounce-slight"
+      class="{ui.popover} p-8 flex flex-col items-center animate-bounce-slight"
     >
       <CloudArrowDownIcon
         className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"

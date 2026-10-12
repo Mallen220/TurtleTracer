@@ -44,19 +44,19 @@
         <span class="text-neutral-500 dark:text-neutral-400 font-medium"
           >Time:</span
         >
-        <span class="font-mono text-neutral-800 dark:text-neutral-200 font-bold"
+        <span class="font-mono text-neutral-900 dark:text-neutral-100 font-bold"
           >{formatTime(time)}</span
         >
       </div>
       {#if distance !== undefined}
         <div
-          class="flex justify-between items-center gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-1 mt-0.5"
+          class="flex justify-between items-center gap-4 border-t border-neutral-200 dark:border-neutral-700 pt-1 mt-0.5"
         >
           <span class="text-neutral-500 dark:text-neutral-400 font-medium"
             >Distance:</span
           >
           <span
-            class="font-mono text-neutral-800 dark:text-neutral-200 font-bold"
+            class="font-mono text-neutral-900 dark:text-neutral-100 font-bold"
             >{formatDisplayDistance(distance, settings, 1)}</span
           >
         </div>

@@ -5,6 +5,7 @@
   import type { CustomFieldConfig } from "../../../types";
   import { CloseIcon, PhotoIcon } from "../icons";
   import { settingsStore } from "../../projectStore";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -244,18 +245,16 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 300 }}
-    class="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+    class={ui.overlay}
     style="z-index: 2000;"
   >
     <div
       transition:fly={{ y: 20, duration: 300, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-md shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+      class="{ui.dialog} w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
     >
       <!-- Header -->
-      <div
-        class="p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center"
-      >
-        <h2 class="text-xl font-bold text-neutral-900 dark:text-white">
+      <div class={ui.dialogHeader}>
+        <h2 class="text-xl font-bold text-neutral-900 dark:text-neutral-100">
           Custom Field Map Wizard
         </h2>
         <button
@@ -288,30 +287,27 @@
 
         {#if step === 1}
           <div
-            class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-800/50"
+            class="{ui.well} flex flex-col items-center justify-center h-64 border-2 border-dashed"
           >
             <PhotoIcon className="h-12 w-12 text-neutral-400 mb-4" />
             <div class="w-full max-w-sm mb-4">
-              <label
-                for="mapName"
-                class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
-                >Map Name</label
+              <label for="mapName" class="{ui.label} block mb-1">Map Name</label
               >
               <input
                 id="mapName"
                 type="text"
                 bind:value={mapName}
                 placeholder="e.g. My Practice Field"
-                class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="{ui.input} w-full"
               />
             </div>
-            <p class="text-neutral-600 dark:text-neutral-400 mb-4">
+            <p class="text-neutral-500 dark:text-neutral-400 mb-4">
               Upload a custom field map image
             </p>
             <button
               onclick={() =>
                 document.getElementById("wizard-image-input")?.click()}
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class={ui.btn.primary}
             >
               Select Image
             </button>
@@ -324,10 +320,7 @@
               onchange={handleImageUpload}
             />
             {#if imageData}
-              <button
-                class="mt-4 text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
-                onclick={() => (step = 2)}
-              >
+              <button class="{ui.link} mt-4" onclick={() => (step = 2)}>
                 Use currently loaded image
               </button>
             {/if}
@@ -335,7 +328,7 @@
         {:else}
           <div class="flex flex-col lg:flex-row gap-4 h-full min-h-[400px]">
             <div
-              class="flex-1 relative bg-neutral-100 dark:bg-neutral-900 rounded-md overflow-hidden flex items-center justify-center border border-neutral-200 dark:border-neutral-700 p-4"
+              class="{ui.well} flex-1 relative overflow-hidden flex items-center justify-center p-4"
             >
               <div
                 class="relative select-none touch-none"
@@ -493,9 +486,7 @@
             <!-- Sidebar Controls -->
             <div class="w-full lg:w-80 flex flex-col gap-4">
               {#if step === 2}
-                <div
-                  class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md h-full flex flex-col"
-                >
+                <div class="{ui.alert.info} h-full flex flex-col">
                   <h3 class="font-bold text-blue-900 dark:text-blue-100 mb-2">
                     Step 2: Calibrate Field Bounds
                   </h3>
@@ -508,7 +499,7 @@
                     in your image.
                   </p>
                   <div
-                    class="bg-white dark:bg-neutral-800 p-3 rounded border border-neutral-200 dark:border-neutral-700 text-xs text-neutral-600 dark:text-neutral-400"
+                    class="{ui.card} p-3 text-xs text-neutral-500 dark:text-neutral-400"
                   >
                     <ul class="list-disc pl-4 space-y-1">
                       <li>Include the entire field floor.</li>
@@ -524,9 +515,7 @@
                   </div>
                 </div>
               {:else if step === 3}
-                <div
-                  class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md"
-                >
+                <div class={ui.alert.success}>
                   <h3 class="font-bold text-green-900 dark:text-green-100 mb-2">
                     Step 3: Review
                   </h3>
@@ -544,9 +533,7 @@
                           )}")
                         </p>
 
-                        <div
-                          class="mt-4 p-2 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700"
-                        >
+                        <div class="{ui.card} mt-4 p-2">
                           <p class="text-xs text-neutral-500 mb-1">Preview:</p>
                           <div
                             class="aspect-square w-full bg-neutral-100 relative overflow-hidden border border-neutral-300"
@@ -583,19 +570,13 @@
                 <button
                   onclick={prevStep}
                   disabled={step === 1}
-                  class="px-4 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                  >Back</button
+                  class={ui.btn.ghost}>Back</button
                 >
                 {#if step < 3}
-                  <button
-                    onclick={nextStep}
-                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                    >Next</button
+                  <button onclick={nextStep} class={ui.btn.primary}>Next</button
                   >
                 {:else}
-                  <button
-                    onclick={handleSave}
-                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                  <button onclick={handleSave} class={ui.btn.success}
                     >Save & Apply</button
                   >
                 {/if}

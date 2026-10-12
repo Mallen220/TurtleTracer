@@ -2,9 +2,9 @@
 <!-- src/lib/components/tabs/PathActionButtons.svelte -->
 <script lang="ts">
   import { actionRegistry } from "../../actionRegistry";
-  import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../../utils";
   import { PlusIcon, ClockIcon, ArrowCircleIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     settings: any;
@@ -13,10 +13,6 @@
   }
 
   let { settings, onAddLine, onHandleAddAction }: Props = $props();
-
-  function getButtonColorClass(color: string) {
-    return getButtonFilledClass(color);
-  }
 </script>
 
 {#each Object.values($actionRegistry) as def (def.kind)}
@@ -29,7 +25,7 @@
       title={def.isPath
         ? `Add Path${getShortcutFromSettings(settings, "add-path")}`
         : `Add ${def.label}`}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+      class={ui.kindBtn(def.buttonColor || "gray")}
       aria-label={`Add ${def.label}`}
     >
       {#if def.kind === "path"}

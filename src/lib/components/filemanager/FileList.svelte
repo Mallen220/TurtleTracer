@@ -26,6 +26,7 @@
     setDraggedFile,
     getDraggedFile,
   } from "./fileBrowser.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     fieldImage?: string | null;
@@ -224,7 +225,7 @@
                   type="text"
                   bind:value={renameInput}
                   use:selectOnMount
-                  class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
+                  class="{ui.inputXs} w-full"
                   onkeydown={(e: KeyboardEvent) => {
                     e.stopPropagation();
                     if (e.key === "Enter") onrenameSave?.(renameInput);
@@ -253,12 +254,7 @@
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
                     <div
-                      class="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border
-                      {file.gitStatus === 'modified'
-                        ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-300'
-                        : file.gitStatus === 'staged'
-                          ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300'
-                          : 'bg-neutral-100 border-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300'}"
+                      class={ui.badge[ui.gitTone(file.gitStatus)]}
                       title={file.gitStatus === "modified"
                         ? "Git: Modified (Unstaged Changes)"
                         : file.gitStatus === "staged"
@@ -303,7 +299,7 @@
             class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center"
           >
             <button
-              class="p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+              class={ui.iconBtnSm.neutral}
               onclick={(e: MouseEvent) => {
                 e.stopPropagation();
                 handleContextMenu(e, file);

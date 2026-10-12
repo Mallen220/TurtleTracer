@@ -12,6 +12,7 @@
     updateLinkedRotations,
   } from "../../../utils/pointLinking";
   import { ClockIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     rotate: SequenceRotateItem;
@@ -74,10 +75,7 @@
   {canMoveDown}
 >
   <div class="space-y-2">
-    <label
-      for="rotate-heading-{rotate.id}"
-      class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-    >
+    <label for="rotate-heading-{rotate.id}" class="{ui.heading} block">
       Heading (deg)
     </label>
     <div class="relative">
@@ -86,7 +84,7 @@
       />
       <input
         id="rotate-heading-{rotate.id}"
-        class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+        class="{ui.inputSm} w-full pl-9 pr-2"
         type="number"
         step="any"
         value={rotate.degrees}

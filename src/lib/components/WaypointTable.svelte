@@ -71,7 +71,6 @@
     updateLinkedRotations,
   } from "../../utils/pointLinking";
   import { actionRegistry } from "../actionRegistry";
-  import { getButtonFilledClass } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
   import { formatTime } from "../../utils/timeCalculator";
@@ -80,6 +79,7 @@
     type PathTiming,
   } from "../../utils/timeCalculator/drivenRange";
   import DebugPanel from "./common/DebugPanel.svelte";
+  import { ui } from "../ui";
 
   let {
     startPoint = $bindable(),
@@ -714,10 +714,6 @@
     }
   }
 
-  function getButtonColorClass(color: string) {
-    return getButtonFilledClass(color);
-  }
-
   async function insertMacro(index: number, filePath: string) {
     const result = await insertMacroItem(sequence, filePath, index);
     if (!result) return;
@@ -748,7 +744,7 @@
 
 <div class="w-full flex flex-col gap-4 text-sm p-1">
   <div class="flex justify-between items-center">
-    <h3 class="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+    <h3 class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
       Sequence
     </h3>
     <div class="flex items-center gap-2">
@@ -756,7 +752,7 @@
         title={copyButtonText}
         aria-label={copyButtonText}
         onclick={copyTableToClipboard}
-        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-neutral-600 dark:text-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+        class="{ui.btnSm.ghost} flex-row"
       >
         <span>{copyButtonText}</span>
         {#if copyButtonText === "Copied!"}
@@ -785,7 +781,7 @@
 >
   <table class="w-full text-left bg-white dark:bg-neutral-900 border-collapse">
     <thead
-      class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
+      class="bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
     >
       <tr>
         <th
@@ -808,7 +804,7 @@
         ></th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
+    <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
       <!-- Start Point -->
       <tr
         data-seq-index="-1"
@@ -828,14 +824,14 @@
           ●
         </td>
         <td
-          class="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-200"
+          class="px-3 py-2 font-medium text-neutral-900 dark:text-neutral-100"
         >
           Start Point
         </td>
         <td class="px-3 py-2">
           <input
             type="number"
-            class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="{ui.inputXs} w-20"
             step={stepSize}
             value={formatDisplayCoordinate(
               toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
@@ -854,7 +850,7 @@
         <td class="px-3 py-2">
           <input
             type="number"
-            class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="{ui.inputXs} w-20"
             step={stepSize}
             value={formatDisplayCoordinate(
               toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
@@ -895,7 +891,8 @@
             <tr class="group h-4 p-0 m-0 leading-none">
               <td colspan="5" class="p-0 text-center relative border-none">
                 <button
-                  class="absolute left-[36px] -top-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded p-0.5 z-10 transition-colors bg-white dark:bg-neutral-900 shadow-sm border border-neutral-200 dark:border-neutral-800"
+                  class="{ui.iconBtnSm
+                    .neutral} absolute left-[36px] -top-2 z-10"
                   onclick={() => toggleChain(seqIndex)}
                   title={item.isChain
                     ? "Unchain paths"
@@ -1038,7 +1035,7 @@
                 <div class="flex items-center gap-2">
                   <input
                     type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    class="{ui.inputXs} w-20"
                     step={stepSize}
                     value={formatDisplayCoordinate(
                       toUser(
@@ -1065,7 +1062,7 @@
               <td class="px-3 py-2">
                 <input
                   type="number"
-                  class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  class="{ui.inputXs} w-20"
                   step={stepSize}
                   value={formatDisplayCoordinate(
                     toUser(line.endPoint, settings?.coordinateSystem || "Pedro")
@@ -1099,7 +1096,7 @@
                     }
                     if (recordChange) recordChange();
                   }}
-                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  class="{ui.iconBtnSm.neutral} h-6 w-6"
                 >
                   {#if line.hidden}
                     <EyeSlashIcon className="size-5 text-neutral-400" />
@@ -1124,7 +1121,7 @@
                     }
                     if (recordChange) recordChange();
                   }}
-                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  class="{ui.iconBtnSm.neutral} h-6 w-6"
                   aria-pressed={line.locked}
                 >
                   {#if line.locked}
@@ -1143,7 +1140,7 @@
                     }}
                     title="Delete path"
                     aria-label="Delete path"
-                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    class="{ui.iconBtnSm.danger} h-6 w-6"
                   >
                     <TrashIcon className="size-4" strokeWidth={2} />
                   </button>
@@ -1174,7 +1171,7 @@
                 <td class="px-3 py-2">
                   <input
                     type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                    class="{ui.inputXs} w-20"
                     step={stepSize}
                     value={formatDisplayCoordinate(
                       toUser(cp, settings?.coordinateSystem || "Pedro").x,
@@ -1194,7 +1191,7 @@
                 <td class="px-3 py-2">
                   <input
                     type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                    class="{ui.inputXs} w-20"
                     step={stepSize}
                     value={formatDisplayCoordinate(
                       toUser(cp, settings?.coordinateSystem || "Pedro").y,
@@ -1229,7 +1226,7 @@
                       }}
                       title="Delete control point"
                       aria-label="Delete control point"
-                      class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      class="{ui.iconBtnSm.danger} h-6 w-6"
                     >
                       <TrashIcon className="size-4" strokeWidth={2} />
                     </button>
@@ -1278,7 +1275,7 @@
                 />
               </div>
               <div class="text-sm">
-                <p class="font-medium text-neutral-800 dark:text-neutral-200">
+                <p class="font-medium text-neutral-900 dark:text-neutral-100">
                   No path segments yet
                 </p>
                 <p class="text-neutral-500 mt-1">
@@ -1307,7 +1304,7 @@
   <div class="flex gap-2 flex-shrink-0">
     <button
       onclick={() => insertAction("path", sequence.length)}
-      class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
+      class={ui.kindBtn("green", true)}
       aria-label="Add new path segment"
       title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
     >
@@ -1319,7 +1316,7 @@
       {#if def.createDefault && !def.isPath}
         <button
           onclick={() => handleAddAction(def)}
-          class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+          class={ui.kindBtn(def.buttonColor || "gray", true)}
           aria-label={`Add ${def.label} command`}
           title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
         >

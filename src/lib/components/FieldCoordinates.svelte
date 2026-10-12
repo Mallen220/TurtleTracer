@@ -29,14 +29,14 @@
     aria-label="Field Coordinates"
   >
     <div
-      class="flex flex-row gap-3 text-xs font-mono text-neutral-600 dark:text-neutral-400"
+      class="flex flex-row gap-3 text-xs font-mono text-neutral-500 dark:text-neutral-400"
     >
       <span class="flex gap-1">
-        <span class="font-bold text-neutral-800 dark:text-neutral-200">X:</span>
+        <span class="font-bold text-neutral-900 dark:text-neutral-100">X:</span>
         <span>{userPoint.x.toFixed(1)}"</span>
       </span>
       <span class="flex gap-1">
-        <span class="font-bold text-neutral-800 dark:text-neutral-200">Y:</span>
+        <span class="font-bold text-neutral-900 dark:text-neutral-100">Y:</span>
         <span>{userPoint.y.toFixed(1)}"</span>
       </span>
     </div>

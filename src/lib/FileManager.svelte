@@ -81,6 +81,7 @@
     ArrowCircleIcon,
     GithubIcon,
   } from "./components/icons";
+  import { ui } from "./ui";
 
   interface Props {
     isOpen?: boolean;
@@ -872,7 +873,9 @@
         <CloudArrowDownIcon
           className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
         />
-        <h2 class="text-2xl font-bold mb-2 text-neutral-900 dark:text-white">
+        <h2
+          class="text-2xl font-bold mb-2 text-neutral-900 dark:text-neutral-100"
+        >
           Drop Zone
         </h2>
         <p class="text-neutral-500 dark:text-neutral-400">
@@ -884,7 +887,7 @@
 
   <!-- Sidebar -->
   <div
-    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 pointer-events-auto"
+    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-700 pointer-events-auto"
     style="width: {isOpen ? sidebarWidth : 384}px"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
@@ -910,19 +913,15 @@
     ></button>
 
     <!-- Header -->
-    <div
-      class="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-20"
-    >
-      <h2
-        class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-      >
+    <div class="{ui.dialogHeader} z-20">
+      <h2 class="{ui.title} flex items-center gap-2">
         <FolderIcon className="size-5" />
         Files
       </h2>
       <span class="flex-1"></span>
       <button
         onclick={() => (showGitHubDialog = true)}
-        class="p-1.5 mr-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300"
+        class="{ui.iconBtnSm.neutral} mr-1"
         title="Open from GitHub"
         aria-label="Open from GitHub"
       >
@@ -930,7 +929,7 @@
       </button>
       <button
         onclick={() => (isOpen = false)}
-        class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        class={ui.iconBtnSm.neutral}
         aria-label="Close"
       >
         <CloseIcon className="size-5" />
@@ -987,7 +986,7 @@
         <input
           bind:value={newFolderName}
           use:autofocus
-          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+          class="{ui.inputSm} w-full mb-2"
           placeholder="New Folder"
           onkeydown={(e) => {
             if (e.key === "Enter") createNewFolder(newFolderName);
@@ -997,11 +996,11 @@
 
         <div class="flex gap-2">
           <button
-            class="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+            class="{ui.btnSm.primary} flex-1"
             onclick={() => createNewFolder(newFolderName)}>Create</button
           >
           <button
-            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+            class="{ui.btnSm.secondary} flex-1"
             onclick={() => (creatingNewFolder = false)}>Cancel</button
           >
         </div>
@@ -1019,7 +1018,7 @@
         <input
           bind:value={newFileName}
           use:autofocus
-          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+          class="{ui.inputSm} w-full mb-2"
           placeholder="path_name.turt"
           onkeydown={(e) => {
             if (e.key === "Enter") createNewFile(newFileName);
@@ -1029,11 +1028,11 @@
 
         <div class="flex gap-2">
           <button
-            class="flex-1 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+            class="{ui.btnSm.success} flex-1"
             onclick={() => createNewFile(newFileName)}>Create</button
           >
           <button
-            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+            class="{ui.btnSm.secondary} flex-1"
             onclick={() => (creatingNewFile = false)}>Cancel</button
           >
         </div>
@@ -1057,14 +1056,14 @@
 
         {#if showAddMenu}
           <div
-            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
+            class="{ui.menu} absolute right-0 top-full mt-2 w-48 flex flex-col overflow-hidden"
           >
             <button
               onclick={() => {
                 void startNewFile();
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <DocumentIcon className="size-4 text-green-500" />
               New File
@@ -1075,7 +1074,7 @@
                 creatingNewFolder = true;
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <FolderPlusIcon className="size-4 text-blue-500" />
               New Folder
@@ -1092,7 +1091,7 @@
                 fileInput?.click();
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <ArrowDownTrayIcon className="size-4 text-purple-500" />
               Import File
@@ -1103,7 +1102,7 @@
                 javaInput?.click();
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <CodeBracketSquareIcon className="size-4 text-orange-500" />
               Import Java
@@ -1116,7 +1115,7 @@
                   if (await followJavaFile()) isOpen = false;
                 }}
                 title="Show a Java file's paths on the field, updated each time you save it in your editor"
-                class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+                class={ui.menuItem}
               >
                 <EyeIcon className="size-4 text-green-600" />
                 Follow Java File
@@ -1128,7 +1127,7 @@
                 showGitHubDialog = true;
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <GithubIcon className="size-4" />
               Open from GitHub
@@ -1140,7 +1139,7 @@
                 showTelemetryDialog.set(true);
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <ServerStackIcon className="size-4 text-blue-500" />
               Import Telemetry
@@ -1232,12 +1231,12 @@
 
     <!-- Footer Status -->
     <div
-      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
+      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
     >
       <div class="flex items-center gap-2">
         <button
           onclick={handleRefresh}
-          class="p-1 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          class="{ui.iconBtnSm.neutral} shrink-0"
           title="Refresh"
           aria-label="Refresh"
         >

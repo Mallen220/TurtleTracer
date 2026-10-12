@@ -17,6 +17,7 @@
   } from "../../../../config/sidebarItems";
   import { availableCommands } from "../../../../stores";
   import * as ICONS from "../../icons";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -237,11 +238,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      Sidebar
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">Sidebar</h4>
   {/if}
 
   <SettingsItem
@@ -260,7 +257,7 @@
         value={settings.sidebarIconSize || 20}
         oninput={(e) =>
           setNumber("sidebarIconSize", e.currentTarget.value, 16, 32)}
-        class="w-32 accent-blue-500"
+        class="w-32 accent-purple-600"
       />
       <span
         class="text-xs font-mono text-neutral-500 dark:text-neutral-400 w-8 text-right"
@@ -341,7 +338,7 @@
             <button
               onclick={() => moveSidebarItem(idx, idx - 1)}
               disabled={idx === 0}
-              class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              class={ui.iconBtnSm.neutral}
               title="Move up"
             >
               <ICONS.ChevronUpIcon className="size-4" />
@@ -349,7 +346,7 @@
             <button
               onclick={() => moveSidebarItem(idx, idx + 1)}
               disabled={idx === activeSidebarList.length - 1}
-              class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              class={ui.iconBtnSm.neutral}
               title="Move down"
             >
               <ICONS.ChevronDownIcon className="size-4" />
@@ -360,7 +357,7 @@
                   "sidebarItems",
                   layout.filter((_, i) => i !== idx),
                 )}
-              class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
+              class={ui.iconBtnSm.danger}
               title="Remove from sidebar"
             >
               <ICONS.CloseIcon className="size-4" />
@@ -372,18 +369,16 @@
 
     <div class="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
       <h5
-        class="text-sm font-semibold mb-3 text-neutral-800 dark:text-neutral-200"
+        class="text-sm font-semibold mb-3 text-neutral-900 dark:text-neutral-100"
       >
         Available Built-in Tools
       </h5>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {#each unusedAvailableTools as available}
-          <div
-            class="flex items-center border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-md shadow-sm group overflow-hidden"
-          >
+          <div class="{ui.well} flex items-center group overflow-hidden">
             <button
               onclick={() => set("sidebarItems", [...layout, available.id])}
-              class="flex-grow flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-white dark:hover:bg-neutral-700 transition-colors min-w-0"
+              class="{ui.btnSm.ghost} flex-grow min-w-0"
             >
               <span
                 class="w-5 h-5 flex-none flex items-center justify-center text-neutral-500"
@@ -432,13 +427,13 @@
       >
         <div class="flex items-start justify-between gap-3">
           <h5
-            class="text-sm font-semibold mb-3 text-neutral-800 dark:text-neutral-200"
+            class="text-sm font-semibold mb-3 text-neutral-900 dark:text-neutral-100"
           >
             Create Custom Tool
           </h5>
           <button
             onclick={resetSidebarSettings}
-            class="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            class={ui.btnSm.dangerSoft}
             disabled={!isSidebarLayoutModified && !hasCustomSidebarTools}
           >
             <ICONS.ResetIcon className="size-4" />
@@ -453,7 +448,7 @@
         {#if !showCustomSidebarForm}
           <button
             onclick={() => (showCustomSidebarForm = true)}
-            class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-md text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-300 transition-colors"
+            class="{ui.btn.ghost} w-full"
           >
             <ICONS.PlusIcon className="size-4" />
             Create Custom Sidebar Tool
@@ -461,14 +456,12 @@
         {:else}
           {@const SvelteComponent_2 = CUSTOM_ICON_MAP[customActionIconKey]}
           {@const SvelteComponent_3 = CUSTOM_ICON_MAP[customActionIconKey]}
-          <div
-            class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md mt-3 shadow-sm transition-all"
-          >
+          <div class="{ui.well} p-5 mt-3 transition-all">
             <div
               class="flex items-center justify-between mb-5 border-b border-neutral-200 dark:border-neutral-700 pb-3"
             >
               <h6
-                class="text-sm font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2"
+                class="text-sm font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2"
               >
                 Create Custom Tool
               </h6>
@@ -483,11 +476,7 @@
             <div class="space-y-6">
               <!-- Step 1: Action -->
               <div class="space-y-3">
-                <div
-                  class="block text-xs font-bold text-neutral-500 uppercase tracking-widest"
-                >
-                  1. Choose Action
-                </div>
+                <div class="{ui.heading} block">1. Choose Action</div>
 
                 {#if customActionSelection && selectedCommand}
                   <div
@@ -495,7 +484,7 @@
                   >
                     <div class="flex flex-col">
                       <span
-                        class="text-sm font-semibold text-neutral-900 dark:text-white"
+                        class="text-sm font-semibold text-neutral-900 dark:text-neutral-100"
                         >{selectedCommand.label}</span
                       >
                       <span
@@ -524,16 +513,16 @@
                       type="text"
                       bind:value={commandSearchQuery}
                       placeholder="Search command palette..."
-                      class="w-full pl-9 pr-3 py-2.5 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      class="{ui.input} w-full pl-9 pr-3"
                     />
                   </div>
                   <div
-                    class="max-h-48 overflow-y-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800 empty:hidden"
+                    class="{ui.card} max-h-48 overflow-y-auto divide-y divide-neutral-200 dark:divide-neutral-700 empty:hidden"
                   >
                     {#each filteredSidebarCommands.slice(0, 10) as cmd}
                       <button
                         onclick={() => selectSidebarCommand(cmd)}
-                        class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-between group"
+                        class="{ui.menuItem} justify-between group"
                       >
                         <span
                           class="font-medium text-neutral-700 dark:text-neutral-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
@@ -558,11 +547,7 @@
 
               <!-- Step 2: Appearance -->
               <div class="space-y-4 pt-2">
-                <div
-                  class="block text-xs font-bold text-neutral-500 uppercase tracking-widest"
-                >
-                  2. Customize Appearance
-                </div>
+                <div class="{ui.heading} block">2. Customize Appearance</div>
 
                 <div class="grid grid-cols-2 gap-4">
                   <!-- Label -->
@@ -577,7 +562,7 @@
                       bind:value={customActionLabel}
                       type="text"
                       placeholder="e.g. My Tool"
-                      class="w-full px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      class="{ui.input} w-full"
                     />
                   </div>
 
@@ -591,7 +576,7 @@
                     <div class="relative" bind:this={iconMenuContainer}>
                       <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-md text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none"
+                        class="{ui.input} w-full flex items-center gap-2 text-left"
                         onclick={() => {
                           isIconMenuOpen = !isIconMenuOpen;
                         }}
@@ -612,7 +597,7 @@
                       </button>
                       {#if isIconMenuOpen}
                         <div
-                          class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md shadow-xl overflow-hidden"
+                          class="{ui.popover} absolute z-20 top-full left-0 right-0 mt-2 overflow-hidden"
                           use:menuNavigation
                           tabindex="-1"
                           onclose={() => (isIconMenuOpen = false)}
@@ -624,11 +609,9 @@
                               type="text"
                               bind:value={customIconSearch}
                               placeholder="Search icons by name..."
-                              class="w-full px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              class="{ui.input} w-full"
                             />
-                            <div
-                              class="mt-1 text-[10px] uppercase tracking-wider text-neutral-400"
-                            >
+                            <div class="{ui.heading} mt-1">
                               {filteredCustomIcons.length} result{filteredCustomIcons.length ===
                               1
                                 ? ""
@@ -646,7 +629,7 @@
                                   class="aspect-square flex items-center justify-center rounded-md border transition-colors {iconDef.name ===
                                   customActionIconKey
                                     ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
-                                    : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+                                    : 'bg-transparent border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
                                   onclick={() => selectCustomIcon(iconDef.name)}
                                   title={iconDef.name}
                                 >
@@ -672,9 +655,7 @@
                 </div>
 
                 <!-- Live Preview Card -->
-                <div
-                  class="p-4 bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-md flex items-center gap-5"
-                >
+                <div class="{ui.card} p-4 flex items-center gap-5">
                   <div class="flex flex-col items-center gap-1">
                     <span
                       class="text-[10px] text-neutral-400 uppercase font-bold tracking-tighter"
@@ -688,7 +669,7 @@
                   </div>
                   <div class="flex-1 space-y-1">
                     <div
-                      class="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate"
+                      class="text-xs font-semibold text-neutral-900 dark:text-neutral-100 truncate"
                     >
                       {customActionLabel || "Tool Label"}
                     </div>
@@ -706,13 +687,13 @@
                 <button
                   onclick={addNewCustomItem}
                   disabled={!customActionSelection || !customActionLabel}
-                  class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-700 active:scale-95 disabled:opacity-30 disabled:scale-100 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
+                  class="{ui.btn.primary} flex-1"
                 >
                   Create Tool
                 </button>
                 <button
                   onclick={() => (showCustomSidebarForm = false)}
-                  class="px-4 py-2.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-bold rounded-md hover:bg-neutral-300 dark:hover:bg-neutral-600 active:scale-95 transition-all"
+                  class={ui.btn.secondary}
                 >
                   Cancel
                 </button>

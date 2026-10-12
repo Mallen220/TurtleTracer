@@ -8,6 +8,7 @@
     telemetryOffset,
     type TelemetryPoint,
   } from "../../telemetryStore";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -132,7 +133,7 @@
   <!-- Dialog UI similar to ExportCodeDialog -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6"
+    class="{ui.overlay} z-[1000]"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) isOpen = false;
@@ -140,12 +141,14 @@
   >
     <div
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-md shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="{ui.dialog} w-full max-w-lg flex flex-col outline-none"
     >
       <div
-        class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800"
+        class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-700"
       >
-        <h2 class="text-lg font-semibold text-neutral-900 dark:text-white">
+        <h2
+          class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
+        >
           Telemetry Import
         </h2>
       </div>
@@ -160,7 +163,7 @@
             <button
               type="button"
               onclick={() => fileInput?.click()}
-              class="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 rounded-full text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
+              class={ui.btn.secondary}
             >
               Choose File
             </button>
@@ -185,55 +188,42 @@
         </div>
 
         {#if errorMsg}
-          <div
-            class="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-md text-sm"
-          >
+          <div class={ui.alert.danger}>
             {errorMsg}
           </div>
         {/if}
 
         {#if summary}
-          <div
-            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-md text-sm flex justify-between items-center"
-          >
+          <div class="{ui.alert.success} flex justify-between items-center">
             <span>{summary}</span>
-            <button
-              onclick={handleClear}
-              class="text-xs px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 rounded hover:bg-green-300 dark:hover:bg-green-700 transition-colors"
-            >
+            <button onclick={handleClear} class={ui.btnSm.secondary}>
               Clear Data
             </button>
           </div>
         {/if}
 
         <div class="flex items-center justify-between pt-2">
-          <label
-            class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
-          >
+          <label class={ui.checkLabel}>
             <input
               type="checkbox"
               bind:checked={$showTelemetry}
-              class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+              class={ui.checkbox}
             />
             Show Live Telemetry Overlay
           </label>
 
-          <label
-            class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
-          >
+          <label class={ui.checkLabel}>
             <input
               type="checkbox"
               bind:checked={$showTelemetryGhost}
-              class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+              class={ui.checkbox}
             />
             Show Imported Ghost Robot
           </label>
         </div>
 
         <div>
-          <label
-            for="telemetry-offset"
-            class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+          <label for="telemetry-offset" class="{ui.label} block mb-1"
             >Time Offset (s)</label
           >
           <div class="flex items-center gap-2">
@@ -242,12 +232,11 @@
               type="number"
               step="0.1"
               bind:value={$telemetryOffset}
-              class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              class="{ui.input} w-full"
             />
             <button
               onclick={() => ($telemetryOffset = 0)}
-              class="text-xs px-2 py-1 bg-neutral-200 dark:bg-neutral-700 rounded hover:bg-neutral-300 dark:hover:bg-neutral-600"
-              >Reset</button
+              class={ui.btnSm.secondary}>Reset</button
             >
           </div>
           <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
@@ -256,13 +245,8 @@
         </div>
       </div>
 
-      <div
-        class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-end"
-      >
-        <button
-          onclick={() => (isOpen = false)}
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors"
-        >
+      <div class="{ui.dialogFooter} justify-end">
+        <button onclick={() => (isOpen = false)} class={ui.btn.primary}>
           Done
         </button>
       </div>

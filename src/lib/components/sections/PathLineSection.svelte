@@ -40,6 +40,7 @@
     ArrowDownIcon,
     LinkIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     line: Line;
@@ -358,7 +359,7 @@
           e.stopPropagation();
           toggleCollapsed();
         }}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.btnSm.ghost}
         title="{collapsed ? 'Expand' : 'Collapse'} path"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} Path {idx + 1}"
         aria-expanded={!collapsed}
@@ -368,10 +369,7 @@
             ? 'rotate-0'
             : 'rotate-90'}"
         />
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-300 whitespace-nowrap"
-          >Path {idx + 1}</span
-        >
+        <span class="{ui.heading} whitespace-nowrap">Path {idx + 1}</span>
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -438,7 +436,7 @@
           line = newLine;
           if (recordChange) recordChange();
         }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
         title={isHidden ? "Show Path" : "Hide Path"}
         aria-label={isHidden ? "Show Path" : "Hide Path"}
       >
@@ -458,7 +456,7 @@
           lines = [...lines];
           line = newLine;
         }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
         title={line.locked ? "Unlock Path" : "Lock Path"}
         aria-label={line.locked ? "Unlock Path" : "Lock Path"}
       >
@@ -484,7 +482,7 @@
             if (!line.locked && onMoveUp) onMoveUp();
           }}
           disabled={!canMoveUp || line.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+          class={ui.iconBtnSm.neutral}
           title="Move Up"
           aria-label="Move Up"
         >
@@ -496,7 +494,7 @@
             if (!line.locked && onMoveDown) onMoveDown();
           }}
           disabled={!canMoveDown || line.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+          class={ui.iconBtnSm.neutral}
           title="Move Down"
           aria-label="Move Down"
         >
@@ -537,7 +535,7 @@
               >
               <input
                 bind:this={xInput}
-                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                class="{ui.inputSm} w-full pl-6 pr-2"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
                 min={$settingsStore.coordinateSystem === "FTC"
@@ -570,7 +568,7 @@
               >
               <input
                 bind:this={yInput}
-                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                class="{ui.inputSm} w-full pl-6 pr-2"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 min={$settingsStore.coordinateSystem === "FTC"
                   ? -($settingsStore.fieldWidth ?? 144) / 2
@@ -635,7 +633,7 @@
               >Heading</span
             >
             <button
-              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/50 rounded-md flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-md flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               onclick={() => {
                 if (onScrollToItem && chainGlobalSourceLine?.id) {
                   onScrollToItem(chainGlobalSourceLine.id);
@@ -651,7 +649,7 @@
 
         {#if canShowGlobalHeadingToggle}
           <div
-            class="space-y-2 col-span-1 border-t border-neutral-100 dark:border-neutral-700 pt-2"
+            class="space-y-2 col-span-1 border-t border-neutral-200 dark:border-neutral-700 pt-2"
             class:col-span-3={!isNarrow}
           >
             <label class="flex items-center gap-2 cursor-pointer w-fit">
@@ -722,10 +720,10 @@
                   if (recordChange) recordChange("Toggle Global Heading");
                 }}
                 disabled={line.locked}
-                class="rounded text-purple-500 focus:ring-purple-500 bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700"
+                class={ui.checkbox}
               />
               <span
-                class="text-sm font-semibold text-neutral-600 dark:text-neutral-300"
+                class="text-sm font-semibold text-neutral-700 dark:text-neutral-300"
                 >Global Chain Heading</span
               >
             </label>

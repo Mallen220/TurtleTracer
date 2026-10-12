@@ -7,6 +7,7 @@
   import { MIN_TRANSLATIONAL_P } from "../../../../utils/timeCalculator/chainRecovery";
   import TranslationalPPreview from "./TranslationalPPreview.svelte";
   import type { Settings } from "../../../../types/index";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -70,16 +71,12 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      Motion
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">Motion</h4>
   {/if}
 
   {#if searchQuery === ""}
     <p
-      class="mb-4 rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/40 p-3 text-xs leading-snug text-neutral-600 dark:text-neutral-400"
+      class="{ui.well} mb-4 p-3 text-xs leading-snug text-neutral-500 dark:text-neutral-400"
       data-testid="where-to-find-numbers"
     >
       Not sure what to enter? If your robot runs Pedro Pathing, its Foresight
@@ -89,7 +86,7 @@
         href="https://pedropathing.com/docs/pathing/tuning/foresight"
         target="_blank"
         rel="noopener noreferrer"
-        class="text-blue-600 dark:text-blue-400 underline">Tuning Foresight</a
+        class={ui.link}>Tuning Foresight</a
       >. Each setting below says which value to copy. Otherwise, time your robot
       over a measured distance, or start with the defaults.
     </p>
@@ -127,7 +124,7 @@
       min="0"
       step={angularVelocityUnit === "rad" ? 0.1 : 10}
       oninput={handleMaxAngularAccelerationInput}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     />
   </SettingsItem>
 
@@ -143,24 +140,13 @@
           ? "Multiplier of π radians per second"
           : "Degrees per second"}
       </div>
-      <div
-        class="flex items-center text-xs border border-neutral-300 dark:border-neutral-600 rounded overflow-hidden"
-      >
+      <div class={ui.tabList}>
         <button
-          class="px-2 py-0.5 {angularVelocityUnit === 'rad'
-            ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
-            : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}"
+          class={ui.tab(angularVelocityUnit === "rad")}
           onclick={() => (angularVelocityUnit = "rad")}>π rad/s</button
         >
-        <div
-          class="w-px h-full bg-neutral-300 dark:bg-neutral-600"
-          role="presentation"
-          aria-hidden="true"
-        ></div>
         <button
-          class="px-2 py-0.5 {angularVelocityUnit === 'deg'
-            ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
-            : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}"
+          class={ui.tab(angularVelocityUnit === "deg")}
           onclick={() => (angularVelocityUnit = "deg")}>deg/s</button
         >
       </div>
@@ -173,7 +159,7 @@
       step={angularVelocityUnit === "rad" ? 0.1 : 10}
       oninput={handleAngularVelocityInput}
       onchange={handleAngularVelocityChange}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     />
   </SettingsItem>
 
@@ -215,11 +201,7 @@
     step={0.1}
   />
 
-  <h4
-    class="text-xs font-bold text-neutral-500 uppercase tracking-wider mt-8 mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-  >
-    Path following
-  </h4>
+  <h4 class="{ui.heading} mt-8 mb-4 border-b pb-1">Path following</h4>
 
   <SettingsItem
     label="Pedro Pathing Version"
@@ -234,7 +216,7 @@
       value={settings.pedroVersion}
       onchange={(e) =>
         set("pedroVersion", e.currentTarget.value as "v3" | "v2")}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     >
       <option value="v3">v3 (current)</option>
       <option value="v2">v2 (deprecated but still widely used)</option>
@@ -279,7 +261,7 @@
       type="checkbox"
       checked={settings.stopToTurn}
       onchange={(e) => set("stopToTurn", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 

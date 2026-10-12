@@ -283,7 +283,7 @@
     <div class="px-3 pb-3 space-y-4">
       {@render children()}
 
-      <InsertAfterBar {onAddAction} focusClass={colors.focus} />
+      <InsertAfterBar {onAddAction} />
     </div>
   {/if}
 </div>

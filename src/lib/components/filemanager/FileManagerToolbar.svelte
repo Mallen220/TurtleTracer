@@ -9,6 +9,7 @@
     ViewGridIcon,
     CodeBracketSquareIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     searchQuery?: string;
@@ -39,9 +40,7 @@
   }
 </script>
 
-<div
-  class="flex flex-col gap-2 p-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10 overflow-visible"
->
+<div class="{ui.bar} flex flex-col gap-2 p-2 shrink-0 z-10 overflow-visible">
   <!-- Header: Search + Sort/View + Change Dir -->
   <div class="flex items-center gap-1 w-full relative">
     <!-- Search (Full Width) -->
@@ -56,16 +55,16 @@
         value={searchQuery}
         oninput={handleSearch}
         placeholder="Search files..."
-        class="w-full pl-8 pr-2 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-800 border-none rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
+        class="{ui.inputSm} w-full pl-8"
       />
     </div>
 
     <!-- Java Files Toggle -->
     <button
       onclick={() => ontogglejava?.()}
-      class="p-1.5 rounded transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 {showJavaFiles
-        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/70'
-        : 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+      class="{showJavaFiles
+        ? ui.iconBtnSm.active
+        : ui.iconBtnSm.neutral} shrink-0"
       title={showJavaFiles ? "Hide Java Files" : "Show Importable Java Files"}
       aria-label={showJavaFiles
         ? "Hide Java Files"
@@ -77,7 +76,7 @@
     <!-- Sort Toggle -->
     <button
       onclick={() => onsortchange?.(sortMode === "name" ? "date" : "name")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      class="{ui.iconBtnSm.neutral} shrink-0"
       title={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
       aria-label={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
     >
@@ -91,7 +90,7 @@
     <!-- View Toggle -->
     <button
       onclick={() => onviewchange?.(viewMode === "list" ? "grid" : "list")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      class="{ui.iconBtnSm.neutral} shrink-0"
       title={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
       aria-label={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
     >

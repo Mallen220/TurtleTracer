@@ -65,6 +65,7 @@
     CUSTOM_ICON_MAP,
     type SidebarItemConfig,
   } from "../../config/sidebarItems";
+  import { ui } from "../ui";
 
   interface Props {
     undoAction: () => any;
@@ -562,7 +563,7 @@
                 aria-label="History Menu"
                 use:menuNavigation
                 onclose={() => showHistory.set(false)}
-                class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-md shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+                class="{ui.menu} absolute left-full ml-2 mt-0 w-64 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
               >
                 <div
                   class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
@@ -577,10 +578,10 @@
                       showHistory.set(false);
                     }}
                     class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future
-                      ? 'opacity-50 hover:opacity-100 text-neutral-600 dark:text-neutral-400'
+                      ? 'opacity-50 hover:opacity-100 text-neutral-500 dark:text-neutral-400'
                       : i === currentIndex
                         ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
-                        : 'text-neutral-700 dark:text-neutral-200'}"
+                        : 'text-neutral-700 dark:text-neutral-300'}"
                   >
                     <span class="truncate">{entry.item.description}</span>
                     <span
@@ -651,7 +652,7 @@
                   class="sidebar-icon flex-none flex items-center justify-center"
                 >
                   <select
-                    class="w-10 text-xs bg-transparent text-center text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
+                    class="w-10 text-xs bg-transparent text-center text-neutral-700 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
                     bind:value={$gridSize}
                     title="Grid Size"
                     aria-label="Grid Size"
@@ -695,7 +696,7 @@
   </div>
 
   <div
-    class="w-full flex-none border-t border-neutral-200 dark:border-neutral-800 flex flex-col items-center gap-1.5 bg-neutral-50 dark:bg-neutral-900 py-2"
+    class="w-full flex-none border-t border-neutral-200 dark:border-neutral-700 flex flex-col items-center gap-1.5 bg-neutral-50 dark:bg-neutral-900 py-2"
   >
     <div class="w-full flex justify-center">
       <SidebarButton
@@ -741,7 +742,7 @@
       }}
     >
       <div
-        class="absolute right-0 top-0 w-px h-full bg-neutral-200 dark:border-neutral-800 group-hover:bg-purple-500/50 group-focus:bg-purple-500/50"
+        class="absolute right-0 top-0 w-px h-full bg-neutral-200 dark:border-neutral-700 group-hover:bg-purple-500/50 group-focus:bg-purple-500/50"
         role="presentation"
         aria-hidden="true"
       ></div>

@@ -10,6 +10,7 @@
     setStatus,
   } from "../../telemetryStore";
   import { notification } from "../../../stores";
+  import { ui } from "../../ui";
 
   // Inputs
   let ip = $state("192.168.43.1");
@@ -80,10 +81,8 @@
 
 <div class="p-4 w-full flex flex-col gap-4 h-full">
   <!-- Connection Controls -->
-  <div
-    class="flex flex-col gap-2 p-4 bg-white dark:bg-neutral-800 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700"
-  >
-    <h3 class="font-semibold text-lg text-neutral-800 dark:text-neutral-100">
+  <div class="{ui.card} flex flex-col gap-2 p-4">
+    <h3 class="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
       Connection
     </h3>
 
@@ -96,7 +95,7 @@
           value="tcp"
           onchange={updateDefaultPort}
           disabled={$isConnected}
-          class="text-purple-600 focus:ring-purple-500"
+          class={ui.checkbox}
         />
         <span class="text-neutral-700 dark:text-neutral-300"
           >TCP (TurtleTracerLib)</span
@@ -109,7 +108,7 @@
           value="websocket"
           onchange={updateDefaultPort}
           disabled={$isConnected}
-          class="text-purple-600 focus:ring-purple-500"
+          class={ui.checkbox}
         />
         <span class="text-neutral-700 dark:text-neutral-300"
           >WebSocket (Panels)</span
@@ -122,23 +121,20 @@
         type="text"
         bind:value={ip}
         placeholder="IP Address"
-        class="flex-1 px-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm dark:text-white"
+        class="{ui.input} flex-1"
         disabled={$isConnected}
       />
       <input
         type="number"
         bind:value={port}
         placeholder="Port"
-        class="w-24 px-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm dark:text-white"
+        class="{ui.input} w-24"
         disabled={$isConnected}
       />
     </div>
     <button
       onclick={toggleConnection}
-      class="w-full py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
-            {$isConnected
-        ? 'bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500'
-        : 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'}"
+      class="{$isConnected ? ui.btn.dangerSoft : ui.btn.primary} w-full"
       disabled={connecting}
     >
       {#if connecting}
@@ -162,7 +158,7 @@
                 ? 'bg-red-500'
                 : 'bg-neutral-400'}"
         ></div>
-        <span class="font-medium text-neutral-600 dark:text-neutral-400"
+        <span class="font-medium text-neutral-500 dark:text-neutral-400"
           >{status}</span
         >
       </div>
@@ -173,9 +169,7 @@
   </div>
 
   <!-- Data Table -->
-  <div
-    class="flex-1 overflow-hidden flex flex-col bg-white dark:bg-neutral-800 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700"
-  >
+  <div class="{ui.card} flex-1 overflow-hidden flex flex-col">
     <div
       class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
     >
@@ -195,14 +189,14 @@
           <tbody>
             {#each sortedKeys as key}
               <tr
-                class="border-b border-neutral-100 dark:border-neutral-800 last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors"
+                class="border-b border-neutral-200 dark:border-neutral-700 last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors"
               >
                 <td
-                  class="py-1.5 px-2 font-medium text-neutral-600 dark:text-neutral-400 w-1/3 truncate"
+                  class="py-1.5 px-2 font-medium text-neutral-500 dark:text-neutral-400 w-1/3 truncate"
                   title={key}>{key}</td
                 >
                 <td
-                  class="py-1.5 px-2 text-neutral-900 dark:text-neutral-200 font-mono text-right truncate"
+                  class="py-1.5 px-2 text-neutral-900 dark:text-neutral-100 font-mono text-right truncate"
                 >
                   {#if typeof lines[key] === "boolean"}
                     <span

@@ -7,6 +7,7 @@
   import SearchIcon from "./icons/SearchIcon.svelte";
   import ArrowUpIcon from "./icons/ArrowUpIcon.svelte";
   import ArrowDownIcon from "./icons/ArrowDownIcon.svelte";
+  import { ui } from "../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -166,9 +167,7 @@
       class="w-full max-w-2xl flex flex-col gap-4 px-4"
     >
       <!-- Search Bar -->
-      <div
-        class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
-      >
+      <div class="{ui.dialog} flex items-center px-5 py-4">
         <SearchIcon
           className="size-6 text-neutral-400 mr-4 flex-shrink-0"
           strokeWidth={2}
@@ -178,7 +177,7 @@
           type="text"
           bind:value={searchQuery}
           placeholder="Type a command or search..."
-          class="w-full bg-transparent border-none focus:ring-0 text-xl text-neutral-900 dark:text-white placeholder-neutral-400 font-medium outline-none"
+          class="w-full bg-transparent border-none focus:ring-0 text-xl text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 font-medium outline-none"
           role="combobox"
           aria-expanded="true"
           aria-controls="command-results"
@@ -199,9 +198,7 @@
       </div>
 
       <!-- Results List -->
-      <div
-        class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
-      >
+      <div class="{ui.dialog} overflow-hidden flex flex-col">
         <div
           id="command-results"
           class="max-h-[60vh] overflow-y-auto py-2 px-2 scrollbar-thin"
@@ -223,7 +220,7 @@
                 class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 rounded-md mb-0.5
                 {index === selectedIndex
                   ? 'bg-indigo-600 text-white shadow-md transform scale-[1.00]'
-                  : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+                  : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
                 onclick={() => executeCommand(command)}
                 onmousemove={() => (selectedIndex = index)}
               >
@@ -265,7 +262,7 @@
         </div>
 
         <div
-          class="px-5 py-3 bg-neutral-50 dark:bg-neutral-900/80 border-t border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 flex justify-end gap-6 font-medium"
+          class="px-5 py-3 bg-neutral-50 dark:bg-neutral-900/80 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 flex justify-end gap-6 font-medium"
         >
           <span class="flex items-center gap-1.5"
             ><kbd

@@ -4,6 +4,7 @@
   import { formatDisplayDistance } from "../../../utils/coordinates";
   import type { Settings } from "../../../types";
   import { PlusCircleIcon, MinusCircleIcon, PenIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     settings: Settings;
@@ -39,16 +40,11 @@
     <div class="p-4 space-y-6">
       <!-- Stats Overview -->
       <div class="grid grid-cols-2 gap-4">
-        <div
-          class="bg-white dark:bg-neutral-800 p-4 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700"
-        >
-          <p
-            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1"
-          >
-            Total Time
-          </p>
+        <div class="{ui.card} p-4">
+          <p class="{ui.heading} mb-1">Total Time</p>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold text-neutral-900 dark:text-white"
+            <span
+              class="text-2xl font-bold text-neutral-900 dark:text-neutral-100"
               >{formatNum(result.statsDiff.time.new)}s</span
             >
             {#if result.statsDiff.time.diff !== 0}
@@ -63,16 +59,11 @@
           </div>
         </div>
 
-        <div
-          class="bg-white dark:bg-neutral-800 p-4 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700"
-        >
-          <p
-            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1"
-          >
-            Total Distance
-          </p>
+        <div class="{ui.card} p-4">
+          <p class="{ui.heading} mb-1">Total Distance</p>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold text-neutral-900 dark:text-white"
+            <span
+              class="text-2xl font-bold text-neutral-900 dark:text-neutral-100"
               >{formatDisplayDistance(
                 result.statsDiff.distance.new,
                 settings,
@@ -99,24 +90,20 @@
           class="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2"
         >
           Changes Log
-          <span
-            class="px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 text-xs text-neutral-600 dark:text-neutral-300"
-          >
+          <span class={ui.badge.neutral}>
             {addedEvents.length + removedEvents.length + changedEvents.length}
           </span>
         </h3>
 
         {#if addedEvents.length === 0 && removedEvents.length === 0 && changedEvents.length === 0}
-          <div
-            class="p-8 text-center bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 border-dashed"
-          >
+          <div class="{ui.card} p-8 text-center border-dashed">
             <p class="text-neutral-500 dark:text-neutral-400 text-sm">
               No changes detected compared to the last commit.
             </p>
           </div>
         {:else}
           <div
-            class="bg-white dark:bg-neutral-800 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-700/50 overflow-hidden"
+            class="{ui.card} divide-y divide-neutral-200 dark:divide-neutral-700 overflow-hidden"
           >
             {#each addedEvents as item}
               <div
@@ -235,7 +222,7 @@
         class="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"
       ></div>
       <div>
-        <p class="text-neutral-900 dark:text-white font-medium">
+        <p class="text-neutral-900 dark:text-neutral-100 font-medium">
           Computing Diff
         </p>
         <p class="text-neutral-500 dark:text-neutral-400 text-sm">

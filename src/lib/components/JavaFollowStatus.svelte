@@ -8,6 +8,7 @@
   } from "../javaFollow";
   import PathText from "./PathText.svelte";
   import { EyeIcon } from "./icons";
+  import { ui } from "../ui";
 
   let open = $state(false);
   let root: HTMLElement | undefined = $state();
@@ -36,9 +37,9 @@
   {@const followed = $followedJava}
   <div class="relative flex items-center" bind:this={root}>
     <button
-      class="text-[11px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1.5 whitespace-nowrap max-w-[260px] {followed.error
-        ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:border-amber-700 dark:text-amber-200'
-        : 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200 dark:bg-green-900/40 dark:border-green-700 dark:text-green-200'}"
+      class="{ui.badge[
+        followed.error ? 'warning' : 'success'
+      ]} max-w-[260px] whitespace-nowrap hover:opacity-80"
       title={followed.error
         ? `Line ${followed.error.line}: ${followed.error.message} The field shows the last version that worked.`
         : "The field shows this Java file, and updates each time it's saved in your editor."}
@@ -59,11 +60,13 @@
 
     {#if open}
       <div
-        class="absolute left-0 top-full mt-2 z-[1100] w-80 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-xl p-3 flex flex-col gap-2 text-xs text-neutral-700 dark:text-neutral-300"
+        class="{ui.popover} absolute left-0 top-full mt-2 z-[1100] w-80 p-3 flex flex-col gap-2 text-xs text-neutral-700 dark:text-neutral-300"
         role="dialog"
         aria-label="Following a Java file"
       >
-        <div class="font-semibold text-sm text-neutral-900 dark:text-white">
+        <div
+          class="font-semibold text-sm text-neutral-900 dark:text-neutral-100"
+        >
           Following {followed.name}
         </div>
         <div
@@ -73,10 +76,7 @@
         </div>
 
         {#if followed.error}
-          <p
-            class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2 text-amber-900 dark:text-amber-200"
-            role="alert"
-          >
+          <p class={ui.alert.warning} role="alert">
             {#if followed.error.line > 0}<strong
                 >Line {followed.error.line}:</strong
               >{/if}
@@ -96,7 +96,7 @@
           <div>
             <div class="font-medium mb-1">Skipped in the file:</div>
             <ul
-              class="max-h-28 overflow-y-auto list-disc pl-4 space-y-0.5 text-neutral-600 dark:text-neutral-400"
+              class="max-h-28 overflow-y-auto list-disc pl-4 space-y-0.5 text-neutral-500 dark:text-neutral-400"
             >
               {#each followed.notes as note, i (i)}
                 <li>Line {note.line}: {note.message}</li>
@@ -112,7 +112,7 @@
 
         <div class="flex justify-end gap-2 pt-1">
           <button
-            class="px-2.5 py-1 rounded-md border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            class={ui.btnSm.outline}
             onclick={() => {
               open = false;
               stopFollowing();
@@ -121,7 +121,7 @@
             Stop following
           </button>
           <button
-            class="px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium"
+            class={ui.btnSm.primary}
             onclick={() => {
               open = false;
               void saveFollowedAsProject();

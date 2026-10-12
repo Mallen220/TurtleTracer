@@ -8,6 +8,7 @@
     ResetZoomIcon,
     ExitPresentationModeIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     isPresentationMode?: boolean;
@@ -44,9 +45,9 @@
     >
       {#if isDirty}
         <button
-          class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
-            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
-            : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
+          class="{isDiffMode
+            ? ui.iconBtnSm.active
+            : ui.iconBtnSm.neutral} w-7 h-7"
           onclick={onToggleDiff}
           aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
           title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
@@ -63,7 +64,7 @@
       {/if}
       {#if !lockFieldView}
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          class="{ui.iconBtnSm.neutral} w-7 h-7"
           onclick={onZoomIn}
           aria-label="Zoom in"
           title="Zoom In (Cmd/Ctrl + +)"
@@ -71,7 +72,7 @@
           <PlusIcon className="w-4 h-4" />
         </button>
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          class="{ui.iconBtnSm.neutral} w-7 h-7"
           onclick={onZoomOut}
           aria-label="Zoom out"
           title="Zoom Out (Cmd/Ctrl + -)"
@@ -79,7 +80,7 @@
           <MinusIcon className="w-4 h-4" />
         </button>
         <button
-          class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          class="{ui.iconBtnSm.neutral} w-7 h-7"
           onclick={onResetZoom}
           aria-label="Reset zoom"
           title="Reset Zoom (Cmd/Ctrl + 0)"
@@ -99,7 +100,7 @@
     >
       {#if !lockFieldView}
         <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          class="{ui.iconBtnSm.neutral} w-8 h-8"
           onclick={onZoomIn}
           aria-label="Zoom in"
           title="Zoom In"
@@ -107,7 +108,7 @@
           <PlusIcon className="w-5 h-5" />
         </button>
         <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          class="{ui.iconBtnSm.neutral} w-8 h-8"
           onclick={onZoomOut}
           aria-label="Zoom out"
           title="Zoom Out"
@@ -115,7 +116,7 @@
           <MinusIcon className="w-5 h-5" />
         </button>
         <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          class="{ui.iconBtnSm.neutral} w-8 h-8"
           onclick={onResetZoom}
           aria-label="Reset zoom"
           title="Reset Zoom"
@@ -125,7 +126,7 @@
         <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
       {/if}
       <button
-        class="w-8 h-8 flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+        class="{ui.iconBtnSm.danger} w-8 h-8"
         onclick={onExitPresentation}
         aria-label="Exit Presentation Mode"
         title="Exit Presentation Mode (Alt+P)"

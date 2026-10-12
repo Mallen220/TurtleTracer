@@ -38,6 +38,7 @@
     getClosestTarget,
     type DragPosition,
   } from "../../utils/dragDrop";
+  import { ui } from "../ui";
 
   interface Props {
     endPoint: HeadingFields;
@@ -206,7 +207,7 @@
     value={endPoint.heading}
     onchange={(e) =>
       setStyle(e.currentTarget.value as HeadingFields["heading"])}
-    class="w-full pl-3 pr-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all flex-1"
+    class="{ui.inputSm} w-full pl-3 pr-8 flex-1"
     title="The heading style of the robot.
   With constant heading, the robot maintains the same heading throughout the line.
   With linear heading, heading changes linearly between given start and end angles.
@@ -224,7 +225,7 @@
   </select>
 
   <label
-    class="flex items-center justify-center px-2 py-1.5 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 {endPoint.heading ===
+    class="{ui.btnSm.secondary} cursor-pointer shrink-0 {endPoint.heading ===
     'piecewise'
       ? 'hidden'
       : ''}"
@@ -298,7 +299,7 @@
     </div>
   {:else if endPoint.heading === "tangential"}
     <div
-      class="flex items-center justify-center gap-2 flex-[2] bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md px-3 min-w-0"
+      class="{ui.well} flex items-center justify-center gap-2 flex-[2] px-3 min-w-0"
     >
       <ArrowRightIcon
         className="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse
@@ -367,15 +368,9 @@
             class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 z-10 shrink-0"
           ></div>
           {#if i === 0}
-            <span
-              class="text-[10px] text-neutral-400 font-bold bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700 select-none"
-            >
-              t = 0.00
-            </span>
+            <span class="{ui.badge.neutral} select-none"> t = 0.00 </span>
           {:else}
-            <div
-              class="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700"
-            >
+            <div class="{ui.well} flex items-center gap-2 px-1.5 py-0.5">
               <span class="text-[10px] text-neutral-500 font-bold select-none"
                 >t =</span
               >
@@ -388,12 +383,12 @@
                 oninput={(e) => setTransition(i, e.currentTarget.value)}
                 onblur={() => oncommit?.()}
                 disabled={locked}
-                class="w-14 px-1 py-0.5 text-xs bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:ring-1 focus:ring-purple-500 outline-none"
+                class="{ui.inputXs} w-14"
               />
               {#if !locked}
                 <button
                   onclick={() => removeTransition(i)}
-                  class="text-red-500 hover:text-red-700 p-0.5 rounded hover:bg-red-500/10 transition-colors"
+                  class={ui.iconBtnSm.danger}
                   title="Remove Transition"
                 >
                   <TrashIcon className="size-3" />
@@ -439,7 +434,7 @@
                   e.stopPropagation();
                   moveSegment(i, -1);
                 }}
-                class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded-t focus:outline-none focus:ring-2 focus:ring-purple-500"
+                class={ui.iconBtnSm.neutral}
                 disabled={i === 0 || locked}
               >
                 <ChevronUpIcon className="size-3" />
@@ -455,7 +450,7 @@
                   e.stopPropagation();
                   moveSegment(i, 1);
                 }}
-                class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded-b focus:outline-none focus:ring-2 focus:ring-purple-500"
+                class={ui.iconBtnSm.neutral}
                 disabled={i === segments.length - 1 || locked}
               >
                 <ChevronDownIcon className="size-3" />
@@ -480,19 +475,12 @@
         <div
           class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 z-10 shrink-0"
         ></div>
-        <span
-          class="text-[10px] text-neutral-400 font-bold bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-700 select-none"
-        >
-          t = 1.00
-        </span>
+        <span class="{ui.badge.neutral} select-none"> t = 1.00 </span>
       </div>
 
       {#if !locked}
         <div class="ml-4 mt-2">
-          <button
-            class="text-[11px] bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 px-3 py-1 rounded-full transition-colors font-semibold shadow-sm border border-neutral-200 dark:border-neutral-700 flex items-center gap-1 w-fit"
-            onclick={addTransition}
-          >
+          <button class="{ui.btnSm.secondary} w-fit" onclick={addTransition}>
             <svg
               class="w-3 h-3"
               fill="none"

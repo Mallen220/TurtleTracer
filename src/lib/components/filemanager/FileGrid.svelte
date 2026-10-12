@@ -26,6 +26,7 @@
     setDraggedFile,
     getDraggedFile,
   } from "./fileBrowser.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     files?: FileInfo[];
@@ -225,12 +226,8 @@
             <!-- Git Status Badge -->
             {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
               <div
-                class="group/tooltip absolute top-1 left-1 z-10 p-1 rounded-full shadow-sm border cursor-help
-                  {file.gitStatus === 'modified'
-                  ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/80 dark:border-amber-700/50 dark:text-amber-300'
-                  : file.gitStatus === 'staged'
-                    ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/80 dark:border-green-700/50 dark:text-green-300'
-                    : 'bg-neutral-100 border-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300'}"
+                class="group/tooltip absolute top-1 left-1 z-10 p-1 rounded-full shadow-sm border cursor-help {ui
+                  .badgeColor[ui.gitTone(file.gitStatus)]}"
               >
                 <!-- Custom Tooltip -->
                 <div
@@ -255,7 +252,7 @@
 
             {#if file.isDirectory}
               <div
-                class="w-[80px] h-[80px] rounded flex items-center justify-center text-blue-500 dark:text-blue-400 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700"
+                class="{ui.well} w-[80px] h-[80px] flex items-center justify-center text-blue-500 dark:text-blue-400"
               >
                 <FolderIcon className="size-12" />
               </div>
@@ -269,9 +266,7 @@
                 height={80}
               />
             {:else}
-              <div
-                class="w-[80px] h-[80px] rounded overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
-              >
+              <div class="{ui.well} w-[80px] h-[80px] overflow-hidden">
                 {#if fieldImage}
                   <img
                     src={`/fields/${fieldImage}`}
@@ -291,7 +286,8 @@
 
             <!-- Kebab menu overlay (visible on hover) -->
             <button
-              class="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              class="{ui.iconBtnSm
+                .neutral} absolute top-1 right-1 opacity-0 group-hover:opacity-100"
               aria-label="More actions"
               onclick={(e) => {
                 e.stopPropagation();
@@ -300,7 +296,7 @@
               title="More actions"
             >
               <EllipsisHorizontalIcon
-                className="size-4 text-neutral-600 dark:text-neutral-300"
+                className="size-4 text-neutral-700 dark:text-neutral-300"
               />
             </button>
           </div>
@@ -316,7 +312,7 @@
                   onclick={(e) => {
                     e.stopPropagation();
                   }}
-                  class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5"
+                  class="{ui.inputXs} w-full text-center"
                   onkeydown={(e: KeyboardEvent) => {
                     e.stopPropagation();
                     if (e.key === "Enter") onrenameSave?.(renameInput);

@@ -24,6 +24,7 @@
   import { notification } from "../../../stores";
   import { formatDisplayDistance } from "../../../utils/coordinates";
   import SimpleChart from "../tools/SimpleChart.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     startPoint: Point;
@@ -155,7 +156,7 @@
   <!-- Non-modal floating panel to allow field to remain visible -->
 
   <div
-    class="z-50 flex flex-col overflow-hidden bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700"
+    class="{ui.popover} z-50 flex flex-col overflow-hidden"
     style={panelStyle}
     transition:slide={{ duration: 200 }}
     role="dialog"
@@ -163,37 +164,28 @@
     aria-labelledby="stats-title"
   >
     <!-- Header -->
-    <div
-      class="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 flex-shrink-0"
-    >
+    <div class="{ui.dialogHeader} flex-shrink-0">
       <div class="flex items-center gap-4">
-        <h2
-          id="stats-title"
-          class="text-lg font-semibold text-neutral-900 dark:text-white"
-        >
-          Path Statistics
-        </h2>
+        <h2 id="stats-title" class={ui.title}>Path Statistics</h2>
 
         <!-- Tabs -->
-        <div
-          class="flex bg-neutral-200 dark:bg-neutral-700 rounded-md p-1 text-xs font-medium"
-        >
+        <div class={ui.tabList}>
           <button
-            class={`px-3 py-1 rounded-md transition-all ${activeTab === "summary" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
+            class={ui.tab(activeTab === "summary")}
             onclick={() => (activeTab = "summary")}
             aria-label="Summary view"
           >
             Summary
           </button>
           <button
-            class={`px-3 py-1 rounded-md transition-all ${activeTab === "graphs" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
+            class={ui.tab(activeTab === "graphs")}
             onclick={() => (activeTab = "graphs")}
             aria-label="Graphs view"
           >
             Graphs
           </button>
           <button
-            class={`px-3 py-1 rounded-md transition-all ${activeTab === "insights" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
+            class={ui.tab(activeTab === "insights")}
             onclick={() => (activeTab = "insights")}
             aria-label="Insights view"
           >
@@ -205,7 +197,7 @@
       <div class="flex items-center gap-2">
         <button
           onclick={handleCopy}
-          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class={ui.iconBtn.neutral}
           title={activeTab === "graphs"
             ? "Copy SVG to Clipboard"
             : "Copy as Markdown"}
@@ -218,7 +210,7 @@
         <button
           title="Close"
           onclick={onClose}
-          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class={ui.iconBtn.neutral}
           aria-label="Close"
         >
           <CloseIcon className="size-5" />
@@ -233,53 +225,41 @@
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 flex-shrink-0">
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-md flex flex-col items-center justify-center text-center"
+            class="{ui.well} p-3 flex flex-col items-center justify-center text-center"
           >
+            <span class={ui.heading}>Total Time</span>
             <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
-              >Total Time</span
-            >
-            <span
-              class="text-xl font-bold text-neutral-900 dark:text-white mt-1"
+              class="text-xl font-bold text-neutral-900 dark:text-neutral-100 mt-1"
             >
               {formatTime(pathStats.totalTime)}
             </span>
           </div>
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-md flex flex-col items-center justify-center text-center"
+            class="{ui.well} p-3 flex flex-col items-center justify-center text-center"
           >
+            <span class={ui.heading}>Distance</span>
             <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
-              >Distance</span
-            >
-            <span
-              class="text-xl font-bold text-neutral-900 dark:text-white mt-1"
+              class="text-xl font-bold text-neutral-900 dark:text-neutral-100 mt-1"
             >
               {formatDisplayDistance(pathStats.totalDistance, settings, 1)}
             </span>
           </div>
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-md flex flex-col items-center justify-center text-center"
+            class="{ui.well} p-3 flex flex-col items-center justify-center text-center"
           >
+            <span class={ui.heading}>Max Vel</span>
             <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
-              >Max Vel</span
-            >
-            <span
-              class="text-xl font-bold text-neutral-900 dark:text-white mt-1"
+              class="text-xl font-bold text-neutral-900 dark:text-neutral-100 mt-1"
             >
               {pathStats.maxLinearVelocity.toFixed(1)} in/s
             </span>
           </div>
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-md flex flex-col items-center justify-center text-center"
+            class="{ui.well} p-3 flex flex-col items-center justify-center text-center"
           >
+            <span class={ui.heading}>Max Ang Vel</span>
             <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
-              >Max Ang Vel</span
-            >
-            <span
-              class="text-xl font-bold text-neutral-900 dark:text-white mt-1"
+              class="text-xl font-bold text-neutral-900 dark:text-neutral-100 mt-1"
             >
               {pathStats.maxAngularVelocity.toFixed(1)} rad/s
             </span>
@@ -313,14 +293,14 @@
                     style="background-color: {seg.color}"
                   ></div>
                   <span
-                    class="font-medium text-neutral-900 dark:text-neutral-200 truncate"
+                    class="font-medium text-neutral-900 dark:text-neutral-100 truncate"
                     >{seg.name}</span
                   >
                 </div>
 
                 <!-- Compact metrics for small screens -->
                 <div
-                  class="sm:hidden mt-2 w-full text-sm text-neutral-600 dark:text-neutral-400 flex flex-wrap gap-2"
+                  class="sm:hidden mt-2 w-full text-sm text-neutral-500 dark:text-neutral-400 flex flex-wrap gap-2"
                 >
                   <div class="flex-1">Len: {seg.length.toFixed(1)}"</div>
                   <div class="flex-1">Time: {seg.time.toFixed(2)}s</div>
@@ -331,27 +311,27 @@
 
                 <!-- Desktop metrics -->
                 <div
-                  class="hidden sm:block sm:col-span-2 text-right text-neutral-600 dark:text-neutral-400"
+                  class="hidden sm:block sm:col-span-2 text-right text-neutral-500 dark:text-neutral-400"
                 >
                   {seg.length.toFixed(1)}"
                 </div>
                 <div
-                  class="hidden sm:block sm:col-span-2 text-right text-neutral-600 dark:text-neutral-400"
+                  class="hidden sm:block sm:col-span-2 text-right text-neutral-500 dark:text-neutral-400"
                 >
                   {seg.time.toFixed(2)}s
                 </div>
                 <div
-                  class="hidden sm:block sm:col-span-2 text-right text-neutral-600 dark:text-neutral-400"
+                  class="hidden sm:block sm:col-span-2 text-right text-neutral-500 dark:text-neutral-400"
                 >
                   {seg.maxVel.toFixed(1)}
                 </div>
                 <div
-                  class="hidden sm:block sm:col-span-2 text-right text-neutral-600 dark:text-neutral-400"
+                  class="hidden sm:block sm:col-span-2 text-right text-neutral-500 dark:text-neutral-400"
                 >
                   {seg.maxAngVel.toFixed(1)}
                 </div>
                 <div
-                  class="hidden sm:block sm:col-span-1 text-right text-neutral-600 dark:text-neutral-400"
+                  class="hidden sm:block sm:col-span-1 text-right text-neutral-500 dark:text-neutral-400"
                 >
                   {seg.degrees.toFixed(1)}°
                 </div>
@@ -363,9 +343,7 @@
         <!-- Graphs Tab -->
       {:else if activeTab === "graphs"}
         <div class="overflow-y-auto flex-1 p-4 min-h-0 space-y-6">
-          <div
-            class="simple-chart-container bg-white dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-700 p-4"
-          >
+          <div class="{ui.card} simple-chart-container p-4">
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
             >
@@ -381,9 +359,7 @@
             />
           </div>
 
-          <div
-            class="simple-chart-container bg-white dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-700 p-4"
-          >
+          <div class="{ui.card} simple-chart-container p-4">
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
             >
@@ -399,9 +375,7 @@
             />
           </div>
 
-          <div
-            class="simple-chart-container bg-white dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-700 p-4"
-          >
+          <div class="{ui.card} simple-chart-container p-4">
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
             >
@@ -417,9 +391,7 @@
             />
           </div>
 
-          <div
-            class="simple-chart-container bg-white dark:bg-neutral-900 rounded-md border border-neutral-200 dark:border-neutral-700 p-4"
-          >
+          <div class="{ui.card} simple-chart-container p-4">
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
             >
@@ -457,13 +429,13 @@
             <div class="flex flex-col gap-2">
               {#each pathStats.insights as insight}
                 <div
-                  class={`flex items-start gap-3 p-3 rounded-md border text-sm ${
-                    insight.type === "error"
-                      ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200"
-                      : insight.type === "warning"
-                        ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200"
-                        : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200"
-                  }`}
+                  class="{ui.alert[
+                    insight.type === 'error'
+                      ? 'danger'
+                      : insight.type === 'warning'
+                        ? 'warning'
+                        : 'info'
+                  ]} flex items-start gap-3"
                 >
                   <div class="mt-0.5">
                     {#if insight.type === "error"}

@@ -14,6 +14,7 @@
   import MessageText from "../MessageText.svelte";
   import PathText from "../PathText.svelte";
   import GitHubTokenForm from "./GitHubTokenForm.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     show?: boolean;
@@ -107,7 +108,7 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center bg-black/50 p-4"
+    class="{ui.overlay} z-[1100]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="github-open-title"
@@ -117,13 +118,10 @@
     }}
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-md shadow-xl w-full max-w-lg p-6 border border-neutral-200 dark:border-neutral-700 flex flex-col gap-4 max-h-full overflow-y-auto"
+      class="{ui.dialog} w-full max-w-lg p-6 flex flex-col gap-4 max-h-full overflow-y-auto"
     >
       <div class="flex items-center justify-between">
-        <h2
-          id="github-open-title"
-          class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-        >
+        <h2 id="github-open-title" class="{ui.title} flex items-center gap-2">
           <GithubIcon className="size-5" />
           Open from GitHub
         </h2>
@@ -136,7 +134,7 @@
         </button>
       </div>
 
-      <p class="text-sm text-neutral-600 dark:text-neutral-400">
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">
         Paste a link to your team's repository, or to a folder or file in it.
         You can edit its paths here and commit them back. Only public
         repositories are supported for now.
@@ -154,13 +152,13 @@
           placeholder="https://github.com/your-team/your-robot-code"
           aria-label="GitHub link"
           spellcheck="false"
-          class="flex-1 min-w-0 px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900 text-neutral-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          class="{ui.input} flex-1 min-w-0"
         />
         {#if !target}
           <button
             onclick={find}
             disabled={busy || !link.trim()}
-            class="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium disabled:opacity-50"
+            class={ui.btn.primary}
           >
             {busy ? "Looking…" : "Find"}
           </button>
@@ -171,7 +169,9 @@
         <div
           class="rounded-md border border-neutral-200 dark:border-neutral-700 p-3 flex flex-col gap-3"
         >
-          <div class="text-sm font-semibold text-neutral-900 dark:text-white">
+          <div
+            class="text-sm font-semibold text-neutral-900 dark:text-neutral-100"
+          >
             {repoKey(target)}
             {#if target.path}
               <span
@@ -184,10 +184,7 @@
             class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300"
           >
             Branch
-            <select
-              bind:value={branch}
-              class="flex-1 px-2 py-1 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900"
-            >
+            <select bind:value={branch} class="{ui.inputXs} flex-1">
               {#each target.branches as name (name)}
                 <option value={name}
                   >{name}{name === target.defaultBranch
@@ -200,7 +197,7 @@
           <button
             onclick={open}
             disabled={busy}
-            class="self-end px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium disabled:opacity-50"
+            class="{ui.btn.primary} self-end"
           >
             {busy ? "Opening…" : "Open"}
           </button>
@@ -218,15 +215,11 @@
 
       {#if $summaries.length > 0}
         <div class="flex flex-col gap-1">
-          <h3
-            class="text-xs font-semibold uppercase tracking-wider text-neutral-500"
-          >
-            Opened before
-          </h3>
+          <h3 class={ui.heading}>Opened before</h3>
           {#each $summaries as repo (repoKey(repo))}
             <button
               onclick={() => reopen(repo.owner, repo.repo)}
-              class="flex items-center justify-between gap-2 px-3 py-2 rounded-md text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+              class="{ui.menuItem} justify-between"
             >
               <span class="truncate">{repoKey(repo)}</span>
               <span class="shrink-0 text-xs text-neutral-500">

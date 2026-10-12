@@ -2,6 +2,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { slide } from "svelte/transition";
+  import { ui } from "../../ui";
 
   interface Props {
     value?: string;
@@ -128,7 +129,7 @@
     bind:value
     {placeholder}
     {disabled}
-    class="text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 rounded px-2 py-0.5 w-full"
+    class="{ui.inputXs} w-full"
     oninput={handleInput}
     onfocus={handleFocus}
     onblur={handleBlur}
@@ -147,7 +148,7 @@
     <div
       bind:this={listElement}
       transition:slide={{ duration: 150 }}
-      class="absolute z-50 left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md shadow-lg"
+      class="{ui.popover} absolute z-50 left-0 right-0 mt-1 max-h-40 overflow-y-auto"
       role="listbox"
       id="dropdown-list"
     >
@@ -160,7 +161,7 @@
           class="w-full text-left px-3 py-1.5 text-sm cursor-pointer
             {index === highlightedIndex
             ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-100'
-            : 'hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-200'}"
+            : 'hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-300'}"
           onmousedown={(e) => {
             e.preventDefault();
             selectOption(option);

@@ -23,6 +23,7 @@
     ArrowRightIcon,
   } from "../icons";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     show?: boolean;
@@ -158,12 +159,9 @@
 </script>
 
 {#if show && updateData}
-  <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60"
-    transition:fade={{ duration: 200 }}
-  >
+  <div class="{ui.overlay} z-[1100]" transition:fade={{ duration: 200 }}>
     <div
-      class="relative bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-[520px] overflow-hidden border border-neutral-100 dark:border-neutral-800"
+      class="{ui.dialog} relative w-full max-w-[520px] overflow-hidden"
       transition:scale={{
         start: 0.95,
         duration: 300,
@@ -185,7 +183,7 @@
       <button
         title="Close"
         onclick={close}
-        class="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all z-10"
+        class="{ui.iconBtn.neutral} absolute top-4 right-4 z-10"
         aria-label="Close"
       >
         <CloseIcon className="w-5 h-5" />
@@ -201,7 +199,7 @@
           </div>
           <h2
             id="update-title"
-            class="text-2xl font-bold text-neutral-900 dark:text-white tracking-tight"
+            class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight"
           >
             New Version Available
           </h2>
@@ -229,19 +227,19 @@
               </div>
               <div class="flex-1">
                 <h3
-                  class="font-semibold text-sm text-neutral-900 dark:text-white"
+                  class="font-semibold text-sm text-neutral-900 dark:text-neutral-100"
                 >
                   Want automatic updates?
                 </h3>
                 <p
-                  class="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed"
+                  class="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed"
                 >
                   Switch to the Microsoft Store version and never worry about
                   updating manually again.
                 </p>
                 <button
                   onclick={handleSwitchToStore}
-                  class="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 transition-colors group"
+                  class="{ui.link} mt-2 text-xs font-semibold inline-flex items-center gap-1 group"
                 >
                   Get it for free
                   <ArrowRightIcon
@@ -256,13 +254,13 @@
         <!-- Release Notes -->
         <div class="space-y-3">
           <div
-            class="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white"
+            class="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
           >
             <ListIcon className="w-4 h-4 text-purple-500" />
             Release Notes
           </div>
           <div
-            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-md p-4 max-h-40 overflow-y-auto custom-scrollbar"
+            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-md p-4 max-h-40 overflow-y-auto custom-scrollbar"
           >
             {#if isLoadingNotes}
               <div class="flex items-center justify-center h-20">
@@ -279,10 +277,7 @@
 
         <!-- Actions -->
         <div class="flex flex-col gap-3 pt-2">
-          <button
-            onclick={handleDownload}
-            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-md transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
-          >
+          <button onclick={handleDownload} class="{ui.btn.primary} w-full">
             <ArrowDownTrayIcon className="w-5 h-5" />
             Download & Install
           </button>
@@ -293,7 +288,7 @@
                 onclick={handleSkip}
                 title="Skip this version"
                 aria-label="Skip this version"
-                class="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20"
+                class={ui.btn.secondary}
               >
                 Skip this version
               </button>
@@ -302,7 +297,7 @@
                 onclick={handleOpenReleases}
                 title="Open releases page"
                 aria-label="Open releases page"
-                class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900/30 border border-gray-200 dark:border-gray-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/20"
+                class={ui.btn.secondary}
               >
                 Open Releases Page
               </button>
@@ -312,7 +307,7 @@
               onclick={close}
               title="Remind me later"
               aria-label="Remind me later"
-              class="px-3 py-1.5 text-sm font-medium rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200 dark:border-purple-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/20"
+              class={ui.btn.secondary}
             >
               Remind me later
             </button>
@@ -324,7 +319,7 @@
             class="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500"
           >
             Current version: <span
-              class="font-mono text-xs text-neutral-600 dark:text-neutral-300"
+              class="font-mono text-xs text-neutral-700 dark:text-neutral-300"
               >{currentVersion}</span
             >
           </div>
