@@ -48,10 +48,7 @@ describe("ControlPointsSection", () => {
   it("says how many points there are", () => {
     show(makeLine({ controlPoints: [{ x: 1, y: 2 }] }));
     const header = screen.getByTitle("Hide control points");
-    expect(header).toHaveTextContent("Control Points");
-    expect(
-      header.querySelector("[title='Control Point Count']"),
-    ).toHaveTextContent("1");
+    expect(header).toHaveTextContent("Control Point (1)");
   });
 
   it("explains an empty list instead of showing nothing", () => {

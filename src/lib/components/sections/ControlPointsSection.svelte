@@ -23,6 +23,7 @@
   } from "../../../utils/dragDrop";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import { ui } from "../../ui";
+  import { readableTextOn } from "../../../utils/readableText";
 
   interface Props {
     line: Line;
@@ -242,10 +243,8 @@
           : 'rotate-0'}"
         strokeWidth={2.5}
       />
-      <span class={ui.heading}>Control Points</span>
-      <span class={ui.badge.neutral} title="Control Point Count">
-        {line.controlPoints.length}
-      </span>
+      <span class={ui.heading}>Control Point ({line.controlPoints.length})</span
+      >
     </button>
 
     <button
@@ -300,10 +299,13 @@
             </div>
           {/if}
 
-          <!-- The number the point wears on the field, in the path's color -->
+          <!-- The number the point wears on the field, in the path's color. The
+               digit is black or white, whichever reads on that color. -->
           <span
-            class="size-5 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white ring-1 ring-black/10"
-            style="background-color: {line.color}"
+            class="size-5 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold ring-1 ring-black/20 dark:ring-white/30"
+            style="background-color: {line.color}; color: {readableTextOn(
+              line.color,
+            )}"
             aria-hidden="true"
           >
             {idx + 1}
