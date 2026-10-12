@@ -31,6 +31,7 @@ function everyPreset(): Record<string, string> {
     presets[`tabUnderline(${active})`] = ui.tabUnderline(active);
     presets[`navItem(${active})`] = ui.navItem(active);
     presets[`choice(${active})`] = ui.choice(active);
+    presets[`row(${active})`] = ui.row(active);
   }
   for (const color of KIND_COLORS) {
     presets[`kindBtn(${color})`] = ui.kindBtn(color);

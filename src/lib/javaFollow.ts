@@ -175,13 +175,13 @@ export async function readFollowed(path: string): Promise<void> {
   });
   if (read !== reads || get(followedJava)?.path !== path) return;
   if (project.lines.length === 0) {
-    if (!get(followedJava)?.updatedAt) {
-      show(project);
-    } else {
+    if (get(followedJava)?.updatedAt) {
       selectedPointId?.set?.(null);
       selectedLineId?.set?.(null);
       multiSelectedPointIds?.set?.([]);
       multiSelectedLineIds?.set?.([]);
+    } else {
+      show(project);
     }
     update({
       error: { line: 0, message: "No paths found in this file." },

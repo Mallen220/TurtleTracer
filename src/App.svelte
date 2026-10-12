@@ -687,6 +687,8 @@
     startPoint={$startPointStore}
     controlRect={layout.controlTabRect}
     percent={$percentStore}
+    totalSeconds={playback.effectiveDuration}
+    onSeek={playback.seek}
     onClose={() => (statsOpen = false)}
   />
 {/if}

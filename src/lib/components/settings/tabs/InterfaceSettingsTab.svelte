@@ -215,7 +215,10 @@
         Edit Custom Map
       </button>
     {/if}
-    <button class="{ui.btn.secondary} mt-2 w-full" onclick={handleAddCustomMap}>
+    <button
+      class="{ui.btn.accentSoft} mt-2 w-full"
+      onclick={handleAddCustomMap}
+    >
       + Add Custom Field Map
     </button>
   </SettingsItem>

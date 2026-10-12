@@ -32,6 +32,8 @@
     sequence: SequenceItem[];
     settings: Settings;
     percent?: number;
+    totalSeconds?: number;
+    onSeek?: (percent: number) => void;
     isOpen?: boolean;
     onClose: () => void;
     // If provided, position/size will match this rect (from the Control Tab container)
@@ -51,6 +53,8 @@
     sequence,
     settings,
     percent = 0,
+    totalSeconds,
+    onSeek,
     isOpen = $bindable(false),
     onClose,
     controlRect = null,
@@ -65,6 +69,31 @@
 
   let activeTab: "summary" | "graphs" | "insights" = $state("summary");
   let currentTime = $state(0);
+  let duration = $derived(
+    totalSeconds ?? (pathStats as PathStats | null)?.totalTime ?? 0,
+  );
+
+  function seekToTime(seconds: number) {
+    if (!onSeek || duration <= 0) return;
+    onSeek(Math.max(0, Math.min(100, (seconds / duration) * 100)));
+  }
+
+  /** Makes a div that acts as a button respond to Enter and Space as well as clicks. */
+  function activateOnKey(action: () => void) {
+    return (e: KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      action();
+    };
+  }
+
+  /** Whether the timeline is currently inside a summary row. */
+  function isPlayingSegment(seg: { startTime: number; time: number }) {
+    return (
+      currentTime >= seg.startTime - 1e-6 &&
+      currentTime < seg.startTime + seg.time
+    );
+  }
 
   function calculateStats() {
     pathStats = computePathStatistics(startPoint, lines, sequence, settings);
@@ -147,7 +176,7 @@
   });
   $effect(() => {
     if (pathStats) {
-      currentTime = (percent / 100) * pathStats.totalTime;
+      currentTime = (percent / 100) * duration;
     }
   });
 </script>
@@ -283,7 +312,17 @@
           <div class="flex flex-col gap-1">
             {#each pathStats.segments as seg}
               <div
-                class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 rounded-md hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors items-start text-sm"
+                role="button"
+                tabindex="0"
+                title="Go to {seg.name} at {formatTime(seg.startTime)}"
+                aria-label="Go to {seg.name} at {formatTime(seg.startTime)}"
+                onclick={() => seekToTime(seg.startTime)}
+                onkeydown={activateOnKey(() => seekToTime(seg.startTime))}
+                class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 rounded-md border transition-colors items-start text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 {onSeek
+                  ? 'cursor-pointer'
+                  : ''} {isPlayingSegment(seg)
+                  ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+                  : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-700/30'}"
               >
                 <div
                   class="col-span-1 sm:col-span-3 flex items-center gap-2 truncate"
@@ -356,6 +395,7 @@
               unit="in/s"
               height={150}
               {currentTime}
+              onSeek={onSeek ? seekToTime : undefined}
             />
           </div>
 
@@ -372,6 +412,7 @@
               unit="in/s²"
               height={150}
               {currentTime}
+              onSeek={onSeek ? seekToTime : undefined}
             />
           </div>
 
@@ -388,6 +429,7 @@
               unit="in/s²"
               height={150}
               {currentTime}
+              onSeek={onSeek ? seekToTime : undefined}
             />
           </div>
 
@@ -404,14 +446,16 @@
               unit="rad/s"
               height={150}
               {currentTime}
+              onSeek={onSeek ? seekToTime : undefined}
             />
           </div>
 
           <div
             class="text-xs text-neutral-500 dark:text-neutral-400 text-center italic mt-4"
           >
-            Graph resolution depends on optimization settings and simulation
-            step size.
+            {#if onSeek}Click or drag on a graph to move the timeline.{/if}
+            Graph resolution depends on optimization settings and simulation step
+            size.
           </div>
         </div>
 
@@ -429,13 +473,20 @@
             <div class="flex flex-col gap-2">
               {#each pathStats.insights as insight}
                 <div
+                  role="button"
+                  tabindex="0"
+                  title="Go to {formatTime(insight.startTime)}"
+                  onclick={() => seekToTime(insight.startTime)}
+                  onkeydown={activateOnKey(() => seekToTime(insight.startTime))}
                   class="{ui.alert[
                     insight.type === 'error'
                       ? 'danger'
                       : insight.type === 'warning'
                         ? 'warning'
                         : 'info'
-                  ]} flex items-start gap-3"
+                  ]} flex items-start gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 {onSeek
+                    ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-125 transition'
+                    : ''}"
                 >
                   <div class="mt-0.5">
                     {#if insight.type === "error"}

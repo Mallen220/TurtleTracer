@@ -38,6 +38,7 @@ function eachTone<K extends string>(
 
 type ButtonTone =
   | "primary"
+  | "accentSoft"
   | "success"
   | "warning"
   | "danger"
@@ -47,17 +48,19 @@ type ButtonTone =
   | "ghost";
 
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition active:scale-[0.98] disabled:active:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 disabled:opacity-50 disabled:cursor-not-allowed";
 
 const BUTTON_TONE: Record<ButtonTone, string> = {
-  primary: "bg-purple-600 hover:bg-purple-700 text-white",
-  success: "bg-green-600 hover:bg-green-700 text-white",
-  warning: "bg-amber-600 hover:bg-amber-700 text-white",
-  danger: "bg-red-600 hover:bg-red-700 text-white",
+  primary: "bg-purple-600 hover:bg-purple-700 text-white shadow-sm",
+  accentSoft:
+    "bg-purple-50 hover:bg-purple-100 border border-purple-200 hover:border-purple-300 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 dark:border-purple-800/70 dark:hover:border-purple-700 text-purple-700 dark:text-purple-300",
+  success: "bg-green-600 hover:bg-green-700 text-white shadow-sm",
+  warning: "bg-amber-600 hover:bg-amber-700 text-white shadow-sm",
+  danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
   dangerSoft:
-    "bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400",
+    "bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:border-red-900/60 dark:hover:border-red-800 text-red-600 dark:text-red-400",
   secondary:
-    "bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300",
+    "bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 hover:border-neutral-300 shadow-sm dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:border-neutral-600 dark:hover:border-neutral-500 text-neutral-700 dark:text-neutral-200",
   outline:
     "border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300",
   ghost:
@@ -77,9 +80,9 @@ const ICON_BUTTON_TONE = {
   active:
     "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60",
   neutral:
-    "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-neutral-700",
+    "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-100 dark:hover:bg-neutral-700",
   danger:
-    "text-neutral-500 hover:text-red-600 hover:bg-red-50 dark:text-neutral-400 dark:hover:text-red-400 dark:hover:bg-red-900/30",
+    "text-neutral-600 hover:text-red-600 hover:bg-red-50 dark:text-neutral-400 dark:hover:text-red-400 dark:hover:bg-red-900/30",
 };
 
 /** A square button that only holds an icon. */
@@ -136,6 +139,14 @@ const popover =
 /** A thin strip along the top of a panel: a toolbar, breadcrumb or search row. */
 const bar =
   "bg-neutral-50 dark:bg-neutral-900/50 border-b border-neutral-200 dark:border-neutral-700";
+
+const ROW_BASE = "rounded-md border transition-colors";
+
+function row(selected: boolean) {
+  return selected
+    ? `${ROW_BASE} bg-purple-50/70 dark:bg-purple-900/20 border-purple-400 dark:border-purple-600 ring-1 ring-purple-500/20`
+    : `${ROW_BASE} bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600`;
+}
 
 /** A popover that holds a list of menu items. */
 const menu = `${popover} py-1`;
@@ -251,13 +262,13 @@ const TAB_BASE =
 /** One button in a row of tabs (a segmented control). */
 function tab(active: boolean) {
   return active
-    ? `${TAB_BASE} bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white`
-    : `${TAB_BASE} text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200`;
+    ? `${TAB_BASE} bg-white dark:bg-neutral-700 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-purple-700 dark:text-purple-300`
+    : `${TAB_BASE} text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-white/60 dark:hover:bg-neutral-800`;
 }
 
 /** The track a row of `tab()` buttons sits on. */
 const tabList =
-  "flex items-center gap-1 p-1 rounded-md bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700";
+  "flex items-center gap-1 p-1 rounded-md bg-neutral-200/70 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700";
 
 /** A tab that is underlined when active, for dialogs with a tab strip. */
 function tabUnderline(active: boolean) {
@@ -305,6 +316,7 @@ export const ui = {
   well,
   popover,
   bar,
+  row,
   menu,
   menuItem,
   menuItemDanger,

@@ -448,7 +448,7 @@
         {#if !showCustomSidebarForm}
           <button
             onclick={() => (showCustomSidebarForm = true)}
-            class="{ui.btn.ghost} w-full"
+            class="{ui.btn.accentSoft} w-full"
           >
             <ICONS.PlusIcon className="size-4" />
             Create Custom Sidebar Tool

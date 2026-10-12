@@ -46,7 +46,7 @@
   {#if onAdd}
     <button
       onclick={onAdd}
-      class="text-sm text-purple-500 hover:text-purple-600 flex items-center gap-1 px-2 py-1"
+      class={ui.btnSm.accentSoft}
       title="Add Item"
       aria-label="Add Item"
     >

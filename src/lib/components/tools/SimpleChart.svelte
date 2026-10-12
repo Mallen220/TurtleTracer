@@ -10,6 +10,7 @@
     unit?: string;
     height?: number;
     currentTime?: number | null;
+    onSeek?: (time: number) => void;
   }
 
   let {
@@ -19,6 +20,7 @@
     unit = "",
     height = 200,
     currentTime = null,
+    onSeek,
   }: Props = $props();
 
   let container: HTMLDivElement | undefined = $state();
@@ -30,6 +32,7 @@
   let cursorSelection: any;
   let cursorDotSelection: any;
   let xScale: d3.ScaleLinear<number, number>;
+  let scrubbing = false;
 
   function hideTooltip() {
     if (tooltip) tooltip.style.opacity = "0";
@@ -176,12 +179,33 @@
     // Y Axis
     svg.append("g").call(d3.axisLeft(y).ticks(5)).attr("color", "#737373");
 
-    // Overlay for tooltip
+    /** The time under the pointer, kept inside the chart. */
+    const timeAt = (event: PointerEvent | MouseEvent) => {
+      const [mx] = d3.pointer(event);
+      return Math.max(0, Math.min(x.domain()[1], x.invert(mx)));
+    };
+
+    // Overlay for tooltip, and for clicking or dragging to move the timeline
     svg
       .append("rect")
       .attr("width", chartWidth)
       .attr("height", chartHeight)
       .attr("fill", "transparent")
+      .style("cursor", onSeek ? "pointer" : "default")
+      // Let the page scroll up and down; sideways drags belong to the chart.
+      .style("touch-action", onSeek ? "pan-y" : "auto")
+      .on("pointerdown", (event: PointerEvent) => {
+        if (!onSeek || event.button > 0) return;
+        scrubbing = true;
+        (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
+        onSeek(timeAt(event));
+      })
+      .on("pointermove", (event: PointerEvent) => {
+        if (scrubbing) onSeek?.(timeAt(event));
+      })
+      .on("pointerup pointercancel", () => {
+        scrubbing = false;
+      })
       .on("mousemove", (event) => {
         const [mx] = d3.pointer(event);
         const t = x.invert(mx);

@@ -5,6 +5,7 @@
     snapToGrid,
     showGrid,
     gridSize,
+    selectedLineId,
     selectedPointId,
     focusRequest,
   } from "../../../stores";
@@ -40,9 +41,18 @@
   let snapToGridTitle = $derived(
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
   );
+  let coordinateSystem = $derived($settingsStore.coordinateSystem || "Pedro");
 
   function toggleCollapsed() {
     collapsed = !collapsed;
+  }
+
+  // The id the field uses for control point `idx`; point 0 is the path's end.
+  const pointId = (idx: number) => `point-${lineIdx + 1}-${idx + 1}`;
+
+  function selectPoint(idx: number) {
+    if (line.id) selectedLineId.set(line.id);
+    selectedPointId.set(pointId(idx));
   }
 
   // Drag and drop state
@@ -53,6 +63,17 @@
 
   let xInputs: (HTMLInputElement | null)[] = $state([]);
   let yInputs: (HTMLInputElement | null)[] = $state([]);
+
+  // Bring a point picked on the field into view in the list.
+  $effect(() => {
+    const id = $selectedPointId;
+    if (!id || collapsed || !containerRef) return;
+    const idx = line.controlPoints.findIndex((_, i) => pointId(i) === id);
+    if (idx === -1) return;
+    containerRef
+      .querySelector(`[data-cp-index="${idx}"]`)
+      ?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  });
 
   // Handle focus request
   $effect(() => {
@@ -75,6 +96,68 @@
     }
   });
 
+  function addPoint() {
+    if (line.locked) return;
+    line.controlPoints = [
+      ...line.controlPoints,
+      { x: random(36, 108), y: random(36, 108) },
+    ];
+    collapsed = false;
+    recordChange();
+    selectPoint(line.controlPoints.length - 1);
+  }
+
+  function removePoint(idx: number) {
+    if ($selectedPointId === pointId(idx)) selectedPointId.set(null);
+    line.controlPoints = line.controlPoints.filter((_, i) => i !== idx);
+    recordChange();
+  }
+
+  function moveControlPoint(index: number, delta: number) {
+    const targetIndex = index + delta;
+    if (targetIndex < 0 || targetIndex >= line.controlPoints.length) return;
+
+    const wasSelected = $selectedPointId === pointId(index);
+    const newPoints = [...line.controlPoints];
+    const temp = newPoints[index];
+    newPoints[index] = newPoints[targetIndex];
+    newPoints[targetIndex] = temp;
+
+    line.controlPoints = newPoints;
+    recordChange();
+    // The highlight stays with the point as it moves.
+    if (wasSelected) selectPoint(targetIndex);
+  }
+
+  // Typing in a field moves the point as you go; the edit is recorded for
+  // undo once, when you leave the field.
+  let edited = false;
+
+  function setCoordinate(
+    point: Line["controlPoints"][number],
+    axis: "x" | "y",
+    raw: string,
+  ) {
+    const value = Number.parseFloat(raw);
+    if (Number.isNaN(value)) return;
+    const user = toUser(point, coordinateSystem);
+    const next = toField(
+      axis === "x" ? { x: value, y: user.y } : { x: user.x, y: value },
+      coordinateSystem,
+    );
+    point.x = next.x;
+    point.y = next.y;
+    line.controlPoints = [...line.controlPoints];
+    edited = true;
+  }
+
+  function commitEdit() {
+    if (!edited) return;
+    edited = false;
+    recordChange();
+  }
+
+  // Dragging a row to reorder.
   function handleDragStart(e: DragEvent, index: number) {
     if (line.locked) {
       e.preventDefault();
@@ -139,29 +222,16 @@
     dragOverIndex = null;
     dragPosition = null;
   }
-
-  function moveControlPoint(index: number, delta: number) {
-    const targetIndex = index + delta;
-    if (targetIndex < 0 || targetIndex >= line.controlPoints.length) return;
-
-    const newPoints = [...line.controlPoints];
-    const temp = newPoints[index];
-    newPoints[index] = newPoints[targetIndex];
-    newPoints[targetIndex] = temp;
-
-    line.controlPoints = newPoints;
-    recordChange();
-  }
 </script>
 
 <svelte:window ondragover={handleWindowDragOver} ondrop={handleWindowDrop} />
 
-<div class="flex flex-col w-full justify-start items-start">
-  <!-- Control Points header with toggle and add button -->
-  <div class="flex items-center justify-between w-full py-1">
+<div class="flex flex-col w-full">
+  <!-- Header: show or hide the list, and add a point -->
+  <div class="flex items-center justify-between gap-2 w-full">
     <button
       onclick={toggleCollapsed}
-      class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors"
+      class="{ui.btnSm.ghost} -ml-2"
       title="{collapsed ? 'Show' : 'Hide'} control points"
       aria-label="{collapsed ? 'Show' : 'Hide'} control points"
       aria-expanded={!collapsed}
@@ -173,207 +243,171 @@
           : 'rotate-0'}"
         strokeWidth={2.5}
       />
-      Control Points ({line.controlPoints.length})
+      <span class={ui.heading}>Control Points</span>
+      <span class={ui.badge.neutral} title="Control Point Count">
+        {line.controlPoints.length}
+      </span>
     </button>
 
     <button
-      onclick={() => {
-        line.controlPoints = [
-          ...line.controlPoints,
-          {
-            x: random(36, 108),
-            y: random(36, 108),
-          },
-        ];
-        recordChange();
-      }}
-      class={ui.btnSm.secondary}
+      onclick={addPoint}
+      class={ui.btnSm.accentSoft}
       title="Add Control Point"
       disabled={line.locked}
       aria-label="Add Control Point"
     >
-      <PlusIcon className="size-3" strokeWidth={2.5} />
-      Add
+      <PlusIcon className="size-3.5" strokeWidth={2.5} />
+      Add Point
     </button>
   </div>
 
-  <!-- Control Points list (shown when expanded) -->
-  {#if !collapsed && line.controlPoints.length > 0}
+  {#if !collapsed}
     <div
       id="control-points-list-{lineIdx}"
-      class="w-full mt-2 space-y-2"
+      class="w-full mt-2 space-y-1.5"
       bind:this={containerRef}
       role="list"
     >
       {#each line.controlPoints as point, idx (idx)}
+        {@const selected = $selectedPointId === pointId(idx)}
+        {@const user = toUser(point, coordinateSystem)}
+        <!-- Keyboard users select a point by tabbing into its fields (onfocusin). -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
           role="listitem"
           data-cp-index={idx}
           draggable={!line.locked}
           ondragstart={(e) => handleDragStart(e, idx)}
           ondragend={handleDragEnd}
-          class="flex items-center gap-3 p-2 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50/50 dark:bg-blue-900/10 transition-all duration-200 group"
-          class:border-t-4={dragOverIndex === idx && dragPosition === "top"}
-          class:border-b-4={dragOverIndex === idx && dragPosition === "bottom"}
-          class:border-blue-500={dragOverIndex === idx}
-          class:dark:border-blue-400={dragOverIndex === idx}
+          onclick={() => selectPoint(idx)}
+          onfocusin={() => selectPoint(idx)}
+          class="{ui.row(
+            selected,
+          )} flex flex-wrap items-center gap-2 px-2 py-1.5"
+          class:border-t-2={dragOverIndex === idx && dragPosition === "top"}
+          class:border-t-purple-500={dragOverIndex === idx &&
+            dragPosition === "top"}
+          class:border-b-2={dragOverIndex === idx && dragPosition === "bottom"}
+          class:border-b-purple-500={dragOverIndex === idx &&
+            dragPosition === "bottom"}
           class:opacity-50={draggingIndex === idx}
-          class:cursor-move={!line.locked}
         >
-          <!-- Drag Handle -->
           {#if !line.locked}
             <div
-              class="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 pl-1"
+              class="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              title="Drag to reorder"
             >
               <ViewListIcon className="w-4 h-4" />
             </div>
           {/if}
 
-          <!-- Content -->
-          <div class="flex-1 flex flex-col gap-1 min-w-0">
-            <div class="flex items-center gap-2">
+          <!-- The number the point wears on the field, in the path's color -->
+          <span
+            class="size-5 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white ring-1 ring-black/10"
+            style="background-color: {line.color}"
+            aria-hidden="true"
+          >
+            {idx + 1}
+          </span>
+
+          <!-- Position -->
+          <div class="flex items-center gap-2 flex-1 min-w-[11rem]">
+            <div class="relative flex-1 min-w-0 max-w-[200px]">
               <span
-                class="text-xs font-semibold text-blue-600 dark:text-blue-400"
-                >Point {idx + 1}</span
+                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+                >X</span
               >
-
-              <!-- Spacer -->
-              <div class="flex-1"></div>
-
-              <!-- Reorder Buttons -->
-              <div
-                class="flex items-center bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
-              >
-                <button
-                  title={line.locked ? "Locked" : "Move up"}
-                  aria-label="Move control point up"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    moveControlPoint(idx, -1);
-                  }}
-                  class={ui.iconBtnSm.neutral}
-                  disabled={idx === 0 || line.locked}
-                >
-                  <ChevronUpIcon className="size-3" />
-                </button>
-                <div
-                  class="w-px h-3 bg-neutral-200 dark:bg-neutral-700"
-                  role="presentation"
-                  aria-hidden="true"
-                ></div>
-                <button
-                  title={line.locked ? "Locked" : "Move down"}
-                  aria-label="Move control point down"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    moveControlPoint(idx, 1);
-                  }}
-                  class={ui.iconBtnSm.neutral}
-                  disabled={idx === line.controlPoints.length - 1 ||
-                    line.locked}
-                >
-                  <ChevronDownIcon className="size-3" />
-                </button>
-              </div>
-
-              <DeleteButtonWithConfirm
-                onclick={() => {
-                  line.controlPoints = line.controlPoints.filter(
-                    (_, i) => i !== idx,
-                  );
-                  recordChange();
-                }}
+              <input
+                bind:this={xInputs[idx]}
+                value={user.x}
+                type="number"
+                min={$settingsStore.coordinateSystem === "FTC"
+                  ? -($settingsStore.fieldHeight ?? 144) / 2
+                  : 0}
+                max={$settingsStore.coordinateSystem === "FTC"
+                  ? ($settingsStore.fieldHeight ?? 144) / 2
+                  : ($settingsStore.fieldWidth ?? 144)}
+                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+                class="{ui.inputSm} w-full pl-6 pr-2"
+                aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
+                oninput={(e) =>
+                  setCoordinate(point, "x", e.currentTarget.value)}
+                onblur={commitEdit}
                 disabled={line.locked}
-                title="Remove Control Point"
+                title={snapToGridTitle}
               />
             </div>
-
-            <!-- Position Inputs -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <div class="relative flex-1 min-w-[4rem]">
-                <span
-                  class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
-                  >X</span
-                >
-                <input
-                  bind:this={xInputs[idx]}
-                  value={toUser(
-                    point,
-                    $settingsStore.coordinateSystem || "Pedro",
-                  ).x}
-                  type="number"
-                  min={$settingsStore.coordinateSystem === "FTC"
-                    ? -($settingsStore.fieldHeight ?? 144) / 2
-                    : 0}
-                  max={$settingsStore.coordinateSystem === "FTC"
-                    ? ($settingsStore.fieldHeight ?? 144) / 2
-                    : ($settingsStore.fieldWidth ?? 144)}
-                  step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                  class="{ui.inputXs} w-full pl-5 pr-1"
-                  aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
-                  oninput={(e) => {
-                    const val = Number.parseFloat(e.currentTarget.value);
-                    if (!Number.isNaN(val)) {
-                      const userPt = toUser(
-                        point,
-                        $settingsStore.coordinateSystem || "Pedro",
-                      );
-                      const newPt = toField(
-                        { x: val, y: userPt.y },
-                        $settingsStore.coordinateSystem || "Pedro",
-                      );
-                      point.x = newPt.x;
-                      point.y = newPt.y;
-                      line.controlPoints = [...line.controlPoints];
-                    }
-                  }}
-                  disabled={line.locked}
-                  title={snapToGridTitle}
-                />
-              </div>
-              <div class="relative flex-1 min-w-[4rem]">
-                <span
-                  class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
-                  >Y</span
-                >
-                <input
-                  bind:this={yInputs[idx]}
-                  value={toUser(
-                    point,
-                    $settingsStore.coordinateSystem || "Pedro",
-                  ).y}
-                  type="number"
-                  min={$settingsStore.coordinateSystem === "FTC"
-                    ? -($settingsStore.fieldWidth ?? 144) / 2
-                    : 0}
-                  max={$settingsStore.coordinateSystem === "FTC"
-                    ? ($settingsStore.fieldWidth ?? 144) / 2
-                    : ($settingsStore.fieldHeight ?? 144)}
-                  step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                  class="{ui.inputXs} w-full pl-5 pr-1"
-                  aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
-                  oninput={(e) => {
-                    const val = Number.parseFloat(e.currentTarget.value);
-                    if (!Number.isNaN(val)) {
-                      const userPt = toUser(
-                        point,
-                        $settingsStore.coordinateSystem || "Pedro",
-                      );
-                      const newPt = toField(
-                        { x: userPt.x, y: val },
-                        $settingsStore.coordinateSystem || "Pedro",
-                      );
-                      point.x = newPt.x;
-                      point.y = newPt.y;
-                      line.controlPoints = [...line.controlPoints];
-                    }
-                  }}
-                  disabled={line.locked}
-                  title={snapToGridTitle}
-                />
-              </div>
+            <div class="relative flex-1 min-w-0 max-w-[200px]">
+              <span
+                class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+                >Y</span
+              >
+              <input
+                bind:this={yInputs[idx]}
+                value={user.y}
+                type="number"
+                min={$settingsStore.coordinateSystem === "FTC"
+                  ? -($settingsStore.fieldWidth ?? 144) / 2
+                  : 0}
+                max={$settingsStore.coordinateSystem === "FTC"
+                  ? ($settingsStore.fieldWidth ?? 144) / 2
+                  : ($settingsStore.fieldHeight ?? 144)}
+                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+                class="{ui.inputSm} w-full pl-6 pr-2"
+                aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
+                oninput={(e) =>
+                  setCoordinate(point, "y", e.currentTarget.value)}
+                onblur={commitEdit}
+                disabled={line.locked}
+                title={snapToGridTitle}
+              />
             </div>
           </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-1 ml-auto">
+            <div
+              class="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-md p-0.5"
+            >
+              <button
+                title={line.locked ? "Locked" : "Move up"}
+                aria-label="Move control point up"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  moveControlPoint(idx, -1);
+                }}
+                class={ui.iconBtnSm.neutral}
+                disabled={idx === 0 || line.locked}
+              >
+                <ChevronUpIcon className="size-3.5" />
+              </button>
+              <button
+                title={line.locked ? "Locked" : "Move down"}
+                aria-label="Move control point down"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  moveControlPoint(idx, 1);
+                }}
+                class={ui.iconBtnSm.neutral}
+                disabled={idx === line.controlPoints.length - 1 || line.locked}
+              >
+                <ChevronDownIcon className="size-3.5" />
+              </button>
+            </div>
+
+            <DeleteButtonWithConfirm
+              onclick={() => removePoint(idx)}
+              disabled={line.locked}
+              title="Remove Control Point"
+            />
+          </div>
+        </div>
+      {:else}
+        <div
+          class="{ui.well} border-dashed px-3 py-3 text-xs text-center text-neutral-500 dark:text-neutral-400"
+        >
+          Add a control point to bend the path.
         </div>
       {/each}
     </div>

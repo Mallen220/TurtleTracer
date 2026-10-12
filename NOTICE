@@ -689,3 +689,8 @@ src/lib/components/settings/tabs/NumberSetting.svelte
 src/lib/components/settings/tabs/TranslationalPPreview.svelte
 src/lib/ui.ts
 src/tests/ui.test.ts
+src/tests/PathStatisticsSeek.test.ts
+src/tests/ControlPointsSection.test.ts
+src/tests/ControlPointsSectionWrapper.svelte
+src/tests/ControlPointDragDrop.test.ts
+src/tests/PathTabWrapper.svelte

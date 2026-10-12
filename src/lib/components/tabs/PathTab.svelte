@@ -87,6 +87,10 @@
   let dragPosition: DragPosition | null = $state(null);
 
   function handleDragStart(e: DragEvent, index: number) {
+    // A drag that starts on something inside the item, such as a control point
+    // row, belongs to that and doesn't move the item.
+    if (e.target !== e.currentTarget) return;
+
     const originElem = document.elementFromPoint(
       e.clientX,
       e.clientY,
@@ -144,7 +148,9 @@
     if (!isReorder && !isMacroDrop) return;
 
     e.preventDefault();
-    e.stopPropagation();
+    // Only a dropped macro is ours alone; reordering inside an item, like
+    // control points or heading segments, listens for the drop too.
+    if (isMacroDrop) e.stopPropagation();
 
     if (isMacroDrop) {
       const filePath = getDroppedMacroPath(e);

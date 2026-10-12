@@ -292,7 +292,7 @@
         </button>
         <button
           onclick={() => (isCreating = true)}
-          class={ui.btnSm.primary}
+          class={ui.btnSm.accentSoft}
           aria-label="Create new profile"
         >
           + New Profile
