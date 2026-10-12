@@ -55,7 +55,7 @@
   function getBgColor(type: string) {
     switch (type) {
       case "success":
-        return "bg-green-100 border-green-500 text-green-800 dark:bg-green-900/80 dark:border-green-600 dark:text-green-100";
+        return "bg-emerald-100 border-emerald-500 text-emerald-800 dark:bg-emerald-900/80 dark:border-emerald-600 dark:text-emerald-100";
       case "warning":
         return "bg-amber-100 border-amber-500 text-amber-800 dark:bg-amber-900/80 dark:border-amber-600 dark:text-amber-100";
       case "error":

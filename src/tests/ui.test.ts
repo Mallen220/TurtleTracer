@@ -111,14 +111,21 @@ describe("ui presets", () => {
     expect(missing).toEqual([]);
   });
 
-  it("give every tone of alerts and badges its own colours", () => {
+  it("give every tone of alerts and badges its own colours, except success, which is the accent", () => {
     for (const group of [ui.alert, ui.badge]) {
       const tones = Object.keys(group);
       expect(tones.sort()).toEqual(
         ["accent", "danger", "info", "neutral", "success", "warning"].sort(),
       );
-      expect(new Set(Object.values(group)).size).toBe(tones.length);
+      // Success is the accent: a second green beside it looked like a mistake.
+      expect(group.success).toBe(group.accent);
+      expect(new Set(Object.values(group)).size).toBe(tones.length - 1);
     }
+  });
+
+  it("makes success buttons the same as primary ones", () => {
+    expect(ui.btn.success).toBe(ui.btn.primary);
+    expect(ui.btnSm.success).toBe(ui.btnSm.primary);
   });
 
   it("show active and inactive states differently", () => {

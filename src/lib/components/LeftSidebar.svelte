@@ -640,7 +640,7 @@
                 title={`Toggle Snap${shortcut("toggle-snap")}`}
                 aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
                 active={$snapToGrid}
-                activeClass="text-green-500 bg-green-50 dark:bg-green-900/20"
+                activeClass="text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
                 onclick={toggle(snapToGrid)}
               />
               <div

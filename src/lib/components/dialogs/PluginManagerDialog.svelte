@@ -189,7 +189,7 @@
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="flex-shrink-0 p-2.5 rounded-md {plugin.enabled
-                        ? 'bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                         : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}"
                     >
                       <PuzzleIcon className="size-5" />

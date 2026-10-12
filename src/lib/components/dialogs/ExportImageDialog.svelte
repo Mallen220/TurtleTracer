@@ -355,7 +355,7 @@
         <button class={ui.btn.ghost} onclick={close}> Cancel </button>
 
         <button
-          class={ui.btn.success}
+          class={ui.btn.primary}
           onclick={downloadImage}
           disabled={status === "generating" || !previewUrl}
         >

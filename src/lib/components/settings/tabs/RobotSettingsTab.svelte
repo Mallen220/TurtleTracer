@@ -297,7 +297,7 @@
         </button>
         <button
           onclick={() => set("robotImage", "turtle")}
-          class={ui.btnSm.success}
+          class={ui.btnSm.secondary}
         >
           🐢 Use Turtle Robot
         </button>

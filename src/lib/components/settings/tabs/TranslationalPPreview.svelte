@@ -47,7 +47,7 @@
   );
   const verdictClass = $derived(
     preview.verdict === "good"
-      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
       : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   );
 </script>

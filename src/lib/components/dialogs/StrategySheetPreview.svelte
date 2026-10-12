@@ -482,11 +482,11 @@
           Strategy Sheet Preview
         </h2>
         <div class="flex items-center gap-2">
-          <button onclick={handlePrint} class={ui.btn.primary}>
+          <button onclick={handlePrint} class={ui.btn.secondary}>
             <DocumentIcon className="size-4" />
             Print
           </button>
-          <button onclick={handleDownloadPdf} class={ui.btn.success}>
+          <button onclick={handleDownloadPdf} class={ui.btn.primary}>
             <ArrowDownTrayIcon className="size-4" />
             Download PDF
           </button>

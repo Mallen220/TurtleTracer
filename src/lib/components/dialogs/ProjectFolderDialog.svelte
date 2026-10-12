@@ -35,7 +35,7 @@
       class="{ui.dialog} w-full max-w-2xl flex flex-col p-8 md:p-12 items-center text-center animate-fade-in max-h-[90vh] overflow-y-auto"
     >
       <div
-        class="w-20 h-20 shrink-0 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mb-8"
+        class="w-20 h-20 shrink-0 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-8"
       >
         <FolderIcon className="w-6 h-6" />
       </div>
@@ -53,7 +53,7 @@
         <br /><br />
         For most FTC projects, the best place is:<br />
         <code
-          class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5 rounded-md text-green-700 dark:text-green-300 font-mono text-sm mt-3 inline-block"
+          class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5 rounded-md text-emerald-700 dark:text-emerald-300 font-mono text-sm mt-3 inline-block"
           >TeamCode/src/main/assets/AutoPaths/</code
         >
       </p>

@@ -1050,7 +1050,7 @@
       <div class="absolute top-4 right-4 z-[100] floating-add-container">
         <button
           onclick={() => (showAddMenu = !showAddMenu)}
-          class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-emerald-600 dark:text-neutral-400 dark:hover:text-emerald-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           title="Add / Import"
           aria-label="Add / Import"
           aria-haspopup="true"
@@ -1071,7 +1071,7 @@
               class={ui.menuItem}
             >
               <DocumentIcon
-                className="size-4 text-green-600 dark:text-green-400"
+                className="size-4 text-emerald-600 dark:text-emerald-400"
               />
               New File
             </button>
@@ -1124,7 +1124,7 @@
                 title="Show a Java file's paths on the field, updated each time you save it in your editor"
                 class={ui.menuItem}
               >
-                <EyeIcon className="size-4 text-green-600" />
+                <EyeIcon className="size-4 text-emerald-600" />
                 Follow Java File
               </button>
             {/if}

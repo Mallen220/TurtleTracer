@@ -273,13 +273,13 @@
         <div class="flex items-center justify-center gap-2 mb-4">
           {#each [1, 2, 3] as s}
             <div
-              class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" : step > s ? "bg-green-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}
+              class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" : step > s ? "bg-emerald-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400"}`}
             >
               {step > s ? "✓" : s}
             </div>
             {#if s < 3}
               <div
-                class={`w-8 h-0.5 ${step > s ? "bg-green-500" : "bg-neutral-200 dark:bg-neutral-800"}`}
+                class={`w-8 h-0.5 ${step > s ? "bg-emerald-500" : "bg-neutral-200 dark:bg-neutral-800"}`}
               ></div>
             {/if}
           {/each}
@@ -518,7 +518,9 @@
                 </div>
               {:else if step === 3}
                 <div class={ui.alert.success}>
-                  <h3 class="font-bold text-green-900 dark:text-green-100 mb-2">
+                  <h3
+                    class="font-bold text-emerald-900 dark:text-emerald-100 mb-2"
+                  >
                     Step 3: Review
                   </h3>
                   {#if calculateConfig() !== null}

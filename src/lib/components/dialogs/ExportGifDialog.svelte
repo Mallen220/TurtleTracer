@@ -448,7 +448,7 @@
         <button class={ui.btn.ghost} onclick={handleCancel}> Cancel </button>
 
         <button
-          class={ui.btn.primary}
+          class={ui.btn.secondary}
           onclick={generatePreview}
           disabled={status === "generating"}
         >
@@ -456,7 +456,7 @@
         </button>
 
         <button
-          class={ui.btn.success}
+          class={ui.btn.primary}
           onclick={downloadAnimation}
           disabled={status === "generating"}
         >

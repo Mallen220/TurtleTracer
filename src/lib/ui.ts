@@ -54,7 +54,7 @@ const BUTTON_TONE: Record<ButtonTone, string> = {
   primary: "bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm",
   accentSoft:
     "bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30 dark:border-emerald-800/70 dark:hover:border-emerald-700 text-emerald-700 dark:text-emerald-300",
-  success: "bg-green-700 hover:bg-green-800 text-white shadow-sm",
+  success: "bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm",
   warning: "bg-amber-700 hover:bg-amber-800 text-white shadow-sm",
   danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm",
   dangerSoft:
@@ -188,7 +188,7 @@ const ALERT_TONE: Record<Tone, string> = {
     "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200",
   info: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200",
   success:
-    "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200",
+    "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200",
   warning:
     "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200",
   danger:
@@ -205,7 +205,7 @@ const BADGE_TONE: Record<Tone, string> = {
     "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300",
   info: "bg-blue-100 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300",
   success:
-    "bg-green-100 dark:bg-green-900/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300",
+    "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300",
   warning:
     "bg-amber-100 dark:bg-amber-900/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300",
   danger:
