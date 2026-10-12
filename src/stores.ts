@@ -30,6 +30,14 @@ export const isPresentationMode = writable(false);
 export const showWhatsNew = writable(false);
 export const showExportGif = writable(false);
 export const showExportImage = writable(false);
+
+/** How the user answered the "where should projects live?" prompt. */
+export type ProjectFolderChoice = { folder: string } | "cancel"; // don't save at all
+
+/** Set while that prompt is open; call it with the user's answer. */
+export const projectFolderPrompt = writable<
+  ((choice: ProjectFolderChoice) => void) | null
+>(null);
 export const showStrategySheet = writable(false);
 export const showFeedbackDialog = writable(false);
 export const showRatingDialog = writable(false);

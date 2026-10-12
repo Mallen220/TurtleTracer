@@ -25,6 +25,7 @@
   } from "./projectStore";
   import {
     autosaveBeforeLeaving,
+    chooseSaveFolder,
     directoryOf,
     fileNameOf,
     joinPath,
@@ -155,10 +156,19 @@
   // Other parts of the app can ask for the "new file" form.
   $effect(() => {
     if ($fileManagerNewFileMode) {
-      creatingNewFile = true;
       fileManagerNewFileMode.set(false);
+      void startNewFile();
     }
   });
+
+  /** Shows the new file form, first asking for a project folder if there isn't one. */
+  async function startNewFile() {
+    if (!currentDirectory.trim()) {
+      if (!(await chooseSaveFolder())) return;
+      await loadDirectory();
+    }
+    creatingNewFile = true;
+  }
 
   onMount(loadDirectory);
 
@@ -1051,7 +1061,7 @@
           >
             <button
               onclick={() => {
-                creatingNewFile = true;
+                void startNewFile();
                 showAddMenu = false;
               }}
               class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
@@ -1178,7 +1188,7 @@
           {:else}
             <button
               class="text-xs text-blue-500 mt-2 hover:underline"
-              onclick={() => (creatingNewFile = true)}>Create a new file</button
+              onclick={startNewFile}>Create a new file</button
             >
           {/if}
         </div>

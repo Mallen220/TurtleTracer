@@ -6,6 +6,8 @@ import {
   isUnsaved,
   notification,
   currentDirectoryStore,
+  projectFolderPrompt,
+  type ProjectFolderChoice,
 } from "../stores";
 import { scanEventsInDirectory } from "./eventScanner";
 import {
@@ -306,6 +308,29 @@ async function writeProjectFile(
 }
 
 /**
+ * Finds the project folder a first save goes in, so every first save goes
+ * through one place. Without a project folder this explains it and lets the
+ * user pick one. Returns null if they cancel. The folder is unknown (but not
+ * needed) where there is no folder concept, like the browser.
+ */
+export async function chooseSaveFolder(): Promise<{ folder?: string } | null> {
+  const electronAPI = getElectronAPI();
+  if (!electronAPI?.setDirectory || electronAPI.isVirtual) return {};
+
+  const saved = (await electronAPI.getSavedDirectory?.())?.trim();
+  if (saved) return { folder: saved };
+
+  const choice = await new Promise<ProjectFolderChoice>((resolve) => {
+    projectFolderPrompt.set(resolve);
+  });
+  projectFolderPrompt.set(null);
+
+  if (choice === "cancel") return null;
+  currentDirectoryStore.set(choice.folder);
+  return { folder: choice.folder };
+}
+
+/**
  * Saves the project to its file, asking for a location if it doesn't have
  * one yet. Returns whether it was saved.
  */
@@ -325,10 +350,16 @@ export async function saveProject({
     : path || get(currentFilePath) || undefined;
   try {
     if (!targetPath) {
+      const target = saveAs || quiet ? {} : await chooseSaveFolder();
+      if (!target) return false;
+
+      const defaultName = `trajectory${DEFAULT_PROJECT_EXTENSION}`;
       targetPath =
         (await electronAPI.showSaveDialog?.({
           title: "Save Project",
-          defaultPath: `trajectory${DEFAULT_PROJECT_EXTENSION}`,
+          defaultPath: target.folder
+            ? joinPath(target.folder, defaultName)
+            : defaultName,
           filters: [{ name: "Turtle Tracer Project", extensions: ["turt"] }],
         })) ?? undefined;
       if (!targetPath) return false;

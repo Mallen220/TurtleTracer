@@ -19,8 +19,8 @@
   import PathStatisticsDialog from "./lib/components/dialogs/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
+  import ProjectFolderDialog from "./lib/components/dialogs/ProjectFolderDialog.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
-  import SetupDialog from "./lib/components/dialogs/SetupDialog.svelte";
   import ExportCodeDialog from "./lib/components/dialogs/ExportCodeDialog.svelte";
   import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
@@ -91,6 +91,7 @@
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
   import {
+    chooseSaveFolder,
     saveProject,
     saveFileAs,
     handleExternalFileOpen,
@@ -239,13 +240,15 @@
   // --- Saving, resetting and closing ---
   let unsavedGuard: UnsavedChangesGuard | undefined = $state();
 
-  function handleSaveProject() {
+  async function handleSaveProject() {
     if (get(currentFilePath)) {
       saveProject().then(fetchGitStatus);
-    } else {
-      showFileManager.set(true);
-      fileManagerNewFileMode.set(true);
+      return;
     }
+
+    if (!(await chooseSaveFolder())) return;
+    showFileManager.set(true);
+    fileManagerNewFileMode.set(true);
   }
 
   function handleResetProject() {
@@ -354,8 +357,6 @@
   });
 
   // --- Startup ---
-  /** Shown on first launch to pick a project folder. */
-  let setupMode = $state(false);
 
   onMount(() => {
     trackMicrosoftStoreInstall();
@@ -408,32 +409,28 @@
       console.warn("ensureSequenceConsistency failed", err);
     }
 
-    // The project folder comes first: without one, the setup dialog opens.
-    if (await needsProjectFolder()) {
-      setupMode = true;
-    } else {
-      const { lastSeenVersion, hasSeenOnboarding } = get(settingsStore);
-      if (lastSeenVersion !== pkg.version && hasSeenOnboarding) {
-        showWhatsNew.set(true);
-      }
+    await loadSavedProjectFolder();
+
+    const { lastSeenVersion, hasSeenOnboarding } = get(settingsStore);
+    if (lastSeenVersion !== pkg.version && hasSeenOnboarding) {
+      showWhatsNew.set(true);
     }
 
     fadeOutLoadingScreen();
     tryShowRatingDialog();
   }
 
-  /** Loads the saved project folder. Returns true if none has been chosen yet. */
-  async function needsProjectFolder(): Promise<boolean> {
-    if (!electronAPI?.getSavedDirectory) return false;
+  /** Loads the saved project folder, if the user has chosen one. */
+  async function loadSavedProjectFolder() {
+    if (!electronAPI?.getSavedDirectory) return;
     try {
       const dir = await electronAPI.getSavedDirectory();
-      if (!dir || dir.trim() === "") return true;
+      if (!dir || dir.trim() === "") return;
       currentDirectoryStore.set(dir);
       void scanEventsInDirectory(dir);
     } catch (e) {
       console.warn("Failed to check saved directory", e);
     }
-    return false;
   }
 
   function fadeOutLoadingScreen() {
@@ -695,11 +692,10 @@
 {/if}
 
 <WhatsNewDialog bind:show={$showWhatsNew} onclose={closeWhatsNew} />
-<SetupDialog bind:show={setupMode} />
+<ProjectFolderDialog />
 <NotificationToast />
 <OnboardingTutorial
   whatsNewOpen={$showWhatsNew}
-  setupDialogOpen={setupMode}
   {isLoaded}
   ontutorialComplete={() => showWhatsNew.set(true)}
 />

@@ -3,7 +3,13 @@ import { render, waitFor, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { get } from "svelte/store";
 import FileManager from "../lib/FileManager.svelte";
-import { currentFilePath, isUnsaved, notification } from "../stores";
+import {
+  currentFilePath,
+  isUnsaved,
+  notification,
+  projectFolderPrompt,
+  type ProjectFolderChoice,
+} from "../stores";
 import {
   linesStore,
   sequenceStore,
@@ -745,5 +751,83 @@ describe("FileManager", () => {
       const readCallsAfterRefresh = getJavaReadCount();
       expect(readCallsAfterRefresh).toBe(1);
     });
+  });
+});
+
+describe("FileManager without a project folder", () => {
+  const originalAPI = (globalThis as any).electronAPI;
+  let savedDir: string;
+  let stopAnswering = () => {};
+  let api: Record<string, ReturnType<typeof vi.fn>>;
+
+  /** Answers the folder prompt when it opens; returns how often it did. */
+  const answerPrompt = (choice: ProjectFolderChoice) => {
+    const asked = vi.fn();
+    stopAnswering = projectFolderPrompt.subscribe((resolve) => {
+      if (!resolve) return;
+      asked();
+      // Picking a folder saves it before the answer comes back.
+      if (typeof choice === "object") savedDir = choice.folder;
+      resolve(choice);
+    });
+    return asked;
+  };
+
+  const newFileInput = () =>
+    document.querySelector<HTMLInputElement>(
+      'input[placeholder="path_name.turt"]',
+    );
+
+  beforeEach(async () => {
+    savedDir = "";
+    api = {
+      getSavedDirectory: vi.fn(async () => savedDir),
+      getDirectory: vi.fn(async () => null),
+      setDirectory: vi.fn(),
+      listFiles: vi.fn(async () => []),
+      fileExists: vi.fn(async () => false),
+      writeFile: vi.fn(),
+      showSaveDialog: vi.fn(async () => undefined),
+    };
+    (globalThis as any).electronAPI = api;
+    projectFolderPrompt.set(null);
+    currentFilePath.set(null);
+    settingsStore.set({ ...DEFAULT_SETTINGS, autosaveMode: "never" } as any);
+    render(FileManager, { isOpen: true, settings: get(settingsStore) });
+    await waitFor(() => expect(api.getSavedDirectory).toHaveBeenCalled());
+  });
+
+  afterEach(() => {
+    stopAnswering();
+    (globalThis as any).electronAPI = originalAPI;
+    vi.restoreAllMocks();
+  });
+
+  const requestNewFile = async () => {
+    const { fileManagerNewFileMode } = await import("../stores");
+    fileManagerNewFileMode.set(true);
+  };
+
+  it("shows the new file form in the folder the user picks", async () => {
+    const asked = answerPrompt({ folder: "/code/AutoPaths" });
+    await requestNewFile();
+
+    await waitFor(() => expect(newFileInput()).not.toBeNull());
+    expect(asked).toHaveBeenCalledTimes(1);
+
+    await fireEvent.input(newFileInput()!, { target: { value: "first" } });
+    await fireEvent.keyDown(newFileInput()!, { key: "Enter" });
+    await waitFor(() =>
+      expect(get(currentFilePath)).toBe("/code/AutoPaths/first.turt"),
+    );
+  });
+
+  it("shows no form if the user cancels", async () => {
+    const asked = answerPrompt("cancel");
+    await requestNewFile();
+
+    await waitFor(() => expect(asked).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(newFileInput()).toBeNull();
   });
 });
