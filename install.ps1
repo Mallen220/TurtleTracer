@@ -28,7 +28,7 @@ function Install-TurtleTracer {
 
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'   # the progress bar makes downloads far slower on Windows PowerShell 5.1
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
+    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { Write-Verbose "could not enable TLS 1.2: $_" }
 
     $Repo = 'Mallen220/TurtleTracer'
     $AppName = 'Turtle Tracer'
@@ -75,7 +75,7 @@ function Install-TurtleTracer {
         if ($Yes -or $env:TT_NONINTERACTIVE) { return $false }
         if (-not [Environment]::UserInteractive) { return $false }
         if ([Environment]::GetCommandLineArgs() -contains '-NonInteractive') { return $false }
-        try { if ([Console]::IsInputRedirected) { return $false } } catch { }
+        try { if ([Console]::IsInputRedirected) { return $false } } catch { Log "could not tell whether input is redirected: $_" }
         return $true
     }
     $Interactive = Test-Interactive
@@ -100,7 +100,7 @@ function Install-TurtleTracer {
         return $ex
     }
     function Get-StatusCode($err) {
-        try { $ex = Get-WebException $err; if ($ex.Response) { return [int]$ex.Response.StatusCode } } catch { }
+        try { $ex = Get-WebException $err; if ($ex.Response) { return [int]$ex.Response.StatusCode } } catch { Log "could not read the HTTP status code: $_" }
         return 0
     }
     function Get-ResponseHeader($err, [string]$name) {
@@ -109,7 +109,7 @@ function Install-TurtleTracer {
             if ($h -is [System.Net.WebHeaderCollection]) { return $h[$name] }
             $vals = $null
             if ($h.TryGetValues($name, [ref]$vals)) { return ($vals -join ',') }
-        } catch { }
+        } catch { Log "could not read the response header: $_" }
         return $null
     }
     function Format-Bytes([long]$n) {
@@ -157,7 +157,7 @@ function Install-TurtleTracer {
         if ($code -eq 403 -or $code -eq 429) {
             if ((Get-ResponseHeader $err 'x-ratelimit-remaining') -eq '0') {
                 $when = 'later'
-                try { $when = [DateTimeOffset]::FromUnixTimeSeconds([long](Get-ResponseHeader $err 'x-ratelimit-reset')).LocalDateTime.ToString('HH:mm') } catch { }
+                try { $when = [DateTimeOffset]::FromUnixTimeSeconds([long](Get-ResponseHeader $err 'x-ratelimit-reset')).LocalDateTime.ToString('HH:mm') } catch { Log "could not read the rate limit reset time: $_" }
                 return "GitHub's anonymous rate limit was reached (it resets around $when)."
             }
             return "GitHub refused the request (HTTP $code)."
@@ -296,10 +296,10 @@ function Install-TurtleTracer {
         try {
             $hit = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq $AppName } | Select-Object -First 1
             if ($hit) { $InstalledVersion = [string]$hit.DisplayVersion; $UninstallString = [string]$hit.UninstallString; break }
-        } catch { }
+        } catch { Log "could not read an uninstall registry key: $_" }
     }
     $StoreInstalled = $false
-    try { if ($onWindows -and (Get-AppxPackage -Name 'PedroPathingPlus.12978EBCCDE63' -ErrorAction SilentlyContinue)) { $StoreInstalled = $true } } catch { }
+    try { if ($onWindows -and (Get-AppxPackage -Name 'PedroPathingPlus.12978EBCCDE63' -ErrorAction SilentlyContinue)) { $StoreInstalled = $true } } catch { Log "could not check for a Microsoft Store install: $_" }
 
     # ----- uninstall ------------------------------------------------------------
     if ($Uninstall) {
@@ -344,7 +344,7 @@ function Install-TurtleTracer {
                     if ($Script:StableVersion -and ([version]($Script:StableVersion -replace '[-+].*$', '')) -lt ([version]($InstalledVersion -replace '[-+].*$', ''))) {
                         Warn "That is newer than the latest stable release (v$($Script:StableVersion)), so choosing stable would be a downgrade."
                     }
-                } catch { }
+                } catch { Log "could not compare against the latest stable version: $_" }
             }
             Say 'Which version would you like to install?'
             Say "  Enter   the $label  [recommended]"
@@ -437,7 +437,7 @@ function Install-TurtleTracer {
                     try {
                         $recent = (Invoke-RestMethod -Uri "$ApiUrl/repos/$Repo/releases?per_page=8" -Headers $ApiHeaders -UseBasicParsing | ForEach-Object { $_.tag_name }) -join ' '
                         if ($recent) { $details += "Recent versions: $recent" }
-                    } catch { }
+                    } catch { Log "could not list recent versions: $_" }
                 } else {
                     $reason = "Couldn't find the installer for v$Version, and couldn't ask GitHub why: $(Describe-Failure $releaseErr)"
                 }
@@ -457,7 +457,7 @@ function Install-TurtleTracer {
     $downgrade = $false
     if ($InstalledVersion) {
         $cmp = 0
-        try { $cmp = ([version]($Version -replace '[-+].*$', '')).CompareTo([version]($InstalledVersion -replace '[-+].*$', '')) } catch { }
+        try { $cmp = ([version]($Version -replace '[-+].*$', '')).CompareTo([version]($InstalledVersion -replace '[-+].*$', '')) } catch { Log "could not compare versions: $_" }
         if ($InstalledVersion -eq $Version) { $installNote += " (v$Version is already installed; it will be reinstalled)" }
         elseif ($cmp -lt 0) { $downgrade = $true }
         else { $installNote += " (upgrades v$InstalledVersion)" }

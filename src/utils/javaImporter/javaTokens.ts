@@ -108,8 +108,8 @@ export type Expr =
   | {
       kind: "conditional";
       test: Expr;
-      then: Expr;
-      otherwise: Expr;
+      whenTrue: Expr;
+      whenFalse: Expr;
       line: number;
     }
   /** Anything the reader has no use for, such as a lambda. */
@@ -185,14 +185,14 @@ export class ExpressionParser {
       if (t?.kind !== "symbol") break;
       if (t.text === "?" && minPrecedence === 0) {
         at.i++;
-        const then = this.expression(at, 0);
+        const whenTrue = this.expression(at, 0);
         if (this.peek(at)?.text === ":") at.i++;
-        const otherwise = this.expression(at, 0);
+        const whenFalse = this.expression(at, 0);
         left = {
           kind: "conditional",
           test: left,
-          then,
-          otherwise,
+          whenTrue,
+          whenFalse,
           line: t.line,
         };
         continue;

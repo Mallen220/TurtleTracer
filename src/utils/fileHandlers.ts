@@ -775,7 +775,7 @@ function readyForRepository(
 }
 
 /** The project as code in the export `format`. */
-async function exportedCode(
+function exportedCode(
   format: string | undefined,
   data: TurtleData,
   settings: Settings,
@@ -783,16 +783,20 @@ async function exportedCode(
   packageName: string | undefined,
 ): Promise<string> {
   const exporter = get(exporterRegistry)[format as string];
-  if (!exporter) throw new Error(`Auto export format ${format} not found.`);
-  return exporter.exportCode(data, {
-    ...settings,
-    fileName: baseName,
-    exportFullCode: settings.autoExportFullClass ?? true,
-    packageName,
-    telemetryImpl: settings.telemetryImplementation,
-    hardcodeValues: settings.autoExportEmbedPoseData,
-    targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib",
-  });
+  if (!exporter) {
+    return Promise.reject(new Error(`Auto export format ${format} not found.`));
+  }
+  return Promise.resolve(
+    exporter.exportCode(data, {
+      ...settings,
+      fileName: baseName,
+      exportFullCode: settings.autoExportFullClass ?? true,
+      packageName,
+      telemetryImpl: settings.telemetryImplementation,
+      hardcodeValues: settings.autoExportEmbedPoseData,
+      targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib",
+    }),
+  );
 }
 
 /**
