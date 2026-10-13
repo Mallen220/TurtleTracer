@@ -3,6 +3,7 @@
   import { settingsEditor } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import type { Settings } from "../../../../types/index";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -19,11 +20,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      Advanced
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">Advanced</h4>
   {/if}
 
   <SettingsItem
@@ -37,7 +34,7 @@
       type="checkbox"
       checked={settings.showDebugSequence}
       onchange={(e) => set("showDebugSequence", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-pink-500 focus:ring-2 focus:ring-pink-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -63,7 +60,7 @@
             )}
           onchange={(e) =>
             setNumber("drawToolTolerance", e.currentTarget.value, 1, 60)}
-          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-teal-700 dark:text-teal-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-teal-500"
+          class="{ui.inputSm} w-32"
         />
       </div>
     </SettingsItem>
@@ -89,7 +86,7 @@
             )}
           onchange={(e) =>
             setNumber("drawToolTension", e.currentTarget.value, 0, 1)}
-          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-cyan-700 dark:text-cyan-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-cyan-500"
+          class="{ui.inputSm} w-32"
         />
       </div>
     </SettingsItem>
@@ -120,7 +117,7 @@
               10,
               3000,
             )}
-          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-purple-700 dark:text-purple-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-purple-500"
+          class="{ui.inputSm} w-32"
         />
       </div>
     </SettingsItem>
@@ -150,7 +147,7 @@
               10,
               200,
             )}
-          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-blue-700 dark:text-blue-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500"
+          class="{ui.inputSm} w-32"
         />
       </div>
     </SettingsItem>
@@ -180,7 +177,7 @@
               0.01,
               1,
             )}
-          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-green-700 dark:text-green-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-green-500"
+          class="{ui.inputSm} w-32"
         />
       </div>
     </SettingsItem>
@@ -210,7 +207,7 @@
               0.1,
               20,
             )}
-          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-orange-700 dark:text-orange-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-orange-500"
+          class="{ui.inputSm} w-32"
         />
       </div>
     </SettingsItem>

@@ -1,6 +1,6 @@
 # Privacy Policy for Turtle Tracer
 
-_Last Updated: 2026-04-13_
+_Last Updated: 2026-10-07_
 
 ## Introduction
 
@@ -33,6 +33,16 @@ The desktop version of the Application uses GitHub Releases to check for and dow
 
 - **Data Involved:** GitHub may receive your IP address and other standard request headers as part of this process.
 - **Purpose:** To provide you with the latest version of the software.
+- **Privacy Policy:** Please refer to the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
+
+### GitHub Repositories (Optional)
+
+If you choose to open a GitHub repository in the Application, the Application talks to GitHub directly from your device. Nothing passes through a Turtle Tracer server, and we never see your repositories, files or token.
+
+- **Data Involved:** The Application asks GitHub for the repository you name, its branches, its file list and the files you open. When you commit, it sends GitHub the files you edited and your commit message. GitHub receives your IP address and standard request headers with each request.
+- **Your Token:** Committing needs a personal access token that you create on GitHub. In the browser version it is kept in your browser's storage for the current session, or for up to 30 days if you choose to remember it. In the desktop version it is held by the Application's main process, never by the page, and a remembered token is encrypted with your system's keychain. The token is only ever sent to GitHub, and commits are made under your GitHub account. You can remove it at any time with "Forget GitHub token".
+- **Edits Not Yet Committed:** These stay on your device, in the Application's local storage, until you commit them or close the repository.
+- **Analytics:** We don't record which repositories you open or what you commit. Google Analytics, described above, runs on the browser version's pages; as with any script on a page, the browser would let it read what that page stores, which is one reason we recommend tokens that can only reach one repository.
 - **Privacy Policy:** Please refer to the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
 
 ## General Disclaimer & Catch-all

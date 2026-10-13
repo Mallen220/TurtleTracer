@@ -19,8 +19,8 @@
   import PathStatisticsDialog from "./lib/components/dialogs/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
+  import ProjectFolderDialog from "./lib/components/dialogs/ProjectFolderDialog.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
-  import SetupDialog from "./lib/components/dialogs/SetupDialog.svelte";
   import ExportCodeDialog from "./lib/components/dialogs/ExportCodeDialog.svelte";
   import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
@@ -91,6 +91,7 @@
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
   import {
+    chooseSaveFolder,
     saveProject,
     saveFileAs,
     handleExternalFileOpen,
@@ -101,6 +102,10 @@
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
   import { trackMicrosoftStoreInstall } from "./utils/msStoreTracking";
   import { isBrowser, getElectronAPI } from "./utils/platform";
+  import { isGitHubPath } from "./utils/github/paths";
+  import { describeUncommitted, githubRepos } from "./utils/github/repos";
+  import { loadDesktopToken } from "./utils/github/token";
+  import { followedJava, confirmFollowedJavaEdit } from "./lib/javaFollow";
   import { firePotatoConfetti } from "./utils/potatoTheme";
   import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "./config";
   import type { Line } from "./types/index";
@@ -206,26 +211,44 @@
     isUnsaved.set(getCurrentState() !== lastSavedState);
   }
 
+  // A Java file being followed can't be changed here; its editor has the
+  // history.
   function undoAction() {
+    if (get(followedJava)) return;
     const prev = history.undo();
     if (prev) restoreHistoryState(prev);
   }
 
   function redoAction() {
+    if (get(followedJava)) return;
     const next = history.redo();
     if (next) restoreHistoryState(next);
   }
 
+  // Hide the control panel while following a Java file, and restore it when switching back.
+  let wasFollowingJava = false;
+  $effect(() => {
+    const isFollowing = !!$followedJava;
+    if (isFollowing && !wasFollowingJava) {
+      layout.showSidebar = false;
+    } else if (!isFollowing && wasFollowingJava) {
+      layout.showSidebar = true;
+    }
+    wasFollowingJava = isFollowing;
+  });
+
   // --- Saving, resetting and closing ---
   let unsavedGuard: UnsavedChangesGuard | undefined = $state();
 
-  function handleSaveProject() {
+  async function handleSaveProject() {
     if (get(currentFilePath)) {
       saveProject().then(fetchGitStatus);
-    } else {
-      showFileManager.set(true);
-      fileManagerNewFileMode.set(true);
+      return;
     }
+
+    if (!(await chooseSaveFolder())) return;
+    showFileManager.set(true);
+    fileManagerNewFileMode.set(true);
   }
 
   function handleResetProject() {
@@ -251,7 +274,10 @@
   // Desktop builds ask about unsaved changes through the main process
   // (see handleAppCloseRequested); this covers running in a browser.
   function handleBeforeUnload(e: BeforeUnloadEvent) {
-    if (!electronAPI && get(isUnsaved)) {
+    if (!isBrowser) return;
+    // Edits not committed to GitHub are kept, but browsers can clear what
+    // a site stores, so leaving without committing gets the same warning.
+    if (get(isUnsaved) || describeUncommitted(get(githubRepos.summaries))) {
       e.preventDefault();
       e.returnValue = "";
     }
@@ -262,6 +288,16 @@
       await recordUsageTime();
     } catch (e) {
       console.error("Failed to save usage time", e);
+    }
+
+    const uncommitted = describeUncommitted(get(githubRepos.summaries));
+    if (
+      uncommitted &&
+      !confirm(
+        `You have ${uncommitted} that aren't committed to GitHub yet. They're kept on this computer, but your team won't see them until you commit. Close anyway?`,
+      )
+    ) {
+      return;
     }
 
     const unsaved = get(isUnsaved);
@@ -288,7 +324,10 @@
   // --- Git status and library version ---
   async function fetchGitStatus() {
     const dir = get(currentDirectoryStore);
-    if (!dir || !get(settingsStore).gitIntegration) return;
+    // Repositories opened from GitHub always show what's been edited.
+    if (!dir || !(get(settingsStore).gitIntegration || isGitHubPath(dir))) {
+      return;
+    }
     if (!electronAPI?.gitStatus) return;
     try {
       gitStatusStore.set(await electronAPI.gitStatus(dir));
@@ -318,8 +357,6 @@
   });
 
   // --- Startup ---
-  /** Shown on first launch to pick a project folder. */
-  let setupMode = $state(false);
 
   onMount(() => {
     trackMicrosoftStoreInstall();
@@ -348,6 +385,7 @@
 
   async function startUp() {
     if (!isBrowser) await PluginManager.init();
+    void loadDesktopToken();
 
     const savedSettings = await loadSettings();
     settingsStore.set({ ...savedSettings });
@@ -371,32 +409,28 @@
       console.warn("ensureSequenceConsistency failed", err);
     }
 
-    // The project folder comes first: without one, the setup dialog opens.
-    if (await needsProjectFolder()) {
-      setupMode = true;
-    } else {
-      const { lastSeenVersion, hasSeenOnboarding } = get(settingsStore);
-      if (lastSeenVersion !== pkg.version && hasSeenOnboarding) {
-        showWhatsNew.set(true);
-      }
+    await loadSavedProjectFolder();
+
+    const { lastSeenVersion, hasSeenOnboarding } = get(settingsStore);
+    if (lastSeenVersion !== pkg.version && hasSeenOnboarding) {
+      showWhatsNew.set(true);
     }
 
     fadeOutLoadingScreen();
     tryShowRatingDialog();
   }
 
-  /** Loads the saved project folder. Returns true if none has been chosen yet. */
-  async function needsProjectFolder(): Promise<boolean> {
-    if (!electronAPI?.getSavedDirectory) return false;
+  /** Loads the saved project folder, if the user has chosen one. */
+  async function loadSavedProjectFolder() {
+    if (!electronAPI?.getSavedDirectory) return;
     try {
       const dir = await electronAPI.getSavedDirectory();
-      if (!dir || dir.trim() === "") return true;
+      if (!dir || dir.trim() === "") return;
       currentDirectoryStore.set(dir);
       void scanEventsInDirectory(dir);
     } catch (e) {
       console.warn("Failed to check saved directory", e);
     }
-    return false;
   }
 
   function fadeOutLoadingScreen() {
@@ -503,6 +537,7 @@
   }
 
   function handleSplitPath() {
+    if (!confirmFollowedJavaEdit()) return;
     const prediction = playback.timePrediction;
     if (!prediction?.totalTime) return;
     const res = splitPathAtPercent(
@@ -652,16 +687,17 @@
     startPoint={$startPointStore}
     controlRect={layout.controlTabRect}
     percent={$percentStore}
+    totalSeconds={playback.effectiveDuration}
+    onSeek={playback.seek}
     onClose={() => (statsOpen = false)}
   />
 {/if}
 
 <WhatsNewDialog bind:show={$showWhatsNew} onclose={closeWhatsNew} />
-<SetupDialog bind:show={setupMode} />
+<ProjectFolderDialog />
 <NotificationToast />
 <OnboardingTutorial
   whatsNewOpen={$showWhatsNew}
-  setupDialogOpen={setupMode}
   {isLoaded}
   ontutorialComplete={() => showWhatsNew.set(true)}
 />
@@ -692,7 +728,8 @@
   class="h-screen w-full flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans"
 >
   {#if !$isPresentationMode}
-    <div class="flex-none z-50">
+    <div class="flex-none z-50" role="banner">
+      <h1 class="sr-only">Turtle Tracer</h1>
       <NavbarComponent
         bind:lines={$linesStore}
         bind:startPoint={$startPointStore}
@@ -718,6 +755,7 @@
   {/if}
 
   <div
+    role="main"
     class="flex-1 min-h-0 flex flex-row items-stretch overflow-hidden relative gap-0 w-full"
   >
     {#if !$isPresentationMode}

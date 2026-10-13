@@ -26,7 +26,7 @@
   <!-- Line: (4, 12) -> (20, 12) -->
   <!-- Head: (14, 6) -> (20, 12) -> (14, 18) -->
   <ArrowRightIcon
-    className="w-full h-full text-purple-600 dark:text-purple-400"
+    className="w-full h-full text-emerald-600 dark:text-emerald-400"
     strokeWidth={2.5}
   />
 </div>

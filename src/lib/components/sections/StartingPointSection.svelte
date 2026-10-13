@@ -17,6 +17,7 @@
   import MapPinIcon from "../icons/MapPinIcon.svelte";
   import PlusIcon from "../icons/PlusIcon.svelte";
   import UnlockIcon from "../icons/UnlockIcon.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     startPoint: Point;
@@ -102,15 +103,13 @@
   });
 </script>
 
-<div
-  class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-4 space-y-4"
->
+<div class="{ui.card} p-4 space-y-4">
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <div class="bg-neutral-100 dark:bg-neutral-700 p-1.5 rounded-lg">
+      <div class="bg-neutral-100 dark:bg-neutral-700 p-1.5 rounded-md">
         <MapPinIcon className="size-4 text-neutral-500 dark:text-neutral-400" />
       </div>
-      <span class="text-sm font-bold text-neutral-700 dark:text-neutral-200"
+      <span class="text-sm font-bold text-neutral-700 dark:text-neutral-300"
         >STARTING POINT</span
       >
       <button
@@ -126,12 +125,15 @@
           // into the state, preserving cloneability for history.
           startPoint = { ...startPoint, locked: !startPoint.locked };
         }}
-        class="ml-1 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="{ui.iconBtnSm.neutral} ml-1"
       >
         {#if startPoint.locked}
-          <LockIcon className="size-4 text-amber-500" />
+          <LockIcon className="size-4 text-amber-600 dark:text-amber-400" />
         {:else}
-          <UnlockIcon className="size-4 text-neutral-400" strokeWidth={2} />
+          <UnlockIcon
+            className="size-4 text-neutral-500 dark:text-neutral-400"
+            strokeWidth={2}
+          />
         {/if}
       </button>
     </div>
@@ -143,7 +145,7 @@
     <div class="flex items-center gap-2 flex-1 flex-wrap">
       <div class="relative flex-1 min-w-[5rem]">
         <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500 dark:text-neutral-400 select-none"
           >X</span
         >
         <input
@@ -162,7 +164,7 @@
           min="0"
           max={settings?.fieldWidth ?? 144}
           type="number"
-          class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="{ui.inputSm} w-full pl-6 pr-2"
           step="0.1"
           disabled={startPoint.locked}
           aria-label="Starting X position"
@@ -171,7 +173,7 @@
       </div>
       <div class="relative flex-1 min-w-[5rem]">
         <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-500 dark:text-neutral-400 select-none"
           >Y</span
         >
         <input
@@ -190,7 +192,7 @@
           min="0"
           max={settings?.fieldHeight ?? 144}
           type="number"
-          class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="{ui.inputSm} w-full pl-6 pr-2"
           step="0.1"
           disabled={startPoint.locked}
           aria-label="Starting Y position"
@@ -202,11 +204,7 @@
 
   {#if lines.length === 0}
     <div class="space-y-2">
-      <span
-        class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-      >
-        Initial Heading
-      </span>
+      <span class="{ui.heading} block"> Initial Heading </span>
       <HeadingControls
         bind:this={headingControls}
         endPoint={startPoint}
@@ -218,16 +216,17 @@
   {/if}
 
   <div
-    class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
+    class="flex items-center gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-700 flex-wrap"
   >
-    <span class="text-xs font-medium text-neutral-400 mr-auto"
+    <span
+      class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mr-auto"
       >After first step:</span
     >
     <button
       onclick={addPathAtStart}
       aria-label="Add Path after start"
       title={`Add Path${getShortcutFromSettings(settings, "add-path-start")}`}
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
+      class={ui.kindChip("purple")}
     >
       <PlusIcon className="size-3" strokeWidth={2} />
       Path
@@ -236,7 +235,7 @@
       onclick={addWaitAtStart}
       aria-label="Add Wait after start"
       title={`Add Wait${getShortcutFromSettings(settings, "add-wait-start")}`}
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
+      class={ui.kindChip("amber")}
     >
       <PlusIcon className="size-3" strokeWidth={2} />
       Wait
@@ -245,7 +244,7 @@
       onclick={addRotateAtStart}
       aria-label="Add Rotate after start"
       title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate-start")}`}
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
+      class={ui.kindChip("pink")}
     >
       <PlusIcon className="size-3" strokeWidth={2} />
       Rotate

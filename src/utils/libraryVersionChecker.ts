@@ -1,4 +1,28 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { compareVersions } from "./versions";
+let latestRelease: Promise<string | null> | null = null;
+
+/**
+ * The latest TurtleTracerLib version, looked up once per session: the check
+ * runs whenever the project folder changes, and GitHub allows few requests
+ * without a token (shared by everyone on a school network).
+ */
+function latestLibraryVersion(): Promise<string | null> {
+  latestRelease ??= fetch(
+    "https://api.github.com/repos/Mallen220/TurtleTracerLib/releases/latest",
+  )
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`GitHub responded ${res.status}`);
+      const tag = ((await res.json()) as { tag_name?: string }).tag_name;
+      return tag?.startsWith("v") ? tag.slice(1) : (tag ?? null);
+    })
+    .catch(() => {
+      latestRelease = null; // Try again next time.
+      return null;
+    });
+  return latestRelease;
+}
+
 export async function checkLibraryVersion(
   directory: string,
   electronAPI: any,
@@ -8,13 +32,8 @@ export async function checkLibraryVersion(
 
   try {
     // 1. Fetch latest version from GitHub
-    const res = await fetch(
-      "https://api.github.com/repos/Mallen220/TurtleTracerLib/releases/latest",
-    );
-    if (!res.ok) return;
-    const data = (await res.json()) as any;
-    let latestVersion = data.tag_name as string;
-    if (latestVersion?.startsWith("v")) latestVersion = latestVersion.slice(1);
+    const latestVersion = await latestLibraryVersion();
+    if (!latestVersion) return;
 
     // 2. Scan gradle files for local version
     const filesToCheck = [
@@ -94,16 +113,4 @@ export async function checkLibraryVersion(
   } catch (e) {
     console.warn("Failed to check library version", e);
   }
-}
-
-function compareVersions(v1: string, v2: string) {
-  const p1 = v1.split(".").map(Number);
-  const p2 = v2.split(".").map(Number);
-  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-    const num1 = p1[i] || 0;
-    const num2 = p2[i] || 0;
-    if (num1 > num2) return 1;
-    if (num1 < num2) return -1;
-  }
-  return 0;
 }

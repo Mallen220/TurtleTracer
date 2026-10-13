@@ -134,6 +134,30 @@ describe("FieldPathLayer", () => {
       );
     });
 
+    it("outlines the part of a path the robot cuts across at a corner", () => {
+      // Handed over to the next path halfway along.
+      const event = { ...travel(a, startPoint, 0, 50), drivenTo: 0.5 };
+      const timeline = [event] as unknown as TimePrediction["timeline"];
+      const res = buildStandardPathElements({
+        effectiveTimePrediction: { timeline } as TimePrediction,
+        lines: [a],
+        sequencedLines: [a],
+        startPoint,
+        isDiffMode: false,
+        selectedLineId: null,
+        ctx: { ...heatmapCtx, timePrediction: { timeline } },
+      }) as unknown as {
+        stroke: string;
+        linewidth: number;
+        dashes: number[];
+      }[];
+      const driven = res.find((e) => e.stroke !== "hsl(0, 0%, 60%)")!;
+      const cut = res.find((e) => e.stroke === "hsl(0, 0%, 60%)")!;
+      expect(driven.dashes.length).toBe(0);
+      expect(cut.dashes.length).toBe(2);
+      expect(cut.linewidth).toBe(driven.linewidth / 2);
+    });
+
     it("leaves macro paths in their own colour", () => {
       const fromMacro = pathTo("macro", 20);
       const strokes = strokesOf(
@@ -207,6 +231,65 @@ describe("FieldPathLayer", () => {
           },
         ]),
       ).toHaveLength(base.length);
+    });
+
+    describe("with the velocity heatmap on", () => {
+      const heatmapCtx = {
+        ...mockCtx,
+        settings: { showVelocityHeatmap: true, maxVelocity: 100 },
+      };
+      const swingOnto = (next: Line, speed: number[]) => ({
+        type: "recovery",
+        line: next,
+        trace: {
+          time: speed.map((_, i) => i * 0.1),
+          x: speed.map((_, i) => i),
+          y: speed.map(() => 0),
+          speed,
+        },
+      });
+      const buildWith = (lines: Line[], events: unknown[]) =>
+        buildStandardPathElements({
+          effectiveTimePrediction: prediction(events),
+          lines,
+          sequencedLines: lines,
+          startPoint,
+          isDiffMode: false,
+          selectedLineId: null,
+          ctx: heatmapCtx,
+        });
+      const swingOf = (elements: unknown[]) =>
+        (elements as { id: string; stroke: string; dashes: number[] }[])
+          .filter((e) => e.id.startsWith("recovery-path-1"))
+          .map(({ id, stroke, dashes }) => ({
+            id,
+            stroke,
+            dashes: [...dashes],
+          }));
+
+      it("colours the robot's route through a corner by its speed", () => {
+        // Slowing from full speed to a stop and back up to half speed.
+        const swing = swingOf(
+          buildWith([line1], [travel, swingOnto(line1, [100, 100, 0, 0, 50])]),
+        );
+        expect(swing.map((s) => s.stroke)).toEqual([
+          "hsl(0, 100%, 40%)", // full speed
+          "hsl(120, 100%, 40%)", // stopped
+          "hsl(60, 100%, 40%)", // half speed
+        ]);
+        expect(swing.every((s) => s.dashes.length === 0)).toBe(true);
+        expect(swing[0]!.id).toBe("recovery-path-1-heatmap-0");
+      });
+
+      it("leaves a swing onto a macro path dashed", () => {
+        const macro = { ...line1, id: "macro" };
+        const swing = swingOf(
+          buildWith([line1], [travel, swingOnto(macro, [100, 100])]),
+        );
+        expect(swing).toEqual([
+          { id: "recovery-path-1", stroke: "#eab308", dashes: [1.5, 1.5] },
+        ]);
+      });
     });
   });
 

@@ -11,6 +11,7 @@
   import ErrorIcon from "../icons/ErrorIcon.svelte";
   import CriticalIcon from "../icons/CriticalIcon.svelte";
   import DisabledIcon from "../icons/DisabledIcon.svelte";
+  import { ui } from "../../ui";
 
   let isHovering = $state(false);
 
@@ -78,15 +79,15 @@
   <button
     title="Toggle Validation"
     onclick={toggleValidation}
-    class="flex items-center justify-center p-2 bg-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+    class={ui.iconBtn.neutral}
     aria-label="Toggle Validation"
   >
     {#if $settingsStore.validationDisabled}
-      <DisabledIcon className="size-5 text-neutral-400" />
+      <DisabledIcon className="size-5 text-neutral-500 dark:text-neutral-400" />
     {:else if errorCount === 0}
-      <ValidIcon className="size-5 text-green-500" />
+      <ValidIcon className="size-5 text-green-600 dark:text-green-400" />
     {:else if errorCount === 1}
-      <WarningIcon className="size-5 text-amber-500" />
+      <WarningIcon className="size-5 text-amber-600 dark:text-amber-400" />
     {:else if errorCount === 2}
       <ErrorIcon className="size-5 text-orange-500" />
     {:else}
@@ -96,7 +97,7 @@
 
   {#if isHovering}
     <div
-      class="absolute top-full right-0 mt-2 w-max bg-white dark:bg-neutral-800 rounded-lg shadow-xl p-3 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
+      class="{ui.popover} absolute top-full right-0 mt-2 w-max p-3 z-50 animate-in fade-in zoom-in-95 duration-100"
     >
       {#if $settingsStore.validationDisabled}
         <p class="text-sm text-neutral-700 dark:text-neutral-300 font-medium">

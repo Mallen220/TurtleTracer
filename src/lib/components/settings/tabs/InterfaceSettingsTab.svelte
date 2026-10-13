@@ -12,6 +12,7 @@
   import { fieldZoom, fieldPan } from "../../../../stores";
   import * as ICONS from "../../icons";
   import CustomFieldWizard from "../../settings/CustomFieldWizard.svelte";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -98,11 +99,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      Interface
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">Interface</h4>
   {/if}
 
   <SettingsItem
@@ -116,7 +113,7 @@
       id="theme-select"
       value={settings.theme}
       onchange={(e) => set("theme", e.currentTarget.value as any)}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     >
       <option value="auto">Auto (System Preference)</option>
       <option value="light">Light Mode</option>
@@ -154,7 +151,7 @@
         value={settings.programFontSize}
         oninput={(e) =>
           set("programFontSize", Number.parseInt(e.currentTarget.value))}
-        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-emerald-600"
       />
       <span
         class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
@@ -177,7 +174,7 @@
       type="checkbox"
       checked={settings.squaredCorners}
       onchange={(e) => set("squaredCorners", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -193,7 +190,7 @@
         id="field-map-select"
         value={settings.fieldMap}
         onchange={(e) => set("fieldMap", e.currentTarget.value as any)}
-        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="{ui.input} w-full"
       >
         {#each availableMaps as field}
           <option value={field.value}>{field.label}</option>
@@ -203,7 +200,7 @@
         <button
           title="Delete Custom Map"
           aria-label="Delete Custom Map"
-          class="p-2 text-neutral-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+          class={ui.iconBtn.danger}
           onclick={() => handleDeleteCustomMap(settings.fieldMap)}
         >
           <ICONS.TrashIcon className="size-5" />
@@ -212,14 +209,14 @@
     </div>
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
       <button
-        class="mt-2 w-full px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+        class="{ui.btn.secondary} mt-2 w-full"
         onclick={() => handleEditCustomMap(settings.fieldMap)}
       >
         Edit Custom Map
       </button>
     {/if}
     <button
-      class="mt-2 w-full px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors border border-neutral-200 dark:border-neutral-700 border-dashed"
+      class="{ui.btn.accentSoft} mt-2 w-full"
       onclick={handleAddCustomMap}
     >
       + Add Custom Field Map
@@ -241,7 +238,9 @@
   >
     <div class="flex items-center gap-2">
       <div class="flex flex-col flex-1">
-        <label for="field-width" class="text-xs text-neutral-500 mb-1"
+        <label
+          for="field-width"
+          class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
           >Width (X)</label
         >
         <input
@@ -255,12 +254,14 @@
             if (!Number.isNaN(val))
               resizeField(val, settings.fieldHeight ?? 144);
           }}
-          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="{ui.input} w-full"
         />
       </div>
-      <span class="text-neutral-500 mt-4">×</span>
+      <span class="text-neutral-500 dark:text-neutral-400 mt-4">×</span>
       <div class="flex flex-col flex-1">
-        <label for="field-height" class="text-xs text-neutral-500 mb-1"
+        <label
+          for="field-height"
+          class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
           >Height (Y)</label
         >
         <input
@@ -274,7 +275,7 @@
             if (!Number.isNaN(val))
               resizeField(settings.fieldWidth ?? 144, val);
           }}
-          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="{ui.input} w-full"
         />
       </div>
     </div>
@@ -289,10 +290,7 @@
     <div class="grid grid-cols-4 gap-2">
       {#each [0, 90, 180, 270] as rotation}
         <button
-          class="px-3 py-2 text-sm rounded-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 {settings.fieldRotation ===
-          rotation
-            ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
-            : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+          class={ui.choice(settings.fieldRotation === rotation)}
           onclick={() => set("fieldRotation", rotation)}
         >
           {rotation}°
@@ -312,7 +310,7 @@
       id="coordinate-system-select"
       value={settings.coordinateSystem}
       onchange={(e) => set("coordinateSystem", e.currentTarget.value as any)}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     >
       <option value="Pedro">Pedro Pathing (0-144)</option>
       <option value="FTC">FTC Center (±72)</option>
@@ -330,7 +328,7 @@
       id="visualizer-units-select"
       value={settings.visualizerUnits}
       onchange={(e) => set("visualizerUnits", e.currentTarget.value as any)}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     >
       <option value="imperial">Imperial (Inches)</option>
       <option value="metric">Metric (cm)</option>
@@ -348,13 +346,13 @@
       type="checkbox"
       checked={settings.showOnionLayers}
       onchange={(e) => set("showOnionLayers", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
   {#if settings.showOnionLayers}
     <div
-      class="pl-4 border-l-2 border-neutral-100 dark:border-neutral-800 ml-2 mt-2 mb-4"
+      class="pl-4 border-l-2 border-neutral-200 dark:border-neutral-700 ml-2 mt-2 mb-4"
     >
       <SettingsItem
         label="Show Only on Current Path"
@@ -368,7 +366,7 @@
           checked={settings.onionSkinCurrentPathOnly}
           onchange={(e) =>
             set("onionSkinCurrentPathOnly", e.currentTarget.checked)}
-          class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+          class={ui.checkbox}
         />
       </SettingsItem>
 
@@ -390,7 +388,7 @@
                 "onionLayerSpacing",
                 Number.parseFloat(e.currentTarget.value) || 0,
               )}
-            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-md appearance-none cursor-pointer accent-emerald-600"
           />
           <span
             class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
@@ -413,7 +411,7 @@
       type="checkbox"
       checked={settings.smartSnapping}
       onchange={(e) => set("smartSnapping", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -428,7 +426,7 @@
       type="checkbox"
       checked={settings.showVelocityHeatmap}
       onchange={(e) => set("showVelocityHeatmap", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -443,7 +441,7 @@
       type="checkbox"
       checked={settings.showVelocityTooltip}
       onchange={(e) => set("showVelocityTooltip", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -467,7 +465,7 @@
         set("lockFieldView", e.currentTarget.checked);
         resetFieldViewToDefault();
       }}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -487,7 +485,7 @@
         set("followRobot", e.currentTarget.checked);
         followRobotStore.set(e.currentTarget.checked);
       }}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 </div>

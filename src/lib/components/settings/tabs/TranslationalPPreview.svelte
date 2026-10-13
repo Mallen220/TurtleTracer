@@ -3,6 +3,7 @@
 <script lang="ts">
   import { previewTranslationalGain } from "../../../../utils/timeCalculator/gainPreview";
   import type { Settings } from "../../../../types";
+  import { ui } from "../../../ui";
 
   let { settings }: { settings: Settings } = $props();
 
@@ -46,13 +47,13 @@
   );
   const verdictClass = $derived(
     preview.verdict === "good"
-      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
       : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   );
 </script>
 
 <div
-  class="mb-4 -mt-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/40 p-3 text-xs text-neutral-600 dark:text-neutral-400"
+  class="{ui.well} mb-4 -mt-2 p-3 text-xs text-neutral-500 dark:text-neutral-400"
   data-testid="gain-preview"
 >
   <div class="flex flex-wrap items-start gap-3">

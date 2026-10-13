@@ -11,6 +11,7 @@
     CloseIcon,
     GithubIcon,
   } from "./icons";
+  import MessageText from "./MessageText.svelte";
 
   let visible = $state(false);
   let currentNotification: import("../../types/index").Notification | null =
@@ -54,7 +55,7 @@
   function getBgColor(type: string) {
     switch (type) {
       case "success":
-        return "bg-green-100 border-green-500 text-green-800 dark:bg-green-900/80 dark:border-green-600 dark:text-green-100";
+        return "bg-emerald-100 border-emerald-500 text-emerald-800 dark:bg-emerald-900/80 dark:border-emerald-600 dark:text-emerald-100";
       case "warning":
         return "bg-amber-100 border-amber-500 text-amber-800 dark:bg-amber-900/80 dark:border-amber-600 dark:text-amber-100";
       case "error":
@@ -86,7 +87,7 @@
     out:fade={{ duration: 200 }}
   >
     <div
-      class="flex items-center w-full px-4 py-3 rounded-lg shadow-lg border-l-4 {getBgColor(
+      class="flex items-center w-full px-4 py-3 rounded-md shadow-lg border-l-4 {getBgColor(
         currentNotification.type,
       )}"
       role="alert"
@@ -94,8 +95,9 @@
       <div class="shrink-0 mr-3">
         <SvelteComponent className="size-6" />
       </div>
-      <div class="flex-1 text-sm font-medium">
-        {currentNotification.message}
+      <!-- min-w-0 and overflow-wrap let long paths wrap instead of running off screen. -->
+      <div class="flex-1 min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
+        <MessageText message={currentNotification.message} />
       </div>
       {#if currentNotification && currentNotification.action && currentNotification.actionLabel}
         <button

@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { ResetIcon } from "../icons/index";
+  import { ui } from "../../ui";
 
   interface Props {
     label: string;
@@ -26,6 +27,31 @@
     children,
   }: Props = $props();
 
+  const uid = $props.id();
+  const labelId = `${uid}-label`;
+
+  /**
+   * Names the form controls inside by this item's label, unless something else
+   * already does. Most settings put a bare checkbox or select in a SettingsItem
+   * and would otherwise have no name for a screen reader.
+   */
+  function labelControls(node: HTMLElement) {
+    const apply = () => {
+      for (const control of node.querySelectorAll<HTMLInputElement>(
+        "input:not([type=hidden]), select, textarea",
+      )) {
+        if (control.labels?.length) continue;
+        if (control.hasAttribute("aria-label")) continue;
+        if (control.hasAttribute("aria-labelledby")) continue;
+        control.setAttribute("aria-labelledby", labelId);
+      }
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(node, { childList: true, subtree: true });
+    return { destroy: () => observer.disconnect() };
+  }
+
   let isVisible = $derived(
     searchQuery === "" ||
       label.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -44,10 +70,7 @@
     {@render children?.()}
   {:else if layout === "col"}
     <div class="flex items-start justify-between mb-1">
-      <label
-        for={forId}
-        class="block text-sm font-medium text-neutral-700 dark:text-neutral-300"
-      >
+      <label for={forId} id={labelId} class="{ui.label} block">
         {label}
         {#if description}
           <div
@@ -60,7 +83,7 @@
       {#if onReset && isModified}
         <button
           type="button"
-          class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class={ui.iconBtnSm.neutral}
           title="Reset to default"
           onclick={onReset}
           aria-label="Reset to default"
@@ -69,23 +92,20 @@
         </button>
       {/if}
     </div>
-    {@render children?.()}
+    <div class="contents" use:labelControls>
+      {@render children?.()}
+    </div>
   {:else}
-    <div
-      class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
-    >
+    <div class="{ui.card} flex items-center justify-between p-3">
       <div class="flex-1 mr-4">
         <div class="flex items-center gap-2 mb-1">
-          <label
-            for={forId}
-            class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block"
-          >
+          <label for={forId} id={labelId} class="{ui.label} block">
             {label}
           </label>
           {#if onReset && isModified}
             <button
               type="button"
-              class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors flex-shrink-0"
+              class="{ui.iconBtnSm.neutral} flex-shrink-0"
               title="Reset to default"
               onclick={onReset}
               aria-label="Reset to default"
@@ -100,7 +120,9 @@
           </div>
         {/if}
       </div>
-      {@render children?.()}
+      <div class="contents" use:labelControls>
+        {@render children?.()}
+      </div>
     </div>
   {/if}
 </div>

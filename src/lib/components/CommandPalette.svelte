@@ -7,6 +7,7 @@
   import SearchIcon from "./icons/SearchIcon.svelte";
   import ArrowUpIcon from "./icons/ArrowUpIcon.svelte";
   import ArrowDownIcon from "./icons/ArrowDownIcon.svelte";
+  import { ui } from "../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -166,11 +167,9 @@
       class="w-full max-w-2xl flex flex-col gap-4 px-4"
     >
       <!-- Search Bar -->
-      <div
-        class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
-      >
+      <div class="{ui.dialog} flex items-center px-5 py-4">
         <SearchIcon
-          className="size-6 text-neutral-400 mr-4 flex-shrink-0"
+          className="size-6 text-neutral-500 dark:text-neutral-400 mr-4 flex-shrink-0"
           strokeWidth={2}
         />
         <input
@@ -178,7 +177,7 @@
           type="text"
           bind:value={searchQuery}
           placeholder="Type a command or search..."
-          class="w-full bg-transparent border-none focus:ring-0 text-xl text-neutral-900 dark:text-white placeholder-neutral-400 font-medium outline-none"
+          class="w-full bg-transparent border-none focus:ring-0 text-xl text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 font-medium outline-none"
           role="combobox"
           aria-expanded="true"
           aria-controls="command-results"
@@ -199,9 +198,7 @@
       </div>
 
       <!-- Results List -->
-      <div
-        class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
-      >
+      <div class="{ui.dialog} overflow-hidden flex flex-col">
         <div
           id="command-results"
           class="max-h-[60vh] overflow-y-auto py-2 px-2 scrollbar-thin"
@@ -220,10 +217,10 @@
                 id="command-option-{index}"
                 role="option"
                 aria-selected={index === selectedIndex}
-                class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 rounded-lg mb-0.5
+                class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 rounded-md mb-0.5
                 {index === selectedIndex
-                  ? 'bg-indigo-600 text-white shadow-md transform scale-[1.00]'
-                  : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+                  ? 'bg-emerald-700 text-white shadow-md transform scale-[1.00]'
+                  : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
                 onclick={() => executeCommand(command)}
                 onmousemove={() => (selectedIndex = index)}
               >
@@ -234,8 +231,8 @@
                       <span
                         class="text-xs font-medium uppercase tracking-wider mt-1 {index ===
                         selectedIndex
-                          ? 'text-indigo-200'
-                          : 'text-neutral-400 dark:text-neutral-500'}"
+                          ? 'text-emerald-100'
+                          : 'text-neutral-500 dark:text-neutral-400'}"
                         >{command.category}</span
                       >
                     {/if}
@@ -248,8 +245,8 @@
                       <kbd
                         class="text-xs font-mono font-bold px-1.5 py-0.5 rounded border
                        {index === selectedIndex
-                          ? 'bg-indigo-500 border-indigo-400 text-indigo-100'
-                          : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400'}"
+                          ? 'bg-emerald-800 border-emerald-600 text-emerald-50'
+                          : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300'}"
                       >
                         {key
                           .trim()
@@ -265,27 +262,27 @@
         </div>
 
         <div
-          class="px-5 py-3 bg-neutral-50 dark:bg-neutral-900/80 border-t border-neutral-200 dark:border-neutral-800 text-xs text-neutral-500 dark:text-neutral-400 flex justify-end gap-6 font-medium"
+          class="px-5 py-3 bg-neutral-50 dark:bg-neutral-900/80 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 flex justify-end gap-6 font-medium"
         >
           <span class="flex items-center gap-1.5"
             ><kbd
-              class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded min-w-[1.5em] flex items-center justify-center"
+              class="font-mono bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 px-1.5 py-0.5 rounded min-w-[1.5em] flex items-center justify-center"
               ><ArrowUpIcon className="size-3" /></kbd
             >
             <kbd
-              class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded min-w-[1.5em] flex items-center justify-center"
+              class="font-mono bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 px-1.5 py-0.5 rounded min-w-[1.5em] flex items-center justify-center"
               ><ArrowDownIcon className="size-3" /></kbd
             > to navigate</span
           >
           <span class="flex items-center gap-1.5"
             ><kbd
-              class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded"
+              class="font-mono bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 px-1.5 py-0.5 rounded"
               >Enter</kbd
             > to select</span
           >
           <span class="flex items-center gap-1.5"
             ><kbd
-              class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded"
+              class="font-mono bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 px-1.5 py-0.5 rounded"
               >Esc</kbd
             > to close</span
           >

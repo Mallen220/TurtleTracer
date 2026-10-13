@@ -18,6 +18,7 @@
     currentDirectoryStore,
     notification,
   } from "../../../stores";
+  import { ui } from "../../ui";
 
   interface Props {
     componentName?: string;
@@ -100,25 +101,19 @@
 </script>
 
 <div
-  class="p-3 mt-2 mb-2 text-xs text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm"
+  class="{ui.well} p-3 mt-2 mb-2 text-xs text-neutral-500 dark:text-neutral-400"
 >
   <div
     class="flex justify-between items-center mb-3 border-b border-neutral-200 dark:border-neutral-700 pb-2"
   >
-    <strong class="text-neutral-800 dark:text-neutral-200"
+    <strong class="text-neutral-900 dark:text-neutral-100"
       >DEBUG ({componentName})</strong
     >
     <div class="flex gap-2">
-      <button
-        class="px-2 py-1 bg-white dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-600 transition-colors shadow-sm font-medium"
-        onclick={copyDebugData}
-      >
+      <button class={ui.btnSm.secondary} onclick={copyDebugData}>
         Copy to Clipboard
       </button>
-      <button
-        class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors shadow-sm font-medium"
-        onclick={exportDebugData}
-      >
+      <button class={ui.btnSm.primary} onclick={exportDebugData}>
         Export Log
       </button>
     </div>
@@ -169,7 +164,7 @@
       >
       <div class="mt-2 relative">
         <textarea
-          class="w-full h-64 p-3 font-mono text-[11px] leading-tight bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded resize-y outline-none focus:ring-2 focus:ring-blue-500 text-neutral-800 dark:text-neutral-200"
+          class="w-full h-64 p-3 font-mono text-[11px] leading-tight bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded resize-y outline-none focus:ring-2 focus:ring-blue-500 text-neutral-900 dark:text-neutral-100"
           readonly
           value={JSON.stringify(generateDebugData(), null, 2)}
         ></textarea>

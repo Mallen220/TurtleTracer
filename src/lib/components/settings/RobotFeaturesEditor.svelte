@@ -4,6 +4,7 @@
   import type { Settings, RobotFeature } from "../../../types/index";
   import { PlusIcon, CloseIcon, EyeIcon, EyeSlashIcon } from "../icons";
   import ColorPicker from "../tools/ColorPicker.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     settings: Settings;
@@ -114,13 +115,11 @@
   }
 </script>
 
-<div
-  class="flex flex-col md:flex-row gap-6 mt-2 p-4 bg-neutral-50 dark:bg-neutral-800/30 border border-neutral-200 dark:border-neutral-700 rounded-lg"
->
+<div class="{ui.well} flex flex-col md:flex-row gap-6 mt-2 p-4">
   <!-- Left Side: Preview Canvas -->
   <div class="flex flex-col w-full md:w-[260px] shrink-0 items-center">
     <div
-      class="relative border border-neutral-200 dark:border-neutral-700/50 rounded-md bg-transparent overflow-hidden touch-none"
+      class="relative border border-neutral-200 dark:border-neutral-700 rounded-md bg-transparent overflow-hidden touch-none"
       style="width: {PREVIEW_SIZE}px; height: {PREVIEW_SIZE}px;"
     >
       <svg width={PREVIEW_SIZE} height={PREVIEW_SIZE} class="w-full h-full">
@@ -284,7 +283,7 @@
       </svg>
     </div>
     <div
-      class="text-[10px] text-neutral-400 dark:text-neutral-500 text-center w-full mt-1"
+      class="text-[10px] text-neutral-500 dark:text-neutral-400 text-center w-full mt-1"
     >
       Drag features to move them, or edit properties below. Shift-drag to snap.
     </div>
@@ -293,7 +292,7 @@
   <!-- Right Side: Properties Editor -->
   <div class="flex flex-col w-full min-w-0 flex-1">
     <div
-      class="text-xs font-medium text-neutral-500 uppercase flex justify-between items-center mb-2"
+      class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase flex justify-between items-center mb-2"
     >
       <span>Properties</span>
       {#if settings.robotFeatures && settings.robotFeatures.length > 0}
@@ -305,33 +304,27 @@
     <!-- Add Buttons -->
     <div class="flex gap-2 mb-3">
       <button
-        class="px-2 py-1 text-xs bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1"
+        class={ui.btnSm.secondary}
         onclick={() => addFeature("rectangle")}
       >
         <PlusIcon className="w-3 h-3" /> Rect
       </button>
-      <button
-        class="px-2 py-1 text-xs bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1"
-        onclick={() => addFeature("circle")}
-      >
+      <button class={ui.btnSm.secondary} onclick={() => addFeature("circle")}>
         <PlusIcon className="w-3 h-3" /> Circle
       </button>
-      <button
-        class="px-2 py-1 text-xs bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded border border-neutral-300 dark:border-neutral-600 transition-colors flex items-center gap-1"
-        onclick={() => addFeature("line")}
-      >
+      <button class={ui.btnSm.secondary} onclick={() => addFeature("line")}>
         <PlusIcon className="w-3 h-3" /> Line
       </button>
     </div>
 
     {#if !settings.robotFeatures || settings.robotFeatures.length === 0}
       <div
-        class="flex flex-col items-center justify-center h-[250px] border border-dashed border-neutral-300 dark:border-neutral-700 rounded-md text-sm text-neutral-500 bg-neutral-50 dark:bg-neutral-800/50 p-4 text-center"
+        class="{ui.well} flex flex-col items-center justify-center h-[250px] border-dashed text-sm text-neutral-500 dark:text-neutral-400 p-4 text-center"
       >
         <div class="mb-2 opacity-50">
           <PlusIcon className="w-8 h-8 mx-auto" />
         </div>
-        <p class="font-medium text-neutral-600 dark:text-neutral-400">
+        <p class="font-medium text-neutral-500 dark:text-neutral-400">
           No custom features set
         </p>
       </div>
@@ -359,11 +352,11 @@
                 value={feature.name}
                 oninput={(e) =>
                   updateFeature(feature.id, { name: e.currentTarget.value })}
-                class="text-sm font-medium bg-transparent border-none focus:ring-1 focus:ring-blue-500 rounded px-1 -ml-1 w-2/3 text-neutral-800 dark:text-neutral-200"
+                class="text-sm font-medium bg-transparent border-none focus:ring-1 focus:ring-blue-500 rounded px-1 -ml-1 w-2/3 text-neutral-900 dark:text-neutral-100"
               />
               <div class="flex items-center gap-1">
                 <button
-                  class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors p-1"
+                  class={ui.iconBtnSm.neutral}
                   onclick={(e) => {
                     e.stopPropagation();
                     updateFeature(feature.id, {
@@ -381,7 +374,7 @@
                   {/if}
                 </button>
                 <button
-                  class="text-neutral-400 hover:text-red-500 transition-colors p-1"
+                  class="text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors p-1"
                   onclick={(e) => {
                     e.stopPropagation();
                     removeFeature(feature.id);
@@ -398,7 +391,7 @@
               <div class="flex flex-col">
                 <label
                   for="feature-{feature.id}-x"
-                  class="text-[10px] text-neutral-500 uppercase"
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                   >X Offset (in)</label
                 >
                 <input
@@ -410,13 +403,13 @@
                       x: Number.parseFloat(e.currentTarget.value) || 0,
                     })}
                   step="0.01"
-                  class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  class="{ui.inputXs} w-full"
                 />
               </div>
               <div class="flex flex-col">
                 <label
                   for="feature-{feature.id}-y"
-                  class="text-[10px] text-neutral-500 uppercase"
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                   >Y Offset (in)</label
                 >
                 <input
@@ -428,7 +421,7 @@
                       y: Number.parseFloat(e.currentTarget.value) || 0,
                     })}
                   step="0.01"
-                  class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  class="{ui.inputXs} w-full"
                 />
               </div>
 
@@ -437,7 +430,7 @@
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-width"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Width (in)</label
                   >
                   <input
@@ -453,13 +446,13 @@
                       })}
                     min="0.1"
                     step="0.01"
-                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="{ui.inputXs} w-full"
                   />
                 </div>
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-height"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Height (in)</label
                   >
                   <input
@@ -475,14 +468,14 @@
                       })}
                     min="0.1"
                     step="0.01"
-                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="{ui.inputXs} w-full"
                   />
                 </div>
               {:else if feature.type === "circle"}
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-radius"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Radius (in)</label
                   >
                   <input
@@ -498,14 +491,14 @@
                       })}
                     min="0.1"
                     step="0.01"
-                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="{ui.inputXs} w-full"
                   />
                 </div>
               {:else if feature.type === "line"}
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-length"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Length (in)</label
                   >
                   <input
@@ -521,13 +514,13 @@
                       })}
                     min="0.1"
                     step="0.01"
-                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="{ui.inputXs} w-full"
                   />
                 </div>
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-angle"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Angle (deg)</label
                   >
                   <input
@@ -539,13 +532,13 @@
                         angle: Number.parseFloat(e.currentTarget.value) || 0,
                       })}
                     step="5"
-                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="{ui.inputXs} w-full"
                   />
                 </div>
                 <div class="flex flex-col col-span-2">
                   <label
                     for="feature-{feature.id}-thickness"
-                    class="text-[10px] text-neutral-500 uppercase"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
                     >Thickness (in)</label
                   >
                   <input
@@ -561,7 +554,7 @@
                       })}
                     min="0.1"
                     step="0.01"
-                    class="w-full px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="{ui.inputXs} w-full"
                   />
                 </div>
               {/if}
@@ -570,7 +563,8 @@
               <div class="flex flex-col col-span-1">
                 <label
                   for="feature-{feature.id}-color"
-                  class="text-[10px] text-neutral-500 uppercase">Color</label
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
+                  >Color</label
                 >
                 <div class="flex items-center gap-2 mt-1">
                   <ColorPicker
@@ -597,7 +591,7 @@
                         updateFeature(feature.id, {
                           filled: e.currentTarget.checked,
                         })}
-                      class="rounded text-blue-500 focus:ring-blue-500"
+                      class={ui.checkbox}
                     />
                     <span class="text-neutral-700 dark:text-neutral-300"
                       >Filled</span

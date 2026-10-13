@@ -8,6 +8,7 @@
   import { transformAngle } from "../../../utils/math";
   import HeadingIndicator from "./HeadingIndicator.svelte";
   import { TriangleWarningIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     value: number | undefined;
@@ -63,15 +64,15 @@
     <HeadingIndicator
       degrees={indicator}
       size={16}
-      className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
+      className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-500 dark:text-neutral-400"
     />
   {/if}
   <span
-    class="absolute left-2 top-1/2 -translate-y-1/2 font-bold text-neutral-400 select-none {labelClass}"
+    class="absolute left-2 top-1/2 -translate-y-1/2 font-bold text-neutral-500 dark:text-neutral-400 select-none {labelClass}"
     >{label}</span
   >
   <input
-    class="w-full {inset} py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+    class="{ui.inputSm} w-full {inset}"
     class:pr-6={isOutOfBounds}
     class:pr-1={!isOutOfBounds}
     class:border-yellow-500={isOutOfBounds}

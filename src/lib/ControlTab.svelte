@@ -270,6 +270,7 @@
   }
 
   import { isBrowser } from "../utils/platform";
+  import { ui } from "./ui";
   interface Props {
     percent: number;
     playing: boolean;
@@ -494,9 +495,7 @@
 >
   {#if $diffMode}
     <div class="w-full px-4 pt-4 flex-none z-10">
-      <div
-        class="bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200 px-4 py-3 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center justify-between"
-      >
+      <div class="{ui.alert.accent} flex items-center justify-between">
         <span class="font-semibold flex items-center gap-2">
           <DocumentIcon className="size-5" />
           Diff View
@@ -511,7 +510,7 @@
     <div class="w-full px-4 pt-4 flex-none z-10 flex gap-3">
       <div
         id="tab-switcher"
-        class="flex-1 flex flex-row bg-neutral-200/60 dark:bg-neutral-800/60 p-1.5 gap-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-x-auto"
+        class="{ui.tabList} flex-1 overflow-x-auto"
         role="tablist"
         aria-label="Editor View Selection"
       >
@@ -522,10 +521,7 @@
               aria-selected={activeTab === tab.id}
               aria-controls="{tab.id}-panel"
               id="{tab.id}-tab"
-              class="flex-1 min-w-[80px] px-3 py-2 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 flex items-center justify-center gap-2 {activeTab ===
-              tab.id
-                ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'
-                : 'text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50/50 dark:hover:bg-neutral-700/50'}"
+              class="{ui.tab(activeTab === tab.id)} flex-1 min-w-[80px]"
               onclick={() => (activeTab = tab.id)}
             >
               {#if tab.icon}
@@ -542,7 +538,7 @@
       <button
         id="stats-btn"
         onclick={() => (statsOpen = !statsOpen)}
-        class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200 gap-2 shadow-sm"
+        class="{ui.btn.secondary} flex-none"
         title={`Path Statistics${getShortcutFromSettings(settings, "toggle-stats")}`}
       >
         <StatsIcon className="size-4" />

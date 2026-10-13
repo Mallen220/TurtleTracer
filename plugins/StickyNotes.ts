@@ -353,7 +353,7 @@ interface StickyNote {
 
     // Body
     const body = document.createElement("div");
-    body.className = "sticky-body p-2 flex-1 rounded-b-md";
+    body.className = "sticky-body p-2 flex-1 rounded-md";
     body.style.backgroundColor = note.color;
 
     const textarea = document.createElement("textarea");

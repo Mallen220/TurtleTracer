@@ -33,6 +33,34 @@ describe("computePathStatistics", () => {
     expect(segmentTime).toBeCloseTo(stats.totalTime);
   });
 
+  it("says when each row starts, so a click can jump to it", () => {
+    const sequence: SequenceItem[] = [
+      { kind: "wait", id: "w0", name: "Settle", durationMs: 300 },
+      { kind: "path", lineId: "a" },
+      { kind: "wait", id: "w1", name: "Hold", durationMs: 500 },
+    ];
+    const stats = computePathStatistics(start, [straight], sequence, {
+      ...DEFAULT_SETTINGS,
+    });
+
+    expect(stats.segments.map((s) => s.name)).toEqual([
+      "Settle",
+      "Out",
+      "Hold",
+    ]);
+    expect(stats.segments[0].startTime).toBeCloseTo(0);
+    // Each row begins where the one before it ended.
+    expect(stats.segments[1].startTime).toBeCloseTo(
+      stats.segments[0].startTime + stats.segments[0].time,
+    );
+    expect(stats.segments[2].startTime).toBeCloseTo(
+      stats.segments[1].startTime + stats.segments[1].time,
+    );
+    expect(stats.segments[2].startTime + stats.segments[2].time).toBeCloseTo(
+      stats.totalTime,
+    );
+  });
+
   it("reports one insight for each stretch at top speed", () => {
     const stats = computePathStatistics(
       start,

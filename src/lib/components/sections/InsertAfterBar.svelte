@@ -3,23 +3,22 @@
 <script lang="ts">
   import type { ActionDefinition } from "../../../types/index";
   import { actionRegistry } from "../../actionRegistry";
-  import { getSmallButtonClass } from "../../../utils/buttonStyles";
   import { PlusIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     onAddAction?: (def: ActionDefinition) => void;
-    /** Focus ring class, e.g. "focus-visible:ring-amber-500". */
-    focusClass?: string;
   }
 
-  let { onAddAction, focusClass = "focus-visible:ring-purple-500" }: Props =
-    $props();
+  let { onAddAction }: Props = $props();
 </script>
 
 <div
-  class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
+  class="flex items-center gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-700 flex-wrap"
 >
-  <span class="text-xs font-medium text-neutral-400 mr-auto">Insert after:</span
+  <span
+    class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mr-auto"
+    >Insert after:</span
   >
   {#each Object.values($actionRegistry) as def (def.kind)}
     {#if def.createDefault || def.isPath}
@@ -28,9 +27,7 @@
           e.stopPropagation();
           onAddAction?.(def);
         }}
-        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 {focusClass} {getSmallButtonClass(
-          def.buttonColor || 'gray',
-        )}"
+        class={ui.kindChip(def.buttonColor || "gray")}
         title="Add {def.label} After"
         aria-label="Add {def.label} After"
       >

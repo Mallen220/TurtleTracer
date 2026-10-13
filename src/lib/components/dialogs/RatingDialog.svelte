@@ -13,6 +13,7 @@
   import { settingsStore } from "../../projectStore";
   import { saveSettings } from "../../../utils/settingsPersistence";
   import pkg from "../../../../package.json";
+  import { ui } from "../../ui";
 
   let rating = $state(0);
   let description = $state("");
@@ -188,7 +189,7 @@
 {#if $showRatingDialog && !isAlreadyRated}
   <div
     role="presentation"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+    class="{ui.overlay} z-[100]"
     onclick={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >
@@ -201,17 +202,13 @@
       onclick={(e) => {
         e.stopPropagation();
       }}
-      class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-700"
+      class="{ui.dialog} w-full max-w-md overflow-hidden"
       in:fly={{ y: 20, duration: 200, delay: 50 }}
       out:fly={{ y: 20, duration: 150 }}
     >
       <!-- Header -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
-      >
-        <h2
-          class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-        >
+      <div class={ui.dialogHeader}>
+        <h2 class="{ui.title} flex items-center gap-2">
           <StarIcon className="w-5 h-5 text-yellow-500" />
           Enjoying Turtle Tracer?
         </h2>
@@ -254,7 +251,7 @@
             <span
               class="ml-2 text-sm font-medium {rating > 0
                 ? 'text-neutral-700 dark:text-neutral-300'
-                : 'text-neutral-400'}"
+                : 'text-neutral-500 dark:text-neutral-400'}"
             >
               {rating === 0 ? "Select rating" : `${rating} / 5`}
             </span>
@@ -262,10 +259,7 @@
         </div>
 
         <div>
-          <label
-            for="description"
-            class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
-          >
+          <label for="description" class="{ui.label} block mb-2">
             What could we improve? (Optional)
           </label>
           <textarea
@@ -274,21 +268,17 @@
             disabled={isSubmitting}
             rows="3"
             placeholder="Feedback is appreciated!"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 resize-none"
+            class="{ui.input} w-full resize-none"
           ></textarea>
         </div>
 
         {#if status === "error"}
-          <div
-            class="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-sm rounded-lg flex items-start gap-2 border border-red-200 dark:border-red-900/50"
-          >
+          <div class="{ui.alert.danger} flex items-start gap-2">
             <ErrorIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>{errorMessage}</p>
           </div>
         {:else if status === "success"}
-          <div
-            class="p-3 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm rounded-lg flex items-center gap-2 border border-green-200 dark:border-green-900/50"
-          >
+          <div class="{ui.alert.success} flex items-center gap-2">
             <SuccessIcon className="w-5 h-5 flex-shrink-0" />
             <p>Feedback sent successfully! Thank you.</p>
           </div>
@@ -296,15 +286,13 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 flex justify-end gap-3"
-      >
+      <div class="{ui.dialogFooter} justify-end">
         {#if $ratingDialogAutoOpened}
           <div class="flex-1 flex justify-start">
             <button
               onclick={dismissRating}
               disabled={isSubmitting}
-              class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
+              class={ui.btn.ghost}
             >
               Never ask again
             </button>
@@ -313,14 +301,14 @@
         <button
           onclick={closeDialog}
           disabled={isSubmitting}
-          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
+          class={ui.btn.ghost}
         >
           Cancel
         </button>
         <button
           onclick={submitFeedback}
           disabled={isSubmitting || status === "success"}
-          class="px-5 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-sm shadow-purple-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 flex items-center gap-2"
+          class={ui.btn.primary}
         >
           {#if isSubmitting}
             <SpinnerIcon

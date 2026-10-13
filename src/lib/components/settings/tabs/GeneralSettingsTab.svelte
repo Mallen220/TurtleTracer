@@ -17,6 +17,7 @@
     mergeSettings,
   } from "../../../../utils/settingsPersistence";
   import { isBrowser } from "../../../../utils/platform";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -148,11 +149,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      General
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">General</h4>
   {/if}
 
   <SettingsItem
@@ -167,7 +164,7 @@
       id="autosave-mode"
       value={settings.autosaveMode}
       onchange={(e) => set("autosaveMode", e.currentTarget.value as any)}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="{ui.input} w-full"
     >
       <option value="never">Never</option>
       <option value="time">Time Based</option>
@@ -191,7 +188,7 @@
           value={settings.autosaveInterval}
           onchange={(e) =>
             set("autosaveInterval", Number.parseInt(e.currentTarget.value))}
-          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="{ui.input} w-full"
         >
           {#each [1, 5, 10, 15, 20, 40, 60] as interval}
             <option value={interval}>{interval} minutes</option>
@@ -212,7 +209,7 @@
         isOpen = false;
         startTutorial.set(true);
       }}
-      class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+      class={ui.link}
     >
       Start Tutorial
     </button>
@@ -228,7 +225,7 @@
       <button
         onclick={handleCheckForUpdates}
         disabled={isCheckingForUpdates}
-        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
+        class={ui.btnSm.secondary}
       >
         {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
       </button>
@@ -246,7 +243,7 @@
         type="checkbox"
         checked={settings.showTelemetryTab}
         onchange={(e) => (settings.showTelemetryTab = e.currentTarget.checked)}
-        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        class={ui.checkbox}
       />
     </SettingsItem>
   {/if}
@@ -257,10 +254,7 @@
     {searchQuery}
     layout="row"
   >
-    <button
-      onclick={() => showShortcuts.set(true)}
-      class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-    >
+    <button onclick={() => showShortcuts.set(true)} class={ui.link}>
       Open Editor
     </button>
   </SettingsItem>
@@ -277,7 +271,7 @@
           isOpen = false;
           showPluginManager.set(true);
         }}
-        class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+        class={ui.link}
       >
         Open Manager
       </button>
@@ -294,7 +288,7 @@
         type="checkbox"
         checked={settings.gitIntegration}
         onchange={(e) => (settings.gitIntegration = e.currentTarget.checked)}
-        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        class={ui.checkbox}
       />
     </SettingsItem>
   {/if}
@@ -310,7 +304,7 @@
         onclick={handleExport}
         title="Export Settings"
         aria-label="Export Settings"
-        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+        class={ui.btnSm.secondary}
       >
         Export
       </button>
@@ -318,7 +312,7 @@
         onclick={() =>
           document.getElementById("settings-import-input")?.click()}
         title="Import Settings"
-        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+        class={ui.btnSm.secondary}
       >
         Import
       </button>

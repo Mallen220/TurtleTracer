@@ -12,6 +12,7 @@
   import LinkIcon from "../icons/LinkIcon.svelte";
   import LockIcon from "../icons/LockIcon.svelte";
   import UnlockIcon from "../icons/UnlockIcon.svelte";
+  import { ui } from "../../ui";
 
   type Step = Extract<SequenceItem, { kind: "wait" | "rotate" | "macro" }>;
 
@@ -20,17 +21,17 @@
     amber: {
       row: "bg-amber-50 dark:bg-amber-900/20",
       ring: "focus:ring-amber-500",
-      text: "text-amber-500",
+      text: "text-amber-700 dark:text-amber-400",
     },
     pink: {
       row: "bg-pink-50 dark:bg-pink-900/20",
       ring: "focus:ring-pink-500",
-      text: "text-pink-500",
+      text: "text-pink-600 dark:text-pink-400",
     },
     teal: {
       row: "bg-teal-50 dark:bg-teal-900/20",
       ring: "focus:ring-teal-500",
-      text: "text-teal-500",
+      text: "text-teal-700 dark:text-teal-400",
     },
   };
 
@@ -99,7 +100,7 @@
   class:opacity-50={draggingIndex === index}
 >
   <td
-    class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+    class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
   >
     <Bars3Icon className="w-4 h-4 mx-auto" />
   </td>
@@ -133,7 +134,7 @@
       }}
       title="{isLocked ? 'Unlock' : 'Lock'} {noun}"
       aria-label="{isLocked ? 'Unlock' : 'Lock'} {noun}"
-      class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+      class="{ui.iconBtnSm.neutral} h-6 w-6"
       aria-pressed={isLocked}
     >
       {#if isLocked}
@@ -152,7 +153,7 @@
         }}
         title="Delete {noun}"
         aria-label="Delete {noun}"
-        class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+        class="{ui.iconBtnSm.danger} h-6 w-6"
       >
         <TrashIcon className="size-4" strokeWidth={2} />
       </button>

@@ -17,6 +17,7 @@ import type {
 
 export interface SegmentStat {
   name: string;
+  startTime: number;
   length: number;
   time: number;
   maxVel: number;
@@ -112,6 +113,11 @@ export function computePathStatistics(
   const timeline: TimelineEvent[] = prediction.timeline || [];
 
   const segments: SegmentStat[] = [];
+  /** Where a step with no timeline event would start: right after the last one. */
+  const endOfLastSegment = () => {
+    const last = segments.at(-1);
+    return last ? last.startTime + last.time : 0;
+  };
   const velocityData: DataPoint[] = [];
   const angularVelocityData: DataPoint[] = [];
   const accelerationData: DataPoint[] = [];
@@ -193,6 +199,7 @@ export function computePathStatistics(
     );
     segments.push({
       name: "Turn",
+      startTime: ev.startTime,
       length: 0,
       time: ev.duration,
       maxVel: 0,
@@ -251,6 +258,7 @@ export function computePathStatistics(
     const last = trace.time.length - 1;
     segments.push({
       name: "Chained corner",
+      startTime: ev.startTime,
       length: distance,
       time: ev.duration,
       maxVel: topSpeed,
@@ -367,6 +375,7 @@ export function computePathStatistics(
 
     segments.push({
       name: line.name || `Path ${lines.findIndex((l) => l.id === line.id) + 1}`,
+      startTime: ev.startTime,
       length: analysis.length,
       time: ev.duration,
       maxVel: segMaxLinear,
@@ -422,6 +431,7 @@ export function computePathStatistics(
       if (item.kind === "wait") {
         segments.push({
           name: item.name || "Wait",
+          startTime: event ? event.startTime : endOfLastSegment(),
           length: 0,
           time: event ? event.duration : item.durationMs / 1000,
           maxVel: 0,
@@ -438,6 +448,7 @@ export function computePathStatistics(
             : 0;
         segments.push({
           name: item.name || "Rotate",
+          startTime: event ? event.startTime : endOfLastSegment(),
           length: 0,
           time: event ? event.duration : 0,
           maxVel: 0,

@@ -87,6 +87,10 @@
   let dragPosition: DragPosition | null = $state(null);
 
   function handleDragStart(e: DragEvent, index: number) {
+    // A drag that starts on something inside the item, such as a control point
+    // row, belongs to that and doesn't move the item.
+    if (e.target !== e.currentTarget) return;
+
     const originElem = document.elementFromPoint(
       e.clientX,
       e.clientY,
@@ -144,7 +148,9 @@
     if (!isReorder && !isMacroDrop) return;
 
     e.preventDefault();
-    e.stopPropagation();
+    // Only a dropped macro is ours alone; reordering inside an item, like
+    // control points or heading segments, listens for the drop too.
+    if (isMacroDrop) e.stopPropagation();
 
     if (isMacroDrop) {
       const filePath = getDroppedMacroPath(e);
@@ -539,7 +545,10 @@
     >
       {#snippet icon()}
         <div>
-          <MapPinIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
+          <MapPinIcon
+            className="size-6 text-neutral-500 dark:text-neutral-400"
+            strokeWidth={1.5}
+          />
         </div>
       {/snippet}
       {#snippet action()}
@@ -568,8 +577,8 @@
         <div class="flex justify-center -my-3 z-10 relative">
           <button
             class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
-              ? 'text-green-500 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : 'text-neutral-400 dark:text-neutral-500'}"
+              ? 'text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+              : 'text-neutral-500 dark:text-neutral-400'}"
             title={isChain ? "Unchain paths" : "Chain paths"}
             aria-label={isChain ? "Unchain paths" : "Chain paths"}
             onclick={() => {
@@ -608,7 +617,7 @@
         role="listitem"
         data-index={sIdx}
         id={`sequence-item-${sequenceItemKey(item)}`}
-        class="w-full transition-all duration-200 rounded-lg {isChain
+        class="w-full transition-all duration-200 rounded-md {isChain
           ? '-mt-2'
           : ''} {isChainedWithNext ? '-mb-2' : ''}"
         draggable={!isSequenceItemLocked(item, lines)}

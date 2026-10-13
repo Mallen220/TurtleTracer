@@ -4,6 +4,7 @@
   import { focusOnRequest } from "../../actions/focusOnRequest";
   import type { SequenceWaitItem, SequenceItem } from "../../../types";
   import { isWaitLinked } from "../../../utils/pointLinking";
+  import { ui } from "../../ui";
 
   interface Props {
     item: SequenceWaitItem;
@@ -63,7 +64,7 @@
     <td class="px-3 py-2">
       <input
         type="number"
-        class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs"
+        class="{ui.inputXs} w-20"
         min="0"
         value={item.durationMs}
         aria-label="{item.name || 'Wait'} Duration"
@@ -80,6 +81,8 @@
         disabled={isLocked}
       />
     </td>
-    <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
+    <td class="px-3 py-2 text-neutral-500 dark:text-neutral-400 text-xs italic">
+      -
+    </td>
   {/snippet}
 </StepTableRow>

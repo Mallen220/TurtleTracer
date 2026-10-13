@@ -3,6 +3,7 @@
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DotIcon } from "../../icons";
   import packageJson from "../../../../../package.json";
+  import { ui } from "../../../ui";
   interface Props {
     searchQuery: string;
   }
@@ -13,11 +14,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      About
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">About</h4>
   {/if}
 
   <SettingsItem
@@ -32,7 +29,7 @@
         alt="App Icon"
         class="w-20 h-20 mb-4 object-contain"
       />
-      <h3 class="text-xl font-bold text-neutral-900 dark:text-white">
+      <h3 class="text-xl font-bold text-neutral-900 dark:text-neutral-100">
         Turtle Tracer
       </h3>
       <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
@@ -49,8 +46,7 @@
           href="https://www.turtletracer.com/"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-600 dark:text-blue-400 hover:underline"
-          >Documentation</a
+          class={ui.link}>Documentation</a
         >
         <DotIcon
           className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -59,7 +55,7 @@
           href="https://github.com/Mallen220/TurtleTracer"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a
+          class={ui.link}>GitHub</a
         >
         <DotIcon
           className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -68,17 +64,15 @@
           href="https://discord.gg/chHSzS4ewF"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-600 dark:text-blue-400 hover:underline">Discord</a
+          class={ui.link}>Discord</a
         >
       </div>
 
-      <div
-        class="w-full max-w-sm bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 text-left text-sm space-y-4"
-      >
+      <div class="{ui.well} w-full max-w-sm p-4 text-left text-sm space-y-4">
         <div>
           <h4 class="font-semibold mb-2">Acknowledgments</h4>
           <ul
-            class="list-disc pl-4 space-y-1 text-neutral-600 dark:text-neutral-400 text-xs"
+            class="list-disc pl-4 space-y-1 text-neutral-500 dark:text-neutral-400 text-xs"
           >
             <li>#16166 Watt's Up - Inspiration for the original Visualizer</li>
             <li>
@@ -94,7 +88,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/issues"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline">Issues</a
+              class={ui.link}>Issues</a
             >
             <DotIcon
               className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -102,8 +96,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/releases"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline"
-              >Releases</a
+              class={ui.link}>Releases</a
             >
             <DotIcon
               className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -111,7 +104,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/blob/main/README.md"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline">README</a
+              class={ui.link}>README</a
             >
             <DotIcon
               className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -119,8 +112,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/blob/main/CODE_OF_CONDUCT.md"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline"
-              >Code of Conduct</a
+              class={ui.link}>Code of Conduct</a
             >
             <DotIcon
               className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -128,8 +120,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/blob/main/CONTRIBUTING.md"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline"
-              >Contributing</a
+              class={ui.link}>Contributing</a
             >
             <DotIcon
               className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -137,8 +128,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/blob/main/LICENSE"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline"
-              >License</a
+              class={ui.link}>License</a
             >
             <DotIcon
               className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
@@ -146,8 +136,7 @@
             <a
               href="https://github.com/Mallen220/TurtleTracer/blob/main/SECURITY.md"
               target="_blank"
-              class="text-blue-600 dark:text-blue-400 hover:underline"
-              >Security</a
+              class={ui.link}>Security</a
             >
           </div>
         </div>

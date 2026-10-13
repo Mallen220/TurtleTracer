@@ -30,6 +30,7 @@ import {
   followRobotStore as defaultFollowRobotStore,
   isDraggingStore as defaultIsDraggingStore,
 } from "../../projectStore";
+import { confirmFollowedJavaEdit } from "../../javaFollow";
 import { getTransformedCoordinates } from "./CoordinateTransform";
 import { calculateVelocityTooltip } from "./VelocityTooltipCalculator";
 import {
@@ -493,6 +494,7 @@ export class FieldInteractionController {
     const isDrawingModeActive = get(this.isDrawingMode);
 
     if (isDrawingModeActive) {
+      if (!confirmFollowedJavaEdit()) return;
       this.isDrawing = true;
       const rectForMouse = two.renderer.domElement.getBoundingClientRect();
       const transformedForMouse = getTransformedCoordinates(
@@ -557,6 +559,7 @@ export class FieldInteractionController {
     }
 
     if (clickedElem) {
+      if (!confirmFollowedJavaEdit()) return;
       this.isDown = true;
       this.isDraggingStore.set(true);
       this.currentElem = clickedElem;
@@ -698,6 +701,7 @@ export class FieldInteractionController {
   }
 
   private handleDoubleClick(evt: MouseEvent): void {
+    if (!confirmFollowedJavaEdit()) return;
     const two = this.options.getTwo();
     if (!two?.renderer?.domElement) return;
 

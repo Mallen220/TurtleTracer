@@ -23,6 +23,7 @@
   import { findSharpJunctions } from "../../../utils/timeCalculator/chainMeta";
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
+  import { ui } from "../../ui";
 
   let progress = $state(0);
   let currentBestTime = $state(0);
@@ -285,16 +286,14 @@
   });
 </script>
 
-<div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
->
+<div class="{ui.card} flex flex-col w-full overflow-hidden mb-4">
   <SectionHeader title="Path Optimization" bind:collapsed={internalCollapsed} />
 
   {#if isOpen}
     <div
       class="p-4 space-y-4 border-t border-neutral-200 dark:border-neutral-700"
     >
-      <details class="text-sm text-neutral-600 dark:text-neutral-400 group">
+      <details class="text-sm text-neutral-500 dark:text-neutral-400 group">
         <summary
           class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors list-none appearance-none [&::-webkit-details-marker]:hidden flex items-center gap-1"
         >
@@ -315,7 +314,7 @@
 
       {#if !isRunning && optimizedLines === null}
         <details
-          class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400 group"
+          class="space-y-2 text-sm text-neutral-500 dark:text-neutral-400 group"
         >
           <summary
             class="flex justify-between items-center cursor-pointer list-none appearance-none [&::-webkit-details-marker]:hidden"
@@ -336,8 +335,7 @@
                   e.stopPropagation();
                   selectAll();
                 }}
-                class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >All</button
+                class="{ui.link} text-xs">All</button
               >
               <button
                 onclick={(e) => {
@@ -345,14 +343,11 @@
                   e.stopPropagation();
                   deselectAll();
                 }}
-                class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >None</button
+                class="{ui.link} text-xs">None</button
               >
             </div>
           </summary>
-          <div
-            class="max-h-32 overflow-y-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 p-2 space-y-1 mt-2"
-          >
+          <div class="{ui.card} max-h-32 overflow-y-auto p-2 space-y-1 mt-2">
             {#each lines as line, i (line.id || i)}
               {@const id = line.id || `idx-${i}`}
               <label
@@ -362,7 +357,7 @@
                   type="checkbox"
                   checked={selectionState[id]}
                   onchange={() => toggleSelection(id)}
-                  class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="truncate flex-1"
                   >{line.name || `Path ${i + 1}`}</span
@@ -373,7 +368,9 @@
               </label>
             {/each}
             {#if lines.length === 0}
-              <div class="text-xs text-neutral-400 italic text-center py-2">
+              <div
+                class="text-xs text-neutral-500 dark:text-neutral-400 italic text-center py-2"
+              >
                 No paths available
               </div>
             {/if}
@@ -383,9 +380,9 @@
 
       {#if isRunning || optimizedLines !== null}
         <div
-          class="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 p-3 rounded-md text-sm font-mono"
+          class="{ui.well} flex items-center justify-between p-3 text-sm font-mono"
         >
-          <span class="text-neutral-600 dark:text-neutral-400"
+          <span class="text-neutral-500 dark:text-neutral-400"
             >Gen {progress}</span
           >
           <span class="font-medium text-blue-600 dark:text-blue-400">
@@ -404,10 +401,7 @@
 
       {#if !isRunning && !optimizationFailed && optimizedLines !== null}
         <div class="flex gap-2 my-2">
-          <button
-            onclick={togglePreview}
-            class="px-3 py-1 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded text-xs font-medium transition-colors"
-          >
+          <button onclick={togglePreview} class={ui.btnSm.secondary}>
             {showPreview ? "Hide Preview" : "Show Preview"}
           </button>
         </div>
@@ -415,14 +409,14 @@
 
       {#if !isRunning && optimizedLines === null && hasChains}
         <label
-          class="flex items-start gap-2 text-sm text-neutral-600 dark:text-neutral-400 cursor-pointer"
+          class="flex items-start gap-2 text-sm text-neutral-500 dark:text-neutral-400 cursor-pointer"
           for="optimize-chain-correction"
         >
           <input
             id="optimize-chain-correction"
             type="checkbox"
             bind:checked={chainCorrection}
-            class="mt-0.5 w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer"
+            class={ui.checkbox}
           />
           <span>
             <span class="font-medium text-neutral-700 dark:text-neutral-300"
@@ -440,16 +434,12 @@
       {/if}
 
       {#if optimizationError}
-        <div
-          class="mt-2 rounded-md bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800"
-        >
+        <div class="{ui.alert.warning} mt-2">
           <TriangleWarningIcon className="size-5 inline-block mr-2" />
           <strong>{optimizationError}</strong> The path's structure is currently invalid.
         </div>
       {:else if optimizationFailed}
-        <div
-          class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-600 dark:text-red-400 text-sm flex items-start gap-2"
-        >
+        <div class="{ui.alert.danger} mb-4 flex items-start gap-2">
           <TriangleWarningIcon className="size-5 shrink-0 mt-0.5" />
           <span>
             <strong class="font-bold">Collision Avoidance Failed:</strong> The optimizer
@@ -461,9 +451,7 @@
       {/if}
 
       {#if !optimizationFailed && !optimizationError && sharpCornerCount > 0}
-        <div
-          class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-yellow-800 dark:text-yellow-300 text-sm flex items-start gap-2"
-        >
+        <div class="{ui.alert.warning} mb-4 flex items-start gap-2">
           <TriangleWarningIcon className="size-5 shrink-0 mt-0.5" />
           <span>
             <strong class="font-bold"
@@ -478,9 +466,7 @@
       {/if}
 
       {#if !optimizationFailed && !optimizationError && optimizedWithoutCorrection && optimizedLines}
-        <div
-          class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-blue-800 dark:text-blue-300 text-sm"
-        >
+        <div class="{ui.alert.info} mb-4">
           This path was optimized as if the robot follows each chained path
           exactly. Once applied, the simulation includes the corner correction,
           so its time and route can differ.
@@ -489,10 +475,7 @@
 
       {#if isRunning}
         <div class="flex gap-2">
-          <button
-            disabled
-            class="flex-1 px-4 py-2 bg-neutral-400 text-white rounded-md text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2"
-          >
+          <button disabled class="{ui.btn.secondary} flex-1">
             <SpinnerIcon
               className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
             />
@@ -500,7 +483,7 @@
           </button>
           <button
             onclick={stopOptimization}
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
+            class={ui.btn.danger}
             disabled={isStopping}
           >
             {isStopping ? "Stopping..." : "Stop"}
@@ -509,15 +492,12 @@
       {:else if optimizedLines !== null}
         {#if optimizationFailed}
           <div class="flex gap-2">
-            <button
-              onclick={handleClose}
-              class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded-md text-sm font-medium transition-colors"
-            >
+            <button onclick={handleClose} class="{ui.btn.secondary} flex-1">
               Discard
             </button>
             <button
               onclick={startOptimization}
-              class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors"
+              class="{ui.btn.primary} flex-1"
               disabled={isRunning}
               title={isRunning
                 ? "Optimization already running"
@@ -531,25 +511,16 @@
           </div>
         {:else}
           <div class="flex gap-2">
-            <button
-              onclick={handleClose}
-              class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded-md text-sm font-medium transition-colors"
-            >
+            <button onclick={handleClose} class="{ui.btn.secondary} flex-1">
               Discard
             </button>
-            <button
-              onclick={handleApply}
-              class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors"
-            >
+            <button onclick={handleApply} class="{ui.btn.success} flex-1">
               Apply New Path
             </button>
           </div>
         {/if}
       {:else}
-        <button
-          onclick={startOptimization}
-          class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
-        >
+        <button onclick={startOptimization} class="{ui.btn.primary} w-full">
           <PlayIcon className="size-4" />
           Start Optimization
         </button>

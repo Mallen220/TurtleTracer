@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/svelte";
+import { render, fireEvent, screen } from "@testing-library/svelte";
+import { createRawSnippet } from "svelte";
 import SettingsItem from "./SettingsItem.svelte";
 
 describe("SettingsItem", () => {
@@ -50,5 +51,35 @@ describe("SettingsItem", () => {
     const resetBtn = getByRole("button", { name: "Reset to default" });
     await fireEvent.click(resetBtn);
     expect(onReset).toHaveBeenCalled();
+  });
+
+  describe("naming the control inside", () => {
+    const control = (html: string) =>
+      createRawSnippet(() => ({ render: () => html }));
+
+    it("names a bare checkbox by the setting's label", () => {
+      render(SettingsItem, {
+        label: "Show grid",
+        layout: "row",
+        children: control('<input type="checkbox" />'),
+      });
+      expect(screen.getByRole("checkbox", { name: "Show grid" })).toBeTruthy();
+    });
+
+    it("names a bare select in the column layout too", () => {
+      render(SettingsItem, {
+        label: "Units",
+        children: control("<select><option>in</option></select>"),
+      });
+      expect(screen.getByRole("combobox", { name: "Units" })).toBeTruthy();
+    });
+
+    it("leaves a control that already has a name alone", () => {
+      render(SettingsItem, {
+        label: "Size",
+        children: control('<input type="number" aria-label="Width" />'),
+      });
+      expect(screen.getByRole("spinbutton", { name: "Width" })).toBeTruthy();
+    });
   });
 });

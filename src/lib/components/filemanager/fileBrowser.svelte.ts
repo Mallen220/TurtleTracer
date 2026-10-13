@@ -189,7 +189,7 @@ export function groupFilesByDate(files: FileInfo[]): FileGroup[] {
 
 /** The name shown in the rename box: the file name without its extension. */
 export const renameableName = (file: FileInfo) =>
-  file.name.replaceAll(/\.(pp|turt)$/gi, "");
+  file.name.replaceAll(/\.(pp|turt|java)$/gi, "");
 
 /**
  * Puts a file on a drag event so it can be dropped onto the path list (as a

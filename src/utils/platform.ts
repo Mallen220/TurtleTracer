@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { ElectronAPI } from "../types";
+import { withGitHubRepos } from "./github/router";
 
 export function platform(): string {
   if (typeof process !== "undefined" && process.platform) {
@@ -23,8 +24,9 @@ export const isBrowser =
   !/Electron/i.test(navigator.userAgent);
 
 /**
- * The desktop app's preload API, or the in-browser stand-in. Pass
- * `allowVirtual: false` to get only the real desktop API.
+ * The desktop app's preload API, or the in-browser stand-in, with files in
+ * GitHub repositories (/@github/...) handled too. Pass `allowVirtual: false`
+ * to get only the real desktop API.
  */
 export function getElectronAPI(options?: {
   allowVirtual?: boolean;
@@ -33,7 +35,7 @@ export function getElectronAPI(options?: {
   if (!api || (options?.allowVirtual === false && api.isVirtual)) {
     return undefined;
   }
-  return api;
+  return withGitHubRepos(api);
 }
 
 /**

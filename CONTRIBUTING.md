@@ -120,7 +120,7 @@ Automated testing is evolving—manual validation is currently important.
 ## UI & UX Guidelines
 
 - Maintain the existing color semantics:
-  - Green = Paths
+  - Purple = Paths
   - Amber = Waits
   - Pink = Rotations
 

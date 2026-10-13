@@ -1,8 +1,15 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { get } from "svelte/store";
 import * as fileHandlers from "../utils/fileHandlers";
-import { currentFilePath, isUnsaved, notification } from "../stores";
+import {
+  currentFilePath,
+  currentDirectoryStore,
+  isUnsaved,
+  notification,
+  projectFolderPrompt,
+  type ProjectFolderChoice,
+} from "../stores";
 import {
   startPointStore,
   linesStore,
@@ -18,15 +25,18 @@ import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequenceMacroItem, TurtleData } from "../types";
 import { exporterRegistry } from "../lib/exporters";
 import pkg from "../../package.json";
+import { pathInMessage } from "../utils/messagePaths";
 
 const macroKind = (): SequenceMacroItem["kind"] =>
   (actionRegistry.getAll().find((a: any) => a.isMacro)
     ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 // Mock Svelte stores
-vi.mock("../stores", async () => {
+vi.mock("../stores", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../stores")>();
   const { writable } = await import("svelte/store");
   return {
+    ...actual,
     currentFilePath: writable(""),
     isUnsaved: writable(false),
     notification: writable(null),
@@ -849,6 +859,107 @@ describe("saving and closing", () => {
     });
   });
 
+  describe("choosing where a first save goes", () => {
+    const withFolderApi = (savedDir = "") => {
+      const folderApi = {
+        ...api,
+        setDirectory: vi.fn(),
+        getSavedDirectory: vi.fn().mockResolvedValue(savedDir),
+      };
+      (globalThis as any).electronAPI = folderApi;
+      return folderApi;
+    };
+
+    /** Answers the prompt the moment it opens; returns how often it opened. */
+    let stopAnswering = () => {};
+    const answerPrompt = (choice: ProjectFolderChoice) => {
+      const asked = vi.fn();
+      stopAnswering = projectFolderPrompt.subscribe((resolve) => {
+        if (!resolve) return;
+        asked();
+        resolve(choice);
+      });
+      return asked;
+    };
+
+    afterEach(() => stopAnswering());
+
+    beforeEach(() => {
+      projectFolderPrompt.set(null);
+      currentDirectoryStore.set(null);
+    });
+
+    it("saves into the folder the user picks", async () => {
+      const folderApi = withFolderApi();
+      const asked = answerPrompt({ folder: "/code/AutoPaths" });
+      folderApi.showSaveDialog.mockResolvedValue("/code/AutoPaths/mine.turt");
+
+      expect(await fileHandlers.saveProject()).toBe(true);
+
+      expect(asked).toHaveBeenCalledTimes(1);
+      expect(folderApi.showSaveDialog.mock.calls[0][0].defaultPath).toBe(
+        "/code/AutoPaths/trajectory.turt",
+      );
+      expect(get(currentDirectoryStore)).toBe("/code/AutoPaths");
+      expect(get(currentFilePath)).toBe("/code/AutoPaths/mine.turt");
+      expect(get(projectFolderPrompt)).toBeNull();
+    });
+
+    it("saves nothing if the user cancels the prompt", async () => {
+      const folderApi = withFolderApi();
+      answerPrompt("cancel");
+
+      expect(await fileHandlers.saveProject()).toBe(false);
+      expect(folderApi.showSaveDialog).not.toHaveBeenCalled();
+      expect(folderApi.saveFile).not.toHaveBeenCalled();
+    });
+
+    it("doesn't ask when a project folder is already set, and opens the save dialog there", async () => {
+      const folderApi = withFolderApi("/code/AutoPaths");
+      const asked = answerPrompt("cancel");
+      folderApi.showSaveDialog.mockResolvedValue("/code/AutoPaths/a.turt");
+
+      expect(await fileHandlers.saveProject()).toBe(true);
+      expect(asked).not.toHaveBeenCalled();
+      expect(folderApi.showSaveDialog.mock.calls[0][0].defaultPath).toBe(
+        "/code/AutoPaths/trajectory.turt",
+      );
+    });
+
+    it("doesn't ask for Save As or autosaves", async () => {
+      const folderApi = withFolderApi();
+      const asked = answerPrompt("cancel");
+      folderApi.showSaveDialog.mockResolvedValue("/p/a.turt");
+
+      await fileHandlers.saveProject({ saveAs: true });
+      await fileHandlers.saveProject({ quiet: true });
+      expect(asked).not.toHaveBeenCalled();
+    });
+
+    it("names the project folder, or none where there is no folder concept", async () => {
+      withFolderApi("/code/AutoPaths");
+      expect(await fileHandlers.chooseSaveFolder()).toEqual({
+        folder: "/code/AutoPaths",
+      });
+
+      (globalThis as any).electronAPI = api; // no setDirectory
+      expect(await fileHandlers.chooseSaveFolder()).toEqual({});
+    });
+
+    it("never asks in the browser, whose file system is virtual", async () => {
+      const asked = answerPrompt("cancel");
+      (globalThis as any).electronAPI = {
+        ...api,
+        isVirtual: true,
+        setDirectory: vi.fn(),
+        getSavedDirectory: vi.fn().mockResolvedValue(""),
+      };
+
+      expect(await fileHandlers.chooseSaveFolder()).toEqual({});
+      expect(asked).not.toHaveBeenCalled();
+    });
+  });
+
   describe("saveProject options", () => {
     it("asks where to save when there is no file yet, and stops if cancelled", async () => {
       api.showSaveDialog.mockResolvedValue(undefined);
@@ -885,7 +996,7 @@ describe("saving and closing", () => {
       await fileHandlers.saveProject({ path: "/p/a.turt" });
       expect(get(notification)).toMatchObject({
         type: "success",
-        message: "Project saved to /p/a.turt",
+        message: `Project saved to ${pathInMessage("/p/a.turt")}`,
       });
       notification.set(null);
       await fileHandlers.saveProject({ path: "/p/a.turt", quiet: true });

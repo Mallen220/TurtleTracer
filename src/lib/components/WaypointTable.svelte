@@ -71,7 +71,6 @@
     updateLinkedRotations,
   } from "../../utils/pointLinking";
   import { actionRegistry } from "../actionRegistry";
-  import { getButtonFilledClass } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
   import { formatTime } from "../../utils/timeCalculator";
@@ -80,6 +79,7 @@
     type PathTiming,
   } from "../../utils/timeCalculator/drivenRange";
   import DebugPanel from "./common/DebugPanel.svelte";
+  import { ui } from "../ui";
 
   let {
     startPoint = $bindable(),
@@ -714,10 +714,6 @@
     }
   }
 
-  function getButtonColorClass(color: string) {
-    return getButtonFilledClass(color);
-  }
-
   async function insertMacro(index: number, filePath: string) {
     const result = await insertMacroItem(sequence, filePath, index);
     if (!result) return;
@@ -748,19 +744,22 @@
 
 <div class="w-full flex flex-col gap-4 text-sm p-1">
   <div class="flex justify-between items-center">
-    <h3 class="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+    <h2 class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
       Sequence
-    </h3>
+    </h2>
     <div class="flex items-center gap-2">
       <button
         title={copyButtonText}
         aria-label={copyButtonText}
         onclick={copyTableToClipboard}
-        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-neutral-600 dark:text-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+        class="{ui.btnSm.ghost} flex-row"
       >
         <span>{copyButtonText}</span>
         {#if copyButtonText === "Copied!"}
-          <CheckIcon className="size-6 text-green-500" strokeWidth={1.5} />
+          <CheckIcon
+            className="size-6 text-green-600 dark:text-green-400"
+            strokeWidth={1.5}
+          />
         {:else}
           <ClipboardIcon className="size-6" strokeWidth={1.5} />
         {/if}
@@ -790,7 +789,8 @@
       <tr>
         <th
           class="w-8 px-2 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-        ></th>
+          ><span class="sr-only">Reorder</span></th
+        >
         <th
           class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
           >Name</th
@@ -805,10 +805,11 @@
         >
         <th
           class="px-3 py-2 border-b dark:border-neutral-700 w-10 bg-neutral-100 dark:bg-neutral-800"
-        ></th>
+          ><span class="sr-only">Actions</span></th
+        >
       </tr>
     </thead>
-    <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
+    <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
       <!-- Start Point -->
       <tr
         data-seq-index="-1"
@@ -828,14 +829,14 @@
           ●
         </td>
         <td
-          class="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-200"
+          class="px-3 py-2 font-medium text-neutral-900 dark:text-neutral-100"
         >
           Start Point
         </td>
         <td class="px-3 py-2">
           <input
             type="number"
-            class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="{ui.inputXs} w-20"
             step={stepSize}
             value={formatDisplayCoordinate(
               toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
@@ -854,7 +855,7 @@
         <td class="px-3 py-2">
           <input
             type="number"
-            class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="{ui.inputXs} w-20"
             step={stepSize}
             value={formatDisplayCoordinate(
               toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
@@ -874,7 +875,7 @@
           {#if startPoint.locked}
             <span
               title="Locked"
-              class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+              class="inline-flex items-center justify-center h-6 w-6 text-neutral-500 dark:text-neutral-400"
             >
               <LockIcon className="h-4 w-4" />
             </span>
@@ -895,7 +896,8 @@
             <tr class="group h-4 p-0 m-0 leading-none">
               <td colspan="5" class="p-0 text-center relative border-none">
                 <button
-                  class="absolute left-[36px] -top-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded p-0.5 z-10 transition-colors bg-white dark:bg-neutral-900 shadow-sm border border-neutral-200 dark:border-neutral-800"
+                  class="{ui.iconBtnSm
+                    .neutral} absolute left-[36px] -top-2 z-10"
                   onclick={() => toggleChain(seqIndex)}
                   title={item.isChain
                     ? "Unchain paths"
@@ -903,13 +905,13 @@
                   aria-label="Toggle Path Chain"
                 >
                   <LinkIcon
-                    className={`w-3.5 h-3.5 ${item.isChain ? "text-green-500 dark:text-green-400" : "text-neutral-400 opacity-50"}`}
+                    className={`w-3.5 h-3.5 ${item.isChain ? "text-purple-500 dark:text-purple-400" : "text-neutral-400 opacity-50"}`}
                     strokeWidth={item.isChain ? 2.5 : 1.5}
                   />
                 </button>
                 {#if item.isChain}
                   <div
-                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-green-500 dark:bg-green-400 -z-10 opacity-30"
+                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-purple-500 dark:bg-purple-400 -z-10 opacity-30"
                   ></div>
                 {/if}
               </td>
@@ -926,7 +928,7 @@
               ondragstart={(e) => handleDragStart(e, seqIndex)}
               ondragend={handleDragEnd}
               oncontextmenu={(e) => handleContextMenu(e, seqIndex)}
-              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
+              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-purple-50 dark:bg-purple-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(endPointId) ? "bg-purple-100 dark:bg-purple-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
               class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
               class:border-b-2={dragOverIndex === seqIndex &&
@@ -937,7 +939,7 @@
               onclick={(e) => handleRowClick(e, endPointId, line.id || null)}
             >
               <td
-                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               >
                 <Bars3Icon className="w-4 h-4 mx-auto" />
               </td>
@@ -984,7 +986,7 @@
                       {@const timing = pathStatsMap.get(line.id)!}
                       <div
                         role="presentation"
-                        class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
+                        class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
                         onmouseenter={(e) =>
                           handleStatsHoverEnter(e, line.id || null)}
                         onmouseleave={handleStatsHoverLeave}
@@ -1038,7 +1040,7 @@
                 <div class="flex items-center gap-2">
                   <input
                     type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    class="{ui.inputXs} w-20"
                     step={stepSize}
                     value={formatDisplayCoordinate(
                       toUser(
@@ -1057,7 +1059,7 @@
                     }}
                     disabled={line.locked}
                   />
-                  <span class="text-xs text-neutral-500"
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
                     >{line.waitBeforeName || line.waitBeforeMs || ""}</span
                   >
                 </div>
@@ -1065,7 +1067,7 @@
               <td class="px-3 py-2">
                 <input
                   type="number"
-                  class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  class="{ui.inputXs} w-20"
                   step={stepSize}
                   value={formatDisplayCoordinate(
                     toUser(line.endPoint, settings?.coordinateSystem || "Pedro")
@@ -1099,10 +1101,12 @@
                     }
                     if (recordChange) recordChange();
                   }}
-                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  class="{ui.iconBtnSm.neutral} h-6 w-6"
                 >
                   {#if line.hidden}
-                    <EyeSlashIcon className="size-5 text-neutral-400" />
+                    <EyeSlashIcon
+                      className="size-5 text-neutral-500 dark:text-neutral-400"
+                    />
                   {:else}
                     <EyeIcon className="size-5 text-gray-400" />
                   {/if}
@@ -1124,7 +1128,7 @@
                     }
                     if (recordChange) recordChange();
                   }}
-                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  class="{ui.iconBtnSm.neutral} h-6 w-6"
                   aria-pressed={line.locked}
                 >
                   {#if line.locked}
@@ -1143,7 +1147,7 @@
                     }}
                     title="Delete path"
                     aria-label="Delete path"
-                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    class="{ui.iconBtnSm.danger} h-6 w-6"
                   >
                     <TrashIcon className="size-4" strokeWidth={2} />
                   </button>
@@ -1160,7 +1164,7 @@
               )}
               {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
               <tr
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-purple-50 dark:bg-purple-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-purple-100 dark:bg-purple-800/40" : ""}`}
                 onclick={(e) => handleRowClick(e, pointId, line.id || null)}
               >
                 <td class="w-8 px-2 py-2">
@@ -1174,7 +1178,7 @@
                 <td class="px-3 py-2">
                   <input
                     type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                    class="{ui.inputXs} w-20"
                     step={stepSize}
                     value={formatDisplayCoordinate(
                       toUser(cp, settings?.coordinateSystem || "Pedro").x,
@@ -1194,7 +1198,7 @@
                 <td class="px-3 py-2">
                   <input
                     type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                    class="{ui.inputXs} w-20"
                     step={stepSize}
                     value={formatDisplayCoordinate(
                       toUser(cp, settings?.coordinateSystem || "Pedro").y,
@@ -1215,7 +1219,7 @@
                   {#if line.locked}
                     <span
                       title="Locked"
-                      class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+                      class="inline-flex items-center justify-center h-6 w-6 text-neutral-500 dark:text-neutral-400"
                     >
                       <LockIcon className="h-4 w-4" />
                     </span>
@@ -1229,7 +1233,7 @@
                       }}
                       title="Delete control point"
                       aria-label="Delete control point"
-                      class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      class="{ui.iconBtnSm.danger} h-6 w-6"
                     >
                       <TrashIcon className="size-4" strokeWidth={2} />
                     </button>
@@ -1274,14 +1278,14 @@
             <div class="flex flex-col items-center gap-4">
               <div class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full">
                 <PlusIcon
-                  className="size-6 text-neutral-400 strokeWidth={1.5}"
+                  className="size-6 text-neutral-500 dark:text-neutral-400 strokeWidth={1.5}"
                 />
               </div>
               <div class="text-sm">
-                <p class="font-medium text-neutral-800 dark:text-neutral-200">
+                <p class="font-medium text-neutral-900 dark:text-neutral-100">
                   No path segments yet
                 </p>
-                <p class="text-neutral-500 mt-1">
+                <p class="text-neutral-500 dark:text-neutral-400 mt-1">
                   Start your path by adding a segment or wait command.
                 </p>
               </div>
@@ -1293,7 +1297,7 @@
   </table>
 </div>
 <div class="flex items-center justify-between mt-2 px-1">
-  <div class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words">
+  <div class="text-xs text-neutral-500 dark:text-neutral-400 w-2/3 break-words">
     <div>
       * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
     </div>
@@ -1307,8 +1311,7 @@
   <div class="flex gap-2 flex-shrink-0">
     <button
       onclick={() => insertAction("path", sequence.length)}
-      class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
-      aria-label="Add new path segment"
+      class={ui.kindBtn("purple", true)}
       title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
     >
       <PlusIcon className="size-3" strokeWidth={2} />
@@ -1319,7 +1322,7 @@
       {#if def.createDefault && !def.isPath}
         <button
           onclick={() => handleAddAction(def)}
-          class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+          class={ui.kindBtn(def.buttonColor || "gray", true)}
           aria-label={`Add ${def.label} command`}
           title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
         >

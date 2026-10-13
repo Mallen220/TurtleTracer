@@ -24,6 +24,7 @@
     PauseIcon,
     CheckIcon,
   } from "./icons";
+  import { ui } from "../ui";
   interface Props {
     playing: boolean;
     play: () => any;
@@ -373,7 +374,7 @@
 
 <div
   id="playback-controls"
-  class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 flex flex-col justify-start items-center gap-2 shadow-lg"
+  class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 flex flex-col justify-start items-center gap-2 shadow-lg"
 >
   <!-- Timeline (Top Row) -->
   <div
@@ -456,12 +457,12 @@
         aria-orientation="horizontal"
         aria-valuenow={loopRange[0]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         style="left: {loopRange[0]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "min")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-emerald-500 hover:bg-emerald-400 shadow-md"
         ></div>
       </div>
       <!-- B Handle -->
@@ -474,12 +475,12 @@
         aria-orientation="horizontal"
         aria-valuenow={loopRange[1]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         style="left: {loopRange[1]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "max")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4 rounded-md bg-emerald-500 hover:bg-emerald-400 shadow-md"
         ></div>
       </div>
     {/if}
@@ -524,7 +525,7 @@
     {#each timelineItems as item, index}
       {#if item.type === "marker"}
         <div
-          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
+          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
           onmousedown={(e) => handleMarkerDragStart(e, index, item)}
@@ -546,7 +547,7 @@
         >
           <!-- Tooltip (CSS Hover) -->
           <div
-            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-100 z-[100] pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            class="{ui.tooltip} absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[100] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
             {item.name}
           </div>
@@ -580,7 +581,7 @@
           ></div>
           <!-- Tooltip (CSS Hover) -->
           <div
-            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-100 z-[100] pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            class="{ui.tooltip} absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[100] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
             {item.name}
           </div>
@@ -602,7 +603,7 @@
           e.stopPropagation();
           toggleSpeedMenu();
         }}
-        class="flex items-center gap-2 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
+        class={ui.btn.secondary}
         tabindex="0"
       >
         <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
@@ -618,7 +619,7 @@
         <ul
           role="menu"
           aria-label="Playback speeds"
-          class="absolute left-0 bottom-full mb-2 w-36 rounded-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-lg z-50 overflow-hidden"
+          class="{ui.popover} absolute left-0 bottom-full mb-2 w-36 z-50 overflow-hidden"
           onclick={(e) => e.stopPropagation()}
           onkeydown={(e) => e.stopPropagation()}
           use:menuNavigation
@@ -636,7 +637,7 @@
                     selectSpeed(s);
                   }
                 }}
-                class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-between"
+                class="{ui.menuItem} justify-between"
               >
                 <span>{s.toFixed(2)}x</span>
                 {#if Math.abs(s - (playbackSpeed || 1)) < 1e-6}
@@ -659,7 +660,7 @@
         title="Split Path Here"
         aria-label="Split Path Here"
         onclick={splitPath}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
       >
         <ScissorsIcon className="size-5" />
       </button>
@@ -669,7 +670,7 @@
         title="Skip to Start"
         aria-label="Skip to Start"
         onclick={() => handleSeek(0)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
       >
         <SkipToStartIcon className="size-4" />
       </button>
@@ -679,7 +680,7 @@
         title="Step Back"
         aria-label="Step Back"
         onclick={() => step(-0.5)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
       >
         <ChevronLeftIcon className="size-5" />
       </button>
@@ -698,7 +699,7 @@
             play();
           }
         }}
-        class="p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
+        class={ui.iconBtnSm.neutral}
       >
         {#if !playing}
           <PlayIcon
@@ -715,7 +716,7 @@
         title="Step Forward"
         aria-label="Step Forward"
         onclick={() => step(0.5)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
       >
         <ChevronRightIcon className="size-5" />
       </button>
@@ -725,7 +726,7 @@
         title="Skip to End"
         aria-label="Skip to End"
         onclick={() => handleSeek(100)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class={ui.iconBtnSm.neutral}
       >
         <SkipToEndIcon className="size-4" />
       </button>
@@ -742,7 +743,7 @@
           onfocus={handleTimeFocus}
           onblur={commitTime}
           onkeydown={handleTimeKey}
-          class="w-20 px-2 py-1 text-xs font-mono text-center bg-transparent border border-transparent rounded hover:border-neutral-300 dark:hover:border-neutral-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all text-neutral-600 dark:text-neutral-400"
+          class="w-20 px-2 py-1 text-xs font-mono text-center bg-transparent border border-transparent rounded hover:border-neutral-300 dark:hover:border-neutral-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-neutral-700 dark:text-neutral-300"
           aria-label="Current time"
         />
       </div>
@@ -759,11 +760,11 @@
             loopRangeStore.set([Math.floor(percent), 100]);
           }
         }}
-        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-        class:bg-purple-100={loopRangeActive}
-        class:text-purple-700={loopRangeActive}
-        class:dark:bg-purple-900={loopRangeActive}
-        class:dark:text-purple-300={loopRangeActive}
+        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        class:bg-emerald-100={loopRangeActive}
+        class:text-emerald-700={loopRangeActive}
+        class:dark:bg-emerald-900={loopRangeActive}
+        class:dark:text-emerald-300={loopRangeActive}
         class:text-neutral-500={!loopRangeActive}
         class:hover:text-neutral-700={!loopRangeActive}
         class:dark:hover:text-neutral-300={!loopRangeActive}

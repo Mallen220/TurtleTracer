@@ -8,6 +8,7 @@ import {
   drivenLength,
   drivenRange,
 } from "../../../utils/timeCalculator/drivenRange";
+import { travelSpeeds } from "../../../utils/timeCalculator/travelSpeed";
 
 export interface VelocityTooltipResult {
   visible: boolean;
@@ -97,8 +98,9 @@ export function calculateVelocityTooltip(
   const range = drivenRange(tlEvent);
   if (t < range.from - 1e-9 || t > range.to + 1e-9) return { visible: false };
 
-  const profileIndex = Math.floor(t * (vProfile.length - 1));
-  const velocity = vProfile[Math.min(vProfile.length - 1, profileIndex)];
+  // The same speed the heatmap colours this point with.
+  const travel = travelCurve(tlEvent, lines, startPoint);
+  const velocity = travel ? (travelSpeeds(tlEvent, travel.curve)?.(t) ?? 0) : 0;
   const time =
     tlEvent.startTime +
     (tlEvent.motionProfile

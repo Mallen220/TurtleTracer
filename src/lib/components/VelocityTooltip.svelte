@@ -27,7 +27,7 @@
 
 {#if visible}
   <div
-    class="absolute pointer-events-none select-none z-[3000] bg-white/95 dark:bg-neutral-800/95 px-3 py-2 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 transition-opacity duration-150 transform -translate-x-1/2 -translate-y-full mt-[-10px]"
+    class="absolute pointer-events-none select-none z-[3000] bg-white/95 dark:bg-neutral-800/95 px-3 py-2 rounded-md shadow-lg border border-neutral-200 dark:border-neutral-700 transition-opacity duration-150 transform -translate-x-1/2 -translate-y-full mt-[-10px]"
     style="left: {x}px; top: {y}px;"
     role="tooltip"
   >
@@ -44,19 +44,19 @@
         <span class="text-neutral-500 dark:text-neutral-400 font-medium"
           >Time:</span
         >
-        <span class="font-mono text-neutral-800 dark:text-neutral-200 font-bold"
+        <span class="font-mono text-neutral-900 dark:text-neutral-100 font-bold"
           >{formatTime(time)}</span
         >
       </div>
       {#if distance !== undefined}
         <div
-          class="flex justify-between items-center gap-4 border-t border-neutral-100 dark:border-neutral-700 pt-1 mt-0.5"
+          class="flex justify-between items-center gap-4 border-t border-neutral-200 dark:border-neutral-700 pt-1 mt-0.5"
         >
           <span class="text-neutral-500 dark:text-neutral-400 font-medium"
             >Distance:</span
           >
           <span
-            class="font-mono text-neutral-800 dark:text-neutral-200 font-bold"
+            class="font-mono text-neutral-900 dark:text-neutral-100 font-bold"
             >{formatDisplayDistance(distance, settings, 1)}</span
           >
         </div>

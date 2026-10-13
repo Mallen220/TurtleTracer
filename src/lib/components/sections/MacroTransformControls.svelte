@@ -10,6 +10,7 @@
     ChevronDownIcon,
     TrashIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     macro: SequenceMacroItem;
@@ -87,50 +88,32 @@
   }
 </script>
 
-<div
-  class="space-y-4 p-3 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-700/50"
->
+<div class="{ui.well} space-y-4 p-3">
   <div class="flex items-center justify-between">
-    <h4 class="text-xs font-bold text-neutral-500 uppercase tracking-wide">
-      Transformations
-    </h4>
+    <h4 class={ui.heading}>Transformations</h4>
     {#if macro.transformations && macro.transformations.length > 0}
-      <span
-        class="text-[10px] bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 px-1.5 py-0.5 rounded-full"
-        >{macro.transformations.length}</span
-      >
+      <span class={ui.badge.neutral}>{macro.transformations.length}</span>
     {/if}
   </div>
 
   <!-- Add Controls -->
   <div class="space-y-3">
     <!-- Tabs -->
-    <div
-      class="flex gap-1 p-0.5 bg-neutral-200/50 dark:bg-neutral-800 rounded-md"
-    >
+    <div class={ui.tabList}>
       <button
-        class="flex-1 py-1 text-xs font-medium rounded transition-all {activeTab ===
-        'translate'
-          ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
-          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        class="{ui.tab(activeTab === 'translate')} flex-1"
         onclick={() => (activeTab = "translate")}
       >
         Translate
       </button>
       <button
-        class="flex-1 py-1 text-xs font-medium rounded transition-all {activeTab ===
-        'rotate'
-          ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
-          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        class="{ui.tab(activeTab === 'rotate')} flex-1"
         onclick={() => (activeTab = "rotate")}
       >
         Rotate
       </button>
       <button
-        class="flex-1 py-1 text-xs font-medium rounded transition-all {activeTab ===
-        'flip'
-          ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
-          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        class="{ui.tab(activeTab === 'flip')} flex-1"
         onclick={() => (activeTab = "flip")}
       >
         Flip
@@ -138,28 +121,30 @@
     </div>
 
     <!-- Inputs -->
-    <div
-      class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md p-3"
-    >
+    <div class="{ui.card} p-3">
       {#if activeTab === "translate"}
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500">
+            <label
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+            >
               <span class="block mb-1">X Delta</span>
               <input
                 type="number"
                 bind:value={dx}
-                class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                class="{ui.inputXs} w-full"
               />
             </label>
           </div>
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500">
+            <label
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+            >
               <span class="block mb-1">Y Delta</span>
               <input
                 type="number"
                 bind:value={dy}
-                class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                class="{ui.inputXs} w-full"
               />
             </label>
           </div>
@@ -167,18 +152,22 @@
       {:else if activeTab === "rotate"}
         <div class="space-y-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500">
+            <label
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
+            >
               <span class="block mb-1">Angle (deg)</span>
               <input
                 type="number"
                 bind:value={degrees}
-                class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                class="{ui.inputXs} w-full"
               />
             </label>
           </div>
 
           <div>
-            <div class="block text-[10px] font-medium text-neutral-500 mb-1">
+            <div
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+            >
               Pivot
             </div>
             <div class="flex flex-wrap gap-2">
@@ -187,7 +176,7 @@
                   type="radio"
                   bind:group={pivotType}
                   value="center"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Center</span>
               </label>
@@ -196,7 +185,7 @@
                   type="radio"
                   bind:group={pivotType}
                   value="origin"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Origin (72,72)</span>
                 <span class="text-xs">Origin (72,72)</span>
@@ -206,26 +195,26 @@
                   type="radio"
                   bind:group={pivotType}
                   value="custom"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Custom</span>
               </label>
             </div>
             {#if pivotType === "custom"}
               <div
-                class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
+                class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700"
               >
                 <input
                   type="number"
                   placeholder="X"
                   bind:value={pivotX}
-                  class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm"
+                  class="{ui.inputXs} w-full"
                 />
                 <input
                   type="number"
                   placeholder="Y"
                   bind:value={pivotY}
-                  class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm"
+                  class="{ui.inputXs} w-full"
                 />
               </div>
             {/if}
@@ -234,29 +223,27 @@
       {:else}
         <div class="space-y-2">
           <div>
-            <div class="block text-[10px] font-medium text-neutral-500 mb-1">
+            <div
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+            >
               Axis
             </div>
             <div class="flex gap-2">
-              <label
-                class="flex items-center gap-1.5 cursor-pointer bg-neutral-50 dark:bg-neutral-900/50 px-2 py-1 rounded border border-neutral-100 dark:border-neutral-700 flex-1 justify-center hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              >
+              <label class="{ui.btnSm.secondary} cursor-pointer flex-1">
                 <input
                   type="radio"
                   bind:group={flipAxis}
                   value="horizontal"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Horizontal</span>
               </label>
-              <label
-                class="flex items-center gap-1.5 cursor-pointer bg-neutral-50 dark:bg-neutral-900/50 px-2 py-1 rounded border border-neutral-100 dark:border-neutral-700 flex-1 justify-center hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              >
+              <label class="{ui.btnSm.secondary} cursor-pointer flex-1">
                 <input
                   type="radio"
                   bind:group={flipAxis}
                   value="vertical"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Vertical</span>
               </label>
@@ -264,7 +251,9 @@
           </div>
 
           <div>
-            <div class="block text-[10px] font-medium text-neutral-500 mb-1">
+            <div
+              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+            >
               Around
             </div>
             <div class="flex flex-wrap gap-2">
@@ -273,7 +262,7 @@
                   type="radio"
                   bind:group={pivotType}
                   value="center"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Center</span>
               </label>
@@ -282,7 +271,7 @@
                   type="radio"
                   bind:group={pivotType}
                   value="origin"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Origin</span>
               </label>
@@ -291,26 +280,26 @@
                   type="radio"
                   bind:group={pivotType}
                   value="custom"
-                  class="w-3 h-3 text-blue-600 focus:ring-blue-500"
+                  class={ui.checkbox}
                 />
                 <span class="text-xs">Custom</span>
               </label>
             </div>
             {#if pivotType === "custom"}
               <div
-                class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
+                class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700"
               >
                 <input
                   type="number"
                   placeholder="X"
                   bind:value={pivotX}
-                  class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm"
+                  class="{ui.inputXs} w-full"
                 />
                 <input
                   type="number"
                   placeholder="Y"
                   bind:value={pivotY}
-                  class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm"
+                  class="{ui.inputXs} w-full"
                 />
               </div>
             {/if}
@@ -318,10 +307,7 @@
         </div>
       {/if}
 
-      <button
-        onclick={addTransform}
-        class="w-full mt-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors shadow-sm"
-      >
+      <button onclick={addTransform} class="{ui.btnSm.primary} w-full mt-3">
         Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
       </button>
     </div>
@@ -332,7 +318,7 @@
     <div class="space-y-1.5 pt-1">
       {#each macro.transformations as t, i}
         <div
-          class="flex items-center gap-2 p-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-sm text-xs group"
+          class="{ui.card} flex items-center gap-2 p-2 text-xs group"
           transition:slide={{ duration: 200 }}
         >
           <div
@@ -352,7 +338,7 @@
               class="font-medium text-neutral-900 dark:text-neutral-100 capitalize"
               >{t.type}</span
             >
-            <span class="text-neutral-500">
+            <span class="text-neutral-500 dark:text-neutral-400">
               {#if t.type === "translate"}
                 ({t.dx ?? 0}, {t.dy ?? 0})
               {:else if t.type === "rotate"}
@@ -370,7 +356,7 @@
               onclick={() => moveTransform(i, -1)}
               disabled={i === 0}
               aria-label="Move transform up"
-              class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
+              class="p-0.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <ChevronUpIcon className="size-3" />
             </button>
@@ -378,7 +364,7 @@
               onclick={() => moveTransform(i, 1)}
               disabled={i === (macro.transformations?.length ?? 0) - 1}
               aria-label="Move transform down"
-              class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
+              class="p-0.5 text-neutral-500 dark:text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <ChevronDownIcon className="size-3" />
             </button>

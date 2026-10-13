@@ -11,6 +11,7 @@
   import { FIELD_SIZE, DEFAULT_FIELD_MAP } from "../../../config";
   import { fieldZoom, fieldPan } from "../../../stores";
   import { CloseIcon, SpinnerIcon, ArrowDownTrayIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     show?: boolean;
@@ -206,24 +207,26 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+    class="{ui.overlay} z-[100]"
     transition:scale={{ duration: 200, start: 0.95 }}
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="export-image-title"
+      class="{ui.dialog} w-full max-w-2xl flex flex-col max-h-[90vh]"
     >
       <!-- Header -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700"
-      >
+      <div class={ui.dialogHeader}>
         <h2
-          class="text-xl font-semibold text-neutral-800 dark:text-neutral-100"
+          id="export-image-title"
+          class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Image
         </h2>
         <button
           title="Close"
-          class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           onclick={close}
           aria-label="Close"
         >
@@ -247,7 +250,7 @@
               id="img-format"
               bind:value={format}
               onchange={generatePreview}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="{ui.input} block w-full"
             >
               <option value="png">PNG</option>
               <option value="jpeg">JPEG</option>
@@ -267,7 +270,7 @@
               id="img-scale"
               bind:value={resolutionScale}
               onchange={generatePreview}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="{ui.input} block w-full"
             >
               <option value={0.25}>25%</option>
               <option value={0.5}>50%</option>
@@ -294,7 +297,7 @@
                 step="0.1"
                 bind:value={quality}
                 onchange={generatePreview}
-                class="w-full accent-purple-600"
+                class="w-full accent-emerald-600"
               />
             </div>
           {/if}
@@ -302,9 +305,7 @@
 
         <!-- Info Blurb for SVG -->
         {#if format === "svg"}
-          <div
-            class="text-xs text-neutral-500 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800"
-          >
+          <div class={ui.alert.info}>
             <strong>Note:</strong> SVG export embeds the field and robot images.
             File size may be larger than expected.
             <p class="mt-1">
@@ -317,16 +318,13 @@
         <!-- Status / Error -->
         {#if status === "generating"}
           <div
-            class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400"
+            class="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400"
           >
-            <SpinnerIcon className="animate-spin h-4 w-4 text-purple-600" />
+            <SpinnerIcon className="animate-spin h-4 w-4 text-emerald-600" />
             <span>{statusMessage}</span>
           </div>
         {:else if status === "error"}
-          <div
-            class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
-            role="alert"
-          >
+          <div class={ui.alert.danger} role="alert">
             <span class="font-medium">Error!</span>
             {statusMessage}
           </div>
@@ -337,7 +335,7 @@
         <!-- Preview Area -->
         <div
           bind:this={previewContainer}
-          class="flex-1 min-h-[200px] flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 rounded border border-neutral-300 dark:border-neutral-700 overflow-hidden relative p-2"
+          class="{ui.well} flex-1 min-h-[200px] flex items-center justify-center overflow-hidden relative p-2"
         >
           {#if previewUrl}
             <img
@@ -353,18 +351,11 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="flex items-center justify-end px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
-      >
-        <button
-          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-          onclick={close}
-        >
-          Cancel
-        </button>
+      <div class="{ui.dialogFooter} justify-end">
+        <button class={ui.btn.ghost} onclick={close}> Cancel </button>
 
         <button
-          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          class={ui.btn.primary}
           onclick={downloadImage}
           disabled={status === "generating" || !previewUrl}
         >

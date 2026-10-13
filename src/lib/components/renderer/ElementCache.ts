@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 /**
  * Reuses Two.js shapes between redraws. Each entry is rebuilt only when one
  * of the values it was built from changes, so dragging one point rebuilds the

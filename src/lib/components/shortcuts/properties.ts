@@ -8,6 +8,7 @@ import {
   updateLinkedRotations,
 } from "../../../utils/pointLinking";
 import type { Point } from "../../../types/index";
+import { confirmFollowedJavaEdit } from "../../javaFollow";
 import { isUIElementFocused } from "./utils";
 import {
   parseSelectionId,
@@ -267,6 +268,7 @@ export function toggleReverse(recordChange: (action?: string) => void) {
 
 export function toggleLock(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
+  if (!confirmFollowedJavaEdit()) return;
   const sel = get(selectedPointId);
   const selLineId = get(selectedLineId);
 

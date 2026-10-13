@@ -3,6 +3,9 @@
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
+  import LegacyFileBadge from "./LegacyFileBadge.svelte";
+  import JavaFileBadge from "./JavaFileBadge.svelte";
+  import { isLegacyProjectFileName } from "../../../utils/fileExtensions";
   import {
     FolderIcon,
     DocumentIcon,
@@ -23,6 +26,7 @@
     setDraggedFile,
     getDraggedFile,
   } from "./fileBrowser.svelte";
+  import { ui } from "../../ui";
 
   interface Props {
     fieldImage?: string | null;
@@ -37,6 +41,8 @@
     onrenameSave?: (name: string) => void;
     onrenameCancel?: () => void;
     onmoveFile?: (data: { sourceFile: FileInfo; targetDir: FileInfo }) => void;
+    /** Folders can't be renamed or deleted (in a GitHub repository). */
+    lockFolders?: boolean;
     onmenuAction?: (data: { action: string; file: FileInfo }) => void;
   }
 
@@ -53,6 +59,7 @@
     onrenameSave,
     onrenameCancel,
     onmoveFile,
+    lockFolders = false,
     onmenuAction,
   }: Props = $props();
 
@@ -145,7 +152,7 @@
   {#each groups as group}
     {#if sortMode === "date"}
       <div
-        class="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50 sticky top-0 z-1"
+        class="px-3 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50 sticky top-0 z-1"
         role="presentation"
       >
         {group.title}
@@ -218,7 +225,7 @@
                   type="text"
                   bind:value={renameInput}
                   use:selectOnMount
-                  class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
+                  class="{ui.inputXs} w-full"
                   onkeydown={(e: KeyboardEvent) => {
                     e.stopPropagation();
                     if (e.key === "Enter") onrenameSave?.(renameInput);
@@ -229,21 +236,25 @@
               </div>
             {:else}
               <div class="flex items-baseline justify-between gap-2">
-                <span
-                  class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
-                  title={file.name}
-                >
-                  {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                <span class="flex items-center gap-1.5 min-w-0">
+                  <span
+                    class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
+                    title={file.name}
+                  >
+                    {file.name.replaceAll(/\.(pp|turt|java)$/gi, "")}
+                  </span>
+                  {#if !file.isDirectory && isLegacyProjectFileName(file.name)}
+                    <LegacyFileBadge />
+                  {:else if !file.isDirectory && file.name
+                      .toLowerCase()
+                      .endsWith(".java")}
+                    <JavaFileBadge />
+                  {/if}
                 </span>
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
                     <div
-                      class="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border
-                      {file.gitStatus === 'modified'
-                        ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-300'
-                        : file.gitStatus === 'staged'
-                          ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300'
-                          : 'bg-neutral-100 border-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300'}"
+                      class={ui.badge[ui.gitTone(file.gitStatus)]}
                       title={file.gitStatus === "modified"
                         ? "Git: Modified (Unstaged Changes)"
                         : file.gitStatus === "staged"
@@ -288,7 +299,7 @@
             class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center"
           >
             <button
-              class="p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+              class={ui.iconBtnSm.neutral}
               onclick={(e: MouseEvent) => {
                 e.stopPropagation();
                 handleContextMenu(e, file);
@@ -311,6 +322,7 @@
     y={contextMenu.y}
     fileName={contextMenu.file.name}
     isDirectory={contextMenu.file.isDirectory}
+    canChange={!(lockFolders && contextMenu.file.isDirectory)}
     onclose={() => (contextMenu = null)}
     onaction={(action) => handleMenuAction(action)}
   />

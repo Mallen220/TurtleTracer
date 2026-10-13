@@ -93,14 +93,14 @@ describe("SequenceItemCard", () => {
     it("selects the item, and deselects any path", async () => {
       selectedLineId.set("some-line");
       mount(wait());
-      await fireEvent.click(screen.getByRole("button", { pressed: false }));
+      await fireEvent.click(screen.getByRole("group"));
       expect(get(selectedPointId)).toBe("wait-w1");
       expect(get(selectedLineId)).toBeNull();
     });
 
     it("selects from the keyboard with Enter or Space, but not other keys", async () => {
       mount(wait());
-      const card = screen.getByRole("button", { pressed: false });
+      const card = screen.getByRole("group");
       await fireEvent.keyDown(card, { key: "x" });
       expect(get(selectedPointId)).toBeNull();
       await fireEvent.keyDown(card, { key: "Enter" });
@@ -112,7 +112,7 @@ describe("SequenceItemCard", () => {
 
     it("can't select a locked item", async () => {
       mount(wait({ locked: true }));
-      await fireEvent.click(screen.getByRole("button", { pressed: false }));
+      await fireEvent.click(screen.getByRole("group"));
       expect(get(selectedPointId)).toBeNull();
     });
 
@@ -120,9 +120,9 @@ describe("SequenceItemCard", () => {
       const { unmount } = mount(wait(), { accent: "amber" });
       selectedPointId.set("wait-w1");
       await waitFor(() =>
-        expect(
-          screen.getByRole("button", { pressed: true }).className,
-        ).toContain("border-amber-400"),
+        expect(screen.getByRole("group").className).toContain(
+          "border-amber-400",
+        ),
       );
       unmount();
 
@@ -135,9 +135,9 @@ describe("SequenceItemCard", () => {
       );
       selectedPointId.set("rotate-r1");
       await waitFor(() =>
-        expect(
-          screen.getByRole("button", { pressed: true }).className,
-        ).toContain("border-pink-500"),
+        expect(screen.getByRole("group").className).toContain(
+          "border-pink-500",
+        ),
       );
     });
   });

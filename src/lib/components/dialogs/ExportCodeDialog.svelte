@@ -40,6 +40,7 @@
   import { triggerDownload } from "../../../utils/file";
   import { getElectronAPI } from "../../../utils/platform";
   import { settingsStore } from "../../projectStore";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -75,8 +76,8 @@
       ring: "focus-visible:ring-blue-500",
     },
     NextFTC: {
-      active: "text-purple-600 dark:text-purple-300",
-      ring: "focus-visible:ring-purple-500",
+      active: "text-emerald-600 dark:text-emerald-300",
+      ring: "focus-visible:ring-emerald-500",
     },
     Ivy: {
       active: "text-emerald-600 dark:text-emerald-300",
@@ -350,7 +351,7 @@
   <!-- Backdrop -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6"
+    class="{ui.overlay} z-[1000]"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) isOpen = false;
@@ -360,20 +361,18 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="{ui.dialog} w-full max-w-5xl flex flex-col h-[85vh] outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-dialog-title"
       tabindex="-1"
     >
       <!-- Header -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0"
-      >
+      <div class="{ui.dialogHeader} shrink-0">
         <div class="flex flex-col gap-0.5">
           <h2
             id="export-dialog-title"
-            class="text-lg font-semibold text-neutral-900 dark:text-white"
+            class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
           >
             {#if exportFormat === "java"}Export Java Code
             {:else if exportFormat === "points"}Export Points
@@ -405,7 +404,7 @@
                 showSearch = true;
                 tick().then(() => searchInputRef?.focus());
               }}
-              class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class={ui.iconBtn.neutral}
               aria-label="Search code"
               title="Search (Ctrl+F)"
             >
@@ -414,7 +413,7 @@
           {:else}
             <!-- Search Bar -->
             <div
-              class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1 animate-in slide-in-from-right duration-200"
+              class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-md p-1 animate-in slide-in-from-right duration-200"
             >
               <input
                 bind:this={searchInputRef}
@@ -432,9 +431,11 @@
                     }
                   }
                 }}
-                class="bg-transparent border-none text-sm px-2 py-1 w-32 focus:ring-0 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
+                class="bg-transparent border-none text-sm px-2 py-1 w-32 focus:ring-0 focus:outline-none text-neutral-900 dark:text-neutral-100 placeholder-neutral-500"
               />
-              <span class="text-xs text-neutral-400 min-w-[3rem] text-center">
+              <span
+                class="text-xs text-neutral-500 dark:text-neutral-400 min-w-[3rem] text-center"
+              >
                 {#if searchMatches.length > 0}
                   {currentMatchIndex + 1}/{searchMatches.length}
                 {:else if searchQuery}
@@ -445,7 +446,7 @@
                 title="Previous match"
                 onclick={prevMatch}
                 disabled={searchMatches.length === 0}
-                class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
+                class={ui.iconBtnSm.neutral}
                 aria-label="Previous match"
               >
                 <ChevronUpIcon strokeWidth={2} className="size-4" />
@@ -454,7 +455,7 @@
                 title="Next match"
                 onclick={nextMatch}
                 disabled={searchMatches.length === 0}
-                class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
+                class={ui.iconBtnSm.neutral}
                 aria-label="Next match"
               >
                 <ChevronDownIcon strokeWidth={2} className="size-4" />
@@ -465,7 +466,7 @@
                   searchQuery = "";
                   searchMatches = [];
                 }}
-                class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 rounded text-neutral-500 transition-colors"
+                class={ui.iconBtnSm.danger}
                 aria-label="Close search"
               >
                 <CloseIcon strokeWidth={2} className="size-4" />
@@ -476,7 +477,7 @@
           <!-- Close Button -->
           <button
             onclick={() => (isOpen = false)}
-            class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class={ui.iconBtn.neutral}
             aria-label="Close export dialog"
           >
             <CloseIcon strokeWidth={2} className="size-5" />
@@ -486,15 +487,10 @@
 
       <!-- Settings Toolbar -->
       {#if exportFormat === "sequential" || exportFormat === "java"}
-        <div
-          class="px-6 py-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap gap-6 items-end shrink-0"
-        >
+        <div class="{ui.bar} px-6 py-3 flex flex-wrap gap-6 items-end shrink-0">
           <!-- Package Name Input -->
           <div class="flex flex-col gap-1.5 grow max-w-xl">
-            <label
-              for="package-name-input"
-              class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
-            >
+            <label for="package-name-input" class={ui.heading}>
               Package Name
             </label>
             <input
@@ -503,7 +499,7 @@
               bind:value={$settingsStore.javaPackageName}
               onkeydown={handlePackageKeydown}
               oninput={refreshCode}
-              class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full font-mono"
+              class="{ui.inputSm} w-full font-mono"
               placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
             />
           </div>
@@ -512,13 +508,9 @@
           {#if exportFormat === "sequential"}
             <!-- Target Library Selector -->
             <div class="flex flex-col gap-1.5">
-              <span
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
-              >
-                Target Library
-              </span>
+              <span class={ui.heading}> Target Library </span>
               <div
-                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-lg self-start"
+                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-md self-start"
                 role="tablist"
               >
                 {#each COMMAND_LIBRARIES as library (library.id)}
@@ -529,7 +521,7 @@
                     aria-selected={selected}
                     class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 {accent.ring} {selected
                       ? `bg-white dark:bg-neutral-700 shadow-sm ${accent.active}`
-                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
                     onclick={() => {
                       $settingsStore.autoExportTargetLibrary = library.id;
                       refreshCode();
@@ -543,10 +535,7 @@
 
             <!-- Class Name Input -->
             <div class="flex flex-col gap-1.5">
-              <label
-                for="class-name-input"
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
-              >
+              <label for="class-name-input" class={ui.heading}>
                 Class Name
               </label>
               <input
@@ -554,20 +543,16 @@
                 type="text"
                 bind:value={sequentialClassName}
                 oninput={refreshCode}
-                class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+                class="{ui.inputSm} min-w-[150px]"
                 placeholder="AutoPath"
               />
             </div>
 
             <!-- Embed Pose Data -->
             <div class="flex flex-col gap-1.5">
-              <span
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 opacity-0"
-              >
-                Embed Poses
-              </span>
+              <span class="{ui.heading} opacity-0"> Embed Poses </span>
               <label
-                class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer select-none"
+                class={ui.checkLabel}
                 aria-label="Embed pose data directly in the code"
               >
                 <div class="relative flex items-center">
@@ -575,7 +560,7 @@
                     type="checkbox"
                     bind:checked={$settingsStore.autoExportEmbedPoseData}
                     onchange={refreshCode}
-                    class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
+                    class="{ui.checkbox} peer"
                   />
                 </div>
                 <span>Embed Pose Data in Code</span>
@@ -585,7 +570,7 @@
             <!-- Experimental Library Warning -->
             {#if selectedLibrary.experimental}
               <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+                class="{ui.alert.warning} flex items-center gap-2"
                 role="alert"
               >
                 <TriangleWarningIcon className="size-4 shrink-0" />
@@ -597,7 +582,7 @@
             {/if}
             {#if $settingsStore.codeUnits === "metric" && !$settingsStore.autoExportEmbedPoseData && exportFormat === "sequential"}
               <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+                class="{ui.alert.warning} flex items-center gap-2"
                 role="alert"
               >
                 <TriangleWarningIcon className="size-4 shrink-0" />
@@ -612,7 +597,7 @@
           <!-- Java Controls -->
           {#if exportFormat === "java"}
             <label
-              class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer select-none"
+              class={ui.checkLabel}
               aria-label="Export full Java class with imports"
             >
               <div class="relative flex items-center">
@@ -620,7 +605,7 @@
                   type="checkbox"
                   bind:checked={$settingsStore.autoExportFullClass}
                   onchange={refreshCode}
-                  class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
+                  class="{ui.checkbox} peer"
                 />
               </div>
               <span>Generate Full Class</span>
@@ -629,35 +614,27 @@
 
           {#if exportFormat === "java" || exportFormat === "sequential" || exportFormat === "points"}
             <div class="flex flex-col gap-1.5 mt-2">
-              <span
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
-              >
-                Code Units
-              </span>
+              <span class={ui.heading}> Code Units </span>
               <div class="flex gap-2" role="radiogroup">
-                <label
-                  class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer"
-                >
+                <label class={ui.checkLabel}>
                   <input
                     type="radio"
                     name="codeUnits"
                     value="imperial"
                     bind:group={$settingsStore.codeUnits}
                     onchange={refreshCode}
-                    class="h-4 w-4 text-blue-600"
+                    class={ui.checkbox}
                   />
                   <span>Imperial (Inches)</span>
                 </label>
-                <label
-                  class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer"
-                >
+                <label class={ui.checkLabel}>
                   <input
                     type="radio"
                     name="codeUnits"
                     value="metric"
                     bind:group={$settingsStore.codeUnits}
                     onchange={refreshCode}
-                    class="h-4 w-4 text-blue-600"
+                    class={ui.checkbox}
                   />
                   <span>Metric (cm)</span>
                 </label>
@@ -700,23 +677,18 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 rounded-b-xl shrink-0"
-      >
-        <div class="text-xs text-neutral-500 font-mono">
+      <div class="{ui.dialogFooter} justify-between rounded-b-xl shrink-0">
+        <div class="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
           {lineCount} lines generated
         </div>
         <div class="flex gap-3">
-          <button
-            class="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-            onclick={() => (isOpen = false)}
-          >
+          <button class={ui.btn.ghost} onclick={() => (isOpen = false)}>
             Close
           </button>
 
           {#if exportFormat !== "json"}
             <button
-              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+              class={ui.btn.secondary}
               onclick={handleSaveFile}
               title="Save the generated content to a file"
               aria-label="Save the generated content to a file"
@@ -727,19 +699,12 @@
           {/if}
 
           {#if exportFormat === "json"}
-            <button
-              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-              onclick={exportAsProjectFile}
-            >
+            <button class={ui.btn.secondary} onclick={exportAsProjectFile}>
               <DownloadIcon className="size-4" />
               Download as .turt
             </button>
           {/if}
-          <button
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
-            onclick={handleCopy}
-            disabled={copied}
-          >
+          <button class={ui.btn.primary} onclick={handleCopy} disabled={copied}>
             {#if copied}
               <SuccessIcon className="size-4 animate-in zoom-in duration-200" />
               Copied!

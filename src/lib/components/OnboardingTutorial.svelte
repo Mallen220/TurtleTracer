@@ -7,14 +7,12 @@
 
   interface Props {
     whatsNewOpen?: boolean;
-    setupDialogOpen?: boolean;
     isLoaded?: boolean;
     ontutorialComplete?: () => void;
   }
 
   let {
     whatsNewOpen = false,
-    setupDialogOpen = false,
     isLoaded = false,
     ontutorialComplete,
   }: Props = $props();
@@ -108,7 +106,7 @@
         popover: {
           title: "Export Code",
           description:
-            "Generate the Java code needed for your robot, or export to other formats like JSON.",
+            'Generate the Java code needed for your robot, or export to other formats like JSON. Optionally, <b>TurtleTracerLib</b> can run your <code>.turt</code> files directly on the robot. <a href="https://www.turtletracer.com/turtle-tracer-lib/installation/" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">Learn more</a>.',
           side: "bottom",
           align: "end",
         },
@@ -159,7 +157,7 @@
           isFirstRun = true;
           startTutorial.set(true);
         }, 500);
-      } else if (!whatsNewOpen && !setupDialogOpen) {
+      } else if (!whatsNewOpen) {
         const hasSeen = $settingsStore.hasSeenOnboarding;
         if (!hasSeen && !$startTutorial) {
           // Small delay to ensure UI is ready
@@ -170,7 +168,7 @@
             );
             unsubscribe();
 
-            if (!currentSeen && !whatsNewOpen && !setupDialogOpen) {
+            if (!currentSeen && !whatsNewOpen) {
               isFirstRun = true;
               startTutorial.set(true);
             }

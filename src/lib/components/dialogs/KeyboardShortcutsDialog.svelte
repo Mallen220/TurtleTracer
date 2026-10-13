@@ -12,6 +12,7 @@
   import type { Settings } from "../../../types/index";
   import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
   import { notification } from "../../../stores";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -325,7 +326,7 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 200, easing: cubicInOut }}
-    class="fixed inset-0 z-[1006] flex items-center justify-center bg-black bg-opacity-50"
+    class="{ui.overlay} z-[1006]"
     role="presentation"
     onclick={(e) => {
       if (e.target === e.currentTarget) isOpen = false;
@@ -336,23 +337,21 @@
       aria-modal="true"
       aria-labelledby="shortcuts-title"
       transition:fly={{ duration: 300, y: 20, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-800"
+      class="{ui.dialog} w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col"
     >
       <!-- Header -->
-      <div
-        class="flex flex-col gap-4 px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50"
-      >
+      <div class="{ui.bar} flex flex-col gap-4 px-6 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400"
+              class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-md text-indigo-600 dark:text-indigo-400"
             >
               <InfoIcon className="size-6" />
             </div>
             <div>
               <h2
                 id="shortcuts-title"
-                class="text-xl font-bold text-neutral-900 dark:text-white"
+                class="text-xl font-bold text-neutral-900 dark:text-neutral-100"
               >
                 Keyboard Shortcuts
               </h2>
@@ -363,7 +362,7 @@
           </div>
           <button
             onclick={() => (isOpen = false)}
-            class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
+            class={ui.iconBtn.neutral}
             aria-label="Close dialog"
           >
             <CloseIcon className="size-6" />
@@ -374,20 +373,21 @@
           <!-- Search -->
           <div class="relative flex-1">
             <SearchIcon
-              className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-500 dark:text-neutral-400"
             />
             <input
               type="text"
               bind:value={searchQuery}
               placeholder="Search shortcuts..."
-              class="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              class="{ui.input} w-full pl-10 pr-4"
             />
           </div>
 
           <!-- Category Filter -->
           <select
             bind:value={selectedCategory}
-            class="px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            aria-label="Filter by category"
+            class={ui.input}
           >
             {#each categories as category}
               <option value={category}>{category}</option>
@@ -407,9 +407,7 @@
           </div>
         {:else}
           {#if duplicateKeys.length > 0}
-            <div
-              class="mb-4 p-3 rounded bg-amber-100 dark:bg-amber-900/20 text-sm text-amber-800 flex items-center gap-2"
-            >
+            <div class="{ui.alert.warning} mb-4 flex items-center gap-2">
               <TriangleWarningIcon className="size-4 shrink-0" />
               <strong class="font-bold">Duplicate keybindings detected:</strong>
               {#each duplicateKeys as [k, arr], idx}
@@ -431,7 +429,7 @@
               <div class="space-y-2">
                 {#each group.bindings as binding}
                   <div
-                    class={"flex items-center justify-between p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 " +
+                    class={"flex items-center justify-between p-3 rounded-md hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 " +
                       (recordingKeyFor === binding.id
                         ? "bg-blue-50 dark:bg-blue-900/20"
                         : "")}
@@ -457,7 +455,7 @@
                       {#if isModified(binding)}
                         <button
                           onclick={() => resetBinding(binding.id)}
-                          class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                          class="text-xs text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
                         >
                           <ArrowCircleIcon className="size-4" strokeWidth={2} />
@@ -474,7 +472,7 @@
                         class:bg-white={recordingKeyFor !== binding.id}
                         class:text-neutral-700={recordingKeyFor !==
                           binding.id && binding.key}
-                        class:text-neutral-400={recordingKeyFor !==
+                        class:text-neutral-500={recordingKeyFor !==
                           binding.id && !binding.key}
                         class:italic={!binding.key &&
                           recordingKeyFor !== binding.id}
@@ -490,7 +488,7 @@
                           binding.id}
                         class:dark:text-neutral-300={recordingKeyFor !==
                           binding.id && binding.key}
-                        class:dark:text-neutral-500={recordingKeyFor !==
+                        class:dark:text-neutral-400={recordingKeyFor !==
                           binding.id && !binding.key}
                         class:dark:border-neutral-700={recordingKeyFor !==
                           binding.id}
@@ -514,15 +512,13 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="bg-neutral-50 dark:bg-neutral-900/50 px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center"
-      >
+      <div class="{ui.dialogFooter} justify-between">
         <div class="flex items-center gap-4">
           <button
             onclick={resetAllBindings}
             title="Reset all key bindings to defaults"
             aria-label="Reset all key bindings to defaults"
-            class="px-3 py-1.5 text-sm rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 transition-colors"
+            class={ui.btnSm.dangerSoft}
           >
             Reset All
           </button>
@@ -533,16 +529,13 @@
             <InfoIcon className="size-4" />
             <span
               >Click a keybinding to record a new one. Press <kbd
-                class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded"
+                class="font-mono bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 px-1 rounded"
                 >Esc</kbd
               > while recording to unbind.</span
             >
           </div>
         </div>
-        <button
-          onclick={() => (isOpen = false)}
-          class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-lg shadow-sm hover:opacity-90 transition-opacity"
-        >
+        <button onclick={() => (isOpen = false)} class={ui.btn.primary}>
           Done
         </button>
       </div>

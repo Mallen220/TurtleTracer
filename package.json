@@ -1,7 +1,7 @@
 {
   "name": "turtle-tracer",
   "private": true,
-  "version": "2.4.0",
+  "version": "2.5.0",
   "main": "electron/main.js",
   "author": "Matthew Allen <FTCTurtleTracer@gmail.com>",
   "email": "FTCTurtleTracer@gmail.com",
@@ -129,6 +129,24 @@
     },
     "dmg": {
       "icon": "build/icon.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 190
+        },
+        {
+          "x": 410,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 270,
+          "y": 190,
+          "type": "file",
+          "path": "mac/README.txt"
+        }
+      ],
       "window": {
         "width": 540,
         "height": 380

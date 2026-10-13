@@ -4,6 +4,8 @@
   import { tick } from "svelte";
   import { FolderIcon, UndoIcon } from "../icons";
   import { isBrowser } from "../../../utils/platform";
+  import { displayPath, shortPathText } from "../../../utils/displayPaths";
+  import { ui } from "../../ui";
 
   interface Props {
     currentPath: string;
@@ -24,37 +26,6 @@
   let isEditing = $state(false);
   let inputPath = $state("");
   let inputElement: HTMLInputElement | undefined = $state();
-
-  // Format path for display - tries to be smart about common paths
-  function formatPath(pathStr: string): string {
-    if (!pathStr) return "";
-
-    if (pathStr.startsWith("/browser_fs")) {
-      pathStr = pathStr.slice("/browser_fs".length);
-      if (pathStr === "") {
-        pathStr = "/";
-      }
-    }
-
-    // Handle home directory alias
-    const home = process.env.HOME || "~";
-    if (pathStr.startsWith(home)) {
-      pathStr = "~" + pathStr.slice(home.length);
-    }
-
-    // Handle specific project markers like "AutoPaths" or "GitHub"
-    // This makes deep paths more readable
-    const markers = ["AutoPaths", "GitHub", "Documents"];
-    for (const marker of markers) {
-      const idx = pathStr.indexOf(marker);
-      if (idx !== -1) {
-        // Keep the marker and everything after
-        return "..." + pathStr.slice(Math.max(0, idx - 1)); // include the slash before marker
-      }
-    }
-
-    return pathStr;
-  }
 
   async function startEditing() {
     isEditing = true;
@@ -94,11 +65,11 @@
   </div>
 {:else}
   <div
-    class="flex items-center px-2 py-1.5 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 font-mono transition-colors"
+    class="{ui.bar} flex items-center px-2 py-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-mono"
   >
     {#if !isAtBase}
       <button
-        class="p-1 mr-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 shrink-0"
+        class="{ui.iconBtnSm.neutral} mr-2 shrink-0"
         onclick={() => ongoUp?.()}
         title="Go up one directory"
         aria-label="Go Up"
@@ -108,19 +79,19 @@
     {/if}
     <div
       class="flex-1 min-w-0 truncate cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 px-2 py-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-      title="Click to edit path"
+      title={`${displayPath(currentPath)}\nClick to edit`}
       onclick={startEditing}
       role="button"
       tabindex="0"
       onkeydown={(e) => e.key === "Enter" && startEditing()}
     >
-      {formatPath(currentPath)}
+      {shortPathText(currentPath)}
     </div>
 
     {#if !isBrowser}
       <button
         onclick={() => onchangeDirDialog?.()}
-        class="p-1 ml-1 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        class="{ui.iconBtnSm.neutral} ml-1 shrink-0"
         title="Change Directory"
         aria-label="Change Directory"
       >

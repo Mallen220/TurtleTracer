@@ -18,7 +18,6 @@
   } from "../../../stores";
   import debounce from "lodash/debounce";
   import { onMount } from "svelte";
-  import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { get } from "svelte/store";
   import { currentFilePath } from "../../../stores";
@@ -34,6 +33,7 @@
   import pkg from "../../../../package.json";
   import { customExportersStore } from "../../pluginsStore";
   import { CogIcon, DownloadIcon, CheckIcon, ClipboardIcon } from "../icons";
+  import { ui } from "../../ui";
 
   // Register languages for core highlight.js
   hljs.registerLanguage("java", java);
@@ -373,11 +373,9 @@
   class="w-full h-full flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900"
 >
   <!-- Toolbar -->
-  <div
-    class="flex-none p-4 flex flex-wrap gap-4 items-center border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
-  >
+  <div class="{ui.bar} flex-none p-4 flex flex-wrap gap-4 items-center">
     <div class="flex flex-col gap-0.5">
-      <div class="text-sm font-medium text-neutral-900 dark:text-white">
+      <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
         Previewing: {format === "java"
           ? "Java Class (Standard)"
           : format === "sequential"
@@ -401,7 +399,7 @@
         showSettings.set(true);
       }}
       aria-label="Open auto export settings"
-      class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
+      class={ui.btn.ghost}
       title="Open Settings"
     >
       <CogIcon className="size-4" />
@@ -410,7 +408,7 @@
 
     <button
       onclick={handleDownloadJava}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("purple")}`}
+      class={ui.btn.primary}
       title={`Download as ${format === "points" || format === "custom" ? ".txt" : format === "json" ? ".turt" : ".java"}${getShortcutFromSettings(settings, "download-java")}`}
       aria-label="Download generated file"
       disabled={!code}
@@ -426,7 +424,7 @@
 
     <button
       onclick={handleCopy}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
+      class={ui.btn.secondary}
       title={copyButtonText === "Copied!"
         ? "Copied!"
         : `Copy Code${getShortcutFromSettings(settings, "copy-code")}`}

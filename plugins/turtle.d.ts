@@ -1,12 +1,3 @@
-/* eslint-disable */
-// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-/**
- * Type definitions for Turtle Tracer Plugins.
- * These types are automatically available in your .ts plugins.
- *
- * AUTO-GENERATED - DO NOT EDIT MANUALLY
- */
-
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 
@@ -1043,6 +1034,37 @@ interface ElectronAPI {
   // Git operations
   gitShow?: (filePath: string) => Promise<string | null>;
   gitStatus?: (directory: string) => Promise<any>;
+
+  // GitHub (desktop): the token stays in the main process, which makes the
+  // requests. See electron/ipc/githubHandlers.js.
+  githubToken?: {
+    status: () => Promise<{
+      hasToken: boolean;
+      remembered: boolean;
+      login: string | null;
+    }>;
+    set: (
+      token: string,
+      remember: boolean,
+      login: string | null,
+    ) => Promise<{ remembered: boolean }>;
+    clear: () => Promise<void>;
+  };
+  githubFetch?: (
+    url: string,
+    init: { method: string; headers: Record<string, string>; body?: string },
+  ) => Promise<{
+    status?: number;
+    headers?: Record<string, string>;
+    body?: string;
+    error?: string;
+  }>;
+
+  // Following a Java file (desktop): told each time it's saved in an editor.
+  chooseJavaFile?: () => Promise<string | null>;
+  followJavaFile?: (filePath: string) => Promise<boolean>;
+  unfollowJavaFile?: () => Promise<boolean>;
+  onJavaFileChanged?: (callback: (filePath: string) => void) => () => void;
 
   // Renderer ready signal
   rendererReady?: () => Promise<void>;

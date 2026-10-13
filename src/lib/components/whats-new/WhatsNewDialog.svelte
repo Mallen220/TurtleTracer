@@ -5,6 +5,7 @@
   import DOMPurify from "dompurify";
   import { features, getAllFeatures, type FeatureHighlight } from "./features";
   import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     show?: boolean;
@@ -172,13 +173,13 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-0 md:p-4"
+    class="{ui.overlay} z-[100]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="whats-new-title"
   >
     <div
-      class="bg-white dark:bg-neutral-800 md:rounded-xl shadow-2xl w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
+      class="bg-white dark:bg-neutral-800 md:rounded-md shadow-2xl w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
     >
       <!-- Adobe Style Split View -->
       <!-- Left Sidebar / Menu -->
@@ -188,21 +189,19 @@
           ? 'flex md:flex'
           : 'hidden md:flex'}"
       >
-        <div
-          class="h-[73px] p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center bg-white dark:bg-neutral-800 shrink-0"
-        >
+        <div class="{ui.dialogHeader} h-[73px] shrink-0">
           <div class="flex items-center gap-2">
             {#if viewMode === "releases"}
               <button
                 onclick={() => (viewMode = "features")}
-                class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                class="{ui.iconBtnSm.neutral} -ml-1"
                 aria-label="Back"
               >
                 <ChevronLeftIcon className="h-5 w-5" />
               </button>
             {/if}
             <h2
-              class="font-bold text-lg text-neutral-900 dark:text-white"
+              class="font-bold text-lg text-neutral-900 dark:text-neutral-100"
               id="whats-new-title"
             >
               {viewMode === "features" ? "What's New" : "All Releases"}
@@ -213,7 +212,7 @@
             title="Close"
             onclick={close}
             aria-label="Close"
-            class="md:hidden p-2 -mr-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
+            class="{ui.iconBtn.neutral} md:hidden -mr-2"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
@@ -222,16 +221,13 @@
         <div class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
           {#if viewMode === "features"}
             <div
-              class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
+              class="mb-3 px-2 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
             >
               Version {currentRelease?.id.replaceAll(/^v/g, "")}
             </div>
             {#each parsedFeatures as feature}
               <button
-                class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeFeatureId ===
-                feature.id
-                  ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
-                  : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
+                class={ui.navItem(activeFeatureId === feature.id)}
                 onclick={() => (activeFeatureId = feature.id)}
               >
                 {feature.title}
@@ -240,10 +236,7 @@
           {:else}
             {#each allReleases as release}
               <button
-                class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeReleaseId ===
-                release.id
-                  ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
-                  : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
+                class={ui.navItem(activeReleaseId === release.id)}
                 onclick={() => (activeReleaseId = release.id)}
               >
                 {release.title}
@@ -292,7 +285,7 @@
           <!-- Mobile Back Button (only when in releases view on small screens) -->
           <button
             onclick={() => (viewMode = "features")}
-            class="md:hidden flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+            class="md:hidden flex items-center gap-1 text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
           >
             <ChevronLeftIcon className="h-4 w-4" />
             Back
@@ -305,7 +298,7 @@
             title="Close"
             onclick={close}
             aria-label="Close"
-            class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            class="{ui.iconBtn.neutral} hidden md:block"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
@@ -331,12 +324,12 @@
                 >
                   <div>
                     <h2
-                      class="text-3xl font-extrabold text-neutral-900 dark:text-white mb-6"
+                      class="text-3xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-6"
                     >
                       {feature.title}
                     </h2>
                     <div
-                      class="prose dark:prose-invert max-w-none text-neutral-600 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-purple-600 dark:prose-a:text-purple-400 text-lg md:text-xl leading-relaxed"
+                      class="prose dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-emerald-600 dark:prose-a:text-emerald-400 text-lg md:text-xl leading-relaxed"
                     >
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                       {@html DOMPurify.sanitize(md.render(feature.content))}
@@ -348,7 +341,7 @@
                   >
                     {#if i < parsedFeatures.length - 1}
                       <button
-                        class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
+                        class={ui.btn.primary}
                         onclick={() =>
                           (activeFeatureId = parsedFeatures[i + 1].id)}
                       >
@@ -356,10 +349,7 @@
                         <ChevronRightIcon className="h-4 w-4" />
                       </button>
                     {:else}
-                      <button
-                        class="px-6 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold rounded-lg transition-all"
-                        onclick={close}
-                      >
+                      <button class={ui.btn.secondary} onclick={close}>
                         Done
                       </button>
                     {/if}
@@ -370,7 +360,7 @@
           {:else}
             <div class="max-w-4xl mx-auto">
               <div
-                class="prose dark:prose-invert max-w-none prose-purple text-lg md:text-xl leading-relaxed text-neutral-600 dark:text-neutral-300"
+                class="prose dark:prose-invert max-w-none prose-purple text-lg md:text-xl leading-relaxed text-neutral-700 dark:text-neutral-300"
               >
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html DOMPurify.sanitize(activeContentHtml)}

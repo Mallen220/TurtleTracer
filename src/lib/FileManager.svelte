@@ -25,6 +25,7 @@
   } from "./projectStore";
   import {
     autosaveBeforeLeaving,
+    chooseSaveFolder,
     directoryOf,
     fileNameOf,
     joinPath,
@@ -43,12 +44,28 @@
   import { mirrorPathData, reversePathData } from "../utils/pathTransform";
   import { scanEventsInDirectory } from "../utils/eventScanner";
   import { getElectronAPI } from "../utils/platform";
+  import {
+    githubPath,
+    isGitHubPath,
+    parseGitHubPath,
+    repoKey,
+  } from "../utils/github/paths";
+  import {
+    browsingRepo,
+    githubRepos,
+    type OpenedRepo,
+    type UpdateResult,
+  } from "../utils/github/repos";
   import { hookRegistry } from "./registries";
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
   import FileList from "./components/filemanager/FileList.svelte";
   import FileGrid from "./components/filemanager/FileGrid.svelte";
+  import GitHubOpenDialog from "./components/github/GitHubOpenDialog.svelte";
+  import GitHubRepoBar from "./components/github/GitHubRepoBar.svelte";
   import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
+  import { followJavaFile } from "./javaFollow";
+  import { importJavaProject } from "../utils/javaImporter";
   import { filePreviews } from "./components/filemanager/fileBrowser.svelte";
   import {
     FolderIcon,
@@ -59,9 +76,12 @@
     FolderPlusIcon,
     ArrowDownTrayIcon,
     CodeBracketSquareIcon,
+    EyeIcon,
     ServerStackIcon,
     ArrowCircleIcon,
+    GithubIcon,
   } from "./components/icons";
+  import { ui } from "./ui";
 
   interface Props {
     isOpen?: boolean;
@@ -79,6 +99,7 @@
   let sortMode: "name" | "date" = $state(
     settings.fileManagerSortMode ?? session.sortMode ?? "date",
   );
+  let showJavaFiles = $state(session.showJavaFiles ?? false);
 
   /** The folder the user chose; browsing never goes above it. */
   let baseDirectory = $state("");
@@ -101,6 +122,13 @@
   let fileInput: HTMLInputElement | undefined = $state();
   let javaInput: HTMLInputElement | undefined = $state();
 
+  let showGitHubDialog = $state(false);
+  /** The GitHub repository being browsed, if not this device's files. */
+  let repo = $derived.by(() => {
+    const parsed = parseGitHubPath(baseDirectory);
+    return parsed && { owner: parsed.owner, repo: parsed.repo };
+  });
+
   let visibleFiles = $derived.by(() => {
     const query = searchQuery.toLowerCase();
     return files
@@ -116,7 +144,12 @@
   });
 
   $effect(() => {
-    fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
+    fileManagerSessionState.set({
+      searchQuery,
+      viewMode,
+      sortMode,
+      showJavaFiles,
+    });
   });
   $effect(() => {
     if (currentDirectory) currentDirectoryStore.set(currentDirectory);
@@ -124,10 +157,19 @@
   // Other parts of the app can ask for the "new file" form.
   $effect(() => {
     if ($fileManagerNewFileMode) {
-      creatingNewFile = true;
       fileManagerNewFileMode.set(false);
+      void startNewFile();
     }
   });
+
+  /** Shows the new file form, first asking for a project folder if there isn't one. */
+  async function startNewFile() {
+    if (!currentDirectory.trim()) {
+      if (!(await chooseSaveFolder())) return;
+      await loadDirectory();
+    }
+    creatingNewFile = true;
+  }
 
   onMount(loadDirectory);
 
@@ -160,6 +202,7 @@
     loading = true;
     errorMessage = "";
     try {
+      if (await showOpenRepo()) return;
       const saved = (await electronAPI.getSavedDirectory?.())?.trim();
       const dir = saved || (await electronAPI.getDirectory?.()) || "";
       baseDirectory = currentDirectory = dir;
@@ -172,12 +215,39 @@
     }
   }
 
+  /** Shows the repository the file manager was showing last, if it's still open. */
+  async function showOpenRepo(): Promise<boolean> {
+    const key = get(browsingRepo);
+    if (!key) return false;
+    const [owner, name] = key.split("/");
+    const record = await githubRepos.get({ owner, repo: name });
+    if (!record) {
+      browsingRepo.set(null);
+      return false;
+    }
+    baseDirectory = githubPath(record);
+    currentDirectory = githubRepos.startFolder(record);
+    await refreshDirectory();
+    return true;
+  }
+
+  const javaImportCache = new Map<
+    string,
+    { mtime: number; hasImportablePaths: boolean }
+  >();
+
+  function toggleShowJavaFiles() {
+    showJavaFiles = !showJavaFiles;
+    refreshDirectory();
+  }
+
   async function refreshDirectory() {
     if (!electronAPI || !currentDirectory.trim()) return;
 
     try {
       const listed = await electronAPI.listFiles(currentDirectory);
-      if (settings.gitIntegration) {
+      // Repositories opened from GitHub always show what's been edited.
+      if (settings.gitIntegration || isGitHubPath(currentDirectory)) {
         gitStatusStore.update((statuses) => {
           const next = { ...statuses };
           for (const f of listed) {
@@ -191,9 +261,38 @@
         });
       }
 
-      files = listed.filter(
-        (f) => f.isDirectory || isSupportedProjectFileName(f.name),
-      );
+      const validFiles: FileInfo[] = [];
+      for (const f of listed) {
+        if (f.isDirectory || isSupportedProjectFileName(f.name)) {
+          validFiles.push(f);
+        } else if (showJavaFiles && f.name.toLowerCase().endsWith(".java")) {
+          const mtime = new Date(f.modified).getTime();
+          const cached = javaImportCache.get(f.path);
+          let hasPaths = false;
+          if (cached && cached.mtime === mtime) {
+            hasPaths = cached.hasImportablePaths;
+          } else {
+            try {
+              const content = await electronAPI.readFile?.(f.path);
+              if (content) {
+                const imported = importJavaProject(content);
+                hasPaths = !!(imported.lines && imported.lines.length > 0);
+              }
+            } catch {
+              hasPaths = false;
+            }
+            javaImportCache.set(f.path, {
+              mtime,
+              hasImportablePaths: hasPaths,
+            });
+          }
+          if (hasPaths) {
+            validFiles.push(f);
+          }
+        }
+      }
+
+      files = validFiles;
       if (currentDirectory !== baseDirectory) {
         files.unshift({
           name: "..",
@@ -215,6 +314,48 @@
   async function openDirectory(dir: string) {
     currentDirectory = dir;
     await refreshDirectory();
+    if (isGitHubPath(dir)) void githubRepos.rememberFolder(dir);
+  }
+
+  async function showRepo({ record, folder, file }: OpenedRepo) {
+    browsingRepo.set(repoKey(record));
+    baseDirectory = githubPath(record);
+    await openDirectory(folder);
+    if (file) {
+      await loadFile({
+        name: fileNameOf(file),
+        path: file,
+        size: 0,
+        modified: new Date(),
+      });
+    }
+  }
+
+  async function leaveRepo() {
+    browsingRepo.set(null);
+    await loadDirectory();
+  }
+
+  /** After a commit or an update from GitHub. */
+  async function handleRepoChanged(update?: UpdateResult) {
+    await refreshDirectory();
+    if (update?.status !== "updated") return;
+
+    const open = get(currentFilePath);
+    if (!open || !update.changedOnGitHub.includes(open)) return;
+    if (get(isUnsaved)) {
+      notify(
+        `${fileNameOf(open)} changed on GitHub. Your unsaved edits are still open; reopen the file to see GitHub's version.`,
+        "warning",
+      );
+    } else if (await electronAPI?.fileExists(open)) {
+      await loadFile({
+        name: fileNameOf(open),
+        path: open,
+        size: 0,
+        modified: new Date(),
+      });
+    }
   }
 
   async function chooseBaseDirectory() {
@@ -228,6 +369,7 @@
     try {
       const dir = await electronAPI.setDirectory();
       if (!dir) return;
+      browsingRepo.set(null);
       baseDirectory = dir;
       await saveAutoPathsDirectory(dir);
       await openDirectory(dir);
@@ -272,6 +414,14 @@
   // --- Opening and importing ---
 
   async function loadFile(file: FileInfo) {
+    if (file.name.toLowerCase().endsWith(".java")) {
+      const ok = await followJavaFile(file.path);
+      if (ok) {
+        isOpen = false;
+        selectedFile = file;
+      }
+      return;
+    }
     await autosaveBeforeLeaving();
     try {
       if (!electronAPI?.readFile) {
@@ -355,7 +505,6 @@
     if (!confirmDiscardChanges("a new Java file")) return;
 
     try {
-      const { importJavaProject } = await import("../utils/javaImporter");
       const imported = importJavaProject(await file.text());
       startPointStore.set(imported.startPoint);
       linesStore.set(imported.lines);
@@ -568,7 +717,9 @@
 
     // Keep the extension if the user leaves it off.
     const fileName =
-      file.isDirectory || isSupportedProjectFileName(cleanName)
+      file.isDirectory ||
+      isSupportedProjectFileName(cleanName) ||
+      cleanName.toLowerCase().endsWith(".java")
         ? cleanName
         : cleanName + getProjectExtensionFromPath(file.name);
     if (fileName === file.name) return;
@@ -713,16 +864,18 @@
   <!-- Drop Zone (Right Area) -->
   {#if isOpen && isDraggingPath}
     <div
-      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 z-[1015]"
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-emerald-500/10 z-[1015]"
       style="left: {sidebarWidth}px;"
     >
       <div
-        class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+        class="bg-white dark:bg-neutral-800 p-8 rounded-md shadow-2xl flex flex-col items-center border-4 border-dashed border-emerald-500 animate-pulse"
       >
         <CloudArrowDownIcon
-          className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
+          className="h-16 w-16 text-emerald-600 dark:text-emerald-400 mb-4"
         />
-        <h2 class="text-2xl font-bold mb-2 text-neutral-900 dark:text-white">
+        <h2
+          class="text-2xl font-bold mb-2 text-neutral-900 dark:text-neutral-100"
+        >
           Drop Zone
         </h2>
         <p class="text-neutral-500 dark:text-neutral-400">
@@ -734,11 +887,12 @@
 
   <!-- Sidebar -->
   <div
-    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 pointer-events-auto"
+    role="complementary"
+    aria-label="File manager"
+    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-700 pointer-events-auto"
     style="width: {isOpen ? sidebarWidth : 384}px"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
-    role="presentation"
     ondragstart={() => (isDraggingPath = true)}
     ondragend={() => (isDraggingPath = false)}
     ondragover={(e) => {
@@ -760,18 +914,23 @@
     ></button>
 
     <!-- Header -->
-    <div
-      class="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-20"
-    >
-      <h2
-        class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-      >
+    <div class="{ui.dialogHeader} z-20">
+      <h2 class="{ui.title} flex items-center gap-2">
         <FolderIcon className="size-5" />
         Files
       </h2>
+      <span class="flex-1"></span>
+      <button
+        onclick={() => (showGitHubDialog = true)}
+        class="{ui.iconBtnSm.neutral} mr-1"
+        title="Open from GitHub"
+        aria-label="Open from GitHub"
+      >
+        <GithubIcon className="size-5" />
+      </button>
       <button
         onclick={() => (isOpen = false)}
-        class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        class={ui.iconBtnSm.neutral}
         aria-label="Close"
       >
         <CloseIcon className="size-5" />
@@ -784,12 +943,14 @@
         {searchQuery}
         {sortMode}
         {viewMode}
+        {showJavaFiles}
         onsearch={(val) => (searchQuery = val)}
         onsortchange={setSortMode}
         onviewchange={(val) => {
           viewMode = val;
           filePreviews.reloadFailed();
         }}
+        ontogglejava={toggleShowJavaFiles}
       />
     </div>
 
@@ -801,6 +962,10 @@
       onchangeDirDialog={chooseBaseDirectory}
       ongoUp={goUpDirectory}
     />
+
+    {#if repo}
+      <GitHubRepoBar {repo} onleave={leaveRepo} onchanged={handleRepoChanged} />
+    {/if}
 
     <!-- Error Display -->
     {#if errorMessage}
@@ -816,13 +981,15 @@
       <div
         class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
       >
-        <div class="text-xs font-medium text-neutral-500 mb-1">
+        <div
+          class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+        >
           New Folder Name
         </div>
         <input
           bind:value={newFolderName}
           use:autofocus
-          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+          class="{ui.inputSm} w-full mb-2"
           placeholder="New Folder"
           onkeydown={(e) => {
             if (e.key === "Enter") createNewFolder(newFolderName);
@@ -832,11 +999,11 @@
 
         <div class="flex gap-2">
           <button
-            class="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+            class="{ui.btnSm.primary} flex-1"
             onclick={() => createNewFolder(newFolderName)}>Create</button
           >
           <button
-            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+            class="{ui.btnSm.secondary} flex-1"
             onclick={() => (creatingNewFolder = false)}>Cancel</button
           >
         </div>
@@ -848,13 +1015,15 @@
       <div
         class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
       >
-        <div class="text-xs font-medium text-neutral-500 mb-1">
+        <div
+          class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+        >
           New File Name
         </div>
         <input
           bind:value={newFileName}
           use:autofocus
-          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+          class="{ui.inputSm} w-full mb-2"
           placeholder="path_name.turt"
           onkeydown={(e) => {
             if (e.key === "Enter") createNewFile(newFileName);
@@ -864,11 +1033,11 @@
 
         <div class="flex gap-2">
           <button
-            class="flex-1 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+            class="{ui.btnSm.success} flex-1"
             onclick={() => createNewFile(newFileName)}>Create</button
           >
           <button
-            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+            class="{ui.btnSm.secondary} flex-1"
             onclick={() => (creatingNewFile = false)}>Cancel</button
           >
         </div>
@@ -881,7 +1050,7 @@
       <div class="absolute top-4 right-4 z-[100] floating-add-container">
         <button
           onclick={() => (showAddMenu = !showAddMenu)}
-          class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-emerald-600 dark:text-neutral-400 dark:hover:text-emerald-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           title="Add / Import"
           aria-label="Add / Import"
           aria-haspopup="true"
@@ -892,16 +1061,18 @@
 
         {#if showAddMenu}
           <div
-            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
+            class="{ui.menu} absolute right-0 top-full mt-2 w-48 flex flex-col overflow-hidden"
           >
             <button
               onclick={() => {
-                creatingNewFile = true;
+                void startNewFile();
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
-              <DocumentIcon className="size-4 text-green-500" />
+              <DocumentIcon
+                className="size-4 text-emerald-600 dark:text-emerald-400"
+              />
               New File
             </button>
 
@@ -910,7 +1081,7 @@
                 creatingNewFolder = true;
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <FolderPlusIcon className="size-4 text-blue-500" />
               New Folder
@@ -927,9 +1098,9 @@
                 fileInput?.click();
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
-              <ArrowDownTrayIcon className="size-4 text-purple-500" />
+              <ArrowDownTrayIcon className="size-4 text-emerald-500" />
               Import File
             </button>
 
@@ -938,10 +1109,35 @@
                 javaInput?.click();
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <CodeBracketSquareIcon className="size-4 text-orange-500" />
               Import Java
+            </button>
+
+            {#if electronAPI?.followJavaFile}
+              <button
+                onclick={async () => {
+                  showAddMenu = false;
+                  if (await followJavaFile()) isOpen = false;
+                }}
+                title="Show a Java file's paths on the field, updated each time you save it in your editor"
+                class={ui.menuItem}
+              >
+                <EyeIcon className="size-4 text-emerald-600" />
+                Follow Java File
+              </button>
+            {/if}
+
+            <button
+              onclick={() => {
+                showGitHubDialog = true;
+                showAddMenu = false;
+              }}
+              class={ui.menuItem}
+            >
+              <GithubIcon className="size-4" />
+              Open from GitHub
             </button>
 
             <button
@@ -950,7 +1146,7 @@
                 showTelemetryDialog.set(true);
                 showAddMenu = false;
               }}
-              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+              class={ui.menuItem}
             >
               <ServerStackIcon className="size-4 text-blue-500" />
               Import Telemetry
@@ -980,25 +1176,24 @@
       <!-- File List / Grid -->
       {#if loading}
         <div
-          class="flex-1 flex items-center justify-center text-neutral-400 text-sm h-full"
+          class="flex-1 flex items-center justify-center text-neutral-500 dark:text-neutral-400 text-sm h-full"
         >
           <LoadingSpinner />
         </div>
       {:else if visibleFiles.length === 0}
         <div
-          class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center h-full"
+          class="flex-1 flex flex-col items-center justify-center text-neutral-500 dark:text-neutral-400 p-8 text-center h-full"
         >
           <DocumentIcon className="size-12 mb-2 opacity-30" />
           <p class="text-sm">No files found</p>
           {#if searchQuery}
             <button
-              class="text-xs text-blue-500 mt-2 hover:underline"
+              class="{ui.link} text-xs mt-2"
               onclick={() => (searchQuery = "")}>Clear search</button
             >
           {:else}
-            <button
-              class="text-xs text-blue-500 mt-2 hover:underline"
-              onclick={() => (creatingNewFile = true)}>Create a new file</button
+            <button class="{ui.link} text-xs mt-2" onclick={startNewFile}
+              >Create a new file</button
             >
           {/if}
         </div>
@@ -1017,6 +1212,7 @@
           onrenameCancel={() => (renamingFile = null)}
           onmenuAction={handleMenuAction}
           onmoveFile={moveFile}
+          lockFolders={!!repo}
         />
       {:else}
         <FileGrid
@@ -1024,7 +1220,7 @@
           selectedFilePath={selectedFile?.path ?? null}
           {sortMode}
           fieldImage={settings.fieldMap}
-          showGitStatus={settings.gitIntegration}
+          showGitStatus={settings.gitIntegration || !!repo}
           {renamingFile}
           onselect={(file) => (selectedFile = file)}
           onopen={(file) => handleOpen(file)}
@@ -1034,18 +1230,19 @@
           onrenameCancel={() => (renamingFile = null)}
           onmenuAction={handleMenuAction}
           onmoveFile={moveFile}
+          lockFolders={!!repo}
         />
       {/if}
     </div>
 
     <!-- Footer Status -->
     <div
-      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
+      class="p-2 text-xs text-neutral-500 dark:text-neutral-400 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
     >
       <div class="flex items-center gap-2">
         <button
           onclick={handleRefresh}
-          class="p-1 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          class="{ui.iconBtnSm.neutral} shrink-0"
           title="Refresh"
           aria-label="Refresh"
         >
@@ -1063,3 +1260,5 @@
     </div>
   </div>
 </div>
+
+<GitHubOpenDialog bind:show={showGitHubDialog} onopened={showRepo} />

@@ -10,6 +10,7 @@
   import SaveIcon from "../icons/SaveIcon.svelte";
   import DownloadIcon from "../icons/DownloadIcon.svelte";
   import { fade } from "svelte/transition";
+  import { ui } from "../../ui";
 
   interface Props {
     settings: Settings;
@@ -269,9 +270,7 @@
   }
 </script>
 
-<div
-  class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-3 mb-4"
->
+<div class="{ui.card} p-3 mb-4">
   <div class="flex items-center justify-between mb-3">
     <div>
       <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -286,14 +285,14 @@
         <button
           onclick={() =>
             document.getElementById("profile-import-input")?.click()}
-          class="text-xs px-2 py-1 bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class={ui.btnSm.secondary}
           aria-label="Import profile"
         >
           Import
         </button>
         <button
           onclick={() => (isCreating = true)}
-          class="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+          class={ui.btnSm.accentSoft}
           aria-label="Create new profile"
         >
           + New Profile
@@ -324,7 +323,7 @@
         type="text"
         bind:value={newProfileName}
         placeholder="e.g. Competition Bot"
-        class="w-full px-2 py-1 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        class="{ui.inputXs} w-full"
         onkeydown={(e) => {
           if (e.key === "Enter") handleCreateProfile();
           if (e.key === "Escape") isCreating = false;
@@ -333,14 +332,11 @@
       <div class="flex justify-end gap-2 mt-1">
         <button
           onclick={() => (isCreating = false)}
-          class="text-xs px-2 py-1 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200"
+          class="text-xs px-2 py-1 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200"
         >
           Cancel
         </button>
-        <button
-          onclick={handleCreateProfile}
-          class="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        >
+        <button onclick={handleCreateProfile} class={ui.btnSm.primary}>
           Save Current Settings
         </button>
       </div>
@@ -350,7 +346,7 @@
   <div class="flex flex-col gap-2">
     {#if profiles.length === 0}
       <div
-        class="text-xs text-neutral-400 text-center py-4 italic border border-dashed border-neutral-200 dark:border-neutral-700 rounded"
+        class="text-xs text-neutral-500 dark:text-neutral-400 text-center py-4 italic border border-dashed border-neutral-200 dark:border-neutral-700 rounded"
       >
         No saved profiles yet.
       </div>
@@ -358,7 +354,7 @@
       <div class="flex gap-2">
         <select
           bind:value={selectedProfileId}
-          class="flex-1 px-2 py-1.5 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          class="{ui.inputSm} flex-1"
           aria-label="Select robot profile"
         >
           <option value="" disabled>Select a profile...</option>
@@ -370,7 +366,7 @@
         <button
           onclick={handleApplyProfile}
           disabled={!selectedProfileId}
-          class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          class={ui.btnSm.primary}
           title="Load settings from selected profile"
           aria-label="Load settings from selected profile"
         >
@@ -380,7 +376,7 @@
 
       {#if selectedProfileId}
         <div class="flex justify-between items-center mt-1 px-1 h-8">
-          <div class="text-xs text-neutral-400">
+          <div class="text-xs text-neutral-500 dark:text-neutral-400">
             Actions for selected profile:
           </div>
           <div class="flex items-center gap-1">
@@ -391,7 +387,7 @@
               class={`ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 updateConfirming
                   ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/50 w-20"
-                  : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-400 hover:text-blue-500 w-8"
+                  : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-500 dark:text-neutral-400 hover:text-blue-500 w-8"
               }`}
               title="Overwrite profile with current settings"
               aria-label="Overwrite profile with current settings"
@@ -415,7 +411,7 @@
             <button
               aria-label="Export Profile"
               onclick={handleExportProfile}
-              class="ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-8"
+              class="{ui.iconBtnSm.neutral} ml-1 w-8"
               title="Export Profile"
             >
               <DownloadIcon className="size-4" strokeWidth={2} />

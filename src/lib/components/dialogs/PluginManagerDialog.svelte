@@ -14,6 +14,7 @@
     TriangleWarningIcon,
     ArrowCircleIcon,
   } from "../icons";
+  import { ui } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -56,7 +57,7 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 300, easing: cubicInOut }}
-    class="fixed inset-0 z-[1005] flex items-center justify-center p-4 bg-black/40"
+    class="{ui.overlay} z-[1005]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="plugin-manager-title"
@@ -64,23 +65,23 @@
     <!-- Modal Container -->
     <div
       transition:fly={{ duration: 300, y: 20, easing: cubicInOut }}
-      class="flex flex-col w-full max-w-4xl max-h-[85vh] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden relative"
+      class="{ui.dialog} flex flex-col w-full max-w-4xl max-h-[85vh] overflow-hidden relative"
     >
       <!-- Header -->
       <div
-        class="flex flex-col gap-4 p-6 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-20"
+        class="flex flex-col gap-4 p-6 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 z-20"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+              class="flex items-center justify-center w-10 h-10 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
             >
               <PuzzleIcon className="size-6" />
             </div>
             <div>
               <h2
                 id="plugin-manager-title"
-                class="text-xl font-bold text-neutral-900 dark:text-white"
+                class="text-xl font-bold text-neutral-900 dark:text-neutral-100"
               >
                 Plugin Manager
               </h2>
@@ -92,7 +93,7 @@
           <button
             onclick={() => (isOpen = false)}
             aria-label="Close"
-            class="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+            class={ui.iconBtn.neutral}
           >
             <CloseIcon className="size-6" />
           </button>
@@ -103,14 +104,14 @@
             class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
           >
             <SearchIcon
-              className="size-5 text-neutral-400 group-focus-within:text-purple-500 transition-colors"
+              className="size-5 text-neutral-500 dark:text-neutral-400 group-focus-within:text-emerald-500 transition-colors"
             />
           </div>
           <input
             type="text"
             bind:value={searchQuery}
             placeholder="Search installed plugins..."
-            class="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:bg-white dark:focus:bg-neutral-900 focus:border-purple-500 rounded-xl text-neutral-900 dark:text-white placeholder-neutral-500 transition-all outline-none"
+            class="{ui.input} w-full pl-10"
           />
         </div>
       </div>
@@ -130,7 +131,9 @@
                 className="size-16 text-neutral-300 dark:text-neutral-600"
               />
             </div>
-            <h3 class="text-xl font-semibold text-neutral-900 dark:text-white">
+            <h3
+              class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
+            >
               No Plugins Installed
             </h3>
             <p
@@ -141,7 +144,7 @@
             </p>
             <button
               onclick={() => PluginManager.openPluginsFolder()}
-              class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all font-medium shadow-lg hover:shadow-purple-500/25 flex items-center gap-2"
+              class={ui.btn.primary}
             >
               <FolderIcon className="size-5" />
               Open Plugins Folder
@@ -154,18 +157,17 @@
             <div
               class="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-full mb-4"
             >
-              <SearchIcon className="size-8 text-neutral-400" />
+              <SearchIcon
+                className="size-8 text-neutral-500 dark:text-neutral-400"
+              />
             </div>
             <p class="text-neutral-500 dark:text-neutral-400 text-lg">
               No plugins match "<span
-                class="font-semibold text-neutral-900 dark:text-white"
+                class="font-semibold text-neutral-900 dark:text-neutral-100"
                 >{searchQuery}</span
               >"
             </p>
-            <button
-              onclick={() => (searchQuery = "")}
-              class="mt-4 text-purple-600 dark:text-purple-400 hover:underline"
-            >
+            <button onclick={() => (searchQuery = "")} class="{ui.link} mt-4">
               Clear search
             </button>
           </div>
@@ -181,29 +183,29 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
+                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
               >
                 <div class="flex items-start justify-between gap-4 mb-3">
                   <div class="flex items-center gap-3 min-w-0">
                     <div
-                      class="flex-shrink-0 p-2.5 rounded-lg {plugin.enabled
-                        ? 'bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400'
-                        : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'}"
+                      class="flex-shrink-0 p-2.5 rounded-md {plugin.enabled
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}"
                     >
                       <PuzzleIcon className="size-5" />
                     </div>
                     <div class="min-w-0">
                       <h3
-                        class="font-semibold text-neutral-900 dark:text-white truncate text-base"
+                        class="font-semibold text-neutral-900 dark:text-neutral-100 truncate text-base"
                         title={plugin.name}
                       >
                         {plugin.name}
                       </h3>
                       <div class="flex items-center gap-2 mt-0.5">
                         <span
-                          class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium {plugin.enabled
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-400'}"
+                          class={ui.badge[
+                            plugin.enabled ? "success" : "neutral"
+                          ]}
                         >
                           <span
                             class="w-1.5 h-1.5 rounded-full {plugin.enabled
@@ -220,14 +222,14 @@
                 <div class="mt-auto flex flex-col gap-3">
                   {#if plugin.description}
                     <p
-                      class="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2"
+                      class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2"
                     >
                       {plugin.description}
                     </p>
                   {/if}
 
                   <div
-                    class="pt-3 flex items-center justify-between border-t border-neutral-100 dark:border-neutral-700/50"
+                    class="pt-3 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-700"
                   >
                     <label
                       class="relative inline-flex items-center cursor-pointer group/toggle"
@@ -243,7 +245,7 @@
                         class="sr-only peer"
                       />
                       <div
-                        class="w-9 h-5 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500/20 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-purple-600"
+                        class="w-9 h-5 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500/20 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-emerald-600"
                       ></div>
                       <span
                         class="ml-2 text-xs font-medium text-neutral-500 group-hover/toggle:text-neutral-700 dark:text-neutral-400 dark:group-hover/toggle:text-neutral-200 transition-colors"
@@ -254,7 +256,7 @@
 
                     <button
                       onclick={() => (pluginToDelete = plugin)}
-                      class="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      class={ui.iconBtnSm.danger}
                       title="Delete plugin"
                     >
                       <TrashIcon className="size-4" />
@@ -274,11 +276,11 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="flex flex-col p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800/50"
+                class="{ui.alert.danger} flex flex-col"
               >
                 <div class="flex items-start gap-3 mb-2">
                   <div
-                    class="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                    class="p-2 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
                   >
                     <TriangleWarningIcon className="size-5" />
                   </div>
@@ -295,7 +297,7 @@
                   </div>
                   <button
                     onclick={() => (pluginToDelete = plugin)}
-                    class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                    class={ui.iconBtnSm.danger}
                   >
                     <TrashIcon className="size-4" />
                   </button>
@@ -312,30 +314,25 @@
       </div>
 
       <!-- Footer -->
-      <div
-        class="p-4 bg-neutral-50 dark:bg-neutral-800/50 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center"
-      >
+      <div class="{ui.dialogFooter} justify-between">
         <div class="flex gap-3">
           <button
             onclick={() => PluginManager.openPluginsFolder()}
-            class="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors font-medium flex items-center gap-2"
+            class={ui.btn.ghost}
           >
             <FolderIcon className="size-5" />
             Open Folder
           </button>
           <button
             onclick={() => PluginManager.reloadPlugins()}
-            class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors font-medium flex items-center gap-2"
+            class={ui.btn.ghost}
           >
             <ArrowCircleIcon className="size-4" />
             Reload All
           </button>
         </div>
 
-        <button
-          onclick={() => (isOpen = false)}
-          class="px-6 py-2 text-sm bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black rounded-lg transition-colors font-semibold shadow-sm"
-        >
+        <button onclick={() => (isOpen = false)} class={ui.btn.primary}>
           Done
         </button>
       </div>
@@ -348,33 +345,32 @@
         >
           <div
             transition:scale={{ duration: 200, start: 0.95 }}
-            class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-6 max-w-sm w-full text-center"
+            class="{ui.dialog} p-6 max-w-sm w-full text-center"
           >
             <div
               class="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4"
             >
               <TrashIcon className="size-6 text-red-600 dark:text-red-400" />
             </div>
-            <h3 class="text-lg font-bold text-neutral-900 dark:text-white mb-2">
+            <h3
+              class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2"
+            >
               Delete Plugin?
             </h3>
             <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
               Are you sure you want to remove <span
-                class="font-semibold text-neutral-900 dark:text-white"
+                class="font-semibold text-neutral-900 dark:text-neutral-100"
                 >{pluginToDelete.name}</span
               >? This cannot be undone.
             </p>
             <div class="flex gap-3">
               <button
                 onclick={() => (pluginToDelete = null)}
-                class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
+                class="{ui.btn.outline} flex-1"
               >
                 Cancel
               </button>
-              <button
-                onclick={confirmDelete}
-                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium text-sm shadow-sm"
-              >
+              <button onclick={confirmDelete} class="{ui.btn.danger} flex-1">
                 Delete
               </button>
             </div>

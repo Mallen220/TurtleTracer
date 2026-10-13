@@ -22,6 +22,7 @@
     interpolateTFromProfile,
   } from "../../utils/math";
   import { startPointStore } from "../projectStore";
+  import { ui } from "../ui";
 
   interface Props {
     sequence: SequenceItem[];
@@ -462,9 +463,7 @@
   );
 </script>
 
-<div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
->
+<div class="{ui.card} flex flex-col w-full overflow-hidden">
   <SectionHeader
     title="Event Markers"
     bind:collapsed={collapsedMarkers}
@@ -482,7 +481,10 @@
         >
           {#snippet icon()}
             <div>
-              <ZapIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
+              <ZapIcon
+                className="size-6 text-neutral-500 dark:text-neutral-400"
+                strokeWidth={1.5}
+              />
             </div>
           {/snippet}
         </EmptyState>
@@ -491,7 +493,7 @@
           <div
             role="group"
             id={`global-marker-${marker.id}`}
-            class="flex flex-col p-2 border border-purple-200 dark:border-purple-800 rounded-md bg-purple-50/50 dark:bg-purple-900/10 gap-2"
+            class="flex flex-col p-2 border border-emerald-200 dark:border-emerald-800 rounded-md bg-emerald-50/50 dark:bg-emerald-900/10 gap-2"
             onmouseenter={() => hoveredMarkerId.set(marker.id)}
             onmouseleave={() => hoveredMarkerId.set(null)}
           >
@@ -499,7 +501,7 @@
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-1">
                   <div
-                    class="w-2 h-2 rounded-full bg-purple-500 shrink-0"
+                    class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
                   ></div>
                   <SearchableDropdown
                     value={marker.ref.name}
@@ -513,7 +515,7 @@
                   />
                 </div>
                 <button
-                  class="text-neutral-400 hover:text-red-500 transition-colors"
+                  class="text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors"
                   onclick={() => removeMarker(marker)}
                   title="Remove Marker"
                   aria-label="Remove Marker"
@@ -523,9 +525,12 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <span class="text-xs text-neutral-500">Type:</span>
+                <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                  >Type:</span
+                >
                 <select
-                  class="rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs py-1 px-2 flex-1"
+                  class="{ui.inputXs} flex-1"
+                  aria-label="Event marker type"
                   value={marker.ref.type || "parametric"}
                   onchange={(e) => {
                     marker.ref.type = e.currentTarget.value as any;
@@ -570,7 +575,7 @@
                   max={nonMacroCount}
                   step="0.01"
                   value={marker.globalPosition}
-                  class="flex-1 slider accent-purple-500"
+                  class="flex-1 slider accent-emerald-600"
                   oninput={(e) =>
                     handleGlobalPositionInput(
                       marker,
@@ -589,7 +594,7 @@
                   max={nonMacroCount}
                   step="0.01"
                   value={Number.parseFloat(marker.globalPosition.toFixed(2))}
-                  class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
+                  class="{ui.inputXs} w-16 text-center"
                   onchange={(e) =>
                     handleGlobalPositionCommit(
                       marker,
@@ -601,7 +606,7 @@
               <div class="flex flex-col gap-1 mt-1">
                 {#if marker.segmentStartTime !== undefined}
                   <div
-                    class="flex justify-between items-center text-[10px] text-neutral-400 px-1"
+                    class="flex justify-between items-center text-[10px] text-neutral-500 dark:text-neutral-400 px-1"
                   >
                     <span
                       >Time after Start: {Math.round(
@@ -622,7 +627,7 @@
                     max={(timePrediction?.totalTime ?? 10) * 1000}
                     step="1"
                     value={marker.ref.endTime ?? marker.ref.time ?? 500}
-                    class="flex-1 slider accent-purple-500"
+                    class="flex-1 slider accent-emerald-600"
                     oninput={(e) =>
                       handleGlobalTimeInput(
                         marker,
@@ -640,7 +645,7 @@
                     aria-label="Event time in milliseconds"
                     min="0"
                     step="1"
-                    class="w-20 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
+                    class="{ui.inputXs} w-20 text-center"
                     onchange={(e) =>
                       handleGlobalTimeCommit(
                         marker,
@@ -652,12 +657,15 @@
             {:else if marker.ref.type === "pose"}
               <div class="grid grid-cols-2 gap-2 mt-1">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-neutral-500 w-3">X:</span>
+                  <span
+                    class="text-xs text-neutral-500 dark:text-neutral-400 w-3"
+                    >X:</span
+                  >
                   <input
                     type="number"
                     value={(marker.ref.poseX ?? 0).toFixed(2)}
                     step="0.01"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    class="{ui.inputXs} flex-1"
                     onchange={(e) => {
                       const val = Number.parseFloat(e.currentTarget.value);
                       marker.ref.poseX = Math.round(val * 100) / 100;
@@ -667,12 +675,15 @@
                   />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-neutral-500 w-3">Y:</span>
+                  <span
+                    class="text-xs text-neutral-500 dark:text-neutral-400 w-3"
+                    >Y:</span
+                  >
                   <input
                     type="number"
                     value={(marker.ref.poseY ?? 0).toFixed(2)}
                     step="0.01"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    class="{ui.inputXs} flex-1"
                     onchange={(e) => {
                       const val = Number.parseFloat(e.currentTarget.value);
                       marker.ref.poseY = Math.round(val * 100) / 100;
@@ -683,7 +694,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <span
-                    class="text-xs text-neutral-500 w-3 shrink-0"
+                    class="text-xs text-neutral-500 dark:text-neutral-400 w-3 shrink-0"
                     title="Parametric Guess (Local: {(
                       marker.ref.poseGuess ?? getAutoPoseGuess(marker)
                     ).toFixed(3)}, Global: {getGlobalPoseGuess(marker).toFixed(
@@ -701,7 +712,7 @@
                     min="0"
                     max={lines.length.toString()}
                     step="0.001"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    class="{ui.inputXs} flex-1"
                     oninput={(e) => {
                       const val = e.currentTarget.value;
                       if (val === "") {

@@ -9,6 +9,7 @@
   import RobotFeaturesEditor from "../RobotFeaturesEditor.svelte";
   import { notification } from "../../../../stores";
   import { CloseIcon, RobotPlaceholderIcon } from "../../icons";
+  import { ui } from "../../../ui";
 
   interface Props {
     settings: Settings;
@@ -48,11 +49,7 @@
 
 <div class="section-container mb-8">
   {#if searchQuery}
-    <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
-    >
-      Robot
-    </h4>
+    <h4 class="{ui.heading} mb-4 border-b pb-1">Robot</h4>
   {/if}
 
   <SettingsItem
@@ -85,7 +82,7 @@
         max="36"
         step="0.5"
         onchange={(e) => setNumber("rLength", e.currentTarget.value, 1, 36)}
-        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="{ui.input} w-full"
       />
     </SettingsItem>
     <SettingsItem
@@ -105,7 +102,7 @@
         max="36"
         step="0.5"
         onchange={(e) => setNumber("rWidth", e.currentTarget.value, 1, 36)}
-        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="{ui.input} w-full"
       />
     </SettingsItem>
   </div>
@@ -121,7 +118,7 @@
       type="checkbox"
       checked={settings.validationDisabled}
       onchange={(e) => set("validationDisabled", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -144,7 +141,7 @@
         step="0.5"
         onchange={(e) =>
           setNumber("safetyMargin", e.currentTarget.value, 0, 24)}
-        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="{ui.input} w-full"
       />
     </SettingsItem>
 
@@ -160,7 +157,7 @@
         checked={settings.validateFieldBoundaries}
         onchange={(e) =>
           set("validateFieldBoundaries", e.currentTarget.checked)}
-        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        class={ui.checkbox}
       />
     </SettingsItem>
 
@@ -175,7 +172,7 @@
         type="checkbox"
         checked={settings.continuousValidation}
         onchange={(e) => set("continuousValidation", e.currentTarget.checked)}
-        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        class={ui.checkbox}
       />
     </SettingsItem>
   {/if}
@@ -191,7 +188,7 @@
       type="checkbox"
       checked={settings.restrictDraggingToField}
       onchange={(e) => set("restrictDraggingToField", e.currentTarget.checked)}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      class={ui.checkbox}
     />
   </SettingsItem>
 
@@ -222,9 +219,7 @@
         Upload a custom image for your robot
       </div>
     </div>
-    <div
-      class="flex flex-col items-center gap-3 p-4 border border-neutral-300 dark:border-neutral-700 rounded-md bg-neutral-50 dark:bg-neutral-800/50"
-    >
+    <div class="{ui.well} flex flex-col items-center gap-3 p-4">
       <!-- Image Preview & Controls (Same as original) -->
       <div
         class="relative w-24 h-24 border-2 border-neutral-300 dark:border-neutral-600 rounded-md overflow-hidden bg-white dark:bg-neutral-900"
@@ -254,7 +249,7 @@
           </button>
         {/if}
       </div>
-      <div class="text-center text-xs text-neutral-600 dark:text-neutral-400">
+      <div class="text-center text-xs text-neutral-500 dark:text-neutral-400">
         {#if settings.robotImage === "none"}
           <p>No robot image selected (default)</p>
         {:else if settings.robotImage && settings.robotImage !== "/robot.png"}
@@ -280,14 +275,14 @@
         />
         <button
           onclick={() => set("robotImage", "none")}
-          class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+          class={ui.btnSm.danger}
           disabled={settings.robotImage === "none"}
         >
           No Image (Recommended)
         </button>
         <button
           onclick={() => set("robotImage", "/robot.png")}
-          class="px-3 py-1.5 text-xs bg-neutral-500 hover:bg-neutral-600 text-white rounded-md transition-colors"
+          class={ui.btnSm.secondary}
           disabled={!settings.robotImage ||
             settings.robotImage === "/robot.png"}
         >
@@ -295,20 +290,20 @@
         </button>
         <button
           onclick={() => set("robotImage", "/JefferyThePotato.png")}
-          class="potato-tooltip px-3 py-1.5 text-xs bg-amber-700 hover:bg-amber-800 text-white rounded-md transition-colors flex items-center gap-1 overflow-hidden relative"
+          class="{ui.btnSm.warning} potato-tooltip overflow-hidden relative"
           style="background-image: linear-gradient(45deg, #a16207 25%, #ca8a04 25%, #ca8a04 50%, #a16207 50%, #a16207 75%, #ca8a04 75%, #ca8a04 100%); background-size: 20px 20px;"
         >
           <span>🥔</span> Use Potato Robot
         </button>
         <button
           onclick={() => set("robotImage", "turtle")}
-          class="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+          class={ui.btnSm.secondary}
         >
           🐢 Use Turtle Robot
         </button>
         <button
           onclick={() => document.getElementById("robot-image-input")?.click()}
-          class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+          class={ui.btnSm.primary}
         >
           Upload Custom
         </button>
@@ -330,19 +325,13 @@
             class="flex gap-2"
           >
             <button
-              class="px-3 py-1.5 text-sm rounded-md transition-colors
-                              {settings.robotDriveType === 'holonomic'
-                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
-                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+              class={ui.choice(settings.robotDriveType === "holonomic")}
               onclick={() => set("robotDriveType", "holonomic")}
             >
               Holonomic
             </button>
             <button
-              class="px-3 py-1.5 text-sm rounded-md transition-colors
-                              {settings.robotDriveType === 'swerve'
-                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
-                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+              class={ui.choice(settings.robotDriveType === "swerve")}
               onclick={() => set("robotDriveType", "swerve")}
             >
               Swerve
@@ -365,9 +354,10 @@
           </div>
           <input
             type="checkbox"
+            aria-label="Show wheel arrows"
             checked={settings.showRobotArrows}
             onchange={(e) => set("showRobotArrows", e.currentTarget.checked)}
-            class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            class={ui.checkbox}
           />
         </div>
       {/if}
@@ -404,7 +394,7 @@
           type="checkbox"
           checked={settings.showFakeHeadingArrow}
           onchange={(e) => set("showFakeHeadingArrow", e.currentTarget.checked)}
-          class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          class={ui.checkbox}
         />
       </SettingsItem>
 

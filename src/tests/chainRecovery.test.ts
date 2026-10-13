@@ -113,6 +113,27 @@ describe("simulateRecovery", () => {
     }
   });
 
+  it("keeps its speed when it's back on the path at once, to one side", () => {
+    // Handed over 2.3" beside a path that barely turns, at 18.7 in/s along
+    // it: within Pedro's tolerance at once, so the gap is crossed, not swung.
+    const fast = { ...settings, maxVelocity: 70, maxAcceleration: 70 };
+    const path = straight(junction, { x: 90, y: 7 });
+    const tx = 30 / Math.hypot(30, 7);
+    const ty = 7 / Math.hypot(30, 7);
+    const r = simulateRecovery({
+      position: { x: junction.x - 2.3 * ty, y: junction.y + 2.3 * tx },
+      velocity: { x: 18.7 * tx, y: 18.7 * ty },
+      path,
+      settings: fast,
+    });
+    expect(r.settled).toBe(true);
+    // Not at its top speed of 70 in/s: as fast as it was going.
+    expect(Math.max(...r.speed)).toBeLessThan(19.5);
+    expect(r.rejoinSpeed).toBeCloseTo(18.7, 0);
+    expect(r.x.at(-1)).toBeCloseTo(path[r.rejoinStep]!.x, 6);
+    expect(r.y.at(-1)).toBeCloseTo(path[r.rejoinStep]!.y, 6);
+  });
+
   it("starts where the robot is handed over and ends on the new path", () => {
     const path = straight(junction, north);
     const r = recover(north);
