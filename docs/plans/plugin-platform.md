@@ -884,3 +884,72 @@ adds some, and core code stays as simple as it was.
    folder or .zip" button in the plugin manager, with no remote catalogue. ANSWER: Sure for now, in the future I'll likely create a public repo that facilitates plugins if it really blows up. For now local only is great though.
 
    NOTE: This feature is expected to only be used by a very small subset of our users. 5-10%. Please ensure that a feature for the 5% does not measurable decrease the quality for the developers or users for the other 95%.
+
+## 12. Progress and what changed from the plan (2026-10-16)
+
+Built on `feature/plugin-platform` as local commits. All of §5 is in place
+and checked in the desktop app; the guide for plugin authors is
+`docs/plugins.md`.
+
+**Where the build differs from the plan above:**
+
+- **Plugin code runs in a hidden sandboxed frame, not a Web Worker.** A
+  worker would share the app's origin, so it could reach IndexedDB (where
+  GitHub working copies live) unless every storage API were deleted from it,
+  which is a deny-list to keep up with. A frame on `turtle-plugin://<id>/`,
+  sandboxed without `allow-same-origin`, has no storage, a strict policy (no
+  network) and its own process, all enforced by the browser. Views use the
+  same mechanism. The protocol and the `turtle` API are as planned.
+- **No v1 shim and no single-file plugins** (owner's decision, §11). Old
+  files are listed as "old format"; unmodified copies of the old bundled
+  ones are removed (`electron/plugins/legacy-bundled.json` has their hashes).
+- **Packages:** manifests can list npm `dependencies`, installed after
+  consent (integrity-checked, no install scripts) and bundled with
+  esbuild-wasm, which replaced `typescript` as a runtime dependency. The
+  network permission was left out: nothing needed it, and it would be the
+  one way out of the sandbox.
+- **Themes are declared in plugin.json**, so a theme-only plugin needs no
+  sandbox at all.
+- **Settings are declared in plugin.json** and edited in the plugin
+  manager; there's no separate settings tab.
+- **Plugin event markers** don't need a marker-type registry rewrite of the
+  built-in types: a plugin marker saves the position its plugin works out,
+  so drawing, export and TurtleTracerLib treat it as parametric.
+- **A plugin's console output** is shown in the plugin manager (there's no
+  DevTools shortcut in the app).
+- **`project.setData` isn't an undo step** (like strategy notes): adding
+  `extraData` to undo history would let undo wipe notes typed since.
+- **Handles (draggable plugin points) and importers** weren't built. Clicks
+  on plugin shapes and the Sticky Notes edit form cover the uses so far.
+
+**The 95%:** with no plugin on, nothing plugin-related loads (checked in the
+desktop app: no host chunk, no frames, no new UI), and the main bundle is no
+larger than before (1,928,228 bytes against 1,928,567). The plugin host
+(104 KB with zod), the plugin manager and the simulation menu load on demand.
+The packaged app's dependencies shrink by about 5 MB (typescript out,
+esbuild-wasm, zod, tar, yauzl and semver in).
+
+**Verified in the desktop app (Playwright driving Electron, scratch
+profile):** every bundled plugin starts in its sandbox; Sticky Notes adds,
+draws and edits a note; CSV export; the Intake step inserts, times and
+exports its code; the simulator's ghost robot and deviation; Compare Autos
+reads another project and shows its path and robot; a plugin marker type
+moves its marker; the 3D Field plugin downloads three.js, installs it and
+renders the field with the robot following playback; the consent dialog
+turns on a plugin that asks for a permission; turning a plugin off leaves
+its steps in the project as "needs the plugin". Bugs these runs found and
+fixed: zod refusing the message schema, the form dialog sending Svelte
+proxies, clicks on plugin shapes starting a selection box, the consent
+dialog opening behind the plugin manager, zip installs hanging, unknown
+`__turtle/` paths returning nothing, and the boot guard being too eager.
+
+**Tests:** `src/tests/plugins/` (protocol, an in-process runtime connected to
+a real `RunningPlugin` including hostile plugins, schemas with fuzzing,
+edits, snapshots, drawings, simulation, plugin steps, the host) and
+`electron/plugins/*.test.js` (paths and links, manifests, state, the npm
+installer against a fake registry, bundling, the protocol, installs
+including a zip-slip attempt, bundled plugin updates).
+
+**Left for the owner:** release notes (What's New is tied to a version
+number), and deciding whether to keep the examples bundled or move some
+out.

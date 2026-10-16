@@ -143,7 +143,7 @@ It is one app with two ways to run it. Use it in your browser at [live.turtletra
 - Field view: zoom, pan, rotate, or lock the view, and drag a box to select several points.
 - Presentation mode (`Alt+P`): hide the sidebar and navbar so the field fills the screen when you are showing a routine to someone else.
 - Custom field maps: import any field image with the built-in calibration wizard.
-- Plugins: add your own exporters and themes, or turn on bundled ones like Sticky Notes.
+- Plugins (desktop app): new kinds of step and event marker, exporters, drawings on the field, a 3D view of the field, robot simulators, themes and more. Plugins run in a sandbox and can only do what you allow. Turn on the bundled ones (3D Field, Sticky Notes, CSV Export, examples) in the Plugin Manager, or write your own: see [docs/plugins.md](docs/plugins.md).
 - Onboarding: an interactive tutorial walks new users through the app.
 
   <img src="README_Content/CommandPallete.png" alt="Screenshot showing the Command Palette (Cmd+K)" />
@@ -270,7 +270,7 @@ Exported code uses [TurtleTracerLib](https://www.turtletracer.com/turtle-tracer-
 4. Project data: the raw `.turt` file.
 5. Strategy sheet: a printable summary of your routine with room for strategy notes, for planning with alliance partners.
 6. Images and animations: PNG, JPEG, SVG, GIF, and APNG of your paths, for engineering notebooks.
-7. Custom formats: plugins can add their own exporters. The repository includes a CSV example in `plugins/`.
+7. Custom formats: plugins can add their own exporters, and their own steps can write code into the Java exports. The repository includes a CSV exporter in `plugins/csv-export`.
 
 A live code preview shows the generated code as you edit, and you can turn on auto export to write the code to a folder each time you save. To go the other way, import an existing Java autonomous from the file manager.
 

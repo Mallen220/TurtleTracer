@@ -167,12 +167,27 @@ Please include:
 
 ## Plugins
 
+Plugins are folders with a `plugin.json`; [docs/plugins.md](docs/plugins.md)
+explains how to write one, and `plugins/` has the bundled ones.
+
 If contributing a plugin:
 
-- Keep it self-contained
-- Avoid hard dependencies on internal state where possible
-- Document installation and usage
+- Use only the `turtle` API (it's all a plugin can reach anyway)
+- Ask for as few permissions and npm packages as you can, with exact versions
+- Describe what it does in `description`, and document anything else in the plugin
 - Follow the same quality and UX standards as core features
+
+If changing the plugin system itself:
+
+- The public API is `src/lib/plugins/api/`. `plugins/turtle.d.ts` is
+  generated from it (`npm run generate:types`), so document changes there.
+- The rest of the app reaches the plugin system only through
+  `src/lib/plugins/index.ts` and the core registries (`src/lib/registries.ts`,
+  the action and exporter registries). Lint enforces this, so the plugin
+  host is only loaded when a plugin is on.
+- Everything a plugin sends is checked in `src/lib/plugins/host/schemas.ts`.
+  Never use a plugin's data without passing it through there.
+- The design and the reasons for it are in `docs/plans/plugin-platform.md`.
 
 ---
 
