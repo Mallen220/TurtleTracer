@@ -51,7 +51,8 @@
     class="{ui.dialog} w-full max-w-md p-6"
     onsubmit={(e) => {
       e.preventDefault();
-      onSubmit(current);
+      // A plain copy: Svelte's state proxies can't be sent to a plugin.
+      onSubmit($state.snapshot(current));
     }}
   >
     <h2 id="plugin-form-title" class="{ui.title} mb-1">{title}</h2>

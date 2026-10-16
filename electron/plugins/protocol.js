@@ -131,7 +131,7 @@ export async function servePluginFile(url, pluginsDir, isEnabled) {
 
   // Our own files for running the plugin.
   if (relativePath.startsWith("__turtle/")) {
-    return serveSandboxFile(relativePath, folder, id) ?? notFound();
+    return (await serveSandboxFile(relativePath, folder, id)) ?? notFound();
   }
 
   const file = await fileInPlugin(folder, relativePath).catch(() => null);

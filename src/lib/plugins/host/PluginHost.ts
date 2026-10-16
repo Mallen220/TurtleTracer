@@ -45,6 +45,8 @@ import {
 import type { PluginServices } from "./services";
 import { buildSnapshot } from "./snapshot";
 import { postToViews, registerViews } from "./views";
+import type { RuntimeInit } from "../protocol/runtime";
+import { connectToFrame, createHiddenFrame, pluginUrl } from "./sandbox";
 
 export type PluginStatus =
   | "off"
@@ -67,8 +69,8 @@ export interface PluginEntry {
   status: PluginStatus;
   /** Why it isn't running, when that's not obvious. */
   problem?: string;
-  /** Recent errors, oldest first. */
-  errors: string[];
+  /** Recent errors and console output, oldest first. */
+  log: LogLine[];
   settingsFields: FormField[];
   settings: FormValues;
   permissions: PluginPermission[];
@@ -76,8 +78,14 @@ export interface PluginEntry {
   dependenciesInstalled: boolean;
 }
 
-/** How many recent errors are kept for each plugin. */
-const ERROR_LOG_SIZE = 20;
+/** A line in a plugin's log. Errors are the app's; the rest is the plugin's console. */
+export interface LogLine {
+  level: "error" | "warn" | "info";
+  text: string;
+}
+
+/** How many log lines are kept for each plugin. */
+const LOG_SIZE = 50;
 /** How long plugins must have been starting, without a crash, to count as started. */
 const BOOT_GRACE_MS = 10_000;
 
@@ -99,7 +107,7 @@ class PluginHost implements PluginServices {
   #listings = new Map<string, PluginListing>();
   #records: Record<string, PluginRecord> = {};
   #status = new Map<string, { status: PluginStatus; problem?: string }>();
-  #errors = new Map<string, string[]>();
+  #logs = new Map<string, LogLine[]>();
   #lastToast = new Map<string, number>();
   #frames: HTMLElement | null = null;
   #stopWatching: (() => void) | null = null;
@@ -148,7 +156,7 @@ class PluginHost implements PluginServices {
         enabled: record.enabled === true,
         status,
         problem: known?.problem ?? problem,
-        errors: this.#errors.get(listing.id) ?? [],
+        log: this.#logs.get(listing.id) ?? [],
         settingsFields,
         settings: { ...defaultsFor(settingsFields), ...record.settings },
         permissions: manifest?.permissions ?? [],
@@ -282,7 +290,7 @@ class PluginHost implements PluginServices {
   /** Stops and starts a plugin again, e.g. after editing its files. */
   async restart(id: string) {
     this.#stop(id);
-    this.#errors.delete(id);
+    this.#logs.delete(id);
     await this.refresh();
     if (this.#records[id]?.enabled) await this.#start(id, true);
     else this.#publish();
@@ -293,7 +301,7 @@ class PluginHost implements PluginServices {
     this.#stop(id);
     await bridge().remove(id);
     this.#status.delete(id);
-    this.#errors.delete(id);
+    this.#logs.delete(id);
     await this.refresh();
   }
 
@@ -410,20 +418,41 @@ class PluginHost implements PluginServices {
     return currentPlan();
   }
 
-  frameContainer(): HTMLElement {
+  openSandbox(
+    plugin: RunningPlugin,
+    init: () => RuntimeInit,
+    onPort: (port: MessagePort) => void,
+  ) {
     if (!this.#frames?.isConnected) {
       this.#frames = document.createElement("div");
       this.#frames.id = "plugin-frames";
       this.#frames.setAttribute("aria-hidden", "true");
       document.body.append(this.#frames);
     }
-    return this.#frames;
+    const frame = createHiddenFrame(
+      pluginUrl(plugin.id, "__turtle/main.html"),
+      `${plugin.manifest.name} (plugin)`,
+    );
+    const stopListening = connectToFrame(
+      frame,
+      () => ({ init: init() }),
+      onPort,
+    );
+    this.#frames.append(frame);
+    return () => {
+      stopListening();
+      frame.remove();
+    };
   }
 
   onError(pluginId: string, message: string) {
     console.warn(`[plugin ${pluginId}]`, message);
-    const log = [...(this.#errors.get(pluginId) ?? []), message];
-    this.#errors.set(pluginId, log.slice(-ERROR_LOG_SIZE));
+    this.#addLog(pluginId, { level: "error", text: message });
+  }
+
+  #addLog(pluginId: string, line: LogLine) {
+    const log = [...(this.#logs.get(pluginId) ?? []), line];
+    this.#logs.set(pluginId, log.slice(-LOG_SIZE));
     this.#publish();
   }
 
@@ -451,6 +480,16 @@ class PluginHost implements PluginServices {
   handleNotify(plugin: RunningPlugin, method: string, args: unknown[]) {
     const playback = appBridge().playback;
     switch (method) {
+      case "log": {
+        // The plugin's console. Logged, but not counted as a failure.
+        const level =
+          args[0] === "error" || args[0] === "warn" ? args[0] : "info";
+        this.#addLog(plugin.id, {
+          level,
+          text: String(args[1]).slice(0, 2000),
+        });
+        return;
+      }
       case "ui.toast": {
         // One toast every half second at most, so a plugin can't spam them.
         const now = Date.now();

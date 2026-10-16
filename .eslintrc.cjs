@@ -73,6 +73,63 @@ module.exports = {
       },
     },
     {
+      // The rest of the app reaches the plugin system through
+      // src/lib/plugins/index.ts (plus the API types and the plugin form
+      // UI), so the plugin host is only loaded once a plugin is on.
+      files: ["src/**/*.ts", "src/**/*.svelte"],
+      excludedFiles: ["src/lib/plugins/**", "src/tests/**", "src/**/*.test.ts"],
+      rules: {
+        "@typescript-eslint/no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: [
+                  "**/plugins/host/*",
+                  "**/plugins/runtime/*",
+                  "**/plugins/view/*",
+                  "**/plugins/protocol/rpc",
+                  "**/plugins/protocol/runtime",
+                ],
+                allowTypeImports: true,
+                message:
+                  "Use src/lib/plugins/index.ts: the plugin host is loaded only when plugins are on.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      // These run inside plugin sandboxes, so they can't use the app.
+      files: [
+        "src/lib/plugins/api/**",
+        "src/lib/plugins/protocol/**",
+        "src/lib/plugins/runtime/**",
+        "src/lib/plugins/view/**",
+      ],
+      rules: {
+        "@typescript-eslint/no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: [
+                  "../../*",
+                  "../host/*",
+                  "../ui/*",
+                  "svelte",
+                  "svelte/*",
+                ],
+                message:
+                  "Code that runs in a plugin's sandbox may only use the plugin API and protocol.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
       files: ["**/*.svelte"],
       parser: "svelte-eslint-parser",
       parserOptions: {

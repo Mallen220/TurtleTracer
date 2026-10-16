@@ -48,7 +48,6 @@ import type {
   ContributionFactory,
   PluginContext,
 } from "./contributions/types";
-import { createHiddenFrame, connectToFrame, pluginUrl } from "./sandbox";
 import { sanitizeCss } from "./sanitize";
 import { check, messageSchema } from "./schemas";
 import { handleCall } from "./calls";
@@ -78,9 +77,9 @@ export class RunningPlugin implements PluginContext {
   state: RunState = "starting";
 
   #services: PluginServices;
-  #frame: HTMLIFrameElement | null = null;
   #rpc: Rpc | null = null;
-  #stopListening: (() => void) | null = null;
+  /** Closes the plugin's sandbox. */
+  #closeSandbox: (() => void) | null = null;
   #heartbeat: ReturnType<typeof setInterval> | null = null;
   #contributions = new Map<string, Contribution>();
   #commands = createCommandTable();
@@ -92,10 +91,20 @@ export class RunningPlugin implements PluginContext {
   #ready: { resolve(): void; reject(error: Error): void } | null = null;
   readonly subscriptions = new Set<string>();
 
-  constructor(manifest: PluginManifest, services: PluginServices) {
+  #heartbeatMs: number;
+  #unresponsiveMs: number;
+
+  constructor(
+    manifest: PluginManifest,
+    services: PluginServices,
+    /** How often to check the plugin answers, and how long to wait. */
+    heartbeat = { everyMs: HEARTBEAT_MS, timeoutMs: UNRESPONSIVE_MS },
+  ) {
     this.id = manifest.id;
     this.manifest = manifest;
     this.#services = services;
+    this.#heartbeatMs = heartbeat.everyMs;
+    this.#unresponsiveMs = heartbeat.timeoutMs;
     this.#factories = {
       command: commandFactory(this.#commands),
       navbarButton: navbarButtonFactory(this.#commands),
@@ -137,7 +146,11 @@ export class RunningPlugin implements PluginContext {
           resolve: () => (settle(), resolve()),
           reject: (e) => (settle(), reject(e)),
         };
-        this.#openFrame();
+        this.#closeSandbox = this.#services.openSandbox(
+          this,
+          () => this.#init(),
+          (port) => this.#connect(port),
+        );
       }).catch((error) => {
         this.stop("failed");
         throw error;
@@ -145,7 +158,7 @@ export class RunningPlugin implements PluginContext {
       this.#ready = null;
       this.#heartbeat = setInterval(
         () => this.#checkResponding(),
-        HEARTBEAT_MS,
+        this.#heartbeatMs,
       );
     }
     this.state = "running";
@@ -157,9 +170,8 @@ export class RunningPlugin implements PluginContext {
     this.state = state;
     if (this.#heartbeat) clearInterval(this.#heartbeat);
     this.#rpc?.close("The plugin was stopped.");
-    this.#stopListening?.();
-    this.#frame?.remove();
-    this.#frame = null;
+    this.#closeSandbox?.();
+    this.#closeSandbox = null;
     for (const contribution of this.#contributions.values()) {
       try {
         contribution.dispose();
@@ -189,20 +201,6 @@ export class RunningPlugin implements PluginContext {
   }
 
   // --- Talking to the plugin ---
-
-  #openFrame() {
-    const frame = createHiddenFrame(
-      pluginUrl(this.id, "__turtle/main.html"),
-      `${this.manifest.name} (plugin)`,
-    );
-    this.#frame = frame;
-    this.#stopListening = connectToFrame(
-      frame,
-      () => ({ init: this.#init() }),
-      (port) => this.#connect(port),
-    );
-    this.#services.frameContainer().append(frame);
-  }
 
   #init(): RuntimeInit {
     return {
@@ -357,7 +355,7 @@ export class RunningPlugin implements PluginContext {
   #checkResponding() {
     // A call it's busy working on has its own time limit.
     if (!this.#rpc || this.#pendingInvokes > 0) return;
-    this.#rpc.call("ping", [], UNRESPONSIVE_MS).catch((error) => {
+    this.#rpc.call("ping", [], this.#unresponsiveMs).catch((error) => {
       if (!(error instanceof RpcTimeoutError) || this.state !== "running")
         return;
       this.#services.onError(

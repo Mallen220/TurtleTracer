@@ -21,7 +21,11 @@
     getCurvePoint,
     interpolateTFromProfile,
   } from "../../utils/math";
-  import { startPointStore } from "../projectStore";
+  import { settingsStore, startPointStore } from "../projectStore";
+  import { markerTypeRegistry } from "../registries";
+  import { defaultsFor } from "../actions/PluginStepAction";
+  import SchemaForm from "../plugins/ui/SchemaForm.svelte";
+  import type { FormValues } from "../plugins/api";
   import { ui } from "../ui";
 
   interface Props {
@@ -71,9 +75,37 @@
     lines[idx].endPoint,
   ];
 
-  /** Sequence indexes of the items markers can be attached to (not macros). */
+  /** Whether markers can be attached to an item (macros and plugin steps can't). */
+  const canHoldMarkers = (item: SequenceItem) =>
+    item.kind !== "macro" && item.kind !== "plugin";
+
+  /** Sequence indexes of the items markers can be attached to. */
   function markerOwnerIndexes(seq: SequenceItem[]): number[] {
-    return seq.flatMap((item, index) => (item.kind === "macro" ? [] : [index]));
+    return seq.flatMap((item, index) => (canHoldMarkers(item) ? [index] : []));
+  }
+
+  /** The Type menu's value for a marker: built-in types, or `plugin:<type>`. */
+  const typeValue = (marker: EventMarker) =>
+    marker.type === "plugin"
+      ? `plugin:${marker.pluginType}`
+      : (marker.type ?? "parametric");
+
+  function setType(marker: GlobalMarker, value: string) {
+    if (value.startsWith("plugin:")) {
+      const pluginType = value.slice("plugin:".length);
+      const definition = $markerTypeRegistry.find((t) => t.id === pluginType);
+      marker.ref.type = "plugin";
+      marker.ref.pluginType = pluginType;
+      marker.ref.parameters = {
+        ...defaultsFor(definition?.fields),
+        ...marker.ref.parameters,
+      };
+    } else {
+      marker.ref.type = value as EventMarker["type"];
+      marker.ref.pluginType = undefined;
+    }
+    if (marker.parentType === "path") lines = [...lines];
+    else sequence = [...sequence];
   }
 
   /** Adds a marker to a line, pointing it at that line. */
@@ -459,9 +491,7 @@
       ),
     ].sort(),
   );
-  let nonMacroCount = $derived(
-    sequence.filter((s) => s.kind !== "macro").length,
-  );
+  let nonMacroCount = $derived(sequence.filter(canHoldMarkers).length);
 </script>
 
 <div class="{ui.card} flex flex-col w-full overflow-hidden">
@@ -532,16 +562,20 @@
                 <select
                   class="{ui.inputXs} flex-1"
                   aria-label="Event marker type"
-                  value={marker.ref.type || "parametric"}
-                  onchange={(e) => {
-                    marker.ref.type = e.currentTarget.value as any;
-                    if (marker.parentType === "path") lines = [...lines];
-                    else sequence = [...sequence];
-                  }}
+                  value={typeValue(marker.ref)}
+                  onchange={(e) => setType(marker, e.currentTarget.value)}
                 >
                   <option value="parametric">Parametric</option>
                   <option value="temporal">Temporal</option>
                   <option value="pose">Pose</option>
+                  {#each $markerTypeRegistry as type (type.id)}
+                    <option value="plugin:{type.id}">{type.label}</option>
+                  {/each}
+                  {#if marker.ref.type === "plugin" && !$markerTypeRegistry.some((t) => t.id === marker.ref.pluginType)}
+                    <option value="plugin:{marker.ref.pluginType}">
+                      {marker.ref.pluginType} (plugin is off)
+                    </option>
+                  {/if}
                 </select>
               </div>
             </div>
@@ -567,7 +601,30 @@
               {/if}
             </div>
 
-            {#if !marker.ref.type || marker.ref.type === "parametric"}
+            {#if marker.ref.type === "plugin"}
+              {@const definition = $markerTypeRegistry.find(
+                (t) => t.id === marker.ref.pluginType,
+              )}
+              <p class="text-xs text-neutral-500 dark:text-neutral-400">
+                {definition
+                  ? "Placed by its plugin when the path or its timing changes."
+                  : "Its plugin is off, so it stays where it was last placed."}
+              </p>
+              {#if definition?.fields.length}
+                <SchemaForm
+                  fields={definition.fields}
+                  values={(marker.ref.parameters ?? {}) as FormValues}
+                  units={$settingsStore.visualizerUnits}
+                  compact
+                  idPrefix="marker-{marker.id}"
+                  onChange={(values) => {
+                    marker.ref.parameters = values;
+                    if (marker.parentType === "path") lines = [...lines];
+                    else sequence = [...sequence];
+                  }}
+                />
+              {/if}
+            {:else if !marker.ref.type || marker.ref.type === "parametric"}
               <div class="flex items-center gap-2">
                 <input
                   type="range"

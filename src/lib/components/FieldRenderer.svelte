@@ -237,7 +237,9 @@
       svgEl.style.zIndex = "15";
     }
     scene = new FieldScene(two);
-    twoElement!.addEventListener("click", handlePluginClick);
+    twoElement!.addEventListener("mousedown", handlePluginPress, {
+      capture: true,
+    });
 
     interactionController = new FieldInteractionController({
       domElement: two!.renderer.domElement,
@@ -609,13 +611,18 @@
         ),
   );
 
-  /** Tells a plugin when one of its shapes is clicked. */
-  function handlePluginClick(e: MouseEvent) {
+  /**
+   * Tells a plugin when one of its shapes is pressed. Handled before the
+   * editor sees the press, so it doesn't also start a selection box.
+   */
+  function handlePluginPress(e: MouseEvent) {
+    if (e.button !== 0) return;
     const element = (e.target as Element | null)?.closest?.(
       `.${CLICKABLE_CLASS}`,
     );
     const target = element && pluginClickTargets.get(element.id);
     if (!target || !twoElement) return;
+    e.stopPropagation();
     const rect = twoElement.getBoundingClientRect();
     target.layer.onClick?.(target.primitiveId, {
       x: x.invert(e.clientX - rect.left),

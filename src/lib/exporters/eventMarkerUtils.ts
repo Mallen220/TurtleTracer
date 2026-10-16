@@ -59,7 +59,10 @@ export function chainMarkerRegistrationCode(
     }
 
     line.eventMarkers.forEach((event) => {
-      const type = event.type || "parametric";
+      // A plugin's marker is saved with the position its plugin worked out,
+      // so it exports as a parametric one (as the robot-side reader does).
+      const type =
+        !event.type || event.type === "plugin" ? "parametric" : event.type;
       const action = `NamedCommands.getCommand("${event.name}")`;
       if (type === "parametric") {
         code += `\n${indent}tracker.onParametric(${segment}, ${event.position.toFixed(3)}, ${action});`;

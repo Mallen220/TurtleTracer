@@ -372,7 +372,10 @@
                   </div>
                 {/if}
 
-                {#if plugin.settingsFields.length || plugin.errors.length}
+                {#if plugin.settingsFields.length || plugin.log.length}
+                  {@const errors = plugin.log.filter(
+                    (l) => l.level === "error",
+                  ).length}
                   <div
                     class="border-t border-neutral-200 dark:border-neutral-700 pt-3"
                   >
@@ -386,13 +389,14 @@
                         })}
                     >
                       {expanded[plugin.id] ? "Hide" : "Show"}
-                      {plugin.settingsFields.length ? "settings" : ""}
-                      {plugin.settingsFields.length && plugin.errors.length
-                        ? "and"
-                        : ""}
-                      {plugin.errors.length
-                        ? `${plugin.errors.length} recent errors`
-                        : ""}
+                      {[
+                        plugin.settingsFields.length ? "settings" : "",
+                        plugin.log.length
+                          ? `log${errors ? ` (${errors} ${errors === 1 ? "error" : "errors"})` : ""}`
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" and ")}
                     </button>
                     {#if expanded[plugin.id]}
                       <div class="mt-3 flex flex-col gap-4">
@@ -408,13 +412,21 @@
                               )}
                           />
                         {/if}
-                        {#if plugin.errors.length}
+                        {#if plugin.log.length}
                           <ol
-                            class="max-h-48 overflow-y-auto rounded-md bg-neutral-100 dark:bg-neutral-900 p-2 font-mono text-xs text-neutral-700 dark:text-neutral-300 space-y-1"
+                            class="max-h-48 overflow-y-auto rounded-md bg-neutral-100 dark:bg-neutral-900 p-2 font-mono text-xs space-y-1"
+                            aria-label="Log of {plugin.name}"
                           >
-                            {#each plugin.errors as error, i (i)}
-                              <li class="whitespace-pre-wrap break-words">
-                                {error}
+                            {#each plugin.log as line, i (i)}
+                              <li
+                                class="whitespace-pre-wrap break-words {line.level ===
+                                'error'
+                                  ? 'text-red-700 dark:text-red-300'
+                                  : line.level === 'warn'
+                                    ? 'text-amber-700 dark:text-amber-300'
+                                    : 'text-neutral-700 dark:text-neutral-300'}"
+                              >
+                                {line.text}
                               </li>
                             {/each}
                           </ol>

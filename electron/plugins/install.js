@@ -1,8 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Installing a plugin someone gave the user, from a folder or a .zip.
 import crypto from "node:crypto";
+import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pipeline } from "node:stream/promises";
 import yauzl from "yauzl";
 import { isInside } from "./files.js";
 import { validateManifest } from "./manifest.js";
@@ -135,7 +137,7 @@ export async function unzip(file, dest) {
         if (err) return reject(asError(err));
         try {
           await fs.mkdir(path.dirname(target), { recursive: true });
-          await fs.writeFile(target, stream);
+          await pipeline(stream, createWriteStream(target));
           zip.readEntry();
         } catch (e) {
           reject(asError(e));

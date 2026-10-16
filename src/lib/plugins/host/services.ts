@@ -10,6 +10,7 @@ import type {
   ProjectSnapshot,
 } from "../api";
 import type { AppBridge } from "../bridge";
+import type { RuntimeInit } from "../protocol/runtime";
 import type { RunningPlugin } from "./RunningPlugin";
 
 export interface PluginDialogs {
@@ -39,8 +40,16 @@ export interface PluginServices {
   settings(pluginId: string): FormValues;
   snapshot(pluginId: string): ProjectSnapshot;
   plan(): Plan;
-  /** Where plugins' hidden frames go. */
-  frameContainer(): HTMLElement;
+  /**
+   * Starts the sandbox a plugin's main script runs in (a hidden frame), and
+   * calls `onPort` with the port to talk to it once it has connected.
+   * Returns a function that closes the sandbox.
+   */
+  openSandbox(
+    plugin: RunningPlugin,
+    init: () => RuntimeInit,
+    onPort: (port: MessagePort) => void,
+  ): () => void;
   onError(pluginId: string, message: string): void;
   /** The plugin stopped by itself (it failed, was paused, or stopped responding). */
   stopped(plugin: RunningPlugin): void;

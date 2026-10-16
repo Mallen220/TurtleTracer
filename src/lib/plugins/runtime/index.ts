@@ -13,6 +13,33 @@ function describe(error: unknown) {
     : String(error);
 }
 
+/** Console arguments as one line of text, the way the console shows them. */
+function formatLog(args: unknown[]) {
+  return args
+    .map((arg) => {
+      if (typeof arg === "string") return arg;
+      if (arg instanceof Error) return describe(arg);
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    })
+    .join(" ")
+    .slice(0, 2000);
+}
+
+/** Also sends console output to the app, for the plugin manager's log. */
+function forwardConsole(rpc: Rpc) {
+  for (const level of ["log", "info", "warn", "error"] as const) {
+    const original = console[level].bind(console);
+    console[level] = (...args: unknown[]) => {
+      original(...args);
+      rpc.notify("log", [level, formatLog(args)]);
+    };
+  }
+}
+
 function start(port: MessagePort, init: RuntimeInit) {
   let runtime: Runtime | undefined;
   const rpc = new Rpc((message) => port.postMessage(message), {
@@ -27,6 +54,7 @@ function start(port: MessagePort, init: RuntimeInit) {
     enumerable: true,
   });
 
+  forwardConsole(rpc);
   const report = (error: unknown) => rpc.notify("error", [describe(error)]);
   addEventListener("error", (event) => report(event.error ?? event.message));
   addEventListener("unhandledrejection", (event) => report(event.reason));
