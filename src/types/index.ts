@@ -1,6 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 import type { Component } from "svelte";
+import type { FormField } from "../lib/plugins/api";
+import type { PluginsBridge } from "../lib/plugins/protocol/ipc";
 
 export interface BasePoint {
   x: number;
@@ -104,7 +106,7 @@ export type Point = BasePoint &
 
 export type ControlPoint = BasePoint;
 
-export type EventMarkerType = "parametric" | "temporal" | "pose";
+export type EventMarkerType = "parametric" | "temporal" | "pose" | "plugin";
 
 export interface EventMarker {
   id: string;
@@ -124,6 +126,11 @@ export interface EventMarker {
   waitId?: string;
   // For rotate-based markers, the id of the rotate in `sequence`
   rotateId?: string;
+  /**
+   * For a "plugin" marker, `<plugin id>.<marker type name>`. The plugin
+   * decides `position`; everything else treats it as a parametric marker.
+   */
+  pluginType?: string;
   parameters?: Record<string, any>;
 }
 
@@ -217,11 +224,28 @@ export type SequenceMacroItem = {
   transformations?: Transformation[];
 };
 
+/**
+ * A step of an action type added by a plugin. `data` belongs to the plugin
+ * and is kept as it is, even when the plugin isn't installed.
+ */
+export type SequencePluginItem = {
+  kind: "plugin";
+  id: string;
+  /** `<plugin id>.<action name>`. */
+  type: string;
+  name: string;
+  data: Record<string, unknown>;
+  locked?: boolean;
+  hidden?: boolean;
+  eventMarkers?: EventMarker[];
+};
+
 export type SequenceItem =
   | SequencePathItem
   | SequenceWaitItem
   | SequenceRotateItem
-  | SequenceMacroItem;
+  | SequenceMacroItem
+  | SequencePluginItem;
 
 export interface KeyBinding {
   id: string;
@@ -465,8 +489,10 @@ export interface TimelineEvent {
   rootLine?: Line;
   globalHeading?: Point["heading"];
   /**
-   * For a "recovery" event: where the robot goes between a chained path being
-   * handed over and the robot being back on the next one.
+   * Where the robot goes during the event, when it doesn't simply follow a
+   * line or turn on the spot: for a "recovery" event, between a chained path
+   * being handed over and the robot being back on the next one; for a
+   * plugin step that moves the robot, the poses the plugin gave.
    */
   trace?: RecoveryTrace;
   /** For a "recovery" event: whether the robot gets back onto the next path. */
@@ -525,7 +551,7 @@ export interface Notification {
 }
 
 // ------------------------------------------------------------------
-// Plugin System Interfaces
+// Project data handed to exporters
 // ------------------------------------------------------------------
 
 export interface TurtleData {
@@ -536,27 +562,8 @@ export interface TurtleData {
   extraData?: Record<string, any>;
 }
 
-// Registry Interfaces
-export interface Registry<T> {
-  subscribe: (run: (value: any) => void) => () => void;
-  register: (item: T) => void;
-  unregister?: (id: string) => void;
-  get?: (name: string) => any;
-  reset: () => void;
-}
-
-export interface ComponentRegistryState {
-  [key: string]: any;
-}
-
-export interface TabDefinition {
-  id: string;
-  label: string;
-  component: any;
-  icon?: string;
-  iconComponent?: any;
-  order?: number;
-}
+/** Shapes, pose tracks and forms from the plugin API; see src/lib/plugins/api. */
+export type { FieldPrimitive, FormField, PoseTrack } from "../lib/plugins/api";
 
 export interface NavbarAction {
   id: string;
@@ -565,14 +572,6 @@ export interface NavbarAction {
   onClick: () => void;
   location?: "left" | "right" | "center"; // Where to place it (default right)
   order?: number;
-}
-
-export type HookCallback = (...args: any[]) => void | Promise<void>;
-
-export interface HookRegistry {
-  register: (hookName: string, callback: HookCallback) => void;
-  run: (hookName: string, ...args: any[]) => Promise<void>;
-  clear: () => void;
 }
 
 /** One row of a right-click menu (ContextMenu.svelte). */
@@ -597,23 +596,6 @@ export interface ContextMenuItem {
   condition?: (args: { x: number; y: number }) => boolean;
 }
 
-// Writable Store Interface (simplified from Svelte)
-export interface Writable<T> {
-  set: (value: T) => void;
-  update: (updater: (value: T) => T) => void;
-  subscribe: (run: (value: T) => void) => () => void;
-}
-
-// Project Store Interface
-export interface ProjectStore {
-  startPointStore: Writable<Point>;
-  linesStore: Writable<Line[]>;
-  shapesStore: Writable<Shape[]>;
-  sequenceStore: Writable<SequenceItem[]>;
-  settingsStore: Writable<Settings>;
-  extraDataStore: Writable<Record<string, any>>;
-}
-
 export type ScaleFunction = ((val: number) => number) & {
   invert?: (val: number) => number;
 };
@@ -623,156 +605,6 @@ export interface FieldView {
   yScale: ScaleFunction;
   width: number;
   height: number;
-}
-
-export interface AppStore {
-  fieldViewStore: Writable<FieldView>;
-  isUnsaved: Writable<boolean>;
-}
-
-export interface DialogDefinition {
-  id: string;
-  component: any;
-  props?: any;
-}
-
-export interface PluginMetadata {
-  description?: string;
-  author?: string;
-  version?: string;
-}
-
-export interface PluginGraphicsOptions {
-  x: number;
-  y: number;
-  // Common visual properties
-  color?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  fill?: string;
-  opacity?: number;
-  // Shape specific
-  width?: number; // Rect
-  height?: number; // Rect
-  radius?: number; // Circle
-  text?: string; // Text
-  fontSize?: number; // Text
-  align?: "left" | "center" | "right"; // Text
-  // Path specific
-  points?: { x: number; y: number }[]; // Path/Line
-  closed?: boolean; // Path
-}
-
-export interface PluginGraphicsContext {
-  two: any; // Raw Two instance
-  width: number; // Viewport width
-  height: number; // Viewport height
-
-  // Helpers
-  drawRect(options: PluginGraphicsOptions): any; // Returns Two.Rectangle
-  drawCircle(options: PluginGraphicsOptions): any; // Returns Two.Circle
-  drawLine(options: PluginGraphicsOptions): any; // Returns Two.Line or Path
-  drawText(options: PluginGraphicsOptions): any; // Returns Two.Text
-}
-
-export interface PluginFeature {
-  name: string;
-  navbar?: {
-    icon: string;
-    onClick: () => void;
-    title?: string;
-    location?: "left" | "right" | "center";
-  };
-  contextMenu?: {
-    id?: string;
-    label: string;
-    icon?: string;
-    onClick: (args: { x: number; y: number }) => void;
-    condition?: (args: { x: number; y: number }) => boolean;
-  };
-  render?: (ctx: PluginGraphicsContext) => void;
-}
-
-export interface TurtleAPI {
-  /**
-   * Register a custom code exporter.
-   * @param name The display name of the exporter.
-   * @param handler A function that takes the current project data and returns a string (code) or a Promise that resolves to a string.
-   */
-  registerMetadata(meta: PluginMetadata): void;
-
-  registerExporter(
-    name: string,
-    handler: (data: TurtleData) => string | Promise<string>,
-  ): void;
-
-  /**
-   * Register a custom theme.
-   * @param name The name of the theme.
-   * @param css The CSS string for the theme.
-   */
-  registerTheme(name: string, css: string): void;
-
-  /**
-   * Register a plugin feature (unified registration).
-   * @param feature The feature definition.
-   */
-  registerFeature(feature: PluginFeature): void;
-
-  /**
-   * Get the current snapshot of the project data.
-   */
-  getData(): TurtleData;
-
-  /**
-   * Access internal registries to extend the UI.
-   */
-  registries: {
-    components: any; // ComponentRegistry
-    tabs: Registry<TabDefinition>;
-    navbarActions: Registry<NavbarAction>;
-    hooks: HookRegistry;
-    contextMenuItems: Registry<ContextMenuItem>;
-    actions: Registry<ActionDefinition>;
-  };
-
-  /**
-   * Access internal Svelte stores.
-   */
-  stores: {
-    project: ProjectStore;
-    app: AppStore;
-    get: (store: Writable<any>) => any;
-  };
-
-  /**
-   * UI utilities.
-   */
-  ui: {
-    prompt: (options: {
-      title: string;
-      message: string;
-      defaultText?: string;
-    }) => Promise<string | null>;
-    confirm: (options: {
-      title: string;
-      message: string;
-      confirmText?: string;
-      cancelText?: string;
-    }) => Promise<boolean>;
-    toast: (
-      message: string,
-      type?: "success" | "warning" | "error" | "info",
-      timeout?: number,
-    ) => void;
-  };
-
-  /**
-   * Graphics utilities.
-   */
-  graphics: {
-    requestRedraw: () => void;
-  };
 }
 
 // Telemetry Types
@@ -878,10 +710,17 @@ export interface InsertionContext {
 }
 
 export interface ActionDefinition {
+  /** The step's kind, or for a plugin's action type `<plugin id>.<name>`. */
   kind: string;
   label: string;
   icon?: string; // SVG string
   description?: string;
+  /** The plugin that added it; built-in actions have none. */
+  owner?: string;
+  /** A plugin step whose plugin isn't installed or is off. */
+  missing?: boolean;
+  /** A plugin action's settings, drawn by the generic plugin step row. */
+  fields?: FormField[];
 
   // UI Configuration
   buttonColor?: string; // e.g. "amber", "pink", "indigo"
@@ -939,6 +778,15 @@ export interface ActionDefinition {
     item: SequenceItem,
     context: CodeExportContext,
   ) => JavaCodeResult;
+
+  /**
+   * Gets anything code generation needs that takes time (a plugin's code,
+   * say), before the synchronous toJavaCode/toSequentialCommand run.
+   */
+  prepareCode?: (
+    item: SequenceItem,
+    context: CodeExportContext,
+  ) => Promise<void>;
 
   /**
    * Generate Java code for the SequentialCommandGroup approach.
@@ -1081,12 +929,8 @@ export interface ElectronAPI {
   isWindowsStore?: () => Promise<boolean>;
   openExternal?: (url: string) => Promise<boolean>;
 
-  // Plugin System
-  listPlugins?: () => Promise<any[]>;
-  readPlugin?: (filename: string) => Promise<string>;
-  deletePlugin?: (filename: string) => Promise<boolean>;
-  openPluginsFolder?: () => Promise<void>;
-  transpilePlugin?: (code: string) => Promise<string>;
+  // Plugins (desktop only)
+  plugins?: PluginsBridge;
 
   // Telemetry
   telemetry?: ElectronTelemetryAPI;

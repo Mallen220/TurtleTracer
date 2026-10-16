@@ -1,10 +1,19 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
+<!--
+  The plugin manager. The plugin host is loaded the first time this opens
+  (or when a plugin starts), so the app doesn't load it for people who never
+  use plugins.
+-->
 <script lang="ts">
   import { cubicInOut } from "svelte/easing";
   import { fade, fly, scale } from "svelte/transition";
-  import { flip } from "svelte/animate";
-  import { PluginManager } from "../../pluginManager";
-  import { pluginsStore, type PluginInfo } from "../../pluginsStore";
+  import type {
+    PluginEntry,
+    PluginStatus,
+  } from "../../plugins/host/PluginHost";
+  import { loadPluginHost, pluginsSupported } from "../../plugins";
+  import SchemaForm from "../../plugins/ui/SchemaForm.svelte";
+  import { settingsStore } from "../../projectStore";
   import PuzzleIcon from "../icons/PuzzleIcon.svelte";
   import FolderIcon from "../icons/FolderIcon.svelte";
   import {
@@ -14,7 +23,7 @@
     TriangleWarningIcon,
     ArrowCircleIcon,
   } from "../icons";
-  import { ui } from "../../ui";
+  import { ui, type Tone } from "../../ui";
 
   interface Props {
     isOpen?: boolean;
@@ -22,32 +31,85 @@
 
   let { isOpen = $bindable(false) }: Props = $props();
 
+  type Host = Awaited<ReturnType<typeof loadPluginHost>>;
+  let host = $state<Host | null>(null);
+  let entries = $state<PluginEntry[] | null>(null);
+  let safeMode = $state(false);
+  let loadError = $state<string | null>(null);
+  let busy = $state<string | null>(null);
   let searchQuery = $state("");
-  let pluginToDelete: PluginInfo | null = $state(null);
+  let pluginToDelete = $state<PluginEntry | null>(null);
+  let expanded = $state<Record<string, boolean>>({});
 
-  // Derived status for better UI
-  let filteredPlugins = $derived(
-    $pluginsStore.filter((p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  $effect(() => {
+    if (!isOpen || host || !pluginsSupported()) return;
+    loadPluginHost()
+      .then(async (loaded) => {
+        host = loaded;
+        // Kept for as long as the app runs, like the host.
+        loaded.entries.subscribe((list) => (entries = list));
+        loaded.safeMode.subscribe((on) => (safeMode = on));
+        await loaded.refresh();
+      })
+      .catch((e) => (loadError = String(e?.message ?? e)));
+  });
+
+  let filtered = $derived(
+    (entries ?? []).filter((p) =>
+      `${p.name} ${p.manifest?.description ?? ""}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
     ),
   );
-  let loadedPlugins = $derived(filteredPlugins.filter((p) => p.loaded));
-  let errorPlugins = $derived(filteredPlugins.filter((p) => !p.loaded));
+
+  const STATUS: Record<PluginStatus, { label: string; tone: Tone }> = {
+    off: { label: "Off", tone: "neutral" },
+    starting: { label: "Starting…", tone: "info" },
+    installing: { label: "Installing packages…", tone: "info" },
+    running: { label: "On", tone: "success" },
+    failed: { label: "Failed", tone: "danger" },
+    paused: { label: "Paused", tone: "warning" },
+    unresponsive: { label: "Not responding", tone: "warning" },
+    "needs-consent": { label: "Needs permission", tone: "warning" },
+    invalid: { label: "Can't load", tone: "danger" },
+    legacy: { label: "Old format", tone: "warning" },
+  };
+
+  /** Runs a host action, showing its error on the plugin if it fails. */
+  async function run(id: string, action: () => Promise<unknown>) {
+    busy = id;
+    try {
+      await action();
+    } catch (e) {
+      host?.onError(id, String((e as Error)?.message ?? e));
+    } finally {
+      busy = null;
+    }
+  }
+
+  async function install(kind: "folder" | "zip") {
+    if (!host) return;
+    busy = "install";
+    try {
+      const id = await host.install(kind);
+      if (id) expanded = { ...expanded, [id]: true };
+    } catch (e) {
+      loadError = String((e as Error)?.message ?? e);
+    } finally {
+      busy = null;
+    }
+  }
 
   async function confirmDelete() {
-    if (pluginToDelete) {
-      await PluginManager.deletePlugin(pluginToDelete.name);
-      pluginToDelete = null;
-    }
+    const plugin = pluginToDelete;
+    pluginToDelete = null;
+    if (plugin && host) await run(plugin.id, () => host!.remove(plugin.id));
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen) {
-      if (pluginToDelete) {
-        pluginToDelete = null;
-      } else {
-        isOpen = false;
-      }
+      if (pluginToDelete) pluginToDelete = null;
+      else isOpen = false;
     }
   }
 </script>
@@ -62,7 +124,6 @@
     aria-modal="true"
     aria-labelledby="plugin-manager-title"
   >
-    <!-- Modal Container -->
     <div
       transition:fly={{ duration: 300, y: 20, easing: cubicInOut }}
       class="{ui.dialog} flex flex-col w-full max-w-4xl max-h-[85vh] overflow-hidden relative"
@@ -86,7 +147,7 @@
                 Plugin Manager
               </h2>
               <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                Manage your installed extensions
+                Plugins run in a sandbox and can only do what you allow.
               </p>
             </div>
           </div>
@@ -98,6 +159,13 @@
             <CloseIcon className="size-6" />
           </button>
         </div>
+
+        {#if safeMode}
+          <p class="{ui.alert.warning} text-sm">
+            Turtle Tracer was started in safe mode, so no plugins are running.
+            Restart it normally to use them.
+          </p>
+        {/if}
 
         <div class="relative w-full group">
           <div
@@ -111,16 +179,23 @@
             type="text"
             bind:value={searchQuery}
             placeholder="Search installed plugins..."
+            aria-label="Search installed plugins"
             class="{ui.input} w-full pl-10"
           />
         </div>
       </div>
 
       <!-- Main Content -->
-      <div
-        class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700"
-      >
-        {#if $pluginsStore.length === 0}
+      <div class="flex-1 overflow-y-auto p-6">
+        {#if !pluginsSupported()}
+          <p class="{ui.alert.info} text-sm">
+            Plugins are available in the desktop app.
+          </p>
+        {:else if loadError}
+          <p class="{ui.alert.danger} text-sm mb-4">{loadError}</p>
+        {/if}
+
+        {#if entries && entries.length === 0}
           <div
             class="flex flex-col items-center justify-center py-16 text-center"
           >
@@ -139,28 +214,14 @@
             <p
               class="text-neutral-500 dark:text-neutral-400 max-w-sm mt-2 mb-8 leading-relaxed"
             >
-              Enhance the visualizer by adding Javascript (.js) or TypeScript
-              (.ts) plugins to your plugins folder.
+              A plugin is a folder with a plugin.json. Install one from a folder
+              or a .zip, or put it in your plugins folder.
             </p>
-            <button
-              onclick={() => PluginManager.openPluginsFolder()}
-              class={ui.btn.primary}
-            >
-              <FolderIcon className="size-5" />
-              Open Plugins Folder
-            </button>
           </div>
-        {:else if filteredPlugins.length === 0}
+        {:else if entries && filtered.length === 0}
           <div
             class="flex flex-col items-center justify-center py-16 text-center"
           >
-            <div
-              class="p-4 bg-neutral-100 dark:bg-neutral-800 rounded-full mb-4"
-            >
-              <SearchIcon
-                className="size-8 text-neutral-500 dark:text-neutral-400"
-              />
-            </div>
             <p class="text-neutral-500 dark:text-neutral-400 text-lg">
               No plugins match "<span
                 class="font-semibold text-neutral-900 dark:text-neutral-100"
@@ -172,23 +233,19 @@
             </button>
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Loaded Plugins -->
-            {#each loadedPlugins as plugin (plugin.name)}
+          <div class="flex flex-col gap-3">
+            {#each filtered as plugin (plugin.id)}
+              {@const status = STATUS[plugin.status]}
+              {@const canToggle =
+                !!plugin.manifest && plugin.status !== "legacy" && !safeMode}
               <div
-                animate:flip={{ duration: 300 }}
-                transition:scale={{
-                  duration: 200,
-                  start: 0.95,
-                  opacity: 0,
-                  easing: cubicInOut,
-                }}
-                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
+                class="flex flex-col gap-3 p-4 bg-white dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700"
               >
-                <div class="flex items-start justify-between gap-4 mb-3">
-                  <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-start gap-3 min-w-0">
                     <div
-                      class="flex-shrink-0 p-2.5 rounded-md {plugin.enabled
+                      class="flex-shrink-0 p-2.5 rounded-md {plugin.status ===
+                      'running'
                         ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                         : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}"
                     >
@@ -197,116 +254,175 @@
                     <div class="min-w-0">
                       <h3
                         class="font-semibold text-neutral-900 dark:text-neutral-100 truncate text-base"
-                        title={plugin.name}
+                        title={plugin.id}
                       >
                         {plugin.name}
-                      </h3>
-                      <div class="flex items-center gap-2 mt-0.5">
-                        <span
-                          class={ui.badge[
-                            plugin.enabled ? "success" : "neutral"
-                          ]}
-                        >
+                        {#if plugin.manifest}
                           <span
-                            class="w-1.5 h-1.5 rounded-full {plugin.enabled
-                              ? 'bg-green-500'
-                              : 'bg-neutral-400'}"
-                          ></span>
-                          {plugin.enabled ? "Active" : "Disabled"}
-                        </span>
+                            class="ml-1 text-xs font-normal text-neutral-500 dark:text-neutral-400"
+                            >{plugin.manifest.version}</span
+                          >
+                        {/if}
+                      </h3>
+                      <div class="flex flex-wrap items-center gap-2 mt-1">
+                        <span class={ui.badge[status.tone]}>{status.label}</span
+                        >
+                        {#each plugin.permissions as permission (permission)}
+                          <span
+                            class={ui.badge.neutral}
+                            title="Permission it asks for"
+                          >
+                            {permission}
+                          </span>
+                        {/each}
+                        {#each Object.keys(plugin.dependencies) as name (name)}
+                          <span
+                            class={ui.badge.info}
+                            title="npm package it uses">{name}</span
+                          >
+                        {/each}
                       </div>
+                      {#if plugin.manifest?.description}
+                        <p
+                          class="text-sm text-neutral-600 dark:text-neutral-300 mt-2"
+                        >
+                          {plugin.manifest.description}
+                        </p>
+                      {/if}
+                      {#if plugin.manifest?.author}
+                        <p
+                          class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                        >
+                          By {plugin.manifest.author}
+                        </p>
+                      {/if}
                     </div>
                   </div>
-                </div>
 
-                <div class="mt-auto flex flex-col gap-3">
-                  {#if plugin.description}
-                    <p
-                      class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2"
-                    >
-                      {plugin.description}
-                    </p>
-                  {/if}
-
-                  <div
-                    class="pt-3 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-700"
-                  >
-                    <label
-                      class="relative inline-flex items-center cursor-pointer group/toggle"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={plugin.enabled}
-                        onchange={(e) =>
-                          PluginManager.togglePlugin(
-                            plugin.name,
-                            e.currentTarget.checked,
-                          )}
-                        class="sr-only peer"
-                      />
-                      <div
-                        class="w-9 h-5 bg-neutral-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500/20 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-emerald-600"
-                      ></div>
-                      <span
-                        class="ml-2 text-xs font-medium text-neutral-500 group-hover/toggle:text-neutral-700 dark:text-neutral-400 dark:group-hover/toggle:text-neutral-200 transition-colors"
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    {#if canToggle}
+                      <label
+                        class="relative inline-flex items-center cursor-pointer mr-2"
                       >
-                        {plugin.enabled ? "On" : "Off"}
-                      </span>
-                    </label>
-
+                        <input
+                          type="checkbox"
+                          checked={plugin.enabled}
+                          disabled={busy === plugin.id}
+                          onchange={(e) => {
+                            const on = e.currentTarget.checked;
+                            // Show the real state until the host says otherwise.
+                            e.currentTarget.checked = plugin.enabled;
+                            run(plugin.id, () =>
+                              host!.setEnabled(plugin.id, on),
+                            );
+                          }}
+                          class="sr-only peer"
+                          aria-label="Turn {plugin.name} on or off"
+                        />
+                        <div
+                          class="w-9 h-5 bg-neutral-200 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-600 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-emerald-600"
+                        ></div>
+                      </label>
+                    {/if}
+                    {#if plugin.enabled && plugin.manifest}
+                      <button
+                        onclick={() =>
+                          run(plugin.id, () => host!.restart(plugin.id))}
+                        class={ui.iconBtnSm.neutral}
+                        title="Restart (after editing its files)"
+                        aria-label="Restart {plugin.name}"
+                        disabled={busy === plugin.id}
+                      >
+                        <ArrowCircleIcon className="size-4" />
+                      </button>
+                    {/if}
+                    {#if plugin.status !== "legacy"}
+                      <button
+                        onclick={() => host?.openFolder(plugin.id)}
+                        class={ui.iconBtnSm.neutral}
+                        title="Open its folder"
+                        aria-label="Open the folder of {plugin.name}"
+                      >
+                        <FolderIcon className="size-4" />
+                      </button>
+                    {/if}
                     <button
                       onclick={() => (pluginToDelete = plugin)}
                       class={ui.iconBtnSm.danger}
-                      title="Delete plugin"
+                      title="Move to the trash"
+                      aria-label="Remove {plugin.name}"
                     >
                       <TrashIcon className="size-4" />
                     </button>
                   </div>
                 </div>
-              </div>
-            {/each}
 
-            <!-- Error Plugins -->
-            {#each errorPlugins as plugin (plugin.name)}
-              <div
-                animate:flip={{ duration: 300 }}
-                transition:scale={{
-                  duration: 200,
-                  start: 0.95,
-                  opacity: 0,
-                  easing: cubicInOut,
-                }}
-                class="{ui.alert.danger} flex flex-col"
-              >
-                <div class="flex items-start gap-3 mb-2">
+                {#if plugin.problem}
                   <div
-                    class="p-2 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                    class="{ui.alert[
+                      plugin.status === 'legacy' ? 'warning' : 'danger'
+                    ]} flex items-start gap-2 text-sm"
                   >
-                    <TriangleWarningIcon className="size-5" />
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <h3
-                      class="font-semibold text-red-900 dark:text-red-200 truncate"
-                      title={plugin.name}
+                    <TriangleWarningIcon
+                      className="size-4 mt-0.5 flex-shrink-0"
+                    />
+                    <span class="whitespace-pre-wrap break-words"
+                      >{plugin.problem}</span
                     >
-                      {plugin.name}
-                    </h3>
-                    <div class="text-xs text-red-700 dark:text-red-300 mt-1">
-                      Failed to load
-                    </div>
                   </div>
-                  <button
-                    onclick={() => (pluginToDelete = plugin)}
-                    class={ui.iconBtnSm.danger}
+                {/if}
+
+                {#if plugin.settingsFields.length || plugin.errors.length}
+                  <div
+                    class="border-t border-neutral-200 dark:border-neutral-700 pt-3"
                   >
-                    <TrashIcon className="size-4" />
-                  </button>
-                </div>
-                <div
-                  class="bg-white/50 dark:bg-black/20 p-2 rounded text-xs font-mono text-red-800 dark:text-red-200 break-all"
-                >
-                  {plugin.error || "Unknown error"}
-                </div>
+                    <button
+                      class={ui.link}
+                      aria-expanded={expanded[plugin.id] ?? false}
+                      onclick={() =>
+                        (expanded = {
+                          ...expanded,
+                          [plugin.id]: !expanded[plugin.id],
+                        })}
+                    >
+                      {expanded[plugin.id] ? "Hide" : "Show"}
+                      {plugin.settingsFields.length ? "settings" : ""}
+                      {plugin.settingsFields.length && plugin.errors.length
+                        ? "and"
+                        : ""}
+                      {plugin.errors.length
+                        ? `${plugin.errors.length} recent errors`
+                        : ""}
+                    </button>
+                    {#if expanded[plugin.id]}
+                      <div class="mt-3 flex flex-col gap-4">
+                        {#if plugin.settingsFields.length}
+                          <SchemaForm
+                            fields={plugin.settingsFields}
+                            values={plugin.settings}
+                            units={$settingsStore.visualizerUnits}
+                            idPrefix="plugin-settings-{plugin.id}"
+                            onChange={(values) =>
+                              run(plugin.id, () =>
+                                host!.saveSettings(plugin.id, values),
+                              )}
+                          />
+                        {/if}
+                        {#if plugin.errors.length}
+                          <ol
+                            class="max-h-48 overflow-y-auto rounded-md bg-neutral-100 dark:bg-neutral-900 p-2 font-mono text-xs text-neutral-700 dark:text-neutral-300 space-y-1"
+                          >
+                            {#each plugin.errors as error, i (i)}
+                              <li class="whitespace-pre-wrap break-words">
+                                {error}
+                              </li>
+                            {/each}
+                          </ol>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/each}
           </div>
@@ -314,30 +430,46 @@
       </div>
 
       <!-- Footer -->
-      <div class="{ui.dialogFooter} justify-between">
-        <div class="flex gap-3">
+      <div class="{ui.dialogFooter} justify-between flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2">
           <button
-            onclick={() => PluginManager.openPluginsFolder()}
+            onclick={() => install("folder")}
+            class={ui.btn.secondary}
+            disabled={!host || busy === "install"}
+          >
+            Install from folder…
+          </button>
+          <button
+            onclick={() => install("zip")}
+            class={ui.btn.secondary}
+            disabled={!host || busy === "install"}
+          >
+            Install from .zip…
+          </button>
+          <button
+            onclick={() => host?.openFolder()}
             class={ui.btn.ghost}
+            disabled={!host}
           >
             <FolderIcon className="size-5" />
             Open Folder
           </button>
           <button
-            onclick={() => PluginManager.reloadPlugins()}
+            onclick={() => host?.refresh()}
             class={ui.btn.ghost}
+            disabled={!host}
           >
             <ArrowCircleIcon className="size-4" />
-            Reload All
+            Refresh
           </button>
         </div>
 
-        <button onclick={() => (isOpen = false)} class={ui.btn.primary}>
-          Done
-        </button>
+        <button onclick={() => (isOpen = false)} class={ui.btn.primary}
+          >Done</button
+        >
       </div>
 
-      <!-- Delete Confirmation Dialog -->
+      <!-- Delete Confirmation -->
       {#if pluginToDelete}
         <div
           transition:fade={{ duration: 150 }}
@@ -355,13 +487,12 @@
             <h3
               class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2"
             >
-              Delete Plugin?
+              Remove Plugin?
             </h3>
             <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
-              Are you sure you want to remove <span
-                class="font-semibold text-neutral-900 dark:text-neutral-100"
+              <span class="font-semibold text-neutral-900 dark:text-neutral-100"
                 >{pluginToDelete.name}</span
-              >? This cannot be undone.
+              > will be moved to the trash, and its settings forgotten.
             </p>
             <div class="flex gap-3">
               <button
@@ -370,9 +501,9 @@
               >
                 Cancel
               </button>
-              <button onclick={confirmDelete} class="{ui.btn.danger} flex-1">
-                Delete
-              </button>
+              <button onclick={confirmDelete} class="{ui.btn.danger} flex-1"
+                >Remove</button
+              >
             </div>
           </div>
         </div>
@@ -380,26 +511,3 @@
     </div>
   </div>
 {/if}
-
-<style>
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-  }
-  :global(.dark) ::-webkit-scrollbar-thumb {
-    background: #475569;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-  :global(.dark) ::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
-  }
-</style>

@@ -24,7 +24,10 @@ import {
   loopRangeActiveStore,
   isDraggingStore,
   timePredictionStore,
+  timingRevisionStore,
 } from "./projectStore";
+import { simulationStore } from "./simulation";
+import { poseOnTrack } from "../utils/poseTrack";
 import { diffMode, committedData } from "./diffStore";
 import {
   createAnimationController,
@@ -94,6 +97,8 @@ export class Playback {
   #isDragging = fromStore(isDraggingStore);
   #diffMode = fromStore(diffMode);
   #committed = fromStore(committedData);
+  #timingRevision = fromStore(timingRevisionStore);
+  #simulation = fromStore(simulationStore);
 
   #hasPath = $derived(
     this.#lines.current.length > 0 || this.#sequence.current.length > 0,
@@ -145,6 +150,8 @@ export class Playback {
     $effect(() => {
       // Too slow to recompute on every frame of a drag; it catches up on drop.
       if (this.#isDragging.current) return;
+      // A plugin step's timing can arrive after the edit that changed it.
+      void this.#timingRevision.current;
       const prediction = calculatePathTime(
         this.#startPoint.current,
         this.#lines.current,
@@ -212,6 +219,21 @@ export class Playback {
       }
 
       const globalTime = (this.#percent.current / 100) * this.effectiveDuration;
+
+      // Driving with a simulation: the robot goes where it says.
+      const simulation = this.#simulation.current;
+      const simulated =
+        simulation.mode === "drive" && simulation.result
+          ? poseOnTrack(simulation.result.poses, globalTime)
+          : null;
+      if (simulated) {
+        robotXYStore.set({ x: simulated.x, y: simulated.y });
+        // The store holds the on-screen heading, which turns the other way.
+        robotHeadingStore.set(-simulated.heading);
+        this.committedRobotState = null;
+        return;
+      }
+
       const pose = robotPoseAt(
         globalTime,
         prediction,

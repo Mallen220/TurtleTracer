@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import SimulationMenu from "./SimulationMenu.svelte";
+  import { simulatorRegistry } from "../registries";
   import type { Settings } from "../../types";
   import { fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
@@ -592,64 +594,75 @@
 
   <!-- Controls (Bottom Row) -->
   <div class="flex flex-row w-full justify-between items-center">
-    <!-- Playback Speed Indicator (dropdown) -->
-    <div class="relative">
-      <button
-        title="Open playback speed menu"
-        aria-label={`Playback speed options, current speed ${(playbackSpeed ?? 1).toFixed(2)}x`}
-        aria-haspopup="menu"
-        aria-expanded={showSpeedMenu}
-        onclick={(e) => {
-          e.stopPropagation();
-          toggleSpeedMenu();
-        }}
-        class={ui.btn.secondary}
-        tabindex="0"
-      >
-        <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
-        <ChevronDownIcon
-          className="size-4 text-neutral-500 dark:text-neutral-400 {showSpeedMenu
-            ? 'rotate-180'
-            : ''}"
-        />
-      </button>
-
-      {#if showSpeedMenu}
-        <!-- Click anywhere else to close (window handler below) -->
-        <ul
-          role="menu"
-          aria-label="Playback speeds"
-          class="{ui.popover} absolute left-0 bottom-full mb-2 w-36 z-50 overflow-hidden"
-          onclick={(e) => e.stopPropagation()}
-          onkeydown={(e) => e.stopPropagation()}
-          use:menuNavigation
-          onclose={() => (showSpeedMenu = false)}
-          in:fly={{ y: 8, duration: 160, easing: cubicInOut }}
-          out:fly={{ y: 8, duration: 120, easing: cubicInOut }}
+    <div class="flex items-center gap-2">
+      <!-- Playback Speed Indicator (dropdown) -->
+      <div class="relative">
+        <button
+          title="Open playback speed menu"
+          aria-label={`Playback speed options, current speed ${(playbackSpeed ?? 1).toFixed(2)}x`}
+          aria-haspopup="menu"
+          aria-expanded={showSpeedMenu}
+          onclick={(e) => {
+            e.stopPropagation();
+            toggleSpeedMenu();
+          }}
+          class={ui.btn.secondary}
+          tabindex="0"
         >
-          {#each speedOptions as s}
-            <li role="menuitem">
-              <button
-                onclick={() => selectSpeed(s)}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    selectSpeed(s);
-                  }
-                }}
-                class="{ui.menuItem} justify-between"
-              >
-                <span>{s.toFixed(2)}x</span>
-                {#if Math.abs(s - (playbackSpeed || 1)) < 1e-6}
-                  <CheckIcon
-                    className="size-4 text-green-600"
-                    strokeWidth={1.5}
-                  />
-                {/if}
-              </button>
-            </li>
-          {/each}
-        </ul>
+          <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
+          <ChevronDownIcon
+            className="size-4 text-neutral-500 dark:text-neutral-400 {showSpeedMenu
+              ? 'rotate-180'
+              : ''}"
+          />
+        </button>
+
+        {#if showSpeedMenu}
+          <!-- Click anywhere else to close (window handler below) -->
+          <ul
+            role="menu"
+            aria-label="Playback speeds"
+            class="{ui.popover} absolute left-0 bottom-full mb-2 w-36 z-50 overflow-hidden"
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
+            use:menuNavigation
+            onclose={() => (showSpeedMenu = false)}
+            in:fly={{ y: 8, duration: 160, easing: cubicInOut }}
+            out:fly={{ y: 8, duration: 120, easing: cubicInOut }}
+          >
+            {#each speedOptions as s}
+              <li role="menuitem">
+                <button
+                  onclick={() => selectSpeed(s)}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      selectSpeed(s);
+                    }
+                  }}
+                  class="{ui.menuItem} justify-between"
+                >
+                  <span>{s.toFixed(2)}x</span>
+                  {#if Math.abs(s - (playbackSpeed || 1)) < 1e-6}
+                    <CheckIcon
+                      className="size-4 text-green-600"
+                      strokeWidth={1.5}
+                    />
+                  {/if}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+
+      <!-- Simulators come from plugins; there's nothing to show without one. -->
+      {#if $simulatorRegistry.length > 0}
+        <SimulationMenu
+          {totalSeconds}
+          onSeek={handleSeek}
+          settings={settings ?? {}}
+        />
       {/if}
     </div>
 

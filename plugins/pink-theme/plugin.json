@@ -1,0 +1,9 @@
+{
+  "id": "pink-theme",
+  "name": "Pink Theme",
+  "version": "2.0.0",
+  "apiVersion": 2,
+  "description": "A vibrant pink dark theme. Pick it under Settings → Interface → Theme.",
+  "author": "Turtle Tracer",
+  "themes": [{ "name": "Pink Plugin Theme", "css": "pink.css" }]
+}

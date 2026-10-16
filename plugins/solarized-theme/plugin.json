@@ -1,0 +1,12 @@
+{
+  "id": "solarized-theme",
+  "name": "Solarized Themes",
+  "version": "2.0.0",
+  "apiVersion": 2,
+  "description": "Solarized Light and Solarized Dark, a palette designed for readability. Pick one under Settings → Interface → Theme.",
+  "author": "Turtle Tracer",
+  "themes": [
+    { "name": "Solarized Light", "css": "solarized-light.css" },
+    { "name": "Solarized Dark", "css": "solarized-dark.css" }
+  ]
+}

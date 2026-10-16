@@ -10,7 +10,7 @@ import {
 } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
-import { actionRegistry } from "../../actionRegistry";
+import { actionFor } from "../../actionRegistry";
 
 export function generateEventMarkerElements(
   lines: Line[],
@@ -140,7 +140,7 @@ export function generateEventMarkerElements(
     // Use Registry for registered actions (e.g. Wait)
     sequence.forEach((item) => {
       if (item.hidden) return;
-      const action = actionRegistry.get(item.kind);
+      const action = actionFor(item);
       if (action?.renderField) {
         const elems = action.renderField(item, {
           x,

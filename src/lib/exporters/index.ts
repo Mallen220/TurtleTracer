@@ -7,6 +7,12 @@ export interface Exporter {
   name: string; // Display name
   description?: string; // Description of the export format
   exportCode: (data: TurtleData, settings: any) => Promise<string> | string; // Generation function
+  /** The plugin that added it; built-in exporters have none. */
+  owner?: string;
+  /** File extension to save as, without the dot. Defaults to txt. */
+  extension?: string;
+  /** How to highlight the output. Defaults to plain text. */
+  language?: "java" | "json" | "plaintext";
 }
 
 const createExporterRegistry = () => {
@@ -31,6 +37,13 @@ const createExporterRegistry = () => {
     getAll: (): Exporter[] => {
       const state = get({ subscribe });
       return Object.values(state);
+    },
+    removeOwner: (owner: string) => {
+      update((state) =>
+        Object.fromEntries(
+          Object.entries(state).filter(([, e]) => e.owner !== owner),
+        ),
+      );
     },
     reset: () => set({}),
   };

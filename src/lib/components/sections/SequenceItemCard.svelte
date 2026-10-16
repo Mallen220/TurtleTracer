@@ -22,7 +22,10 @@
     ArrowDownIcon,
   } from "../icons";
 
-  type Step = Extract<SequenceItem, { kind: "wait" | "rotate" | "macro" }>;
+  type Step = Extract<
+    SequenceItem,
+    { kind: "wait" | "rotate" | "macro" | "plugin" }
+  >;
 
   // Full class names, so Tailwind can find them.
   const ACCENTS = {
@@ -49,6 +52,14 @@
       input: "focus:ring-teal-500/20 focus:border-teal-500",
       tooltip:
         "bg-teal-100 dark:bg-teal-900 border-teal-300 dark:border-teal-700 text-teal-900 dark:text-teal-100",
+    },
+    neutral: {
+      selected: "border-neutral-400 ring-1 ring-neutral-400/20",
+      text: "text-neutral-700 dark:text-neutral-300",
+      focus: "focus-visible:ring-emerald-600",
+      input: "focus:ring-emerald-600/20 focus:border-emerald-600",
+      tooltip:
+        "bg-neutral-100 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100",
     },
   };
 

@@ -28,7 +28,7 @@
     toggleCollapseAllTrigger,
   } from "../../../stores";
   import { ensureSequenceConsistency } from "../../../lib/projectStore";
-  import { actionRegistry } from "../../actionRegistry";
+  import { actionFor, actionRegistry } from "../../actionRegistry";
   import {
     isSequenceItemLocked,
     lineOrderForSequence,
@@ -565,7 +565,7 @@
 
   <div role="list" class="flex flex-col gap-4">
     {#each sequence as item, sIdx (sequenceItemKey(item))}
-      {@const def = $actionRegistry[item.kind]}
+      {@const def = actionFor(item, $actionRegistry)}
       {@const prevItem = sIdx > 0 ? sequence[sIdx - 1] : null}
       {@const nextItem = sIdx < sequence.length - 1 ? sequence[sIdx + 1] : null}
       {@const isChain =
@@ -655,6 +655,8 @@
         {:else if def && def.sectionComponent}
           <def.sectionComponent
             {...{ [def.kind]: item }}
+            {item}
+            action={def}
             bind:sequence
             collapsed={collapsedSections.items[sequenceItemKey(item)]}
             onRemove={() => {

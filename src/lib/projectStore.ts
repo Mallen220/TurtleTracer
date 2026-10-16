@@ -151,6 +151,11 @@ export const loopRangeStore = writable<[number, number]>([0, 100]);
 export const isDraggingStore = writable(false);
 // Timing of the current path, computed by App whenever the project changes.
 export const timePredictionStore = writable<TimePrediction | null>(null);
+/**
+ * Bumped when a step's timing changes without the project changing: a
+ * plugin's action can work its timing out in the background.
+ */
+export const timingRevisionStore = writable(0);
 
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });

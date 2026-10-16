@@ -1,0 +1,68 @@
+/* Solarized Dark Theme */
+html.theme-solarized-dark,
+html.theme-solarized-dark body {
+  background-color: #002b36 !important;
+  color: #839496 !important;
+}
+
+/* Surface / Panels */
+html.theme-solarized-dark .bg-white,
+html.theme-solarized-dark .bg-neutral-50,
+html.theme-solarized-dark .bg-neutral-100 {
+  background-color: #073642 !important;
+}
+html.theme-solarized-dark .bg-neutral-200,
+html.theme-solarized-dark .bg-neutral-300,
+html.theme-solarized-dark .bg-neutral-400 {
+  background-color: #586e75 !important;
+}
+
+/* Borders */
+html.theme-solarized-dark .border-neutral-200,
+html.theme-solarized-dark .border-neutral-300,
+html.theme-solarized-dark .border-neutral-400,
+html.theme-solarized-dark .border-neutral-500 {
+  border-color: #586e75 !important;
+}
+
+/* Text */
+html.theme-solarized-dark .text-neutral-100,
+html.theme-solarized-dark .text-white {
+  color: #839496 !important;
+}
+html.theme-solarized-dark .text-neutral-200,
+html.theme-solarized-dark .text-neutral-300 {
+  color: #93a1a1 !important;
+}
+html.theme-solarized-dark .text-neutral-400,
+html.theme-solarized-dark .text-neutral-500 {
+  color: #657b83 !important;
+}
+
+/* Interactive Accent Colors */
+html.theme-solarized-dark .bg-blue-500,
+html.theme-solarized-dark .bg-sky-500,
+html.theme-solarized-dark .bg-indigo-500 {
+  background-color: #268bd2 !important;
+}
+html.theme-solarized-dark .text-blue-500,
+html.theme-solarized-dark .text-sky-500,
+html.theme-solarized-dark .text-indigo-500 {
+  color: #268bd2 !important;
+}
+html.theme-solarized-dark .border-blue-500,
+html.theme-solarized-dark .border-indigo-500 {
+  border-color: #268bd2 !important;
+}
+html.theme-solarized-dark .ring-blue-500,
+html.theme-solarized-dark .ring-indigo-500,
+html.theme-solarized-dark .focus\:ring-blue-500:focus,
+html.theme-solarized-dark .focus\:ring-indigo-500:focus {
+  --tw-ring-color: #268bd2 !important;
+}
+
+/* Selection */
+html.theme-solarized-dark ::selection {
+  background-color: rgba(38, 139, 210, 0.25);
+  color: #fdf6e3;
+}

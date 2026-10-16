@@ -1,0 +1,32 @@
+{
+  "id": "csv-export",
+  "name": "CSV Export",
+  "version": "2.0.0",
+  "apiVersion": 2,
+  "description": "Adds a CSV export: the robot's planned pose over time, or just the waypoints. Find it in the Export menu.",
+  "author": "Turtle Tracer",
+  "main": "main.ts",
+  "settings": [
+    {
+      "key": "rows",
+      "type": "select",
+      "label": "Rows",
+      "options": [
+        { "value": "timeline", "label": "The robot's pose over time" },
+        { "value": "waypoints", "label": "One per waypoint" }
+      ],
+      "default": "timeline"
+    },
+    {
+      "key": "interval",
+      "type": "number",
+      "unit": "time",
+      "label": "Time between rows",
+      "help": "For the pose over time.",
+      "min": 0.02,
+      "max": 5,
+      "step": 0.02,
+      "default": 0.1
+    }
+  ]
+}

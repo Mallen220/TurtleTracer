@@ -1,0 +1,10 @@
+{
+  "id": "compare-autos",
+  "name": "Compare Autos (example)",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "Shows other projects' paths on the field, with their robots moving in step with yours during playback: check an alliance partner's auto against your own. Use \"Show other autos…\" in the command palette or the top bar.",
+  "author": "Turtle Tracer",
+  "main": "main.ts",
+  "permissions": ["files.pick"]
+}

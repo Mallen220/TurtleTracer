@@ -31,7 +31,6 @@
   import { highlightAndSplit } from "../../../utils/htmlHighlighter";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
   import pkg from "../../../../package.json";
-  import { customExportersStore } from "../../pluginsStore";
   import { CogIcon, DownloadIcon, CheckIcon, ClipboardIcon } from "../icons";
   import { ui } from "../../ui";
 
@@ -85,8 +84,7 @@
   let code = $state("");
   let previousCode = "";
   let isGenerating = $state(false);
-  let format: "java" | "sequential" | "points" | "json" | "custom" =
-    $state("java");
+  let format: "java" | "sequential" | "points" | "json" = $state("java");
   let targetLibrary: CommandLibraryId = $state("SolversLib");
 
   // Sync state with settings
@@ -153,21 +151,12 @@
             { startPoint, lines, shapes, sequence },
             settingsObj,
           );
-        } else if (format === "custom") {
-          const exporters = get(customExportersStore);
-          if (exporters.length > 0) {
-            newCode =
-              "// Select a custom exporter in Auto Export settings to preview its code.";
-          } else {
-            newCode = "// No custom exporters available.";
-          }
         }
       }
 
       let codeLanguage = "java";
       if (format === "points") codeLanguage = "plaintext";
       if (format === "json") codeLanguage = "json";
-      if (format === "custom") codeLanguage = "plaintext";
 
       // If first run, just set it
       if (code) {
@@ -315,7 +304,6 @@
     let ext = "java";
     if (format === "points") ext = "txt";
     if (format === "json") ext = "turt";
-    if (format === "custom") ext = "txt";
 
     let defaultName = `AutoPath.${ext}`;
     if (currentPath) {
@@ -409,13 +397,13 @@
     <button
       onclick={handleDownloadJava}
       class={ui.btn.primary}
-      title={`Download as ${format === "points" || format === "custom" ? ".txt" : format === "json" ? ".turt" : ".java"}${getShortcutFromSettings(settings, "download-java")}`}
+      title={`Download as ${format === "points" ? ".txt" : format === "json" ? ".turt" : ".java"}${getShortcutFromSettings(settings, "download-java")}`}
       aria-label="Download generated file"
       disabled={!code}
       aria-disabled={!code}
     >
       <DownloadIcon className="size-4" strokeWidth={2} />
-      Download {format === "points" || format === "custom"
+      Download {format === "points"
         ? ".txt"
         : format === "json"
           ? ".turt"

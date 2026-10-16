@@ -38,7 +38,7 @@ import { speedAtAngle, stepSpeedScales } from "./directionalSpeed";
 import { buildHeadingProfile } from "./headingProfile";
 import { calculateRotationTime } from "./rotation";
 import { calculateMotionProfileDetailed } from "./motionProfile";
-import { actionRegistry } from "../../lib/actionRegistry";
+import { actionFor } from "../../lib/actionRegistry";
 import { MAX_MACRO_DEPTH } from "../../lib/macroUtils";
 
 /** The steps that get run: the sequence, or every line in order without one. */
@@ -216,8 +216,8 @@ class TimelineBuilder {
     const chains = calculateGlobalChainMeta(seq, this.lines, this.lastPoint);
 
     seq.forEach((item, idx) => {
-      // Waits, turns and plugin actions time themselves.
-      const action = actionRegistry.get(item.kind);
+      // Waits, turns and plugin steps time themselves.
+      const action = actionFor(item);
       if (action?.calculateTime) {
         const res = action.calculateTime(item, {
           currentTime: this.currentTime,

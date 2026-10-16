@@ -33,6 +33,8 @@ vi.mock("electron", () => ({
     on: vi.fn(),
   },
   safeStorage: { isEncryptionAvailable: vi.fn(() => false) },
+  protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
+  net: { fetch: vi.fn() },
 }));
 
 vi.mock("express", () => {
@@ -69,6 +71,7 @@ vi.mock("node:fs/promises", () => ({
     rm: vi.fn().mockResolvedValue(),
     rename: vi.fn().mockResolvedValue(),
     copyFile: vi.fn().mockResolvedValue(),
+    access: vi.fn().mockRejectedValue(new Error("ENOENT")),
   },
 }));
 

@@ -11,7 +11,7 @@ import {
   chainMarkerRegistrationCode,
   getUniqueEventMarkerNames,
 } from "./eventMarkerUtils";
-import { actionRegistry } from "../../lib/actionRegistry";
+import { actionFor } from "../../lib/actionRegistry";
 import { type CoordinateSystem } from "../../utils/coordinates";
 import {
   DEFAULT_PROJECT_EXTENSION,
@@ -100,31 +100,31 @@ export async function generateSequentialCommandCode(
 
   const seq = flattenMacros(sequence?.length ? sequence : defaultSequence);
 
-  seq.forEach((item) => {
-    // Registry Check
-    const action = actionRegistry.get(item.kind);
+  for (const item of seq) {
+    // Waits, turns and plugin steps write their own commands.
+    const action = actionFor(item);
     if (action?.toSequentialCommand) {
-      commands.push(
-        action.toSequentialCommand(item, {
-          targetLibrary: library.id,
-          isNextFTC: library.id === "NextFTC",
-        }),
-      );
-      return;
+      const context = {
+        targetLibrary: library.id,
+        isNextFTC: library.id === "NextFTC",
+      };
+      await action.prepareCode?.(item, context);
+      commands.push(action.toSequentialCommand(item, context));
+      continue;
     }
 
     const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
     if (lineIdx < 0) {
-      return; // skip if sequence references a missing line
+      continue; // skip if sequence references a missing line
     }
     const line = lines[lineIdx];
     if (!line) {
-      return;
+      continue;
     }
 
     // Skip generating an individual FollowPath command if this line is part of a chained group (but not the first)
     if (line.isChain) {
-      return;
+      continue;
     }
 
     // The name of the entire Path is the pathName of the root path
@@ -134,7 +134,7 @@ export async function generateSequentialCommandCode(
 
     if (!chainHasEventMarkers(lines, lineIdx)) {
       commands.push(`                ${followPathInstance}`);
-      return;
+      continue;
     }
 
     // The tracker only watches one path at a time: give it this path's
@@ -155,7 +155,7 @@ export async function generateSequentialCommandCode(
                     ${library.commands.perpetual("tracker.update()")}
                 `)}`,
     );
-  });
+  }
 
   // Interpolator arguments for a path between two pose variables. Unless
   // values are hardcoded, headings that weren't set explicitly are read

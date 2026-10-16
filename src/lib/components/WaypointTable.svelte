@@ -70,7 +70,7 @@
     isLineLinked,
     updateLinkedRotations,
   } from "../../utils/pointLinking";
-  import { actionRegistry } from "../actionRegistry";
+  import { actionFor, actionRegistry } from "../actionRegistry";
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
   import { formatTime } from "../../utils/timeCalculator";
@@ -889,7 +889,7 @@
       <!-- Sequence Items (displaySequence ensures missing lines are shown) -->
       {#each displaySequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
         {@const seqIndex = findSequenceIndex(item)}
-        {@const actionDef = actionRegistry.get(item.kind)}
+        {@const actionDef = actionFor(item, $actionRegistry)}
         {#if item.kind === "path"}
           <!-- If previous item was a path, add a small chaining button between them -->
           {#if seqIdx > 0 && displaySequence[seqIdx - 1].kind === "path"}
@@ -1246,6 +1246,7 @@
           {@const DynamicComponent = actionDef.component}
           <DynamicComponent
             {item}
+            action={actionDef}
             index={seqIndex}
             isLocked={isSequenceItemLocked(item, lines)}
             {dragOverIndex}
@@ -1331,6 +1332,13 @@
             <ClockIcon className="size-3" />
           {:else if def.kind === "rotate"}
             <ArrowCircleIcon className="size-3" />
+          {:else if def.owner}
+            <!-- A plugin's action type, in its colour. -->
+            <span
+              class="size-2.5 rounded-full border border-white/70"
+              style="background-color: {def.color}"
+              aria-hidden="true"
+            ></span>
           {:else}
             <!-- Fallback icon -->
             <PlusIcon className="size-3" strokeWidth={2} />

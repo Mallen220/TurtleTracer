@@ -2,7 +2,6 @@
 import Two from "two.js";
 import type { Group } from "two.js/src/group";
 import type { Shape } from "two.js/src/shape";
-import type { FieldRenderEntry } from "../../registries";
 
 /**
  * The field's drawing layers, bottom to top. Exports and CSS look them up
@@ -11,6 +10,7 @@ import type { FieldRenderEntry } from "../../registries";
 export const FIELD_LAYERS = [
   "shape-group",
   "line-group",
+  "plugin-group",
   "event-group",
   "point-group",
   "collision-group",
@@ -23,8 +23,6 @@ export interface FieldScenePayload {
   width: number;
   height: number;
   layers: Record<FieldLayer, readonly Shape[]>;
-  /** Plugin drawing callbacks; they draw straight onto the scene. */
-  fieldRenderers?: readonly FieldRenderEntry[];
 }
 
 /**
@@ -37,8 +35,6 @@ export interface FieldScenePayload {
 export class FieldScene {
   #two: Two;
   #layers: Record<FieldLayer, Group>;
-  /** What the plugins drew last time, removed before they draw again. */
-  #pluginShapes: Shape[] = [];
 
   constructor(two: Two) {
     this.#two = two;
@@ -52,7 +48,7 @@ export class FieldScene {
     ) as Record<FieldLayer, Group>;
   }
 
-  sync({ width, height, layers, fieldRenderers }: FieldScenePayload): void {
+  sync({ width, height, layers }: FieldScenePayload): void {
     const two = this.#two;
     let changed = false;
 
@@ -65,11 +61,6 @@ export class FieldScene {
 
     for (const id of FIELD_LAYERS) {
       if (this.#setLayer(id, layers[id])) changed = true;
-    }
-
-    if (fieldRenderers?.length || this.#pluginShapes.length) {
-      this.#drawPlugins(fieldRenderers ?? []);
-      changed = true;
     }
 
     if (changed) two.update();
@@ -99,20 +90,5 @@ export class FieldScene {
       children.push(...shapes.slice(firstChange));
     }
     return true;
-  }
-
-  #drawPlugins(renderers: readonly FieldRenderEntry[]) {
-    const scene = this.#two.scene;
-    if (this.#pluginShapes.length) scene.remove(this.#pluginShapes);
-
-    const before = new Set(scene.children);
-    for (const entry of renderers) {
-      try {
-        entry.fn(this.#two);
-      } catch (e) {
-        console.error(`Error in field renderer ${entry.id}:`, e);
-      }
-    }
-    this.#pluginShapes = scene.children.filter((child) => !before.has(child));
   }
 }

@@ -8,7 +8,7 @@
   import ControlTab from "./lib/ControlTab.svelte";
   import Navbar from "./lib/Navbar.svelte";
   import LeftSidebar from "./lib/components/LeftSidebar.svelte";
-  import FieldRenderer from "./lib/components/FieldRenderer.svelte";
+  import FieldStage from "./lib/components/FieldStage.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
   import FileDropZone from "./lib/components/FileDropZone.svelte";
   import ResizeHandle from "./lib/components/ResizeHandle.svelte";
@@ -79,10 +79,9 @@
     startRatingChecks,
     tryShowRatingDialog,
   } from "./lib/usageTracking";
-  import { PluginManager } from "./lib/pluginManager";
-  import { themesStore } from "./lib/pluginsStore";
+  import { startPlugins } from "./lib/plugins";
   import { registerCoreUI } from "./lib/coreRegistrations";
-  import { componentRegistry } from "./lib/registries";
+  import { themeRegistry } from "./lib/registries";
   import {
     applyTheme,
     applyFontSize,
@@ -115,15 +114,6 @@
   registerCoreUI();
 
   const electronAPI = getElectronAPI();
-
-  // Plugins can replace these components.
-  const NavbarComponent = $derived($componentRegistry.Navbar || Navbar);
-  const FieldRendererComponent = $derived(
-    $componentRegistry.FieldRenderer || FieldRenderer,
-  );
-  const ControlTabComponent = $derived(
-    $componentRegistry.ControlTab || ControlTab,
-  );
 
   const layout = new FieldLayout(() => $isPresentationMode);
   const playback = new Playback();
@@ -384,7 +374,6 @@
   });
 
   async function startUp() {
-    if (!isBrowser) await PluginManager.init();
     void loadDesktopToken();
 
     const savedSettings = await loadSettings();
@@ -418,6 +407,19 @@
 
     fadeOutLoadingScreen();
     tryShowRatingDialog();
+
+    // Desktop only; loads nothing unless a plugin is on.
+    void startPlugins({
+      recordChange,
+      playback: {
+        seek: playback.seek,
+        play: playback.play,
+        pause: playback.pause,
+        get duration() {
+          return playback.effectiveDuration;
+        },
+      },
+    });
   }
 
   /** Loads the saved project folder, if the user has chosen one. */
@@ -509,7 +511,7 @@
 
   $effect(() => {
     if (!settings) return;
-    applyTheme(settings, $themesStore);
+    applyTheme(settings, $themeRegistry);
     applyFontSize(settings);
     applySquaredCorners(settings);
   });
@@ -583,10 +585,7 @@
   // Opens the export dialog when something sets `exportDialogState`.
   $effect(() => {
     if ($exportDialogState.isOpen && exportDialog) {
-      exportDialog.openWithFormat(
-        $exportDialogState.format,
-        $exportDialogState.exporterName,
-      );
+      exportDialog.openWithFormat($exportDialogState.format);
       // Reset the trigger so Svelte reactivity doesn't re-open it unintentionally
       exportDialogState.update((s) => ({ ...s, isOpen: false }));
     }
@@ -730,26 +729,15 @@
   {#if !$isPresentationMode}
     <div class="flex-none z-50" role="banner">
       <h1 class="sr-only">Turtle Tracer</h1>
-      <NavbarComponent
-        bind:lines={$linesStore}
-        bind:startPoint={$startPointStore}
-        bind:shapes={$shapesStore}
-        bind:sequence={$sequenceStore}
+      <Navbar
         bind:settings={$settingsStore}
         {robotLength}
         {robotWidth}
         bind:showSidebar={layout.showSidebar}
         isLargeScreen={layout.isLargeScreen}
         saveProject={handleSaveProject}
-        resetProject={handleResetProject}
         {saveFileAs}
         exportGif={() => showExportGif.set(true)}
-        {undoAction}
-        {redoAction}
-        {recordChange}
-        {canUndo}
-        {canRedo}
-        {history}
       />
     </div>
   {/if}
@@ -794,7 +782,7 @@
             title="Field workspace tutorial target"
             tabindex={$startTutorial ? 0 : -1}
           ></button>
-          <FieldRendererComponent
+          <FieldStage
             bind:this={fieldRenderer}
             width={layout.fieldRenderWidth}
             height={layout.fieldRenderHeight}
@@ -847,7 +835,7 @@
           ></div>
         {/if}
 
-        <ControlTabComponent
+        <ControlTab
           bind:this={controlTabRef}
           bind:playing={$playingStore}
           play={playback.play}

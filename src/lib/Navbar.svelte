@@ -32,7 +32,7 @@
     repoKey,
   } from "../utils/github/paths";
   import { githubRepos } from "../utils/github/repos";
-  import { customExportersStore } from "./pluginsStore";
+  import { exporterRegistry } from "./exporters";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
   import ValidationButton from "./components/tools/ValidationButton.svelte";
@@ -98,13 +98,15 @@
     return `${seconds.toFixed(2)}s`;
   }
 
-  function handleExport(
-    format: "java" | "points" | "sequential" | "json" | "custom",
-    exporterName?: string,
-  ) {
+  function handleExport(format: string) {
     exportMenuOpen = false;
-    exportDialogState.set({ isOpen: true, format, exporterName });
+    exportDialogState.set({ isOpen: true, format });
   }
+
+  /** Exporters added by plugins, listed after the built-in ones. */
+  let pluginExporters = $derived(
+    Object.values($exporterRegistry).filter((e) => e.owner),
+  );
 
   $effect(() => {
     if (
@@ -496,16 +498,16 @@
             title="Print Strategy Sheet">Strategy Sheet</button
           >
 
-          {#if $customExportersStore.length > 0}
+          {#if pluginExporters.length > 0}
             <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
             <div
               class="px-4 py-1 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
             >
               Plugins
             </div>
-            {#each $customExportersStore as exporter}
+            {#each pluginExporters as exporter (exporter.id)}
               <button
-                onclick={() => handleExport("custom", exporter.name)}
+                onclick={() => handleExport(exporter.id)}
                 class={ui.menuItem}
               >
                 {exporter.name}

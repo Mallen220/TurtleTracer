@@ -1,0 +1,68 @@
+/* Solarized Light Theme */
+html.theme-solarized-light,
+html.theme-solarized-light body {
+  background-color: #fdf6e3 !important;
+  color: #657b83 !important;
+}
+
+/* Surface / Panels */
+html.theme-solarized-light .bg-white,
+html.theme-solarized-light .bg-neutral-50,
+html.theme-solarized-light .bg-neutral-100 {
+  background-color: #eee8d5 !important;
+}
+html.theme-solarized-light .bg-neutral-200,
+html.theme-solarized-light .bg-neutral-300,
+html.theme-solarized-light .bg-neutral-400 {
+  background-color: #93a1a1 !important;
+}
+
+/* Borders */
+html.theme-solarized-light .border-neutral-200,
+html.theme-solarized-light .border-neutral-300,
+html.theme-solarized-light .border-neutral-400,
+html.theme-solarized-light .border-neutral-500 {
+  border-color: #93a1a1 !important;
+}
+
+/* Text */
+html.theme-solarized-light .text-neutral-900,
+html.theme-solarized-light .text-black {
+  color: #657b83 !important;
+}
+html.theme-solarized-light .text-neutral-700,
+html.theme-solarized-light .text-neutral-800 {
+  color: #586e75 !important;
+}
+html.theme-solarized-light .text-neutral-500,
+html.theme-solarized-light .text-neutral-600 {
+  color: #839496 !important;
+}
+
+/* Interactive Accent Colors */
+html.theme-solarized-light .bg-blue-500,
+html.theme-solarized-light .bg-sky-500,
+html.theme-solarized-light .bg-indigo-500 {
+  background-color: #268bd2 !important;
+}
+html.theme-solarized-light .text-blue-500,
+html.theme-solarized-light .text-sky-500,
+html.theme-solarized-light .text-indigo-500 {
+  color: #268bd2 !important;
+}
+html.theme-solarized-light .border-blue-500,
+html.theme-solarized-light .border-indigo-500 {
+  border-color: #268bd2 !important;
+}
+html.theme-solarized-light .ring-blue-500,
+html.theme-solarized-light .ring-indigo-500,
+html.theme-solarized-light .focus\:ring-blue-500:focus,
+html.theme-solarized-light .focus\:ring-indigo-500:focus {
+  --tw-ring-color: #268bd2 !important;
+}
+
+/* Selection */
+html.theme-solarized-light ::selection {
+  background-color: rgba(38, 139, 210, 0.2);
+  color: #002b36;
+}

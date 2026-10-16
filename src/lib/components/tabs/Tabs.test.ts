@@ -99,6 +99,7 @@ vi.mock("../../actionRegistry", async () => {
       execute: vi.fn(),
       register: vi.fn(),
     },
+    actionFor: vi.fn(() => undefined),
   };
 });
 

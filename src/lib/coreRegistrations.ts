@@ -1,8 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { componentRegistry } from "./registries";
-import Navbar from "./Navbar.svelte";
-import FieldRenderer from "./components/FieldRenderer.svelte";
-import ControlTab from "./ControlTab.svelte";
 import { registerDefaultControlTabs } from "./ControlTab.svelte";
 import { actionRegistry } from "./actionRegistry";
 import { WaitAction } from "./actions/WaitAction";
@@ -15,13 +11,9 @@ import "./exporters/javaExporter";
 import "./exporters/pointsExporter";
 import "./exporters/sequentialExporter";
 
-// Registers built-in components and tabs. Safe to call multiple times; registries dedupe by id.
+// Registers the built-in tabs and actions. Safe to call more than once;
+// registries replace entries with the same id.
 export const registerCoreUI = () => {
-  componentRegistry.register("Navbar", Navbar);
-  componentRegistry.register("FieldRenderer", FieldRenderer);
-  componentRegistry.register("ControlTab", ControlTab);
-
-  // Tabs live inside ControlTab; ensure defaults are present after registry resets.
   registerDefaultControlTabs();
 
   // Register Core Actions

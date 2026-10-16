@@ -1,0 +1,51 @@
+{
+  "id": "robot-sim",
+  "name": "Robot Simulator (example)",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "An example simulator: a robot with momentum chasing the plan, limited by traction and reaction time. Pick it from the Sim menu by the playback controls to see a ghost robot and how far it strays.",
+  "author": "Turtle Tracer",
+  "main": "main.ts",
+  "settings": [
+    {
+      "key": "response",
+      "type": "number",
+      "label": "Responsiveness",
+      "help": "How hard the robot corrects towards where it should be (per second).",
+      "min": 0.5,
+      "max": 30,
+      "step": 0.5,
+      "default": 6
+    },
+    {
+      "key": "damping",
+      "type": "number",
+      "label": "Damping",
+      "help": "1 settles without overshooting; lower values swing past.",
+      "min": 0.1,
+      "max": 2,
+      "step": 0.05,
+      "default": 0.8
+    },
+    {
+      "key": "traction",
+      "type": "number",
+      "label": "Traction",
+      "help": "The share of the robot's maximum acceleration the wheels can actually use.",
+      "min": 0.1,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.8
+    },
+    {
+      "key": "latency",
+      "type": "number",
+      "unit": "time",
+      "label": "Reaction time",
+      "min": 0,
+      "max": 0.5,
+      "step": 0.01,
+      "default": 0.05
+    }
+  ]
+}

@@ -1,61 +1,75 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+// Builds plugins/turtle.d.ts, the types plugin authors use, from the public
+// plugin API in src/lib/plugins/api. Everything is put in a `Turtle`
+// namespace so it can't clash with other types, and `turtle` (the global a
+// plugin's main script uses) and the `turtle:view` module are declared.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import prettier from "prettier";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const typesPath = path.join(__dirname, "../src/types/index.ts");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const apiDir = path.join(__dirname, "../src/lib/plugins/api");
 const outputPath = path.join(__dirname, "../plugins/turtle.d.ts");
+
+// In dependency order, so the file reads top to bottom.
+const API_FILES = ["data.ts", "forms.ts", "field.ts", "turtle.ts", "view.ts"];
+
+/** A file's declarations without its imports, `export` keywords or copyright line. */
+function declarationsOf(file) {
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  return fs
+    .readFileSync(path.join(apiDir, file), "utf-8")
+    .replace(/^\/\/ Copyright.*\n/, "")
+    .replaceAll(/^import[\s\S]*?from\s+["'][^"']+["'];\s*$/gm, "")
+    .replaceAll(/^export /gm, "");
+}
 
 async function generate() {
   console.log("Generating plugin types...");
-  try {
-    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
-    let content = fs.readFileSync(typesPath, "utf-8");
+  const body = API_FILES.map(declarationsOf).join("\n");
 
-    // Remove imports/exports to make types global
-    // 1. Remove import statements (they should be at the top)
-    content = content.replaceAll(/^import .*$/gm, "");
-
-    // 2. Remove 'export' keyword from declarations
-    // Matches "export interface", "export type", "export const" etc.
-    content = content.replaceAll(/^export /gm, "");
-
-    const finalContent = `/* eslint-disable */
+  const content = `/* eslint-disable */
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
- * Type definitions for Turtle Tracer Plugins.
- * These types are automatically available in your .ts plugins.
+ * Types for Turtle Tracer plugins. Reference this file from your plugin's
+ * scripts:
  *
- * AUTO-GENERATED - DO NOT EDIT MANUALLY
+ *   /// <reference path="../turtle.d.ts" />
+ *
+ * Your main script then gets the global \`turtle\` (Turtle.TurtleAPI), and a
+ * view's scripts can \`import { connect } from "turtle:view"\`.
+ *
+ * AUTO-GENERATED from src/lib/plugins/api by scripts/generate-plugin-types.js.
+ * Don't edit it by hand: it's replaced whenever Turtle Tracer updates.
  */
 
-${content}
+declare namespace Turtle {
+${body}
+}
 
-export {};
+/** The plugin API, in a plugin's main script. */
+declare const turtle: Turtle.TurtleAPI;
 
-// Global variable exposed to plugins
-declare global {
-  const turtle: TurtleAPI;
+declare module "turtle:view" {
+  /** Connects a view to Turtle Tracer. Calling it again gives the same connection. */
+  export function connect(): Promise<Turtle.TurtleView>;
 }
 `;
 
-    const options = await prettier.resolveConfig(outputPath);
-    const formatted = await prettier.format(finalContent, {
-      ...options,
-      parser: "typescript",
-    });
-
-    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
-    fs.writeFileSync(outputPath, formatted);
-    console.log(`Plugin types generated at ${outputPath}`);
-  } catch (error) {
-    console.error("Failed to generate plugin types:", error);
-    process.exit(1);
-  }
+  const options = await prettier.resolveConfig(outputPath);
+  const formatted = await prettier.format(content, {
+    ...options,
+    parser: "typescript",
+  });
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  fs.writeFileSync(outputPath, formatted);
+  console.log(`Plugin types generated at ${outputPath}`);
 }
 
-await generate();
+try {
+  await generate();
+} catch (error) {
+  console.error("Failed to generate plugin types:", error);
+  process.exit(1);
+}

@@ -28,12 +28,11 @@ describe("FieldScene", () => {
   const drawn = (layer: FieldLayer) =>
     [...svg().querySelector(`#${layer}`)!.children].map((el) => el.id);
 
-  function sync(layers: Partial<Record<FieldLayer, Shape[]>>, extra = {}) {
+  function sync(layers: Partial<Record<FieldLayer, Shape[]>>) {
     scene.sync({
       width: 200,
       height: 100,
       layers: { ...noLayers(), ...layers },
-      ...extra,
     });
   }
 
@@ -107,65 +106,5 @@ describe("FieldScene", () => {
     const update = vi.spyOn(two, "update");
     sync({ "shape-group": [a] });
     expect(update).not.toHaveBeenCalled();
-  });
-
-  describe("plugin renderers", () => {
-    it("replaces what plugins drew last time, above the layers", () => {
-      let n = 0;
-      const plugin = {
-        id: "p",
-        fn: (t: Two) => {
-          t.add(circle(`plugin-${n++}`));
-        },
-      };
-      sync({}, { fieldRenderers: [plugin] });
-      sync({}, { fieldRenderers: [plugin] });
-
-      const top = svg().querySelector(`#${two.scene.id}`)!.children;
-      expect([...top].map((el) => el.id)).toEqual([
-        ...FIELD_LAYERS,
-        "plugin-1",
-      ]);
-    });
-
-    it("clears plugin drawings once no plugins are left", () => {
-      const plugin = { id: "p", fn: (t: Two) => t.add(circle("plugin")) };
-      sync({}, { fieldRenderers: [plugin] });
-      sync({}, { fieldRenderers: [] });
-      expect(svg().querySelector("#plugin")).toBeNull();
-    });
-
-    it("leaves alone shapes added to the scene by others", () => {
-      sync({});
-      two.add(circle("box-select"));
-      sync({}, { fieldRenderers: [{ id: "p", fn: () => {} }] });
-      sync({}, { fieldRenderers: [{ id: "p", fn: () => {} }] });
-      expect(svg().querySelector("#box-select")).not.toBeNull();
-    });
-
-    it("keeps drawing when a plugin throws", () => {
-      const error = vi.spyOn(console, "error").mockImplementation(() => {});
-      const good = vi.fn();
-      sync(
-        {},
-        {
-          fieldRenderers: [
-            {
-              id: "bad",
-              fn: () => {
-                throw new Error("Plugin crash");
-              },
-            },
-            { id: "good", fn: good },
-          ],
-        },
-      );
-      expect(good).toHaveBeenCalledWith(two);
-      expect(error).toHaveBeenCalledWith(
-        "Error in field renderer bad:",
-        expect.any(Error),
-      );
-      error.mockRestore();
-    });
   });
 });

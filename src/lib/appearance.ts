@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Applies the chosen colour theme, font size and corner style to the document.
 import type { Settings } from "../types";
-import type { CustomTheme } from "./pluginsStore";
+import type { ThemeDefinition } from "./registries";
 import { POTATO_THEME_CSS } from "../utils/potatoTheme";
 
 const CUSTOM_STYLE_ID = "custom-theme-style";
@@ -38,7 +38,10 @@ function setCustomThemeClass(className: string | null) {
  * Applies `settings.theme`: "light", "dark", "auto" (follow the OS) or the
  * name of a theme registered by a plugin.
  */
-export function applyTheme(settings: Settings, customThemes: CustomTheme[]) {
+export function applyTheme(
+  settings: Settings,
+  customThemes: readonly ThemeDefinition[],
+) {
   const root = document.documentElement;
 
   if (isPotatoMode(settings)) {

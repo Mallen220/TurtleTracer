@@ -106,8 +106,9 @@ export function robotPoseDuring(
       ? clamp01((seconds - event.startTime) / event.duration)
       : 1;
 
-  if (event.type === "recovery" && event.trace) {
-    // Off the path, between one chained path and the next.
+  if (event.trace) {
+    // Following a trace: off the path between two chained paths, or a
+    // plugin step that moves the robot.
     const { time, x, y } = event.trace;
     const relative = Math.max(0, seconds - event.startTime);
     let i = 0;

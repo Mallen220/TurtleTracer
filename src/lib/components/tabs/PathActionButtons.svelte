@@ -34,6 +34,13 @@
         <ClockIcon className="size-4" />
       {:else if def.kind === "rotate"}
         <ArrowCircleIcon className="size-4" />
+      {:else if def.owner}
+        <!-- A plugin's action type, in its colour. -->
+        <span
+          class="size-3 rounded-full border border-white/70"
+          style="background-color: {def.color}"
+          aria-hidden="true"
+        ></span>
       {:else}
         <PlusIcon className="size-4" strokeWidth={2} />
       {/if}

@@ -1,0 +1,9 @@
+{
+  "id": "zone-markers",
+  "name": "Zone Markers (example)",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "An example of new event marker types: fire an event when the robot enters a zone (an obstacle or keep-in shape, by name), or a set distance before the end of a path.",
+  "author": "Turtle Tracer",
+  "main": "main.ts"
+}

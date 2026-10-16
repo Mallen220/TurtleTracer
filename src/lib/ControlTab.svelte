@@ -17,7 +17,7 @@
     StatsIcon,
   } from "./components/icons";
 
-  // Register default tabs; callable so plugin reloads can restore baseline tabs
+  // Registers the built-in tabs (plugins can add their own after them).
   export const registerDefaultControlTabs = () => {
     tabRegistryModule.register({
       id: "path",
@@ -75,7 +75,7 @@
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import { getShortcutFromSettings } from "../utils";
   import { timePredictionStore } from "./projectStore";
-  import { tabRegistry, timelineTransformerRegistry } from "./registries";
+  import { tabRegistry } from "./registries";
   import { diffMode } from "./diffStore";
 
   // Optimization Interface
@@ -462,22 +462,7 @@
         }
       });
 
-      // Apply transformers
-      let transformedItems = items;
-      $timelineTransformerRegistry.forEach((entry) => {
-        try {
-          transformedItems = entry.fn(transformedItems, {
-            timePrediction,
-            sequence,
-            lines,
-            settings,
-          });
-        } catch (e) {
-          console.error(`Error in timeline transformer ${entry.id}:`, e);
-        }
-      });
-
-      return transformedItems;
+      return items;
     })(),
   );
   let shouldShowTelemetry = $derived(
@@ -557,20 +542,25 @@
       {#each $tabRegistry as tab (tab.id)}
         {#if (tab.id !== "code" || (!isBrowser && settings?.autoExportCode)) && (tab.id !== "telemetry" || shouldShowTelemetry)}
           <div class:hidden={activeTab !== tab.id} class="w-full h-full">
-            <tab.component
-              bind:this={tabInstances[tab.id]}
-              bind:startPoint
-              bind:lines
-              bind:sequence
-              bind:shapes
-              bind:settings
-              bind:robotXY
-              bind:robotHeading
-              {recordChange}
-              {onPreviewChange}
-              isActive={activeTab === tab.id}
-              {timePrediction}
-            />
+            {#if tab.props}
+              <!-- A plugin's panel: it gets its own props, not the project. -->
+              <tab.component {...tab.props} />
+            {:else}
+              <tab.component
+                bind:this={tabInstances[tab.id]}
+                bind:startPoint
+                bind:lines
+                bind:sequence
+                bind:shapes
+                bind:settings
+                bind:robotXY
+                bind:robotHeading
+                {recordChange}
+                {onPreviewChange}
+                isActive={activeTab === tab.id}
+                {timePrediction}
+              />
+            {/if}
           </div>
         {/if}
       {/each}

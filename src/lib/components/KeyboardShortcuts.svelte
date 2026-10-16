@@ -7,6 +7,7 @@
 
   import CommandPalette from "./CommandPalette.svelte";
   import { executeCommandBus, availableCommands } from "../../stores";
+  import { commandRegistry } from "../registries";
   import {
     linesStore,
     sequenceStore,
@@ -156,6 +157,12 @@
 
   // Derive commands list for Command Palette
   let paletteCommands = $derived([
+    ...$commandRegistry.map((c) => ({
+      id: c.id,
+      label: c.label,
+      category: c.category,
+      action: c.run,
+    })),
     ...generateKeybindingCommands(
       settings?.keyBindings || DEFAULT_KEY_BINDINGS,
       actions as any,

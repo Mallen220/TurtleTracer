@@ -18,16 +18,16 @@
     fieldPan,
     hoveredMarkerId,
     fieldViewStore,
-    pluginRedrawTrigger,
     notification,
     showRobot,
     isDrawingMode,
   } from "../../stores";
   import {
-    hookRegistry,
     fieldContextMenuRegistry,
-    fieldRenderRegistry,
+    fieldLayerRegistry,
+    type FieldLayerDefinition,
   } from "../registries";
+  import { simulationStore } from "../simulation";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import VelocityTooltip from "./VelocityTooltip.svelte";
   import {
@@ -94,6 +94,12 @@
   } from "./renderer/OnionLayerGenerator";
   import { generateFacingLineElements } from "./renderer/FacingLineGenerator";
   import {
+    CLICKABLE_CLASS,
+    generatePluginElements,
+    layerMoves,
+    type ClickTargets,
+  } from "./renderer/PluginLayerGenerator";
+  import {
     buildContextMenuForEvent,
     createContextMenuStoreCallbacks,
   } from "./renderer/FieldContextMenuBuilder";
@@ -158,7 +164,6 @@
 
   let twoElement: HTMLDivElement | undefined = $state();
   let wrapperDiv: HTMLDivElement | undefined = $state();
-  let overlayContainer: HTMLDivElement | undefined = $state();
 
   // Smart Snapping State
   let snapGuides: InstanceType<typeof Two.Line>[] = $state([]);
@@ -232,9 +237,7 @@
       svgEl.style.zIndex = "15";
     }
     scene = new FieldScene(two);
-
-    // Trigger hook for plugins to initialize overlays
-    hookRegistry.run("fieldOverlayInit", overlayContainer);
+    twoElement!.addEventListener("click", handlePluginClick);
 
     interactionController = new FieldInteractionController({
       domElement: two!.renderer.domElement,
@@ -567,29 +570,74 @@
     }),
   );
 
+  // --- Plugin drawings ---
+  // Only drawings that follow the robot (or a track) are rebuilt as it
+  // moves; with no plugins this is an empty list.
+  const pluginClickTargets: ClickTargets = new Map();
+  /** A simulation's ghost robot, drawn like a plugin's robot shape. */
+  let simulationLayer: FieldLayerDefinition[] = $derived(
+    $simulationStore.mode === "ghost" && $simulationStore.result
+      ? [
+          {
+            id: "simulation",
+            primitives: [
+              { type: "robot", track: "simulation", color: "#0284c7" },
+            ],
+            tracks: { simulation: $simulationStore.result.poses },
+          },
+        ]
+      : [],
+  );
+  let pluginLayers = $derived([...$fieldLayerRegistry, ...simulationLayer]);
+  let pluginLayersMove = $derived(pluginLayers.some(layerMoves));
+  let pluginElements = $derived(
+    pluginLayers.length === 0
+      ? []
+      : generatePluginElements(
+          pluginLayers,
+          ctx,
+          pluginLayersMove
+            ? {
+                // The store holds the on-screen heading, which turns the other way.
+                robot: { x: robotXY.x, y: robotXY.y, heading: -robotHeading },
+                time:
+                  ($percentStore / 100) *
+                  (effectiveTimePrediction?.totalTime ?? 0),
+              }
+            : null,
+          pluginClickTargets,
+        ),
+  );
+
+  /** Tells a plugin when one of its shapes is clicked. */
+  function handlePluginClick(e: MouseEvent) {
+    const element = (e.target as Element | null)?.closest?.(
+      `.${CLICKABLE_CLASS}`,
+    );
+    const target = element && pluginClickTargets.get(element.id);
+    if (!target || !twoElement) return;
+    const rect = twoElement.getBoundingClientRect();
+    target.layer.onClick?.(target.primitiveId, {
+      x: x.invert(e.clientX - rect.left),
+      y: y.invert(e.clientY - rect.top),
+    });
+  }
+
   // Render Loop
   $effect(() => {
     if (!scene) return;
-    const fieldRenderers = $fieldRenderRegistry;
-    $pluginRedrawTrigger; // Subscribe to plugin redraw requests
-    if (fieldRenderers.length > 0) {
-      // Plugins have always been redrawn on every frame of playback, so
-      // anything they draw at the robot keeps following it.
-      $percentStore;
-      robotXY;
-    }
     scene.sync({
       width,
       height,
       layers: {
         "shape-group": shapeElements,
         "line-group": lineElements,
+        "plugin-group": pluginElements,
         "event-group": eventElements,
         "point-group": pointElements,
         "collision-group": collisionElements,
         "snap-group": showEditingAids ? snapGuides : [],
       },
-      fieldRenderers,
     });
   });
 </script>
@@ -615,13 +663,6 @@
     style:transform={`rotate(${settings.fieldRotation || 0}deg)`}
     style:transition="transform 0.3s ease-in-out"
   >
-    <!-- Plugin Overlay Container -->
-    <div
-      bind:this={overlayContainer}
-      id="field-overlay-layer"
-      class="absolute inset-0 pointer-events-none z-30"
-    ></div>
-
     {#if isLiveTelemetryVisible}
       <LiveFieldLayer {x} {y} {width} {height} />
       <svg
@@ -728,5 +769,13 @@
   /* Ensure collision markers and shapes do not block pointer events so users can click through them */
   :global(#collision-group, #collision-group *, #shape-group, #shape-group *) {
     pointer-events: none !important;
+  }
+  /* Plugin drawings let clicks through unless the plugin listens for them. */
+  :global(#plugin-group *) {
+    pointer-events: none;
+  }
+  :global(#plugin-group .plugin-clickable, #plugin-group .plugin-clickable *) {
+    pointer-events: auto;
+    cursor: pointer;
   }
 </style>

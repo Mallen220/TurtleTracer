@@ -7,7 +7,7 @@
     AVAILABLE_FIELD_MAPS,
   } from "../../../../config/defaults";
   import type { Settings, CustomFieldConfig } from "../../../../types/index";
-  import { themesStore } from "../../../pluginsStore";
+  import { themeRegistry } from "../../../registries";
   import { followRobotStore, shapesStore } from "../../../projectStore";
   import { fieldZoom, fieldPan } from "../../../../stores";
   import * as ICONS from "../../icons";
@@ -118,7 +118,7 @@
       <option value="auto">Auto (System Preference)</option>
       <option value="light">Light Mode</option>
       <option value="dark">Dark Mode</option>
-      {#each $themesStore as theme}
+      {#each $themeRegistry as theme (theme.id)}
         <option value={theme.name}>{theme.name}</option>
       {/each}
     </select>

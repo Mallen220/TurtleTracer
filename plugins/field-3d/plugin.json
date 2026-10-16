@@ -1,0 +1,12 @@
+{
+  "id": "field-3d",
+  "name": "3D Field",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "Adds a 3D view of the field: the field, your paths, obstacles and the robot following playback. Switch to it with the 2D/3D buttons on the field. Uses three.js, downloaded from npm when you turn it on.",
+  "author": "Turtle Tracer",
+  "views": {
+    "field3d": { "entry": "view/index.html", "slot": "field", "title": "3D" }
+  },
+  "dependencies": { "three": "0.170.0" }
+}

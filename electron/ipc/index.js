@@ -15,6 +15,6 @@ export function registerIpcHandlers(state) {
   registerGitHandlers();
   registerGitHubHandlers();
   registerJavaFollowHandlers();
-  registerPluginHandlers();
+  registerPluginHandlers({ safeMode: state.safeMode });
   registerTelemetryHandlers();
 }

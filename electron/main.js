@@ -4,12 +4,18 @@ import path from "node:path";
 import express from "express";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import rateLimit from "express-rate-limit";
 import AppUpdater from "./updater.js";
 import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
 import { registerIpcHandlers } from "./ipc/index.js";
+import { isPluginEnabled } from "./ipc/pluginHandlers.js";
+import { ensureDefaultPlugins } from "./plugins/defaults.js";
+import {
+  SCHEME as PLUGIN_SCHEME,
+  handlePluginProtocol,
+  registerPluginScheme,
+} from "./plugins/protocol.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +28,13 @@ let appUpdater;
 // macOS while still in use.
 globalThis.appMenu = null;
 globalThis.dockMenu = null;
+
+// Plugin views are served from turtle-plugin://; the scheme has to be
+// registered before the app is ready.
+registerPluginScheme();
+
+/** `--safe-mode` starts the app with every plugin left off. */
+const safeMode = process.argv.includes("--safe-mode");
 
 // Stale service worker caches from a previous version can stop the UI from
 // loading, so they're cleared once per launch.
@@ -106,13 +119,17 @@ if (gotTheLock) {
       }
     }
 
+    handlePluginProtocol(getPluginsDirectory, isPluginEnabled);
     await startServer();
     openWindow();
     createMenu();
     updateDockMenu();
     updateJumpList();
     // Logs its own failures.
-    void ensureDefaultPlugins();
+    void ensureDefaultPlugins(
+      getPluginsDirectory(),
+      path.join(__dirname, "../plugins"),
+    );
 
     // Check for updates (only once)
     setTimeout(() => {
@@ -236,6 +253,14 @@ const createWindow = async () => {
     if (url.startsWith(`${appOrigin}/`) || url === appOrigin) return;
     event.preventDefault();
     if (isWebUrl(url)) openInBrowser(url);
+  });
+  // A plugin's view stays on its own plugin's files.
+  newWindow.webContents.on("will-frame-navigate", (details) => {
+    if (details.isMainFrame) return;
+    const current = details.frame?.url ?? "";
+    if (!current.startsWith(`${PLUGIN_SCHEME}://`)) return;
+    const origin = new URL(current).origin;
+    if (!details.url.startsWith(`${origin}/`)) details.preventDefault();
   });
 
   if (!cachesCleared) {
@@ -545,6 +570,7 @@ app.on("will-quit", () => {
 
 registerIpcHandlers({
   windows,
+  safeMode,
   get pendingFilePath() {
     return pendingFilePath;
   },
@@ -558,42 +584,3 @@ registerIpcHandlers({
     appUpdater = val;
   },
 });
-
-/** Copies the bundled plugins into the user's plugins folder if missing. */
-async function ensureDefaultPlugins() {
-  const pluginsDir = getPluginsDirectory();
-  try {
-    await fs.mkdir(pluginsDir, { recursive: true });
-
-    const sourcePluginsDir = path.join(__dirname, "../plugins");
-
-    try {
-      const files = await fs.readdir(sourcePluginsDir);
-      for (const file of files) {
-        if (
-          !file.endsWith(".js") &&
-          !file.endsWith(".ts") &&
-          !file.endsWith(".d.ts")
-        )
-          continue;
-
-        const srcFile = path.join(sourcePluginsDir, file);
-        const destFile = path.join(pluginsDir, file);
-
-        try {
-          await fs.access(destFile);
-        } catch {
-          await fs.copyFile(srcFile, destFile);
-        }
-      }
-    } catch (err) {
-      console.error(
-        "Failed to read source plugins directory:",
-        sourcePluginsDir,
-        err,
-      );
-    }
-  } catch (err) {
-    console.error("Failed to ensure default plugins", err);
-  }
-}

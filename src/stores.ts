@@ -46,8 +46,8 @@ export const showHistory = writable(false);
 export const showTransformDialog = writable(false);
 export const exportDialogState = writable<{
   isOpen: boolean;
-  format: "java" | "points" | "sequential" | "json" | "custom";
-  exporterName?: string;
+  /** "json" for the project file, else an exporter's id (see exporterRegistry). */
+  format: string;
 }>({ isOpen: false, format: "java" });
 
 // Global command execution bus
@@ -201,6 +201,4 @@ export const fieldViewStore = writable<FieldView>({
   height: 0,
 });
 
-// Plugin Redraw Trigger
-export const pluginRedrawTrigger = writable(0);
 export const dimmedLinesStore = writable<string[]>([]);

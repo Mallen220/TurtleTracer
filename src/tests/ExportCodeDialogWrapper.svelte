@@ -6,11 +6,8 @@
   let isOpen = $state(false);
   let dialog: ExportCodeDialog | undefined = $state();
 
-  export function openWithFormat(
-    format: "java" | "points" | "sequential" | "json" | "custom",
-    name?: string,
-  ) {
-    return dialog!.openWithFormat(format, name);
+  export function openWithFormat(format: string) {
+    return dialog!.openWithFormat(format);
   }
   export const isDialogOpen = () => isOpen;
 </script>

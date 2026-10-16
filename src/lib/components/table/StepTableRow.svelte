@@ -14,7 +14,10 @@
   import UnlockIcon from "../icons/UnlockIcon.svelte";
   import { ui } from "../../ui";
 
-  type Step = Extract<SequenceItem, { kind: "wait" | "rotate" | "macro" }>;
+  type Step = Extract<
+    SequenceItem,
+    { kind: "wait" | "rotate" | "macro" | "plugin" }
+  >;
 
   // Full class names, so Tailwind can find them.
   const ACCENTS = {
@@ -32,6 +35,11 @@
       row: "bg-teal-50 dark:bg-teal-900/20",
       ring: "focus:ring-teal-500",
       text: "text-teal-700 dark:text-teal-400",
+    },
+    neutral: {
+      row: "",
+      ring: "focus:ring-emerald-600",
+      text: "text-neutral-700 dark:text-neutral-300",
     },
   };
 

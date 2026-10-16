@@ -1,118 +1,170 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { writable } from "svelte/store";
+// Lists of things the UI shows that can come from the app or from plugins:
+// control tabs, navbar buttons, context menu items, dialogs, commands, field
+// layers and views, and themes. Components read them like any other store.
+import { writable, get } from "svelte/store";
+import type { Component } from "svelte";
+import type {
+  ContextMenuItem,
+  EventMarker,
+  FieldPrimitive,
+  NavbarAction,
+  PoseTrack,
+} from "../types";
+import type { FormField } from "./plugins/api";
 
-// --- Component Registry ---
-// Maps a string key (e.g., "Navbar", "FieldRenderer") to a Svelte component class.
-export interface ComponentRegistryState {
-  [key: string]: any;
+/** Who added an entry: a plugin's id, or nothing for the app itself. */
+export interface Owned {
+  owner?: string;
 }
 
-const createComponentRegistry = () => {
-  const { subscribe, update, set } = writable<ComponentRegistryState>({});
+/**
+ * A store holding a list of entries with unique ids. Registering an id again
+ * replaces the old entry. `removeOwner` takes out everything one plugin
+ * added and leaves the rest alone.
+ */
+export function createRegistry<T extends { id: string } & Owned>(
+  sort?: (a: T, b: T) => number,
+) {
+  const store = writable<T[]>([]);
 
   return {
-    subscribe,
-    register: (name: string, component: any) => {
-      update((state) => ({ ...state, [name]: component }));
+    subscribe: store.subscribe,
+    register(entry: T) {
+      store.update((entries) => {
+        const next = [...entries.filter((e) => e.id !== entry.id), entry];
+        return sort ? next.sort(sort) : next;
+      });
     },
-    get: (name: string) => {
-      let component: any | undefined;
-      subscribe((state) => {
-        component = state[name];
-      })();
-      return component;
+    unregister(id: string) {
+      store.update((entries) => entries.filter((e) => e.id !== id));
     },
-    reset: () => set({}),
+    removeOwner(owner: string) {
+      store.update((entries) =>
+        entries.some((e) => e.owner === owner)
+          ? entries.filter((e) => e.owner !== owner)
+          : entries,
+      );
+    },
+    getAll: (): T[] => get(store),
+    /** Empties the registry. For tests. */
+    reset: () => store.set([]),
   };
-};
+}
 
-export const componentRegistry = createComponentRegistry();
+export type Registry<T extends { id: string } & Owned> = ReturnType<
+  typeof createRegistry<T>
+>;
 
-// --- Tab Registry ---
-// Manages tabs in the ControlTab component.
-export interface TabDefinition {
+const byOrder = (a: { order?: number }, b: { order?: number }) =>
+  (a.order ?? 0) - (b.order ?? 0);
+
+// --- Control tabs ---
+export interface TabDefinition extends Owned {
   id: string;
   label: string;
-  component: any;
+  component: Component<any>;
+  props?: Record<string, unknown>;
   icon?: string; // SVG string or image URL
-  iconComponent?: any;
+  iconComponent?: Component<any>;
   order?: number;
 }
 
-const createTabRegistry = () => {
-  const { subscribe, update, set } = writable<TabDefinition[]>([]);
+export const tabRegistry = createRegistry<TabDefinition>(byOrder);
 
-  return {
-    subscribe,
-    register: (tab: TabDefinition) => {
-      update((tabs) => {
-        // Remove existing tab with same id if any
-        const filtered = tabs.filter((t) => t.id !== tab.id);
-        const newTabs = [...filtered, tab];
-        // Sort by order if provided, default to 0
-        return newTabs.sort((a, b) => (a.order || 0) - (b.order || 0));
-      });
-    },
-    unregister: (id: string) => {
-      update((tabs) => tabs.filter((t) => t.id !== id));
-    },
-    reset: () => set([]),
-  };
-};
+// --- Navbar buttons ---
+export const navbarActionRegistry = createRegistry<NavbarAction & Owned>(
+  byOrder,
+);
 
-export const tabRegistry = createTabRegistry();
+// --- Field right-click menu ---
+export const fieldContextMenuRegistry = createRegistry<
+  ContextMenuItem & Owned
+>();
 
-// --- Navbar Action Registry ---
-// Manages extra buttons/actions in the Navbar.
-import type { NavbarAction } from "../types";
+// --- Dialogs shown on top of the app ---
+export interface DialogDefinition extends Owned {
+  id: string;
+  component: Component<any>;
+  props?: Record<string, unknown>;
+}
 
-const createNavbarActionRegistry = () => {
-  const { subscribe, update, set } = writable<NavbarAction[]>([]);
+export const dialogRegistry = createRegistry<DialogDefinition>();
 
-  return {
-    subscribe,
-    register: (action: NavbarAction) => {
-      update((actions) => {
-        const filtered = actions.filter((a) => a.id !== action.id);
-        const newActions = [...filtered, action];
-        return newActions.sort((a, b) => (a.order || 0) - (b.order || 0));
-      });
-    },
-    unregister: (id: string) => {
-      update((actions) => actions.filter((a) => a.id !== id));
-    },
-    reset: () => set([]),
-  };
-};
+// --- Commands, for the command palette ---
+export interface PaletteCommand extends Owned {
+  id: string;
+  label: string;
+  category?: string;
+  run: () => void;
+}
 
-export const navbarActionRegistry = createNavbarActionRegistry();
+export const commandRegistry = createRegistry<PaletteCommand>();
 
-// --- Field Context Menu Registry ---
-import type { ContextMenuItem } from "../types";
+// --- Extra drawings on the field ---
+export interface FieldLayerDefinition extends Owned {
+  id: string;
+  /** What to draw, in field inches. Checked before it gets here. */
+  primitives: readonly FieldPrimitive[];
+  /** Pose tracks the primitives can follow during playback, by name. */
+  tracks: Readonly<Record<string, PoseTrack>>;
+  /** Called when one of the primitives with an `id` is clicked. */
+  onClick?: (primitiveId: string, field: { x: number; y: number }) => void;
+}
 
-const createFieldContextMenuRegistry = () => {
-  const { subscribe, update, set } = writable<ContextMenuItem[]>([]);
+export const fieldLayerRegistry = createRegistry<FieldLayerDefinition>();
 
-  return {
-    subscribe,
-    register: (item: ContextMenuItem) => {
-      update((items) => {
-        const filtered = items.filter((i) => i.id !== item.id);
-        return [...filtered, item];
-      });
-    },
-    unregister: (id: string) => {
-      update((items) => items.filter((i) => i.id !== id));
-    },
-    reset: () => set([]),
-  };
-};
+// --- Other ways of showing the field (a 3D view, say) ---
+export interface FieldViewDefinition extends Owned {
+  id: string;
+  title: string;
+  component: Component<any>;
+  props?: Record<string, unknown>;
+}
 
-export const fieldContextMenuRegistry = createFieldContextMenuRegistry();
+export const fieldViewRegistry = createRegistry<FieldViewDefinition>();
 
-// --- Hook Registry ---
-// Allows registering callbacks for specific named events (hooks).
-// e.g., "onSave", "onLoad", "onProjectReset"
+// --- Event marker types beyond the built-in ones ---
+export interface MarkerTypeDefinition extends Owned {
+  /** Saved as the marker's `pluginType`. */
+  id: string;
+  label: string;
+  fields: FormField[];
+  /**
+   * When the marker fires, in seconds after its step starts, or null to
+   * leave it where it is. Asked again when the project or its timing changes.
+   */
+  resolve: (marker: EventMarker, stepId: string) => Promise<number | null>;
+}
+
+export const markerTypeRegistry = createRegistry<MarkerTypeDefinition>();
+
+// --- Simulators: what a real robot would do with the plan ---
+export interface SimulationNote {
+  time: number;
+  text: string;
+  level?: "info" | "warning";
+}
+
+export interface SimulatorDefinition extends Owned {
+  id: string;
+  label: string;
+  simulate: () => Promise<{ poses: PoseTrack; notes?: SimulationNote[] }>;
+}
+
+export const simulatorRegistry = createRegistry<SimulatorDefinition>();
+
+// --- Themes ---
+export interface ThemeDefinition extends Owned {
+  id: string;
+  name: string;
+  css: string;
+}
+
+export const themeRegistry = createRegistry<ThemeDefinition>();
+
+// --- Hooks ---
+// Callbacks for named moments: "onSave" and "onLoad" get the project data.
 export type HookCallback = (...args: any[]) => void | Promise<void>;
 
 const createHookRegistry = () => {
@@ -124,6 +176,14 @@ const createHookRegistry = () => {
         hooks.set(hookName, []);
       }
       hooks.get(hookName)!.push(callback);
+      return () => {
+        const list = hooks.get(hookName);
+        if (list)
+          hooks.set(
+            hookName,
+            list.filter((cb) => cb !== callback),
+          );
+      };
     },
     run: async (hookName: string, ...args: any[]) => {
       const callbacks = hooks.get(hookName);
@@ -143,71 +203,5 @@ const createHookRegistry = () => {
 };
 
 export const hookRegistry = createHookRegistry();
-
-// --- Dialog Registry ---
-export interface DialogDefinition {
-  id: string;
-  component: any;
-  props?: any;
-}
-
-const createDialogRegistry = () => {
-  const { subscribe, update, set } = writable<DialogDefinition[]>([]);
-
-  return {
-    subscribe,
-    register: (dialog: DialogDefinition) => {
-      update((dialogs) => {
-        const filtered = dialogs.filter((d) => d.id !== dialog.id);
-        return [...filtered, dialog];
-      });
-    },
-    unregister: (id: string) => {
-      update((dialogs) => dialogs.filter((d) => d.id !== id));
-    },
-    reset: () => set([]),
-  };
-};
-
-export const dialogRegistry = createDialogRegistry();
-
-const createListRegistry = <T extends { id: string }>() => {
-  const { subscribe, update, set } = writable<T[]>([]);
-
-  return {
-    subscribe,
-    register: (entry: T) => {
-      update((entries) => {
-        const filtered = entries.filter((e) => e.id !== entry.id);
-        return [...filtered, entry];
-      });
-    },
-    unregister: (id: string) => {
-      update((entries) => entries.filter((e) => e.id !== id));
-    },
-    reset: () => set([]),
-  };
-};
-
-// --- Timeline Transformer Registry ---
-export type TimelineTransformer = (items: any[], context: any) => any[];
-
-export interface TimelineTransformerEntry {
-  id: string;
-  fn: TimelineTransformer;
-}
-
-export const timelineTransformerRegistry =
-  createListRegistry<TimelineTransformerEntry>();
-
-// --- Field Render Registry ---
-export type FieldRenderCallback = (two: any) => void;
-
-export interface FieldRenderEntry {
-  id: string;
-  fn: FieldRenderCallback;
-}
-
-export const fieldRenderRegistry = createListRegistry<FieldRenderEntry>();
 
 export { type ContextMenuItem } from "../types";

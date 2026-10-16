@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
-import { actionRegistry } from "../../lib/actionRegistry";
+import { actionFor } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
@@ -96,21 +96,22 @@ function pathConstructionCode(
  * The OpMode's autonomousPathUpdate() switch cases. Each path takes two
  * states: start following it, then wait until the follower is done.
  */
-function stateMachineCode(
+async function stateMachineCode(
   sequence: SequenceItem[],
   lines: Line[],
   names: string[],
   trackEvents: boolean,
   opts: FormatOptions,
-): string {
+): Promise<string> {
   let code = "";
   let state = 0;
   const lineIndexById = (id: string) =>
     lines.findIndex((l, i) => (l.id || `line-${i + 1}`) === id);
 
   for (const item of sequence) {
-    const action = actionRegistry.get(item.kind);
+    const action = actionFor(item);
     if (action?.toJavaCode) {
+      await action.prepareCode?.(item, { stateStep: state });
       const res = action.toJavaCode(item, { stateStep: state });
       code += res.code;
       state += res.stepsUsed;
@@ -281,7 +282,7 @@ export async function generateJavaCode(
           }),
         ),
   );
-  const stateCases = stateMachineCode(
+  const stateCases = await stateMachineCode(
     sequenceToExport,
     lines,
     pathChainNames,

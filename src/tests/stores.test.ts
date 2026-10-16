@@ -37,14 +37,12 @@ describe("Global Stores", () => {
 
       stores.exportDialogState.set({
         isOpen: true,
-        format: "json",
-        exporterName: "testExporter",
+        format: "plugin:csv.export",
       });
 
       const updatedState = get(stores.exportDialogState);
       expect(updatedState.isOpen).toBe(true);
-      expect(updatedState.format).toBe("json");
-      expect(updatedState.exporterName).toBe("testExporter");
+      expect(updatedState.format).toBe("plugin:csv.export");
 
       // Reset
       stores.exportDialogState.set(initialState);

@@ -215,7 +215,8 @@
     let ownerIndex = 0;
 
     seq.forEach((item, index) => {
-      if (item.kind === "macro") return;
+      // Macros and plugin steps don't carry markers here.
+      if (item.kind === "macro" || item.kind === "plugin") return;
 
       let owner: { id?: string; eventMarkers?: EventMarker[] } | undefined;
       let parentType: GlobalMarker["parentType"];

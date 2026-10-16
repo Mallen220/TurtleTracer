@@ -101,12 +101,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Open external URL in the user's default browser
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
 
-  // Plugin System
-  listPlugins: () => ipcRenderer.invoke("plugins:list"),
-  readPlugin: (filename) => ipcRenderer.invoke("plugins:read", filename),
-  deletePlugin: (filename) => ipcRenderer.invoke("plugins:delete", filename),
-  openPluginsFolder: () => ipcRenderer.invoke("plugins:open-folder"),
-  transpilePlugin: (code) => ipcRenderer.invoke("plugins:transpile", code),
+  // Plugins (managed by the app; plugins themselves can't reach this)
+  plugins: {
+    list: () => ipcRenderer.invoke("plugins:list"),
+    anyEnabled: () => ipcRenderer.invoke("plugins:any-enabled"),
+    setEnabled: (id, enabled) =>
+      ipcRenderer.invoke("plugins:set-enabled", id, enabled),
+    setGrant: (id, grant) => ipcRenderer.invoke("plugins:set-grant", id, grant),
+    setSettings: (id, values) =>
+      ipcRenderer.invoke("plugins:set-settings", id, values),
+    load: (id) => ipcRenderer.invoke("plugins:load", id),
+    installDependencies: (id) =>
+      ipcRenderer.invoke("plugins:install-dependencies", id),
+    storageGet: (id, key) => ipcRenderer.invoke("plugins:storage-get", id, key),
+    storageSet: (id, key, value) =>
+      ipcRenderer.invoke("plugins:storage-set", id, key, value),
+    pickProjects: (multiple) =>
+      ipcRenderer.invoke("plugins:pick-projects", multiple),
+    openFolder: (id) => ipcRenderer.invoke("plugins:open-folder", id),
+    install: (kind) => ipcRenderer.invoke("plugins:install", kind),
+    remove: (id) => ipcRenderer.invoke("plugins:remove", id),
+    boot: (phase) => ipcRenderer.invoke("plugins:boot", phase),
+  },
 
   // Telemetry
   telemetry: {

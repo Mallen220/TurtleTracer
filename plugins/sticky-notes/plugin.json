@@ -1,0 +1,17 @@
+{
+  "id": "sticky-notes",
+  "name": "Sticky Notes",
+  "version": "2.0.0",
+  "apiVersion": 2,
+  "description": "Pin notes to the field. Right-click the field to add one; click a note to edit, move or delete it. Notes are saved in the project.",
+  "author": "Turtle Tracer",
+  "main": "main.ts",
+  "settings": [
+    {
+      "key": "color",
+      "type": "color",
+      "label": "Colour for new notes",
+      "default": "#fde68a"
+    }
+  ]
+}

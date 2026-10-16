@@ -1,0 +1,9 @@
+{
+  "id": "intake-action",
+  "name": "Intake Step (example)",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "An example of a new kind of step: run an intake for a while. It shows in the Add buttons, takes its time in the timeline, and exports as code.",
+  "author": "Turtle Tracer",
+  "main": "main.ts"
+}
