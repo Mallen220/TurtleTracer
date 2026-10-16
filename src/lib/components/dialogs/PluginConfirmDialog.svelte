@@ -33,7 +33,7 @@
 </script>
 
 {#if show}
-  <div class="{ui.overlay} z-[100]" role="dialog" aria-modal="true">
+  <div class="{ui.overlay} z-[1010]" role="dialog" aria-modal="true">
     <div class="{ui.dialog} w-full max-w-md p-6">
       <h2 class="{ui.title} mb-4">
         {title}

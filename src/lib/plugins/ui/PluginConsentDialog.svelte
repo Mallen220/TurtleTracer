@@ -18,7 +18,7 @@
 </script>
 
 <div
-  class="{ui.overlay} z-[110]"
+  class="{ui.overlay} z-[1020]"
   role="dialog"
   aria-modal="true"
   aria-labelledby="plugin-consent-title"

@@ -40,7 +40,7 @@
 </script>
 
 <div
-  class="{ui.overlay} z-[100]"
+  class="{ui.overlay} z-[1010]"
   role="dialog"
   aria-modal="true"
   aria-labelledby="plugin-form-title"
