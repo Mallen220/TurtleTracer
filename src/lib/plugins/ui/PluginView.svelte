@@ -73,7 +73,10 @@
           if (type === "pong") lastPong = Date.now();
           else handleViewRequest(plugin, name, String(type), payload);
         };
-        send("scene", await sceneFor(plugin));
+        const scene = await sceneFor(plugin);
+        // Closed, or reconnected, while the scene was being put together.
+        if (port !== newPort) return;
+        send("scene", scene);
         send("frame", currentFrame());
         closeView = viewOpened({ plugin, name, send });
       },
@@ -94,7 +97,10 @@
       () => clearInterval(heartbeat),
       stopListening,
       () => closeView?.(),
-      () => port?.close(),
+      () => {
+        port?.close();
+        port = null;
+      },
       () => frame.remove(),
     ];
   }

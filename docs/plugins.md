@@ -389,8 +389,11 @@ Start Turtle Tracer with `--safe-mode` to start it with every plugin off.
 
 - The Plugin Manager shows each plugin's state, why it isn't running, and
   its recent errors.
-- `console.log` from a plugin shows in the app's developer tools (each
-  plugin and view is listed in the console's context menu).
+- A plugin's `console` output shows in its log there too (Show log), along
+  with errors from its views. A view whose script doesn't build shows the
+  error in its place.
+- For anything else, open the developer tools (View › Toggle DevTools);
+  each plugin and view is listed in the console's context menu.
 - Press Restart after editing a plugin's files.
 
 ## Coming from version 1

@@ -144,14 +144,25 @@ export async function servePluginFile(url, pluginsDir, isEnabled) {
   return respond(200, await fs.readFile(file), type, id);
 }
 
-/** A script built for the sandbox. Build errors become a thrown error there. */
+/**
+ * A script built for the sandbox. A build error is thrown there instead, and
+ * a view also shows it in place of itself, for whoever is writing the plugin.
+ */
 async function bundledScript(folder, file, target, id) {
   try {
     return respond(200, await bundle(folder, file, target), JS, id);
   } catch (e) {
     const name = path.relative(folder, file);
     const message = JSON.stringify(`Couldn't build ${name}:\n${e.message}`);
-    return respond(200, `throw new Error(${message});`, JS, id);
+    const show =
+      target === "view"
+        ? `const pre = document.createElement("pre");
+pre.textContent = ${message};
+Object.assign(pre.style, { whiteSpace: "pre-wrap", color: "#dc2626", padding: "1rem" });
+document.body?.replaceChildren(pre);
+`
+        : "";
+    return respond(200, `${show}throw new Error(${message});`, JS, id);
   }
 }
 

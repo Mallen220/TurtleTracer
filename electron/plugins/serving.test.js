@@ -190,7 +190,7 @@ describe("turtle-plugin://", () => {
     }
   });
 
-  it("turns a build error into an error thrown in the view", async () => {
+  it("turns a build error into an error shown and thrown in the view", async () => {
     await write(
       path.join(pluginsDir, "demo/view/broken.js"),
       "import x from './nope.js';",
@@ -200,7 +200,9 @@ describe("turtle-plugin://", () => {
       pluginsDir,
       enabled,
     );
-    expect(await res.text()).toMatch(/^throw new Error\(".*Couldn't build/);
+    const script = await res.text();
+    expect(script).toMatch(/pre\.textContent = ".*Couldn't build/);
+    expect(script).toMatch(/throw new Error\(".*Couldn't build/);
   });
 });
 
