@@ -165,12 +165,13 @@ export async function bundle(folder, entry, target) {
       esbuildPromise = undefined;
     }
     const messages = e.errors?.map((err) => {
+      // esbuild gives locations relative to absWorkingDir, the folder.
       const where = err.location
-        ? `${path.relative(folder, err.location.file) || err.location.file}:${err.location.line}: `
+        ? `${path.relative(folder, path.resolve(folder, err.location.file))}:${err.location.line}: `
         : "";
       return `${where}${err.text}`;
     });
-    throw new Error(messages?.join("\n") || String(e));
+    throw new Error(messages?.join("\n") || e.message || String(e));
   }
 
   const code = result.outputFiles[0].text;

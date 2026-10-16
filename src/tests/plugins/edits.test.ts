@@ -207,6 +207,91 @@ describe("plugin edits", () => {
     ).toThrow(/no action type/);
   });
 
+  it("fills in what an operation leaves out", () => {
+    const start = project();
+    start.sequence.push({ kind: "rotate", id: "r1", name: "", degrees: 0 });
+    const edited = applyEdits(
+      start,
+      [
+        { op: "insertStep", index: 99, step: { kind: "wait", durationMs: 5 } },
+        {
+          op: "insertStep",
+          index: 99,
+          step: { kind: "rotate", degrees: 30, name: "Turn" },
+        },
+        { op: "updateStep", id: "r1", changes: { degrees: 90 } },
+        { op: "removeStep", id: "theirs" },
+        { op: "addPath", to: { x: 1, y: 2 }, color: "#123456" },
+        {
+          op: "addShape",
+          vertices: [
+            { x: 0, y: 0 },
+            { x: 2, y: 0 },
+            { x: 0, y: 2 },
+          ],
+          kind: "keep-in",
+        },
+        {
+          op: "updateShape",
+          id: "s1",
+          changes: { vertices: [{ x: 5, y: 5 }], color: "#00ff00" },
+        },
+      ],
+      ctx(true),
+    );
+    expect(
+      edited.sequence.find((s) => s.kind === "rotate" && s.id === "r1"),
+    ).toMatchObject({ degrees: 90 });
+    expect(
+      edited.sequence.some((s) => s.kind !== "path" && s.id === "theirs"),
+    ).toBe(false);
+    expect(
+      edited.sequence.filter((s) => s.kind === "wait" || s.kind === "rotate"),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "wait", name: "", durationMs: 5 }),
+        expect.objectContaining({ kind: "rotate", name: "Turn", degrees: 30 }),
+      ]),
+    );
+    const newLine = edited.lines.find((l) => l.color === "#123456")!;
+    expect(newLine.controlPoints).toEqual([]);
+    expect(edited.shapes[0]).toMatchObject({
+      vertices: [{ x: 5, y: 5 }],
+      color: "#00ff00",
+    });
+    expect(edited.shapes[1]).toMatchObject({
+      name: "",
+      type: "keep-in",
+      color: "#dc2626",
+    });
+  });
+
+  it("refuses unknown paths, missing control points and locked shapes", () => {
+    expect(() =>
+      applyEdits(
+        project(),
+        [{ op: "movePoint", pathId: "zzz", point: "end", x: 0, y: 0 }],
+        ctx(true),
+      ),
+    ).toThrow(/no path/);
+    expect(() =>
+      applyEdits(
+        project(),
+        [{ op: "movePoint", pathId: "a", point: 3, x: 0, y: 0 }],
+        ctx(true),
+      ),
+    ).toThrow(/no control point 3/);
+    const locked = project();
+    locked.shapes[0] = { ...locked.shapes[0], name: "", locked: true };
+    expect(() =>
+      applyEdits(
+        locked,
+        [{ op: "updateShape", id: "s1", changes: { name: "x" } }],
+        ctx(true),
+      ),
+    ).toThrow(/"s1" is locked/);
+  });
+
   it("leaves the project untouched when any operation fails", () => {
     const original = project();
     const snapshot = structuredClone(original);

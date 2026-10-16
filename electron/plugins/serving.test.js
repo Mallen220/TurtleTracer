@@ -72,6 +72,15 @@ describe("bundling", () => {
     ).rejects.toThrow(/outside the plugin's folder/);
   });
 
+  it("says where a mistake is, relative to the plugin", async () => {
+    const folder = path.join(pluginsDir, "demo");
+    await write(path.join(folder, "lib/util.ts"), "export const x = (;");
+    await write(path.join(folder, "main.ts"), 'import "./lib/util";');
+    await expect(
+      bundle(folder, path.join(folder, "main.ts"), "main"),
+    ).rejects.toThrow(/^lib\/util\.ts:1: Unexpected/);
+  });
+
   it("only lets views import turtle:view", async () => {
     const folder = path.join(pluginsDir, "demo");
     const client = path.join(root, "client.js");

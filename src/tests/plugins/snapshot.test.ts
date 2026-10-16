@@ -6,7 +6,11 @@ import {
   type ProjectState,
 } from "../../lib/plugins/host/snapshot";
 import { calculatePathTime } from "../../utils/timeCalculator";
-import { DEFAULT_SETTINGS } from "../../config/defaults";
+import {
+  DEFAULT_ROBOT_LENGTH,
+  DEFAULT_ROBOT_WIDTH,
+  DEFAULT_SETTINGS,
+} from "../../config/defaults";
 import type { Settings } from "../../types";
 import { registerCoreUI } from "../../lib/coreRegistrations";
 
@@ -83,6 +87,104 @@ describe("buildSnapshot", () => {
   it("gives a plugin only its own saved data", () => {
     expect(buildSnapshot(state(), "mine").data).toEqual({ saved: true });
     expect(buildSnapshot(state(), "nobody").data).toBeNull();
+  });
+
+  it("describes every kind of heading and step, with defaults for what's missing", () => {
+    const s = state();
+    s.lines = [
+      {
+        endPoint: {
+          x: 20,
+          y: 20,
+          heading: "facingPoint",
+          targetX: 1,
+          targetY: 2,
+        },
+        controlPoints: [],
+        color: "#333333",
+      },
+      {
+        id: "c",
+        startPoint: { x: 5, y: 5, heading: "tangential", reverse: false },
+        endPoint: { x: 30, y: 30, heading: "tangential", reverse: true },
+        controlPoints: [],
+        color: "#444444",
+      },
+      {
+        id: "d",
+        endPoint: { x: 40, y: 40, heading: "piecewise", segments: [] },
+        controlPoints: [],
+        color: "#555555",
+      },
+    ] as unknown as ProjectState["lines"];
+    s.sequence = [
+      { kind: "path", lineId: undefined as unknown as string },
+      { kind: "path", lineId: "c" },
+      { kind: "path", lineId: "d" },
+      { kind: "path", lineId: "gone" },
+      {
+        kind: "rotate",
+        id: "r",
+        degrees: 45,
+      } as ProjectState["sequence"][number],
+      {
+        kind: "macro",
+        id: "m",
+        filePath: "x.turt",
+      } as ProjectState["sequence"][number],
+      {
+        kind: "wait",
+        id: "w",
+        durationMs: 100,
+      } as ProjectState["sequence"][number],
+      {
+        kind: "plugin",
+        id: "p",
+        type: "x.go",
+        data: {},
+      } as ProjectState["sequence"][number],
+    ];
+    s.shapes = [
+      { id: "o", vertices: [], color: "#000", fillColor: "#000" },
+    ] as unknown as ProjectState["shapes"];
+    s.settings = {
+      ...s.settings,
+      rLength: 0,
+      rWidth: 0,
+      maxDeceleration: undefined,
+      robotDriveType: undefined,
+      fieldWidth: undefined,
+      fieldHeight: undefined,
+      visualizerUnits: undefined,
+    } as unknown as Settings;
+    s.extraData = undefined as unknown as ProjectState["extraData"];
+    s.filePath = null;
+
+    const snapshot = buildSnapshot(s, "mine");
+    expect(
+      snapshot.paths.map((p) => [p.id, p.name, p.from, p.heading]),
+    ).toEqual([
+      ["", "", { x: 10, y: 10 }, { mode: "facingPoint", x: 1, y: 2 }],
+      ["c", "", { x: 5, y: 5 }, { mode: "tangential", reverse: true }],
+      ["d", "", { x: 30, y: 30 }, { mode: "piecewise" }],
+    ]);
+    expect(snapshot.steps.slice(4)).toEqual([
+      { kind: "rotate", id: "r", name: "", degrees: 45 },
+      { kind: "macro", id: "m", name: "" },
+      { kind: "wait", id: "w", name: "", durationMs: 100 },
+      { kind: "plugin", id: "p", type: "x.go", name: "", data: {} },
+    ]);
+    expect(snapshot.shapes[0]).toMatchObject({ name: "", kind: "obstacle" });
+    expect(snapshot.robot).toMatchObject({
+      length: DEFAULT_ROBOT_LENGTH,
+      width: DEFAULT_ROBOT_WIDTH,
+      maxDeceleration: s.settings.maxAcceleration,
+      driveType: "holonomic",
+    });
+    expect(snapshot.field).toEqual({ width: 144, height: 144 });
+    expect(snapshot.units).toBe("imperial");
+    expect(snapshot.fileName).toBeNull();
+    expect(snapshot.data).toBeNull();
   });
 
   it("doesn't share objects with the app", () => {

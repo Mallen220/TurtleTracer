@@ -182,7 +182,12 @@ describe("turning plugins on and off", () => {
 
   it("shows why a plugin failed to start", async () => {
     const fake = fakeBridge([theme("bad")]);
-    fake.load.mockRejectedValueOnce(new Error("main.ts:3: Expected ;"));
+    // As Electron passes on an error thrown in the main process.
+    fake.load.mockRejectedValueOnce(
+      new Error(
+        "Error invoking remote method 'plugins:load': Error: main.ts:3: Expected ;",
+      ),
+    );
     await pluginHost.refresh();
     await pluginHost.setEnabled("bad", true);
     expect(entry("bad")).toMatchObject({

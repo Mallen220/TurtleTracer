@@ -45,6 +45,7 @@ import {
 import type { PluginServices } from "./services";
 import { buildSnapshot } from "./snapshot";
 import { postToViews, registerViews } from "./views";
+import { errorText } from "../protocol/rpc";
 import type { RuntimeInit } from "../protocol/runtime";
 import { connectToFrame, createHiddenFrame, pluginUrl } from "./sandbox";
 
@@ -89,10 +90,25 @@ const LOG_SIZE = 50;
 /** How long plugins must have been starting, without a crash, to count as started. */
 const BOOT_GRACE_MS = 10_000;
 
+/** What Electron puts before the message of an error thrown in the main process. */
+const IPC_ERROR_PREFIX =
+  /^Error invoking remote method '[^']*': (?:\w*Error: )?/;
+
+/** The main process's plugin handlers, with their errors' own messages. */
 function bridge(): PluginsBridge {
   const plugins = getElectronAPI({ allowVirtual: false })?.plugins;
   if (!plugins) throw new Error("Plugins need the desktop app.");
-  return plugins;
+  const calls: Record<string, unknown> = {};
+  for (const [name, call] of Object.entries(plugins)) {
+    calls[name] = async (...args: unknown[]) => {
+      try {
+        return await (call as (...args: unknown[]) => unknown)(...args);
+      } catch (error) {
+        throw new Error(errorText(error).replace(IPC_ERROR_PREFIX, ""));
+      }
+    };
+  }
+  return calls as unknown as PluginsBridge;
 }
 
 const TONES = ["info", "success", "warning", "error"] as const;
