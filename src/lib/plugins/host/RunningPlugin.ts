@@ -87,7 +87,8 @@ export class RunningPlugin implements PluginContext {
   #errorTimes: number[] = [];
   #messageCount = 0;
   #messageWindow = 0;
-  #pendingInvokes = 0;
+  /** Calls the plugin may be busy working on, too busy to answer pings. */
+  #computing = 0;
   #ready: { resolve(): void; reject(error: Error): void } | null = null;
   readonly subscriptions = new Set<string>();
 
@@ -136,7 +137,6 @@ export class RunningPlugin implements PluginContext {
 
     if (hasMain) {
       await new Promise<void>((resolve, reject) => {
-        this.#ready = { resolve, reject };
         const timer = setTimeout(
           () => reject(new Error("The plugin took too long to start.")),
           START_TIMEOUT_MS,
@@ -261,11 +261,15 @@ export class RunningPlugin implements PluginContext {
           this.#ready?.resolve();
           return;
         case "error":
+          // Uncaught in the main script: while starting, that's a failed start.
           if (this.#ready) {
             this.#ready.reject(new Error(errorText(args[0])));
           } else {
             this.reportError(args[0]);
           }
+          return;
+        case "problem":
+          this.reportError(args[0]);
           return;
         case "register":
           this.#register(args);
@@ -320,9 +324,10 @@ export class RunningPlugin implements PluginContext {
     path: string,
     args: unknown[],
     timeoutMs: number,
+    { computes = false } = {},
   ): Promise<unknown> {
     if (!this.#rpc) throw new Error(`${this.manifest.name} isn't running.`);
-    this.#pendingInvokes++;
+    if (computes) this.#computing++;
     try {
       return await this.#rpc.call(
         "invoke",
@@ -333,7 +338,7 @@ export class RunningPlugin implements PluginContext {
       this.reportError(error);
       throw error;
     } finally {
-      this.#pendingInvokes--;
+      if (computes) this.#computing--;
     }
   }
 
@@ -351,10 +356,13 @@ export class RunningPlugin implements PluginContext {
     ).catch(() => {});
   }
 
-  /** Pings the plugin; one that doesn't answer is stopped. */
+  /**
+   * Pings the plugin; one that doesn't answer is stopped. A plugin waiting
+   * for something (a dialog, say) still answers. While it's working out an
+   * export or a simulation it may not, and that call has its own time limit.
+   */
   #checkResponding() {
-    // A call it's busy working on has its own time limit.
-    if (!this.#rpc || this.#pendingInvokes > 0) return;
+    if (!this.#rpc || this.#computing > 0) return;
     this.#rpc.call("ping", [], this.#unresponsiveMs).catch((error) => {
       if (!(error instanceof RpcTimeoutError) || this.state !== "running")
         return;

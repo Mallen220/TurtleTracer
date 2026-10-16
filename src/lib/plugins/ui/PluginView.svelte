@@ -31,6 +31,9 @@
 
   let { plugin, name, entry, title }: Props = $props();
 
+  /** More messages than this in a second, and the view is closed. */
+  const MESSAGE_LIMIT = 2000;
+
   let container: HTMLDivElement | undefined = $state();
   let stuck = $state(false);
   let cleanup: (() => void)[] = [];
@@ -55,7 +58,17 @@
         lastPong = Date.now();
         const send = (type: string, payload?: unknown) =>
           newPort.postMessage({ type, payload });
+        let second = 0;
+        let count = 0;
         newPort.onmessage = (event) => {
+          const now = Math.floor(Date.now() / 1000);
+          if (now !== second) [second, count] = [now, 0];
+          if (++count > MESSAGE_LIMIT) {
+            plugin.reportError(`View "${name}" sent too many messages.`);
+            stuck = true;
+            unmount();
+            return;
+          }
           const { type, payload } = event.data ?? {};
           if (type === "pong") lastPong = Date.now();
           else handleViewRequest(plugin, name, String(type), payload);

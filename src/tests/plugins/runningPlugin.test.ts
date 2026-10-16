@@ -196,6 +196,21 @@ describe("field layers", () => {
     );
   });
 
+  it("reports a drawing that can't be sent", async () => {
+    const { services } = await start((turtle) => {
+      turtle.field.addLayer({
+        draw: () => [
+          { type: "circle", x: 0, y: 0, radius: 1, fill: (() => "red") as any },
+        ],
+      });
+    });
+    await settle();
+    expect(services.onError).toHaveBeenCalledWith(
+      "test-plugin",
+      expect.stringMatching(/clone/i),
+    );
+  });
+
   it("keeps tracks and tells the plugin about clicks", async () => {
     const onClick = vi.fn();
     await start((turtle) => {
@@ -602,6 +617,39 @@ describe("a plugin that misbehaves", () => {
       "test-plugin",
       expect.stringContaining("Invalid action type"),
     );
+  });
+
+  it("is stopped when it hangs inside a command", async () => {
+    const { services } = await start(() => {});
+    const stuck = new RunningPlugin(
+      manifest({ id: "stuck" }),
+      {
+        ...services,
+        openSandbox(_plugin, init, onPort) {
+          const channel = new MessageChannel();
+          const rpc = new Rpc((m) => channel.port2.postMessage(m), {});
+          createRuntime(rpc, init());
+          onPort(channel.port1);
+          queueMicrotask(() => {
+            rpc.notify("register", [
+              "command",
+              "command:1",
+              { id: "go", label: "Go" },
+              ["run"],
+            ]);
+            rpc.notify("ready");
+          });
+          return () => channel.port1.close();
+        },
+      },
+      { everyMs: 10, timeoutMs: 30 },
+    );
+    await stuck.start([], true);
+    await settle();
+    // The command never finishes, and the plugin never answers pings.
+    stuck.runCommand("go");
+    await settle(100);
+    expect(stuck.state).toBe("unresponsive");
   });
 
   it("is stopped when it stops answering", async () => {

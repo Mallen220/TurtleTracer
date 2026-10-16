@@ -76,10 +76,14 @@ export function createRuntime(rpc: Rpc, init: RuntimeInit): Runtime {
   >();
   const viewListeners = new Set<(message: any, view: string) => void>();
 
+  /**
+   * A problem in a listener or a drawing. Counted against the plugin, but
+   * unlike an uncaught error in its main script, it doesn't stop it starting.
+   */
   function reportError(error: unknown) {
     const text =
       error instanceof Error ? (error.stack ?? error.message) : String(error);
-    rpc.notify("error", [text]);
+    rpc.notify("problem", [text]);
   }
 
   function emit(event: string, payload: unknown) {
@@ -128,14 +132,12 @@ export function createRuntime(rpc: Rpc, init: RuntimeInit): Runtime {
     const layer = {
       definition,
       draw() {
-        let primitives: unknown;
         try {
-          primitives = definition.draw();
+          rpc.notify("layer.draw", [id, definition.draw()]);
         } catch (error) {
+          // Thrown by draw(), or a drawing that can't be sent (a function in it).
           reportError(error);
-          return;
         }
-        rpc.notify("layer.draw", [id, primitives]);
       },
     };
     layers.set(id, layer);

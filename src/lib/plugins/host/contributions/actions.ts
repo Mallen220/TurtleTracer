@@ -121,6 +121,7 @@ function callbackTiming(plugin: PluginContext, registrationId: string) {
           "time",
           [{ step: asStep(item), start, project: plugin.snapshot() }],
           TIMING_TIMEOUT_MS,
+          { computes: true },
         )
         .then((answer) => {
           answers.set(item.id, {
@@ -219,6 +220,7 @@ export const actionFactory: ContributionFactory = (
             "code.sequential",
             [{ step: asStep(step), library: libraryForContext(ctx).id }],
             CODE_TIMEOUT_MS,
+            { computes: true },
           );
           code.set(
             codeKey(step, ctx, "sequential"),
@@ -231,6 +233,7 @@ export const actionFactory: ContributionFactory = (
             "code.java",
             [{ step: asStep(step), state: ctx.stateStep ?? 0 }],
             CODE_TIMEOUT_MS,
+            { computes: true },
           );
           code.set(
             codeKey(step, ctx, "java"),

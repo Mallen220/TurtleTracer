@@ -42,6 +42,7 @@ export const markerFactory: ContributionFactory = (
           },
         ],
         RESOLVE_TIMEOUT_MS,
+        { computes: true },
       );
       if (answer === null || answer === undefined) return null;
       if (typeof answer !== "number" || !Number.isFinite(answer)) {

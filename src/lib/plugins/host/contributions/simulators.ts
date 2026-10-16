@@ -24,6 +24,7 @@ export const simulatorFactory: ContributionFactory = (
         "simulate",
         [{ project: plugin.snapshot(), plan: plugin.plan() }],
         SIMULATION_TIMEOUT_MS,
+        { computes: true },
       );
       return check(simulationSchema, answer, "simulation");
     },

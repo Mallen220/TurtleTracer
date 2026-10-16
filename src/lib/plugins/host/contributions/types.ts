@@ -8,13 +8,15 @@ export interface PluginContext {
   readonly manifest: PluginManifest;
   /**
    * Calls a function the plugin registered. Rejects (and counts against the
-   * plugin) if it throws or takes longer than `timeoutMs`.
+   * plugin) if it throws or takes longer than `timeoutMs`. `computes` says
+   * the plugin may be too busy working it out to answer pings meanwhile.
    */
   invoke(
     registrationId: string,
     path: string,
     args: unknown[],
     timeoutMs: number,
+    options?: { computes?: boolean },
   ): Promise<unknown>;
   /** Runs one of the plugin's commands by its own id. */
   runCommand(commandId: string, context?: { at?: FieldPoint }): void;

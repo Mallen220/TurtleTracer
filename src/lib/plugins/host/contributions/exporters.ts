@@ -26,6 +26,7 @@ export const exporterFactory: ContributionFactory = (
         "export",
         [{ project: plugin.snapshot(), plan: plugin.plan() }],
         EXPORT_TIMEOUT_MS,
+        { computes: true },
       );
       return check(codeSchema, code, "export");
     },

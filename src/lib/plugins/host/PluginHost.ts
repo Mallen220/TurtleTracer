@@ -103,6 +103,8 @@ class PluginHost implements PluginServices {
   /** The app was started with --safe-mode: no plugins run. */
   readonly safeMode = writable(false);
   readonly running = new Map<string, RunningPlugin>();
+  /** Plugins part way through starting (downloading packages, say). */
+  #starting = new Set<string>();
 
   #listings = new Map<string, PluginListing>();
   #records: Record<string, PluginRecord> = {};
@@ -116,12 +118,13 @@ class PluginHost implements PluginServices {
 
   /** Reads the plugins folder again. */
   async refresh() {
-    const { plugins, records, safeMode } = await bridge().list();
+    const { plugins, records, safeMode, crashedDuringBoot } =
+      await bridge().list();
     this.#listings = new Map(plugins.map((p) => [p.id, p]));
     this.#records = records;
     this.safeMode.set(safeMode);
     this.#publish();
-    return { safeMode };
+    return { safeMode, crashedDuringBoot };
   }
 
   #settingsFields(manifest: PluginManifest | undefined): FormField[] {
@@ -176,8 +179,7 @@ class PluginHost implements PluginServices {
 
   /** Starts every plugin that's on. Called once at startup. */
   async startEnabled() {
-    const { crashedDuringBoot } = await bridge().list();
-    const { safeMode } = await this.refresh();
+    const { safeMode, crashedDuringBoot } = await this.refresh();
     if (safeMode) return;
     if (crashedDuringBoot) {
       notification.set({
@@ -219,7 +221,7 @@ class PluginHost implements PluginServices {
   async #start(id: string, asked: boolean) {
     const listing = this.#listings.get(id);
     const manifest = listing?.manifest;
-    if (!manifest || this.running.has(id)) return;
+    if (!manifest || this.running.has(id) || this.#starting.has(id)) return;
     try {
       this.#settingsFields(manifest);
     } catch (error) {
@@ -239,6 +241,7 @@ class PluginHost implements PluginServices {
       return;
     }
 
+    this.#starting.add(id);
     try {
       if (!listing.dependenciesInstalled) {
         this.#setStatus(id, "installing");
@@ -256,6 +259,8 @@ class PluginHost implements PluginServices {
       this.running.get(id)?.stop("failed");
       this.running.delete(id);
       this.#setStatus(id, "failed", (error as Error).message);
+    } finally {
+      this.#starting.delete(id);
     }
   }
 
