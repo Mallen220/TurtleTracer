@@ -39,6 +39,17 @@ async function hashFolder(folder) {
   return hash.digest("hex");
 }
 
+/** Copies a folder; unlike fs.cp, this can read from the app's asar. */
+async function copyFolder(source, dest) {
+  await fs.mkdir(dest, { recursive: true });
+  for (const entry of await fs.readdir(source, { withFileTypes: true })) {
+    const from = path.join(source, entry.name);
+    const to = path.join(dest, entry.name);
+    if (entry.isDirectory()) await copyFolder(from, to);
+    else if (entry.isFile()) await fs.writeFile(to, await fs.readFile(from));
+  }
+}
+
 async function readJson(file) {
   try {
     return JSON.parse(await fs.readFile(file, "utf8"));
@@ -70,7 +81,7 @@ async function installBundled(source, dest) {
     }
   }
 
-  await fs.cp(source, dest, { recursive: true });
+  await copyFolder(source, dest);
   await fs.writeFile(
     path.join(dest, MARKER),
     JSON.stringify({ version: bundled.version, hash: await hashFolder(dest) }),

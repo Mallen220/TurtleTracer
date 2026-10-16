@@ -121,7 +121,14 @@
       "public/**/*",
       "electron/**/*",
       "plugins/**/*",
-      "package.json"
+      "package.json",
+      {
+        "from": "plugins",
+        "to": "plugins",
+        "filter": [
+          "turtle.d.ts"
+        ]
+      }
     ],
     "extraResources": [
       "public/**/*"

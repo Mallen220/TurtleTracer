@@ -187,6 +187,10 @@ If changing the plugin system itself:
   host is only loaded when a plugin is on.
 - Everything a plugin sends is checked in `src/lib/plugins/host/schemas.ts`.
   Never use a plugin's data without passing it through there.
+- Try it in a packaged build as well (`npm run build`, then
+  `npm run electron-builder -- --dir` and `npm run test:e2e`). Files behave
+  differently inside the app's asar, and `e2e/plugins.spec.ts` runs plugins
+  that misbehave on purpose (`e2e/fixtures/plugins/`) against the real sandbox.
 - The design and the reasons for it are in `docs/plans/plugin-platform.md`.
 
 ---

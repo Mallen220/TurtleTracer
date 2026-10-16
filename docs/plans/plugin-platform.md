@@ -943,6 +943,25 @@ proxies, clicks on plugin shapes starting a selection box, the consent
 dialog opening behind the plugin manager, zip installs hanging, unknown
 `__turtle/` paths returning nothing, and the boot guard being too eager.
 
+**Verified in the packaged app** (`electron-builder --dir`, macOS arm64):
+the same runs, from a new profile. They found three bugs that only a
+packaged build has, all fixed: esbuild-wasm starts its WebAssembly with
+whatever `node` is on the PATH (most people have none, and none can read the
+asar), so it's now pointed at Electron's own Node; `fs.cp` can't copy out of
+the asar, so no bundled plugin was installed; and electron-builder leaves out
+`*.d.ts` files, so `turtle.d.ts` wasn't shipped.
+
+**Misbehaving plugins against the real sandbox** (`e2e/plugins.spec.ts`,
+fixtures in `e2e/fixtures/plugins/`): one tries 13 ways out (fetch to the
+internet and to the app, localStorage, IndexedDB, cookies, the parent
+document, top's location, `electronAPI`, Node globals, `window.open`, a
+remote `import()`, fetch from a worker, navigating the app) and every one is
+blocked; one never finishes starting and is marked failed after 15 seconds;
+one hangs in a command and is stopped as not responding. The app keeps
+drawing at full speed throughout (about 100 frames a second). These run with
+the boot test on the packaged app (tag pushes and manual runs), along with a
+check that a new profile gets the bundled plugins.
+
 **Tests:** `src/tests/plugins/` (protocol, an in-process runtime connected to
 a real `RunningPlugin` including hostile plugins, schemas with fuzzing,
 edits, snapshots, drawings, simulation, plugin steps, the host) and

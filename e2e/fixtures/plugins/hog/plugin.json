@@ -1,0 +1,8 @@
+{
+  "id": "hog",
+  "name": "Hog",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "Test fixture: its command never returns.",
+  "main": "main.js"
+}

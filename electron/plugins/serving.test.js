@@ -308,11 +308,15 @@ describe("bundled plugins", () => {
   it("are copied in, updated while unchanged, and left alone once edited", async () => {
     const bundled = path.join(root, "bundled");
     await write(path.join(bundled, "demo/plugin.json"), manifest("demo"));
+    await write(path.join(bundled, "demo/view/index.html"), "<canvas>");
     await write(path.join(bundled, "turtle.d.ts"), "// v1");
     await ensureDefaultPlugins(pluginsDir, bundled);
     expect(
       await fs.readFile(path.join(pluginsDir, "turtle.d.ts"), "utf8"),
     ).toBe("// v1");
+    expect(
+      await fs.readFile(path.join(pluginsDir, "demo/view/index.html"), "utf8"),
+    ).toBe("<canvas>");
 
     // A new version replaces an unchanged copy.
     await write(
@@ -349,7 +353,11 @@ describe("bundled plugins", () => {
     );
     expect(Object.keys(legacy)).toContain("StickyNotes.ts");
     await write(path.join(pluginsDir, "Mine.ts"), "my own plugin");
+    // No bundled folder: it says so, and carries on.
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await ensureDefaultPlugins(pluginsDir, path.join(root, "none"));
+    expect(error).toHaveBeenCalledOnce();
+    error.mockRestore();
     await expect(
       fs.access(path.join(pluginsDir, "Mine.ts")),
     ).resolves.toBeUndefined();

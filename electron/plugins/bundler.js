@@ -3,6 +3,7 @@
 // imports, into one file the sandbox can run. Uses esbuild's WebAssembly
 // build, so it works the same on every platform. Nothing outside the
 // plugin's folder can be bundled in.
+import childProcess from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,11 +22,37 @@ export const SANDBOX_SCRIPTS = {
 
 let esbuildPromise;
 
+/**
+ * esbuild-wasm runs its WebAssembly in a child process started as `node`,
+ * found on the PATH. Most people don't have Node.js installed, and one that
+ * is can't read the app's asar, so while esbuild starts that process it's
+ * pointed at Electron's own Node instead. (Turning off Electron's RunAsNode
+ * fuse would break this.)
+ */
+function startEsbuildService(esbuild) {
+  const spawn = childProcess.spawn;
+  childProcess.spawn = (command, args, options) =>
+    command === "node"
+      ? spawn(
+          process.execPath,
+          args.map((arg) =>
+            arg.replace(/app\.asar(?=[\\/])/, "app.asar.unpacked"),
+          ),
+          { ...options, env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } },
+        )
+      : spawn(command, args, options);
+  try {
+    return esbuild.initialize({});
+  } finally {
+    childProcess.spawn = spawn;
+  }
+}
+
 /** Loads esbuild the first time a plugin needs bundling. */
 function loadEsbuild() {
   esbuildPromise ??= import("esbuild-wasm").then(async (mod) => {
     const esbuild = mod.default ?? mod;
-    await esbuild.initialize({});
+    await startEsbuildService(esbuild);
     return esbuild;
   });
   return esbuildPromise;
@@ -131,6 +158,12 @@ export async function bundle(folder, entry, target) {
       plugins: [sandboxPlugin(folder, target === "view")],
     });
   } catch (e) {
+    if (/^The service (was stopped|is no longer running)/.test(e.message)) {
+      // esbuild itself fell over, not the plugin's code; start it afresh
+      // next time so other plugins still load.
+      esbuild.stop();
+      esbuildPromise = undefined;
+    }
     const messages = e.errors?.map((err) => {
       const where = err.location
         ? `${path.relative(folder, err.location.file) || err.location.file}:${err.location.line}: `

@@ -1,0 +1,8 @@
+{
+  "id": "escape-artist",
+  "name": "Escape Artist",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "Test fixture: tries every way out of the plugin sandbox.",
+  "main": "main.js"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "looper",
+  "name": "Looper",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "description": "Test fixture: never finishes starting.",
+  "main": "main.js"
+}
