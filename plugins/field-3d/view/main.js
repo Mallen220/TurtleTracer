@@ -138,10 +138,25 @@ function rebuild(sceneData) {
   robot.scale.set(length, height, width);
 
   if (!cameraPlaced) {
-    camera.position.set(0, field.width * 0.9, field.height * 0.95);
-    controls.target.set(0, 0, 0);
+    fitCamera();
     cameraPlaced = true;
   }
+}
+
+/** Looks down at the whole field from 55° above it, whatever the view's shape. */
+function fitCamera() {
+  const size = Math.max(field.width, field.height);
+  const halfFov = THREE.MathUtils.degToRad(camera.fov / 2);
+  const fit = size / Math.min(1, camera.aspect);
+  const distance = (fit * 0.62) / Math.tan(halfFov);
+  const elevation = THREE.MathUtils.degToRad(55);
+  camera.position.set(
+    0,
+    distance * Math.sin(elevation),
+    distance * Math.cos(elevation),
+  );
+  controls.target.set(0, 0, 0);
+  controls.update();
 }
 
 function moveRobot({ pose }) {
@@ -156,14 +171,19 @@ function resize() {
   camera.updateProjectionMatrix();
 }
 
+// Double-click to put the camera back.
+canvas.addEventListener("dblclick", fitCamera);
+
+// Sized first, so the camera is fitted to the view's real shape.
+resize();
+new ResizeObserver(resize).observe(document.body);
+
 view.onScene(rebuild);
 view.onFrame(moveRobot);
 rebuild(view.scene);
 // Until the first frame arrives.
 moveRobot({ pose: view.scene.project.start });
 
-new ResizeObserver(resize).observe(document.body);
-resize();
 renderer.setAnimationLoop(() => {
   controls.update();
   renderer.render(scene, camera);
