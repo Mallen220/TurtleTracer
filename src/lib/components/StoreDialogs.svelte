@@ -17,7 +17,13 @@
   import TelemetryDialog from "./dialogs/TelemetryDialog.svelte";
   import TransformDialog from "./dialogs/TransformDialog.svelte";
   import KeyboardShortcutsDialog from "./dialogs/KeyboardShortcutsDialog.svelte";
-  import PluginManagerDialog from "./dialogs/PluginManagerDialog.svelte";
+
+  // Few people open the plugin manager, so it loads the first time it opens
+  // and then stays mounted (so it can animate closed).
+  let pluginManagerOpened = $state(false);
+  $effect(() => {
+    if ($showPluginManager) pluginManagerOpened = true;
+  });
 </script>
 
 <UpdateAvailableDialog bind:show={$showUpdateAvailableDialog} />
@@ -29,7 +35,11 @@
   bind:isOpen={$showShortcuts}
   bind:settings={$settingsStore}
 />
-<PluginManagerDialog bind:isOpen={$showPluginManager} />
+{#if pluginManagerOpened}
+  {#await import("./dialogs/PluginManagerDialog.svelte") then { default: PluginManagerDialog }}
+    <PluginManagerDialog bind:isOpen={$showPluginManager} />
+  {/await}
+{/if}
 
 {#if $showFileManager}
   <FileManager bind:isOpen={$showFileManager} bind:settings={$settingsStore} />

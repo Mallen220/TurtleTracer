@@ -1,6 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import SimulationMenu from "./SimulationMenu.svelte";
   import { simulatorRegistry } from "../registries";
   import type { Settings } from "../../types";
   import { fly } from "svelte/transition";
@@ -658,11 +657,13 @@
 
       <!-- Simulators come from plugins; there's nothing to show without one. -->
       {#if $simulatorRegistry.length > 0}
-        <SimulationMenu
-          {totalSeconds}
-          onSeek={handleSeek}
-          settings={settings ?? {}}
-        />
+        {#await import("./SimulationMenu.svelte") then { default: SimulationMenu }}
+          <SimulationMenu
+            {totalSeconds}
+            onSeek={handleSeek}
+            settings={settings ?? {}}
+          />
+        {/await}
       {/if}
     </div>
 
