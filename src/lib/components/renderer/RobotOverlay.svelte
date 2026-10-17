@@ -39,6 +39,9 @@
     isPlaying = false,
   }: Props = $props();
 
+  /** Pixels per inch at the current zoom, which the robot itself is drawn at. */
+  let zoomedPpI = $derived(Math.abs(x(1) - x(0)));
+
   let turtlePhases = $state({ fl: 0, fr: 0, bl: 0, br: 0, tail: 0 });
 
   function speedForWheel(
@@ -213,7 +216,7 @@
         settings.robotFeatures,
         Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
         Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-        ppI,
+        zoomedPpI,
       )}
     </div>
   {:else if settings.robotImage === "turtle"}
@@ -284,7 +287,7 @@
         settings.robotFeatures,
         Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
         Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-        ppI,
+        zoomedPpI,
       )}
     </div>
   {:else}
@@ -319,7 +322,7 @@
         settings.robotFeatures,
         Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
         Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-        ppI,
+        zoomedPpI,
       )}
     </div>
   {/if}
@@ -372,7 +375,7 @@
       settings.robotFeatures,
       Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
       Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-      ppI,
+      zoomedPpI,
     )}
   </div>
 {:else if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && (settings.robotImage === "none" || settings.robotImage === "turtle")}
@@ -394,7 +397,7 @@
       settings.robotFeatures,
       Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
       Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-      ppI,
+      zoomedPpI,
     )}
   </div>
 {/if}
