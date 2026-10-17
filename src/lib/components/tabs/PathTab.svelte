@@ -215,31 +215,44 @@
   }
 
   function insertLineAfter(seqIndex: number) {
-    const seqItem = sequence[seqIndex];
-    if (!seqItem || seqItem.kind !== "path") return;
-    const lineIndex = lines.findIndex((l) => l.id === seqItem.lineId);
-    const currentLine = lines[lineIndex];
+    if (!sequence[seqIndex]) return;
+    // The new path goes right after the item clicked, but its place among the
+    // lines (and the turn it continues from) comes from the last path at or
+    // before that item, which may be behind a wait or a rotate.
+    let previousId: string | undefined;
+    for (let i = seqIndex; i >= 0; i--) {
+      const item = sequence[i];
+      if (item.kind === "path") {
+        previousId = item.lineId;
+        break;
+      }
+    }
+    const previousIndex = previousId
+      ? lines.findIndex((l) => l.id === previousId)
+      : -1;
+    const lineIndex = previousIndex + 1;
 
-    const newLine = createLine(newEndPoint(currentLine.endPoint));
+    const newLine = createLine(
+      newEndPoint(
+        previousIndex >= 0 ? lines[previousIndex].endPoint : undefined,
+      ),
+    );
 
     const newLines = [...lines];
-    newLines.splice(lineIndex + 1, 0, newLine);
+    newLines.splice(lineIndex, 0, newLine);
     lines = newLines;
 
     const newSeq = [...sequence];
     newSeq.splice(seqIndex + 1, 0, { kind: "path", lineId: newLine.id! });
     sequence = newSeq;
 
-    collapsedSections.lines.splice(
-      lineIndex + 1,
-      0,
-      allCollapsed ? true : false,
-    );
-    collapsedSections.controlPoints.splice(lineIndex + 1, 0, true);
-    collapsedEventMarkers.splice(lineIndex + 1, 0, false);
+    collapsedSections.lines.splice(lineIndex, 0, allCollapsed ? true : false);
+    collapsedSections.controlPoints.splice(lineIndex, 0, true);
+    collapsedEventMarkers.splice(lineIndex, 0, false);
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
+    recordChange("Add Path");
   }
 
   function unlinkMacro(macroItem: SequenceMacroItem, seqIndex: number) {
