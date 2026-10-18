@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { driver } from "driver.js";
+  import { driver, type DriveStep } from "driver.js";
   import "driver.js/dist/driver.css";
   import { startTutorial } from "../../stores";
   import { settingsStore } from "../projectStore";
@@ -22,6 +22,111 @@
 
   let isFirstRun = $state(false);
 
+  const CHAIN_SELECTOR = "[data-chain-toggle]";
+
+  const steps: DriveStep[] = [
+    {
+      element: "#field-container-anchor",
+      popover: {
+        title: "Welcome to Turtle Tracer!",
+        description:
+          "This is your main workspace. Here you can visualize your robot's path and field obstacles. Double-click to add points.",
+        side: "bottom",
+        align: "center",
+      },
+    },
+    {
+      element: "#sidebar-file-manager-btn",
+      popover: {
+        title: "File Manager",
+        description:
+          "Open the File Manager to browse, organize, and open your saved projects.",
+        side: "right",
+        align: "center",
+      },
+    },
+    {
+      element: "#tab-switcher",
+      popover: {
+        title: "Edit Modes",
+        description:
+          "Switch between <b>Paths</b> (editing curves), <b>Field</b> (adding obstacles), and <b>Table</b> (data view).",
+        side: "left",
+        align: "start",
+      },
+    },
+    {
+      element: "#path-tab",
+      popover: {
+        title: "Path Tools",
+        description:
+          "Use the Path tab to adjust settings for your selected path chain, add wait commands, or change heading interpolation.",
+        side: "left",
+        align: "start",
+      },
+    },
+    {
+      element: CHAIN_SELECTOR,
+      popover: {
+        title: "Chain Paths",
+        description:
+          "Click the <b>link icon</b> between two paths to chain them, so the robot flows straight from one into the next without stopping. Hover it to see what it will do.",
+        side: "left",
+        align: "center",
+      },
+    },
+    {
+      element: "#playback-controls",
+      popover: {
+        title: "Simulation Timeline",
+        description:
+          "Control the playback of your autonomous routine. You can play, pause, loop, and drag the slider to scrub through time.",
+        side: "top",
+        align: "center",
+      },
+    },
+    {
+      element: "#sidebar-new-path-btn",
+      popover: {
+        title: "New Project",
+        description:
+          "Click here to start a fresh project. This will clear the current path.",
+        side: "right",
+        align: "center",
+      },
+    },
+    {
+      element: "#save-project-btn",
+      popover: {
+        title: "Save Project",
+        description:
+          "Save your work to a .turt file on your computer. Legacy .pp files are still supported.",
+        side: "bottom",
+        align: "end",
+      },
+    },
+    {
+      element: "#export-project-btn",
+      popover: {
+        title: "Export Code",
+        description:
+          'Generate the Java code needed for your robot, or export to other formats like JSON. Optionally, <b>TurtleTracerLib</b> can run your <code>.turt</code> files directly on the robot. <a href="https://www.turtletracer.com/turtle-tracer-lib/installation/" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">Learn more</a>.',
+        side: "bottom",
+        align: "end",
+      },
+    },
+    {
+      element: "#sidebar-settings-btn",
+      popover: {
+        title: "Settings",
+        description:
+          "Configure robot dimensions, field background, theme, and other preferences.",
+        side: "right",
+        align: "center",
+      },
+    },
+  ];
+
   // Use a customized theme for the driver.js overlay
   const driverObj = driver({
     showProgress: true,
@@ -30,98 +135,7 @@
     doneBtnText: "Done",
     nextBtnText: "Next",
     prevBtnText: "Previous",
-    steps: [
-      {
-        element: "#field-container-anchor",
-        popover: {
-          title: "Welcome to Turtle Tracer!",
-          description:
-            "This is your main workspace. Here you can visualize your robot's path and field obstacles. Double-click to add points.",
-          side: "bottom",
-          align: "center",
-        },
-      },
-      {
-        element: "#sidebar-file-manager-btn",
-        popover: {
-          title: "File Manager",
-          description:
-            "Open the File Manager to browse, organize, and open your saved projects.",
-          side: "right",
-          align: "center",
-        },
-      },
-      {
-        element: "#tab-switcher",
-        popover: {
-          title: "Edit Modes",
-          description:
-            "Switch between <b>Paths</b> (editing curves), <b>Field</b> (adding obstacles), and <b>Table</b> (data view).",
-          side: "left",
-          align: "start",
-        },
-      },
-      {
-        element: "#path-tab",
-        popover: {
-          title: "Path Tools",
-          description:
-            "Use the Path tab to adjust settings for your selected path chain, add wait commands, or change heading interpolation.",
-          side: "left",
-          align: "start",
-        },
-      },
-      {
-        element: "#playback-controls",
-        popover: {
-          title: "Simulation Timeline",
-          description:
-            "Control the playback of your autonomous routine. You can play, pause, loop, and drag the slider to scrub through time.",
-          side: "top",
-          align: "center",
-        },
-      },
-      {
-        element: "#sidebar-new-path-btn",
-        popover: {
-          title: "New Project",
-          description:
-            "Click here to start a fresh project. This will clear the current path.",
-          side: "right",
-          align: "center",
-        },
-      },
-      {
-        element: "#save-project-btn",
-        popover: {
-          title: "Save Project",
-          description:
-            "Save your work to a .turt file on your computer. Legacy .pp files are still supported.",
-          side: "bottom",
-          align: "end",
-        },
-      },
-      {
-        element: "#export-project-btn",
-        popover: {
-          title: "Export Code",
-          description:
-            'Generate the Java code needed for your robot, or export to other formats like JSON. Optionally, <b>TurtleTracerLib</b> can run your <code>.turt</code> files directly on the robot. <a href="https://www.turtletracer.com/turtle-tracer-lib/installation/" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">Learn more</a>.',
-          side: "bottom",
-          align: "end",
-        },
-      },
-      {
-        element: "#sidebar-settings-btn",
-        popover: {
-          title: "Settings",
-          description:
-            "Configure robot dimensions, field background, theme, and other preferences.",
-          side: "right",
-          align: "center",
-        },
-      },
-    ],
+    steps,
     onDestroyStarted: () => {
       // Logic when user tries to exit or finishes
       if (driverObj.isActive()) {
@@ -142,6 +156,16 @@
   $effect(() => {
     if ($startTutorial) {
       if (!driverObj.isActive()) {
+        // The chain button only exists once two paths sit side by side. Without
+        // one, show the same hint as a centered popover.
+        driverObj.setSteps(
+          steps.map((step) =>
+            step.element === CHAIN_SELECTOR &&
+            !document.querySelector(CHAIN_SELECTOR)
+              ? { popover: step.popover }
+              : step,
+          ),
+        );
         driverObj.drive();
         settingsStore.update((s) => ({ ...s, hasSeenOnboarding: true }));
       }

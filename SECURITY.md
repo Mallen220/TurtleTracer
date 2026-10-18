@@ -10,8 +10,8 @@ Due to the rapid development cycle, **only the latest release** is actively supp
 
 | Version        | Supported |
 | -------------- | --------- |
-| Latest Release | Yes    |
-| Older Releases | No     |
+| Latest Release | Yes       |
+| Older Releases | No        |
 
 If you are using an older version and encounter a security issue, please upgrade to the latest release and verify whether the issue still exists.
 

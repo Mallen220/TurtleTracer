@@ -874,7 +874,8 @@
               <td colspan="5" class="p-0 text-center relative border-none">
                 <button
                   class="{ui.iconBtnSm
-                    .neutral} absolute left-[36px] -top-2 z-10"
+                    .neutral} peer absolute left-[36px] -top-2 z-10"
+                  data-chain-toggle
                   onclick={() => toggleChain(seqIndex)}
                   title={item.isChain
                     ? "Unchain paths"
@@ -886,6 +887,13 @@
                     strokeWidth={item.isChain ? 2.5 : 1.5}
                   />
                 </button>
+                <span
+                  aria-hidden="true"
+                  class="pointer-events-none absolute left-[64px] -top-2 z-10 flex h-6 items-center whitespace-nowrap text-xs font-medium opacity-0 transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 {item.isChain
+                    ? 'text-neutral-500 dark:text-neutral-400'
+                    : 'text-emerald-600 dark:text-emerald-400'}"
+                  >{item.isChain ? "Unchain?" : "Chain?"}</span
+                >
                 {#if item.isChain}
                   <div
                     class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-purple-500 dark:bg-purple-400 -z-10 opacity-30"

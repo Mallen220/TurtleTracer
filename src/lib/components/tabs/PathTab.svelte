@@ -572,41 +572,51 @@
 
       {#if item.kind === "path" && prevItem?.kind === "path"}
         <div class="flex justify-center -my-3 z-10 relative">
-          <button
-            class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
-              ? 'text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
-              : 'text-neutral-500 dark:text-neutral-400'}"
-            title={isChain ? "Unchain paths" : "Chain paths"}
-            aria-label={isChain ? "Unchain paths" : "Chain paths"}
-            onclick={() => {
-              ({ lines, sequence } = toggleChain(lines, sequence, sIdx));
-              recordChange?.("Toggle Path Chain");
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-4 h-4"
+          <div class="relative">
+            <button
+              data-chain-toggle
+              class="peer bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
+                ? 'text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+                : 'text-neutral-500 dark:text-neutral-400'}"
+              title={isChain ? "Unchain paths" : "Chain paths"}
+              aria-label={isChain ? "Unchain paths" : "Chain paths"}
+              onclick={() => {
+                ({ lines, sequence } = toggleChain(lines, sequence, sIdx));
+                recordChange?.("Toggle Path Chain");
+              }}
             >
-              {#if isChain}
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-                />
-              {:else}
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-                  stroke-dasharray="2 2"
-                />
-              {/if}
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="w-4 h-4"
+              >
+                {#if isChain}
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+                  />
+                {:else}
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+                    stroke-dasharray="2 2"
+                  />
+                {/if}
+              </svg>
+            </button>
+            <span
+              aria-hidden="true"
+              class="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap text-xs font-medium opacity-0 transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 {isChain
+                ? 'text-neutral-500 dark:text-neutral-400'
+                : 'text-emerald-600 dark:text-emerald-400'}"
+              >{isChain ? "Unchain?" : "Chain?"}</span
+            >
+          </div>
         </div>
       {/if}
 
