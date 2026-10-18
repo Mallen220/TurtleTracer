@@ -1,3 +1,7 @@
+## 2.5.1 (2026-10-18)
+
+- Code cleanup. Recursively check for heading changes within piecewise heading types to ensure the UI doesn't become stale. Insert after on a path was not working in some cases. It should be fixed now. The robot overlay for custom parts now scales with the robot and zoom engine.
+
 ## 2.5.0 (2026-10-12)
 
 - Allow users to import paths directly from github and commit to the project from Browser or desktop. Allow users to watch Java files similar to MeepMeep. Updated the control point UI and fixed history and drag/drop test. The stats panel now responds to mouse clicks. Change default accent color to emerald and path color to purple. Added a new install script with better support for rate limiting and windows devices. Add project folder prompt for first saves not on app boot. Fixed a bug on some linux distros while installing. Added experimental support for Ivy and made it easier to add or edit command libraries in the future. Major performance improvements fixing poor frame rate on many lower end laptops. Fix the velocity heatmap colouring every path like the first. Name generated Java classes after their project instead of a default name. Cleanup rendering of long paths. Show .pp and .java files in the file manager. Fixed bug with speed spiking. Make rounded-md the standard. Added a lib/ui.ts to dramatically decrease css in-line duplication overhead. Fixed event marker box getting cut off. Improved contrast and accessibility.

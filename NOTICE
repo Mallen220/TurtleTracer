@@ -701,3 +701,6 @@ src/tests/uiContrast.test.ts
 src/tests/WaypointTableEditing.test.ts
 src/lib/components/dialogs/ProjectFolderDialog.test.ts
 src/utils/readableText.ts
+src/lib/actions/observeSize.ts
+src/lib/components/whats-new/features/v2.5.1.md
+src/utils/gitStatusTitle.ts
