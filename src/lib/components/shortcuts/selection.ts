@@ -14,179 +14,324 @@ import {
   multiSelectedLineIds,
 } from "../../../stores";
 import { FIELD_SIZE } from "../../../config";
+import type {
+  EventMarker,
+  Line,
+  Point,
+  SequenceItem,
+  Shape,
+} from "../../../types";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import {
   parseSelectionId,
+  eventStepKind,
   findSequenceItem,
   findSequenceItemIndex,
   updateEventMarkerPosition,
 } from "./itemUtils";
 
-export function removeSelected(recordChange: (action?: string) => void) {
-  if (isUIElementFocused()) return;
+/** The selected points as ids: the multiple selection if there is one, else the single one. */
+function selectedIds(): string[] {
+  const many = get(multiSelectedPointIds);
+  const one = get(selectedPointId);
+  return many.length > 0 ? many : one ? [one] : [];
+}
 
-  const mSelPoints = get(multiSelectedPointIds);
-  const selPointId = get(selectedPointId);
-  const lines = get(linesStore);
-  const sequence = get(sequenceStore);
-
-  const sels =
-    mSelPoints.length > 0 ? mSelPoints : selPointId ? [selPointId] : [];
-  if (sels.length === 0) return;
-
-  // Group deletions to process them correctly
-  const waitsToDelete: string[] = [];
-  const rotatesToDelete: string[] = [];
-  const pointsToDelete: { lineIndex: number; ptIdx: number }[] = [];
-  const eventMarkersToDelete: {
-    itemType: string;
+/** Everything the selection asks to delete, sorted into what it applies to. */
+interface Deletions {
+  waits: string[];
+  rotates: string[];
+  points: { lineIndex: number; ptIdx: number }[];
+  markers: {
+    itemType: "wait" | "rotate" | "line";
     itemId: string;
     evIdx: number;
-  }[] = [];
+  }[];
+}
 
-  sels.forEach((sel) => {
-    const info = parseSelectionId(sel);
+function collectDeletions(selections: string[]): Deletions {
+  const deletions: Deletions = {
+    waits: [],
+    rotates: [],
+    points: [],
+    markers: [],
+  };
+  for (const selection of selections) {
+    const info = parseSelectionId(selection);
     if (info.type === "wait") {
-      waitsToDelete.push(info.id);
+      deletions.waits.push(info.id);
     } else if (info.type === "rotate") {
-      rotatesToDelete.push(info.id);
+      deletions.rotates.push(info.id);
     } else if (info.type === "point") {
+      // The start point can't be deleted.
       if (info.lineNum !== 0 || info.ptIdx !== 0) {
-        pointsToDelete.push({ lineIndex: info.lineNum - 1, ptIdx: info.ptIdx });
+        deletions.points.push({
+          lineIndex: info.lineNum - 1,
+          ptIdx: info.ptIdx,
+        });
       }
     } else if (info.type === "event-wait" || info.type === "event-rotate") {
-      eventMarkersToDelete.push({
-        itemType: info.type === "event-wait" ? "wait" : "rotate",
+      deletions.markers.push({
+        itemType: eventStepKind(info),
         evIdx: info.evIdx,
         itemId: info.id,
       });
     } else if (info.type === "event-line") {
-      eventMarkersToDelete.push({
+      deletions.markers.push({
         itemType: "line",
         evIdx: info.evIdx,
         itemId: String(info.lineIdx),
       });
     }
-  });
-
-  let linesChanged = false;
-  let sequenceChanged = false;
-
-  // Sort control points by ptIdx descending to safely remove multiple points from the same line
-  pointsToDelete.sort((a, b) => b.ptIdx - a.ptIdx);
-
-  // Delete points
-  const linesToRemove = new Set<number>();
-  pointsToDelete.forEach(({ lineIndex, ptIdx }) => {
-    const line = lines[lineIndex];
-    if (!line || line.locked) return;
-
-    if (ptIdx === 0) {
-      linesToRemove.add(lineIndex);
-    } else {
-      const cpIndex = ptIdx - 1;
-      if (line.controlPoints?.[cpIndex] !== undefined) {
-        // Create a new line object with new controlPoints array
-        lines[lineIndex] = {
-          ...line,
-          controlPoints: line.controlPoints.filter((_, i) => i !== cpIndex),
-        };
-        linesChanged = true;
-      }
-    }
-  });
-
-  // Delete lines (sort descending)
-  if (linesToRemove.size > 0) {
-    const sortedLineIndexes = Array.from(linesToRemove).sort((a, b) => b - a);
-    linesStore.update((l) => {
-      let newLines = [...l];
-      sortedLineIndexes.forEach((lineIndex) => {
-        const line = newLines[lineIndex];
-        const removedId = line.id;
-        newLines.splice(lineIndex, 1);
-        if (removedId) {
-          sequenceStore.update((s) =>
-            s.filter(
-              (item) => !(item.kind === "path" && item.lineId === removedId),
-            ),
-          );
-          sequenceChanged = true;
-        }
-      });
-      return newLines;
-    });
-    linesChanged = true; // updated inside the store but mark to update UI
   }
+  return deletions;
+}
 
-  // Delete waits
-  if (waitsToDelete.length > 0) {
-    sequenceStore.update((s) =>
-      s.filter((item) => {
-        if (item.kind === "wait" && waitsToDelete.includes(item.id)) {
-          return item.locked; // keep if locked
-        }
-        return true;
-      }),
-    );
-    sequenceChanged = true;
-  }
+interface Route {
+  lines: Line[];
+  sequence: SequenceItem[];
+}
 
-  // Delete rotates
-  if (rotatesToDelete.length > 0) {
-    sequenceStore.update((s) =>
-      s.filter((item) => {
-        if (item.kind === "rotate" && rotatesToDelete.includes(item.id)) {
-          return item.locked; // keep if locked
-        }
-        return true;
-      }),
-    );
-    sequenceChanged = true;
-  }
-
-  // Delete event markers (sort descending by evIdx)
-  eventMarkersToDelete.sort((a, b) => b.evIdx - a.evIdx);
-  eventMarkersToDelete.forEach(({ itemType, itemId, evIdx }) => {
-    if (itemType === "wait" || itemType === "rotate") {
-      const item = findSequenceItem(sequence, itemId, itemType);
-      if (item?.eventMarkers?.[evIdx] && !item.locked) {
-        const itemIdx = findSequenceItemIndex(sequence, itemId, itemType);
-        if (itemIdx !== -1) {
-          sequence[itemIdx] = {
-            ...item,
-            eventMarkers: item.eventMarkers.filter((_, i) => i !== evIdx),
-          };
-          sequenceChanged = true;
-        }
-      }
-    } else if (itemType === "line") {
+/** Takes out the event markers asked for, from locked-or-not steps and paths that allow it. */
+function deleteMarkers(route: Route, markers: Deletions["markers"]) {
+  // Highest first, so removing one doesn't shift the next.
+  for (const { itemType, itemId, evIdx } of markers.toSorted(
+    (a, b) => b.evIdx - a.evIdx,
+  )) {
+    if (itemType === "line") {
       const lineIdx = Number(itemId);
-      const line = lines[lineIdx];
+      const line = route.lines[lineIdx];
       if (line?.eventMarkers?.[evIdx] && !line.locked) {
-        lines[lineIdx] = {
+        route.lines[lineIdx] = {
           ...line,
           eventMarkers: line.eventMarkers.filter((_, i) => i !== evIdx),
         };
-        linesChanged = true;
       }
+      continue;
     }
-  });
+    const itemIdx = findSequenceItemIndex(route.sequence, itemId, itemType);
+    const item = route.sequence[itemIdx];
+    if (
+      item &&
+      (item.kind === "wait" || item.kind === "rotate") &&
+      item.eventMarkers?.[evIdx] &&
+      !item.locked
+    ) {
+      route.sequence[itemIdx] = {
+        ...item,
+        eventMarkers: item.eventMarkers.filter((_, i) => i !== evIdx),
+      };
+    }
+  }
+}
 
-  if (linesChanged && linesToRemove.size === 0) linesStore.set([...lines]);
-  if (
-    sequenceChanged &&
-    waitsToDelete.length === 0 &&
-    rotatesToDelete.length === 0 &&
-    linesToRemove.size === 0
-  )
-    sequenceStore.set([...sequence]);
+/** Takes out control points, and whole paths (with their steps) when their end point is selected. */
+function deletePoints(route: Route, points: Deletions["points"]) {
+  const pathsToRemove = new Set<number>();
+  // Highest first, so removing one doesn't shift the next.
+  for (const { lineIndex, ptIdx } of points.toSorted(
+    (a, b) => b.ptIdx - a.ptIdx,
+  )) {
+    const line = route.lines[lineIndex];
+    if (!line || line.locked) continue;
+    if (ptIdx === 0) {
+      pathsToRemove.add(lineIndex);
+    } else if (line.controlPoints?.[ptIdx - 1] !== undefined) {
+      route.lines[lineIndex] = {
+        ...line,
+        controlPoints: line.controlPoints.filter((_, i) => i !== ptIdx - 1),
+      };
+    }
+  }
+
+  for (const lineIndex of [...pathsToRemove].sort((a, b) => b - a)) {
+    const [removed] = route.lines.splice(lineIndex, 1);
+    if (removed.id) {
+      route.sequence = route.sequence.filter(
+        (item) => !(item.kind === "path" && item.lineId === removed.id),
+      );
+    }
+  }
+}
+
+/** Takes out the waits or turns with these ids, other than locked ones. */
+function deleteSteps(route: Route, kind: "wait" | "rotate", ids: string[]) {
+  if (ids.length === 0) return;
+  route.sequence = route.sequence.filter(
+    (item) => !(item.kind === kind && ids.includes(item.id) && !item.locked),
+  );
+}
+
+/** The route after deleting what `selections` ask to, without changing the original. */
+function deleteSelection(route: Route, selections: string[]): Route {
+  const deletions = collectDeletions(selections);
+  const result: Route = {
+    lines: [...route.lines],
+    sequence: [...route.sequence],
+  };
+  // Markers first: they refer to paths by position, which deleting a path changes.
+  deleteMarkers(result, deletions.markers);
+  deletePoints(result, deletions.points);
+  deleteSteps(result, "wait", deletions.waits);
+  deleteSteps(result, "rotate", deletions.rotates);
+  return result;
+}
+
+export function removeSelected(recordChange: (action?: string) => void) {
+  if (isUIElementFocused()) return;
+
+  const selections = selectedIds();
+  if (selections.length === 0) return;
+
+  const before = { lines: get(linesStore), sequence: get(sequenceStore) };
+  const after = deleteSelection(before, selections);
+  linesStore.set(after.lines);
+  sequenceStore.set(after.sequence);
 
   selectedPointId.set(null);
   multiSelectedPointIds.set([]);
   selectedLineId.set(null);
   multiSelectedLineIds.set([]);
   recordChange("Delete Selection");
+}
+
+/** How a single arrow-key press moves a point. */
+interface Nudge {
+  /** The new x or y, for a point at `current`, one step in `direction` (-1, 0 or 1). */
+  next: (current: number, direction: number) => number;
+  dx: number;
+  dy: number;
+}
+
+const roundCoordinate = (value: number) => Number(value.toFixed(3));
+
+/** `point` moved one step, kept on the field. */
+function nudged<P extends { x: number; y: number }>(point: P, nudge: Nudge): P {
+  return {
+    ...point,
+    x: roundCoordinate(nudge.next(point.x, nudge.dx)),
+    y: roundCoordinate(nudge.next(point.y, nudge.dy)),
+  };
+}
+
+/** Moves an event marker along its path or step. */
+function nudgedMarkers(markers: EventMarker[], evIdx: number, nudge: Nudge) {
+  const newMarkers = [...markers];
+  newMarkers[evIdx] = {
+    ...newMarkers[evIdx],
+    position: updateEventMarkerPosition(
+      newMarkers[evIdx],
+      0.01 * (nudge.dx + nudge.dy),
+    ),
+  };
+  return newMarkers;
+}
+
+/** The project as it is being nudged, and which parts of it have changed. */
+interface Nudged {
+  startPoint: Point;
+  lines: Line[];
+  shapes: Shape[];
+  sequence: SequenceItem[];
+  changed: Set<"startPoint" | "lines" | "shapes" | "sequence">;
+}
+
+/** Nudges the start point, a path's end or one of its control points. */
+function nudgePoint(
+  project: Nudged,
+  info: { lineNum: number; ptIdx: number },
+  nudge: Nudge,
+) {
+  if (info.lineNum === 0 && info.ptIdx === 0) {
+    if (!project.startPoint.locked) {
+      project.startPoint = nudged(project.startPoint, nudge);
+      project.changed.add("startPoint");
+    }
+    return;
+  }
+  const lineIndex = info.lineNum - 1;
+  const line = project.lines[lineIndex];
+  if (!line || line.locked) return;
+
+  if (info.ptIdx === 0) {
+    if (!line.endPoint) return;
+    project.lines[lineIndex] = {
+      ...line,
+      endPoint: nudged(line.endPoint, nudge),
+    };
+  } else {
+    const cpIndex = info.ptIdx - 1;
+    if (!line.controlPoints[cpIndex]) return;
+    const controlPoints = [...line.controlPoints];
+    controlPoints[cpIndex] = nudged(controlPoints[cpIndex], nudge);
+    project.lines[lineIndex] = { ...line, controlPoints };
+  }
+  project.changed.add("lines");
+}
+
+function nudgeObstacleCorner(
+  project: Nudged,
+  info: { shapeIdx: number; vertexIdx: number },
+  nudge: Nudge,
+) {
+  const shape = project.shapes[info.shapeIdx];
+  if (!shape?.vertices[info.vertexIdx]) return;
+  const vertices = [...shape.vertices];
+  vertices[info.vertexIdx] = nudged(vertices[info.vertexIdx], nudge);
+  project.shapes[info.shapeIdx] = { ...shape, vertices };
+  project.changed.add("shapes");
+}
+
+/** Slides an event marker along its wait, turn or path. */
+function nudgeMarker(
+  project: Nudged,
+  info:
+    | { type: "event-wait" | "event-rotate"; id: string; evIdx: number }
+    | { type: "event-line"; lineIdx: number; evIdx: number },
+  nudge: Nudge,
+) {
+  if (info.type === "event-line") {
+    const line = project.lines[info.lineIdx];
+    if (!line?.eventMarkers?.[info.evIdx]) return;
+    project.lines[info.lineIdx] = {
+      ...line,
+      eventMarkers: nudgedMarkers(line.eventMarkers, info.evIdx, nudge),
+    };
+    project.changed.add("lines");
+    return;
+  }
+
+  const itemIdx = findSequenceItemIndex(
+    project.sequence,
+    info.id,
+    eventStepKind(info),
+  );
+  const item = project.sequence[itemIdx];
+  if (
+    item &&
+    (item.kind === "wait" || item.kind === "rotate") &&
+    item.eventMarkers?.[info.evIdx]
+  ) {
+    project.sequence[itemIdx] = {
+      ...item,
+      eventMarkers: nudgedMarkers(item.eventMarkers, info.evIdx, nudge),
+    };
+    project.changed.add("sequence");
+  }
+}
+
+function nudgeSelection(project: Nudged, selection: string, nudge: Nudge) {
+  const info = parseSelectionId(selection);
+  switch (info.type) {
+    case "point":
+      return nudgePoint(project, info, nudge);
+    case "obstacle":
+      return nudgeObstacleCorner(project, info, nudge);
+    case "event-wait":
+    case "event-rotate":
+    case "event-line":
+      return nudgeMarker(project, info, nudge);
+  }
 }
 
 export function movePoint(
@@ -196,180 +341,49 @@ export function movePoint(
 ) {
   if (isUIElementFocused()) return;
 
-  const mSelPoints = get(multiSelectedPointIds);
-  const selPointId = get(selectedPointId);
+  const selections = selectedIds();
+  if (selections.length === 0) return;
+
   const snapMode = get(snapToGrid) && get(showGrid);
   const gridStep = (get(gridSize) as number) || 1;
-  const startPoint = get(startPointStore);
-  const lines = get(linesStore);
-  const shapes = get(shapesStore);
-  const sequence = get(sequenceStore);
-
-  // Convert to array of selections
-  const sels =
-    mSelPoints.length > 0 ? mSelPoints : selPointId ? [selPointId] : [];
-  if (sels.length === 0) return;
-
-  const defaultStep = 1;
   const eps = 1e-8;
 
+  /** The grid line after (or before) `current`, in the direction of travel. */
   const nextGridCoord = (current: number, direction: number) => {
-    if (direction > 0)
+    if (direction > 0) {
       return Math.min(
         FIELD_SIZE,
         Math.ceil((current + eps) / gridStep) * gridStep,
       );
-    else if (direction < 0)
+    }
+    if (direction < 0) {
       return Math.max(0, Math.floor((current - eps) / gridStep) * gridStep);
+    }
     return current;
   };
-  const moveX = dx * defaultStep;
-  const moveY = dy * defaultStep;
+  const nudge: Nudge = {
+    dx,
+    dy,
+    next: (current, direction) =>
+      snapMode
+        ? nextGridCoord(current, direction)
+        : Math.max(0, Math.min(FIELD_SIZE, current + direction)),
+  };
 
-  let linesChanged = false;
-  let shapesChanged = false;
-  let sequenceChanged = false;
-  let startPointChanged = false;
+  const project: Nudged = {
+    startPoint: get(startPointStore),
+    lines: [...get(linesStore)],
+    shapes: [...get(shapesStore)],
+    sequence: [...get(sequenceStore)],
+    changed: new Set(),
+  };
+  for (const selection of selections) nudgeSelection(project, selection, nudge);
 
-  sels.forEach((currentSel) => {
-    const info = parseSelectionId(currentSel);
-    if (info.type === "point") {
-      if (info.lineNum === 0 && info.ptIdx === 0) {
-        if (!startPoint.locked) {
-          const x = snapMode
-            ? nextGridCoord(startPoint.x, dx)
-            : Math.max(0, Math.min(FIELD_SIZE, startPoint.x + moveX));
-          const y = snapMode
-            ? nextGridCoord(startPoint.y, dy)
-            : Math.max(0, Math.min(FIELD_SIZE, startPoint.y + moveY));
-
-          startPointStore.set({
-            ...startPoint,
-            x: Number(x.toFixed(3)),
-            y: Number(y.toFixed(3)),
-          });
-          startPointChanged = true;
-        }
-        return;
-      }
-      const lineIndex = info.lineNum - 1;
-      const line = lines[lineIndex];
-      if (line && !line.locked) {
-        if (info.ptIdx === 0) {
-          if (line.endPoint) {
-            const nx = snapMode
-              ? nextGridCoord(line.endPoint.x, dx)
-              : Math.max(0, Math.min(FIELD_SIZE, line.endPoint.x + moveX));
-            const ny = snapMode
-              ? nextGridCoord(line.endPoint.y, dy)
-              : Math.max(0, Math.min(FIELD_SIZE, line.endPoint.y + moveY));
-
-            lines[lineIndex] = {
-              ...line,
-              endPoint: {
-                ...line.endPoint,
-                x: Number(nx.toFixed(3)),
-                y: Number(ny.toFixed(3)),
-              },
-            };
-            linesChanged = true;
-          }
-        } else {
-          const cpIndex = info.ptIdx - 1;
-          if (line.controlPoints[cpIndex]) {
-            const nx = snapMode
-              ? nextGridCoord(line.controlPoints[cpIndex].x, dx)
-              : Math.max(
-                  0,
-                  Math.min(FIELD_SIZE, line.controlPoints[cpIndex].x + moveX),
-                );
-            const ny = snapMode
-              ? nextGridCoord(line.controlPoints[cpIndex].y, dy)
-              : Math.max(
-                  0,
-                  Math.min(FIELD_SIZE, line.controlPoints[cpIndex].y + moveY),
-                );
-
-            const newCps = [...line.controlPoints];
-            newCps[cpIndex] = {
-              ...newCps[cpIndex],
-              x: Number(nx.toFixed(3)),
-              y: Number(ny.toFixed(3)),
-            };
-            lines[lineIndex] = {
-              ...line,
-              controlPoints: newCps,
-            };
-            linesChanged = true;
-          }
-        }
-      }
-    } else if (info.type === "obstacle") {
-      if (shapes[info.shapeIdx]?.vertices[info.vertexIdx]) {
-        const v = shapes[info.shapeIdx].vertices[info.vertexIdx];
-        const nx = snapMode
-          ? nextGridCoord(v.x, dx)
-          : Math.max(0, Math.min(FIELD_SIZE, v.x + moveX));
-        const ny = snapMode
-          ? nextGridCoord(v.y, dy)
-          : Math.max(0, Math.min(FIELD_SIZE, v.y + moveY));
-
-        const newVertices = [...shapes[info.shapeIdx].vertices];
-        newVertices[info.vertexIdx] = {
-          ...newVertices[info.vertexIdx],
-          x: Number(nx.toFixed(3)),
-          y: Number(ny.toFixed(3)),
-        };
-        shapes[info.shapeIdx] = {
-          ...shapes[info.shapeIdx],
-          vertices: newVertices,
-        };
-        shapesChanged = true;
-      }
-    } else if (info.type === "event-wait" || info.type === "event-rotate") {
-      const kind = info.type === "event-wait" ? "wait" : "rotate";
-      const itemIdx = findSequenceItemIndex(sequence, info.id, kind);
-      if (itemIdx !== -1) {
-        const item = sequence[itemIdx];
-        if (
-          (item.kind === "wait" || item.kind === "rotate") &&
-          item.eventMarkers?.[info.evIdx]
-        ) {
-          const newPos = updateEventMarkerPosition(
-            item.eventMarkers[info.evIdx],
-            0.01 * (dx + dy),
-          );
-          const newMarkers = [...item.eventMarkers];
-          newMarkers[info.evIdx] = {
-            ...newMarkers[info.evIdx],
-            position: newPos,
-          };
-          sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
-          sequenceChanged = true;
-        }
-      }
-    } else if (info.type === "event-line") {
-      const line = lines[info.lineIdx];
-      if (line?.eventMarkers?.[info.evIdx]) {
-        const newPos = updateEventMarkerPosition(
-          line.eventMarkers[info.evIdx],
-          0.01 * (dx + dy),
-        );
-        const newMarkers = [...line.eventMarkers];
-        newMarkers[info.evIdx] = {
-          ...newMarkers[info.evIdx],
-          position: newPos,
-        };
-        lines[info.lineIdx] = { ...line, eventMarkers: newMarkers };
-        linesChanged = true;
-      }
-    }
-  });
-
-  if (startPointChanged) startPointStore.set({ ...startPoint });
-  if (linesChanged) linesStore.set([...lines]);
-  if (shapesChanged) shapesStore.set([...shapes]);
-  if (sequenceChanged) sequenceStore.set([...sequence]);
+  if (project.changed.has("startPoint"))
+    startPointStore.set(project.startPoint);
+  if (project.changed.has("lines")) linesStore.set(project.lines);
+  if (project.changed.has("shapes")) shapesStore.set(project.shapes);
+  if (project.changed.has("sequence")) sequenceStore.set(project.sequence);
 
   recordChange("Move Point");
 }
@@ -412,37 +426,58 @@ export function getSelectableItems() {
 /** Something that can scroll the sidebar to show a sequence item. */
 type ScrollTarget = { scrollToItem?: (kind: string, id: string) => void };
 
-function syncSelectionToUI(controlTabRef: ScrollTarget | null | undefined) {
-  const sel = get(selectedPointId);
-  const sequence = get(sequenceStore);
-  const lines = get(linesStore);
-
-  if (!sel || !controlTabRef?.scrollToItem) return;
+/** What to scroll the sidebar to for a selection: the kind of item and its id. */
+function scrollTargetFor(
+  sel: string,
+  sequence: SequenceItem[],
+  lines: Line[],
+): [kind: string, id: string] | null {
   const info = parseSelectionId(sel);
 
-  if (info.type === "wait") {
-    controlTabRef.scrollToItem("wait", info.id);
-  } else if (info.type === "rotate") {
-    controlTabRef.scrollToItem("rotate", info.id);
-  } else if (info.type === "point") {
-    if (info.lineNum > 0) {
-      const line = lines[info.lineNum - 1];
-      if (line?.id) {
-        controlTabRef.scrollToItem("path", line.id);
-      }
-    }
-  } else if (info.type === "event-wait" || info.type === "event-rotate") {
-    const kind = info.type === "event-wait" ? "wait" : "rotate";
-    const item = findSequenceItem(sequence, info.id, kind);
-    if (item?.eventMarkers?.[info.evIdx]) {
-      controlTabRef.scrollToItem("event", item.eventMarkers[info.evIdx].id);
-    }
-  } else if (info.type === "event-line") {
-    const line = lines[info.lineIdx];
-    if (line?.eventMarkers?.[info.evIdx]) {
-      controlTabRef.scrollToItem("event", line.eventMarkers[info.evIdx].id);
-    }
+  if (info.type === "wait" || info.type === "rotate") {
+    return [info.type, info.id];
   }
+  if (info.type === "point") {
+    const lineId = lines[info.lineNum - 1]?.id;
+    return info.lineNum > 0 && lineId ? ["path", lineId] : null;
+  }
+  if (info.type === "event-wait" || info.type === "event-rotate") {
+    const item = findSequenceItem(sequence, info.id, eventStepKind(info));
+    const marker = item?.eventMarkers?.[info.evIdx];
+    return marker ? ["event", marker.id] : null;
+  }
+  if (info.type === "event-line") {
+    const marker = lines[info.lineIdx]?.eventMarkers?.[info.evIdx];
+    return marker ? ["event", marker.id] : null;
+  }
+  return null;
+}
+
+function syncSelectionToUI(controlTabRef: ScrollTarget | null | undefined) {
+  const sel = get(selectedPointId);
+  if (!sel || !controlTabRef?.scrollToItem) return;
+
+  const target = scrollTargetFor(sel, get(sequenceStore), get(linesStore));
+  if (target) controlTabRef.scrollToItem(...target);
+}
+
+/** Selects a step of the route, returning the id it selected (or null if it couldn't). */
+function selectStep(item: SequenceItem, lines: Line[]): string | null {
+  if (item.kind === "path") {
+    selectedLineId.set(item.lineId);
+    const lineIdx = lines.findIndex((l) => l.id === item.lineId);
+    if (lineIdx === -1) return null;
+    const id = `point-${lineIdx + 1}-0`;
+    selectedPointId.set(id);
+    return id;
+  }
+  if (item.kind === "wait" || item.kind === "rotate") {
+    const id = `${item.kind}-${item.id}`;
+    selectedPointId.set(id);
+    selectedLineId.set(null);
+    return id;
+  }
+  return null;
 }
 
 export function cycleSequenceSelection(
@@ -451,35 +486,18 @@ export function cycleSequenceSelection(
 ) {
   if (isUIElementFocused()) return;
   const sequence = get(sequenceStore);
-  const lines = get(linesStore);
-
   if (sequence.length === 0) return;
 
-  let currentIdx = getSelectedSequenceIndex();
+  const selectedIdx = getSelectedSequenceIndex();
+  const nextIdx =
+    selectedIdx === null
+      ? 0
+      : (selectedIdx + dir + sequence.length) % sequence.length;
 
-  if (currentIdx === null) {
-    currentIdx = 0;
-  } else {
-    currentIdx = (currentIdx + dir + sequence.length) % sequence.length;
-  }
-
-  const item = sequence[currentIdx];
+  const item = sequence[nextIdx];
   if (!item) return;
 
-  let newId: string | null = null;
-  if (item.kind === "path") {
-    selectedLineId.set(item.lineId);
-    const lineIdx = lines.findIndex((l) => l.id === item.lineId);
-    if (lineIdx !== -1) {
-      newId = `point-${lineIdx + 1}-0`;
-      selectedPointId.set(newId);
-    }
-  } else if (item.kind === "wait" || item.kind === "rotate") {
-    newId = `${item.kind}-${item.id}`;
-    selectedPointId.set(newId);
-    selectedLineId.set(null);
-  }
-
+  const newId = selectStep(item, get(linesStore));
   if (newId) multiSelectedPointIds.set([newId]);
 
   syncSelectionToUI(controlTabRef);

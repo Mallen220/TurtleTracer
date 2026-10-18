@@ -1,6 +1,12 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { CommandLibrary } from "./types";
-import { PEDRO_IMPORTS } from "./pedroImports";
+import {
+  buildPathsMethod,
+  constructorSetup,
+  fields,
+  fileHeader,
+  helperMethods,
+} from "./classSections";
 
 export const solversLib: CommandLibrary = {
   id: "SolversLib",
@@ -27,12 +33,7 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
   },
 
   classTemplate: (p) => `
-${p.warning}
-
-package ${p.packageName};
-
-${PEDRO_IMPORTS}
-${p.imports}
+${fileHeader(p)}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 ${p.ppReaderImport}
 ${p.hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\n" : ""}import com.turtletracerlib.pathing.NamedCommands;
@@ -40,24 +41,10 @@ import java.io.IOException;
 
 public class ${p.className} extends SequentialCommandGroup {
 
-    private final Follower follower;
-    private final PoseFactory p = PoseFactory.degrees();${p.trackerField}
-
-    // Poses
-${p.poseDeclarations}
-
-    // Path chains
-${p.pathChainDeclarations}
+${fields(p)}
 
     public ${p.className}(final Follower follower, HardwareMap hw, Telemetry telemetry) throws IOException {
-        this.follower = follower;
-
-        ${p.ppReaderInit}${p.eventBindingCode}
-
-        // Load poses
-${p.poseInitializations}
-
-        follower.setPose(startPoint);
+${constructorSetup(p)}
 
         buildPaths();
 
@@ -66,12 +53,9 @@ ${p.commands}
         );
     }
 
-    public void buildPaths() {
-        ${p.pathBuilders}
-    }
+${buildPathsMethod(p)}
 
-    ${p.ftcPoseHelper}
-    ${p.metricHelper}
+${helperMethods(p)}
 }
 `,
 };

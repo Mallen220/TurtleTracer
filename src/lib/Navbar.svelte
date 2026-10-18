@@ -37,6 +37,7 @@
   import { menuNavigation } from "./actions/menuNavigation";
   import ValidationButton from "./components/tools/ValidationButton.svelte";
   import { ui } from "./ui";
+  import { gitStatusTitle } from "../utils/gitStatusTitle";
 
   interface Props {
     robotLength: number;
@@ -302,13 +303,7 @@
               class="{ui.badge[
                 ui.gitTone($gitStatusStore[$currentFilePath])
               ]} ml-2 whitespace-nowrap hover:opacity-80"
-              title={`${
-                $gitStatusStore[$currentFilePath] === "modified"
-                  ? "Git: Modified (Unstaged Changes)"
-                  : $gitStatusStore[$currentFilePath] === "staged"
-                    ? "Git: Staged (Ready to Commit)"
-                    : "Git: Untracked (New File)"
-              } - Click to compare with committed version`}
+              title={`${gitStatusTitle($gitStatusStore[$currentFilePath])} - Click to compare with committed version`}
               onclick={(e) => {
                 e.stopPropagation();
                 import("../lib/diffStore").then((m) => m.toggleDiff());

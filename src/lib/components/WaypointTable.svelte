@@ -63,12 +63,12 @@
     LinkIcon,
   } from "./icons";
   import { renumberDefaultPathNames } from "../../utils/nameGenerator";
+  import { pathReferenceProblems } from "../../utils/pathReferences";
   import {
     updateLinkedWaypoints,
     handleWaypointRename,
-    updateLinkedWaits,
     isLineLinked,
-    updateLinkedRotations,
+    updateLinkedItems,
   } from "../../utils/pointLinking";
   import { actionRegistry } from "../actionRegistry";
   import { getShortcutFromSettings } from "../../utils";
@@ -87,8 +87,6 @@
     sequence = $bindable(),
     recordChange,
     settings = undefined,
-    shapes = $bindable([]),
-    collapsedObstacles = $bindable([]),
     isActive = true,
   }: {
     startPoint: Point;
@@ -96,8 +94,6 @@
     sequence: SequenceItem[];
     recordChange: (description?: string) => void;
     settings?: import("../../types/index").Settings | undefined;
-    shapes: import("../../types/index").Shape[];
-    collapsedObstacles: boolean[];
     isActive?: boolean;
   } = $props();
 
@@ -229,28 +225,7 @@
     })(),
   );
 
-  // Computed debug values to keep template expressions simple
-  let debugLinesIds = $derived(
-    Array.isArray(lines)
-      ? lines.map((l) => l.id).filter((id): id is string => id != null)
-      : [],
-  );
-  // The line ids the sequence refers to.
-  let debugSequenceIds = $derived(
-    Array.isArray(sequence)
-      ? sequence.flatMap((s) => (s.kind === "path" ? [s.lineId] : []))
-      : [],
-  );
-  let debugMissing = $derived(
-    debugLinesIds.filter(
-      (id) => id && !debugSequenceIds.includes(id),
-    ) as string[],
-  );
-  let debugInvalidRefs = $derived(
-    debugSequenceIds.filter(
-      (id) => id && !debugLinesIds.includes(id),
-    ) as string[],
-  );
+  let referenceProblems = $derived(pathReferenceProblems(lines, sequence));
 
   // Drag and drop state
   let draggingIndex: number | null = $state(null);
@@ -646,6 +621,19 @@
     if (recordChange) recordChange();
   }
 
+  /** Shows or hides, locks or unlocks, a path. */
+  function toggleLineFlag(
+    lineId: string | undefined,
+    flag: "hidden" | "locked",
+  ) {
+    const idx = lines.findIndex((l) => l.id === lineId);
+    if (idx !== -1) {
+      lines[idx] = { ...lines[idx], [flag]: !lines[idx][flag] };
+      lines = [...lines];
+    }
+    if (recordChange) recordChange();
+  }
+
   // Edits from the wait, turn and macro rows
   function handleUpdateFromComponent(idx: number, updatedItem: SequenceItem) {
     // Create a new array reference to ensure Svelte reactivity triggers,
@@ -653,14 +641,7 @@
     const newSeq = [...sequence];
     newSeq[idx] = updatedItem;
 
-    // Waits and turns that share a name share their settings.
-    if (updatedItem.kind === "wait") {
-      sequence = updateLinkedWaits(newSeq, updatedItem.id);
-    } else if (updatedItem.kind === "rotate") {
-      sequence = updateLinkedRotations(newSeq, updatedItem.id);
-    } else {
-      sequence = newSeq;
-    }
+    sequence = updateLinkedItems(newSeq, updatedItem);
     recordChange();
   }
 
@@ -705,11 +686,7 @@
       newSeq.push(newItem);
       sequence = newSeq;
       syncLinesToSequence(newSeq);
-      if (newItem.kind === "wait") {
-        sequence = updateLinkedWaits(sequence, newItem.id);
-      } else if (newItem.kind === "rotate") {
-        sequence = updateLinkedRotations(sequence, newItem.id);
-      }
+      sequence = updateLinkedItems(sequence, newItem);
       recordChange();
     }
   }
@@ -770,8 +747,8 @@
   {#if showDebug}
     <DebugPanel
       componentName="WaypointTable"
-      {debugMissing}
-      {debugInvalidRefs}
+      debugMissing={referenceProblems.missing}
+      debugInvalidRefs={referenceProblems.invalid}
       linesLength={lines.length}
       sequenceLength={(sequence || []).length}
       displaySequenceLength={(displaySequence || []).length}
@@ -1091,15 +1068,7 @@
                   aria-label={line.hidden ? "Show Path" : "Hide Path"}
                   onclick={(e) => {
                     e.stopPropagation();
-                    const lIdx = lines.findIndex((l) => l.id === line.id);
-                    if (lIdx !== -1) {
-                      lines[lIdx] = {
-                        ...lines[lIdx],
-                        hidden: !lines[lIdx].hidden,
-                      };
-                      lines = [...lines];
-                    }
-                    if (recordChange) recordChange();
+                    toggleLineFlag(line.id, "hidden");
                   }}
                   class="{ui.iconBtnSm.neutral} h-6 w-6"
                 >
@@ -1118,15 +1087,7 @@
                   aria-label={line.locked ? "Unlock Path" : "Lock Path"}
                   onclick={(e) => {
                     e.stopPropagation();
-                    const lIdx = lines.findIndex((l) => l.id === line.id);
-                    if (lIdx !== -1) {
-                      lines[lIdx] = {
-                        ...lines[lIdx],
-                        locked: !lines[lIdx].locked,
-                      };
-                      lines = [...lines];
-                    }
-                    if (recordChange) recordChange();
+                    toggleLineFlag(line.id, "locked");
                   }}
                   class="{ui.iconBtnSm.neutral} h-6 w-6"
                   aria-pressed={line.locked}

@@ -31,7 +31,7 @@ if (fastCheckInstalled) {
 
 // Generate a valid finite number within a reasonable range to avoid extreme float precision issues
 
-export const validNumber = fc.float
+const validNumber = fc.float
   ? fc.float({
       min: -100000,
       max: 100000,
@@ -46,11 +46,6 @@ const basePointProps = {
   y: validNumber,
   locked: fc.option ? fc.option(fc.boolean(), { nil: undefined }) : ({} as any),
 };
-
-// Generate a BasePoint (used for ControlPoints)
-export const basePointArbitrary: any = fc.record
-  ? fc.record(basePointProps)
-  : ({} as any);
 
 // Generate a Point (Union type based on heading)
 export const pointArbitrary: any = fc.oneof
@@ -83,30 +78,4 @@ export const pointArbitrary: any = fc.oneof
         endDeg: fc.constant(undefined),
       }),
     )
-  : ({} as any);
-
-// Generate a ControlPoint (alias for BasePoint)
-export const controlPointArbitrary: any = basePointArbitrary;
-
-// Custom hex color generator
-const hexColorArbitrary = fc.string
-  ? fc.string({ minLength: 6, maxLength: 6 }).map((s: string) => "#" + s)
-  : ({} as any);
-
-// Generate a Line
-export const lineArbitrary: any = fc.record
-  ? fc.record({
-      id: fc.option ? fc.option(fc.uuid(), { nil: undefined }) : ({} as any),
-      endPoint: pointArbitrary,
-      controlPoints: fc.array
-        ? fc.array(controlPointArbitrary, { minLength: 0, maxLength: 2 })
-        : ({} as any),
-      color: hexColorArbitrary,
-      name: fc.option
-        ? fc.option(fc.string(), { nil: undefined })
-        : ({} as any),
-      locked: fc.option
-        ? fc.option(fc.boolean(), { nil: undefined })
-        : ({} as any),
-    })
   : ({} as any);

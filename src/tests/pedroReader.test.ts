@@ -286,4 +286,31 @@ describe("reading code people write", () => {
     expect(again.id).toBe(first.id);
     expect(again.color).toBe(first.color);
   });
+
+  it("ignores the arguments of classes it doesn't know instead of noting them", () => {
+    const { notes } = readPedroJava(
+      [
+        'pp = new TurtleTracerReader("auto.turt", hw);',
+        'z = new SomethingElse(pp.get("nothere"));',
+        "Path p = line(new Pose(0, 0), new Pose(10, 10));",
+      ].join("\n"),
+      {
+        projectFile: () =>
+          ({ startPoint: {}, lines: [], sequence: [] }) as never,
+      },
+    );
+    expect(notes).toEqual([]);
+  });
+
+  it("copes with Java methods that share a name with every object's own", () => {
+    const { project: read } = readPedroJava(
+      [
+        "Pose a = new Pose(0, 0);",
+        "String s = a.toString();",
+        "constructor(1); valueOf(2); hasOwnProperty(3);",
+        "Path p = line(a, new Pose(10, 10));",
+      ].join("\n"),
+    );
+    expect(read.lines).toHaveLength(1);
+  });
 });

@@ -11,6 +11,7 @@ import {
 import { computeZoomStep } from "../../zoomHelpers";
 import { getDefaultStartPoint } from "../../../config";
 import { isUIElementFocused } from "./utils";
+import { parseSelectionId } from "./itemUtils";
 
 export function cycleGridSize() {
   const options = [0.5, 1, 3, 6, 12, 24];
@@ -45,18 +46,15 @@ export function resetZoom() {
 }
 
 export function snapSelection(recordChange: (action?: string) => void) {
-  const sel = get(selectedPointId);
+  const info = parseSelectionId(get(selectedPointId) ?? "");
+  if (info.type !== "point") return;
+  const { lineNum, ptIdx } = info;
+
   const gridStep = (get(gridSize) as number) || 1;
   const startPoint = get(startPointStore);
   const lines = get(linesStore);
 
-  if (!sel?.startsWith("point-")) return;
-
   const snap = (v: number) => Math.round(v / gridStep) * gridStep;
-
-  const parts = sel.split("-");
-  const lineNum = Number(parts[1]);
-  const ptIdx = Number(parts[2]);
 
   if (lineNum === 0 && ptIdx === 0) {
     if (startPoint.locked) return;

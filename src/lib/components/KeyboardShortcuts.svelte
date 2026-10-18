@@ -31,29 +31,12 @@
   import {
     buildActionHandlers,
     type ActionHandler,
+    type ShortcutAppActions,
   } from "./shortcuts/shortcutActions";
 
-  interface Props {
-    // Actions
-    saveProject: () => void;
-    resetProject: () => void;
-    saveFileAs: () => void;
-    exportGif: () => void;
-    exportImage?: () => void;
-    undoAction: () => void;
-    redoAction: () => void;
-    play: () => void;
-    pause: () => void;
-    resetAnimation: () => void;
-    stepForward: () => void;
-    stepBackward: () => void;
-    splitPath?: () => void;
-    recordChange: (action?: string) => void;
+  interface Props extends ShortcutAppActions {
     controlTabRef?: any;
     activeControlTab?: "path" | "field" | "table" | "code";
-    toggleStats?: () => void;
-    toggleSidebar?: () => void;
-    toggleControlTab?: () => void;
     fieldRenderer?: any;
     // Optional callback provided by App.svelte to open the What's New dialog
     openWhatsNew: () => void;

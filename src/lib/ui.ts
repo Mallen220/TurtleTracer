@@ -13,13 +13,7 @@ import {
   getSmallButtonClass,
 } from "../utils/buttonStyles";
 
-export type Tone =
-  | "neutral"
-  | "accent"
-  | "info"
-  | "success"
-  | "warning"
-  | "danger";
+type Tone = "neutral" | "accent" | "info" | "success" | "warning" | "danger";
 
 /** Builds `{ tone: class }` from a class that every tone shares. */
 function eachTone<K extends string>(

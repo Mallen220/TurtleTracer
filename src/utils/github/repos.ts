@@ -642,10 +642,6 @@ export class GitHubRepos {
     return { success: true, newPath: to };
   }
 
-  async copyFile(from: string, to: string): Promise<boolean> {
-    return this.writeFile(to, await this.readFile(from));
-  }
-
   async getDirectoryStats(dir: string) {
     const { record, repoPath } = await this.#locate(dir);
     const prefix = repoPath ? repoPath + "/" : "";

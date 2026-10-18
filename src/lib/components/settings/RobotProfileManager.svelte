@@ -1,7 +1,10 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { triggerDownload } from "../../../utils/file";
-  import { tuningFromProfile, tuningOf } from "../../../utils/robotProfile";
+  import {
+    robotSettingsOf,
+    tuningFromProfile,
+  } from "../../../utils/robotProfile";
   import { onDestroy } from "svelte";
   import type { RobotProfile, Settings } from "../../../types";
   import { notification } from "../../../stores";
@@ -44,21 +47,7 @@
     const newProfile: RobotProfile = {
       id: crypto.randomUUID(),
       name: newProfileName.trim(),
-      rLength: settings.rLength,
-      rWidth: settings.rWidth,
-      maxVelocity: settings.maxVelocity,
-      maxAcceleration: settings.maxAcceleration,
-      maxDeceleration: settings.maxDeceleration || 0,
-      kFriction: settings.kFriction,
-      aVelocity: settings.aVelocity,
-      xVelocity: settings.xVelocity,
-      yVelocity: settings.yVelocity,
-      ...tuningOf(settings),
-      robotImage: settings.robotImage,
-      robotDriveType: settings.robotDriveType,
-      showRobotArrows: settings.showRobotArrows,
-      showFakeHeadingArrow: settings.showFakeHeadingArrow,
-      fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
+      ...robotSettingsOf(settings),
     } as RobotProfile;
 
     robotProfilesStore.update((p) => [...p, newProfile]);
@@ -120,22 +109,7 @@
 
     const updatedProfile = {
       ...profiles[profileIndex],
-      rLength: settings.rLength,
-      rWidth: settings.rWidth,
-      maxVelocity: settings.maxVelocity,
-      maxAcceleration: settings.maxAcceleration,
-      maxDeceleration: settings.maxDeceleration || 0,
-      maxAngularAcceleration: settings.maxAngularAcceleration,
-      kFriction: settings.kFriction,
-      aVelocity: settings.aVelocity,
-      xVelocity: settings.xVelocity,
-      yVelocity: settings.yVelocity,
-      ...tuningOf(settings),
-      robotImage: settings.robotImage,
-      robotDriveType: settings.robotDriveType,
-      showRobotArrows: settings.showRobotArrows,
-      showFakeHeadingArrow: settings.showFakeHeadingArrow,
-      fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
+      ...robotSettingsOf(settings),
     } as RobotProfile;
 
     robotProfilesStore.update((p) => {

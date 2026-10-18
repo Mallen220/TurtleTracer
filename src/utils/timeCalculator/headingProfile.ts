@@ -82,40 +82,44 @@ function facingHeading(
   return unwrapAngle(source.reverse ? angle + 180 : angle, current);
 }
 
-/**
- * The robot's heading at each step of the motion profile along a line,
- * unwrapped so consecutive values never jump by more than 180 degrees.
- */
-export function buildHeadingProfile(input: HeadingProfileInput): number[] {
+/** What the heading calculations of one line share. */
+interface ProfileContext {
+  input: HeadingProfileInput;
+  samples: number;
+  /** The control points of the line, for working out where it points. */
+  curve: BasePoint[];
+  /** The fastest the robot turns, in degrees per second. */
+  maxTurnRate: number;
+  /**
+   * How far along the line step i is. Pedro v3 measures this by distance
+   * travelled; v2 by the curve parameter, which is even across the steps.
+   */
+  along: (i: number) => number;
+  /**
+   * How far along its path step i is for headings that follow it: along the
+   * whole chain when a global heading is spread over it, else along the line.
+   */
+  progress: (i: number) => number;
+  /** How long step i takes, or infinity where the turn rate is ignored. */
+  stepDuration: (i: number) => number;
+}
+
+function profileContext(input: HeadingProfileInput): ProfileContext {
   const {
     line,
     prevPoint,
-    rootLine,
     chainMeta,
-    currentHeading,
-    endHeading,
-    physicalRotationTime,
     analysis,
     motionProfile,
     settings,
     length,
-    isChained,
     isGlobalOverride,
     ignoreTurnRate,
   } = input;
-
-  const profile: number[] = [currentHeading];
   const samples = analysis.steps.length;
-  const curve = [prevPoint, ...line.controlPoints, line.endPoint];
-  const { source } = getEffectiveHeadingSource(line, rootLine);
-
-  // How far along the line step i is. Pedro v3 measures this by distance
-  // travelled; v2 by the curve parameter, which is even across the steps.
   const arc = progressByDistance(analysis, settings);
   const along = (i: number) => (arc ? arc[i] : i / samples);
 
-  // A global heading is spread over the whole chain, so progress is
-  // measured along the chain rather than along this line.
   const chainLength = chainMeta?.chainTotalLength ?? length;
   const distanceBefore = chainMeta?.distanceBefore ?? 0;
   const chainT = (i: number) =>
@@ -123,101 +127,133 @@ export function buildHeadingProfile(input: HeadingProfileInput): number[] {
       ? (distanceBefore + along(i) * length) / chainLength
       : along(i);
 
-  // Chained lines turn from the start heading to the end heading as fast as
-  // the robot can.
-  const turnedByStep = (i: number) => {
-    const ratio =
-      physicalRotationTime > 0
-        ? Math.min(1, motionProfile[i] / physicalRotationTime)
-        : 1;
-    return currentHeading + (endHeading - currentHeading) * ratio;
+  return {
+    input,
+    samples,
+    curve: [prevPoint, ...line.controlPoints, line.endPoint],
+    maxTurnRate: radiansToDegrees(Math.max(settings.aVelocity, 0.001)),
+    along,
+    progress: (i) => (isGlobalOverride ? chainT(i) : along(i)),
+    stepDuration: (i) =>
+      ignoreTurnRate
+        ? Infinity
+        : (motionProfile[i] ?? motionProfile.at(-1)) -
+          (motionProfile[i - 1] ?? 0),
   };
+}
 
-  const maxTurnRate = radiansToDegrees(Math.max(settings.aVelocity, 0.001));
-  const stepDuration = (i: number) =>
-    ignoreTurnRate
-      ? Infinity
-      : (motionProfile[i] ?? motionProfile.at(-1)) -
-        (motionProfile[i - 1] ?? 0);
+/** Chained lines turn from the start heading to the end heading as fast as the robot can. */
+function turnedByStep(ctx: ProfileContext, i: number): number {
+  const { currentHeading, endHeading, physicalRotationTime, motionProfile } =
+    ctx.input;
+  const ratio =
+    physicalRotationTime > 0
+      ? Math.min(1, motionProfile[i] / physicalRotationTime)
+      : 1;
+  return currentHeading + (endHeading - currentHeading) * ratio;
+}
 
+/**
+ * The robot turns to face where `aim` says as fast as it can, one step at a
+ * time. `aim` gives the heading wanted at t (near the heading so far), or
+ * null to keep the heading it has.
+ */
+function turnTowardAim(
+  ctx: ProfileContext,
+  aim: (t: number, h: number) => number | null,
+): number[] {
+  const headings: number[] = [];
+  for (let i = 1, h = ctx.input.currentHeading; i <= ctx.samples; i++) {
+    const target = aim(i / ctx.samples, h) ?? h;
+    h = turnToward(h, target, ctx.maxTurnRate * ctx.stepDuration(i));
+    headings.push(h);
+  }
+  return headings;
+}
+
+function tangentialHeadings(ctx: ProfileContext, source: HeadingSource) {
+  if (!ctx.input.isChained)
+    return ctx.input.analysis.steps.map((s) => s.heading);
+  // Follow the direction of travel, limited by the maximum turn rate.
+  return turnTowardAim(ctx, (t, h) =>
+    tangentHeading(ctx.curve, t, source.reverse, h),
+  );
+}
+
+function constantHeadings(ctx: ProfileContext, source: HeadingSource) {
+  const { currentHeading, isChained } = ctx.input;
+  const degrees = (source.degrees || 0) + (source.reverse ? 180 : 0);
+  const target = unwrapAngle(degrees, currentHeading);
+  const headings: number[] = [];
+  for (let i = 1; i <= ctx.samples; i++) {
+    headings.push(isChained ? turnedByStep(ctx, i) : target);
+  }
+  return headings;
+}
+
+function linearHeadings(ctx: ProfileContext, source: HeadingSource) {
+  const start = unwrapAngle(source.startDeg || 0, ctx.input.currentHeading);
+  const sweep = linearHeadingSweep(
+    source.startDeg || 0,
+    source.endDeg || 0,
+    source.reverse,
+  );
+  const headings: number[] = [];
+  for (let i = 1; i <= ctx.samples; i++) {
+    // The sweep follows the progress along the path; a robot that isn't
+    // facing it yet catches up as fast as it can (see `limitTurnRate`).
+    headings.push(start + sweep * ctx.progress(i));
+  }
+  return headings;
+}
+
+/** The robot turns to face the point as fast as it can, which is slower than the direction to the point can change as the robot passes it. */
+function facingPointHeadings(ctx: ProfileContext, source: HeadingSource) {
+  return turnTowardAim(ctx, (t, h) => facingHeading(ctx.curve, t, source, h));
+}
+
+/** The heading wanted at each step after the first, according to the line's heading. */
+function wantedHeadings(ctx: ProfileContext, source: HeadingSource): number[] {
   switch (source.heading) {
     case "tangential":
-      if (!isChained) {
-        for (const step of analysis.steps) profile.push(step.heading);
-        break;
-      }
-      // Follow the direction of travel, limited by the maximum turn rate.
-      for (let i = 1, h = currentHeading; i <= samples; i++) {
-        const target =
-          tangentHeading(curve, i / samples, source.reverse, h) ?? h;
-        const maxTurn = maxTurnRate * stepDuration(i);
-        h = turnToward(h, target, maxTurn);
-        profile.push(h);
-      }
-      break;
-
-    case "constant": {
-      const degrees = (source.degrees || 0) + (source.reverse ? 180 : 0);
-      const target = unwrapAngle(degrees, currentHeading);
-      for (let i = 1; i <= samples; i++) {
-        profile.push(isChained ? turnedByStep(i) : target);
-      }
-      break;
-    }
-
-    case "linear": {
-      const start = unwrapAngle(source.startDeg || 0, currentHeading);
-      const sweep = linearHeadingSweep(
-        source.startDeg || 0,
-        source.endDeg || 0,
-        source.reverse,
-      );
-      for (let i = 1; i <= samples; i++) {
-        // The sweep follows the progress along the path; a robot that isn't
-        // facing it yet catches up as fast as it can (see `limitTurnRate`).
-        profile.push(start + sweep * (isGlobalOverride ? chainT(i) : along(i)));
-      }
-      break;
-    }
-
+      return tangentialHeadings(ctx, source);
+    case "constant":
+      return constantHeadings(ctx, source);
+    case "linear":
+      return linearHeadings(ctx, source);
     case "facingPoint":
-      // The robot turns to face the point as fast as it can, which is slower
-      // than the direction to the point can change as the robot passes it.
-      for (let i = 1, h = currentHeading; i <= samples; i++) {
-        const target = facingHeading(curve, i / samples, source, h);
-        const maxTurn = maxTurnRate * stepDuration(i);
-        h = turnToward(h, target, maxTurn);
-        profile.push(h);
-      }
-      break;
-
+      return facingPointHeadings(ctx, source);
     case "piecewise":
-      profile.push(
-        ...piecewiseProfile(
-          source.segments ?? [],
-          curve,
-          samples,
-          currentHeading,
-          (i) => (isGlobalOverride ? chainT(i) : along(i)),
-          stepDuration,
-          maxTurnRate,
-          settings,
-        ),
-      );
-      break;
+      return piecewiseProfile(ctx, source.segments ?? []);
+    default:
+      return [];
   }
+}
 
-  // Unwrap so consecutive headings never differ by more than 180 degrees.
+/** Unwrap so consecutive headings never differ by more than 180 degrees. */
+function unwrapProfile(profile: number[]) {
   for (let k = 1; k < profile.length; k++) {
     let curr = profile[k];
     while (curr - profile[k - 1] > 180) curr -= 360;
     while (curr - profile[k - 1] < -180) curr += 360;
     profile[k] = curr;
   }
+}
 
-  return ignoreTurnRate
+/**
+ * The robot's heading at each step of the motion profile along a line,
+ * unwrapped so consecutive values never jump by more than 180 degrees.
+ */
+export function buildHeadingProfile(input: HeadingProfileInput): number[] {
+  const ctx = profileContext(input);
+  const { source } = getEffectiveHeadingSource(input.line, input.rootLine);
+
+  const profile = [input.currentHeading, ...wantedHeadings(ctx, source)];
+  unwrapProfile(profile);
+
+  return input.ignoreTurnRate
     ? profile
-    : limitTurnRate(profile, motionProfile, maxTurnRate);
+    : limitTurnRate(profile, input.motionProfile, ctx.maxTurnRate);
 }
 
 /**
@@ -256,63 +292,67 @@ function progressByDistance(
   return progress;
 }
 
+/** Where a piecewise segment wants the robot to point at step `i`, given the heading `h` so far. */
+function segmentTarget(
+  ctx: ProfileContext,
+  seg: PiecewiseSegment,
+  i: number,
+  h: number,
+): number {
+  const localT = i / ctx.samples;
+  switch (seg.heading) {
+    case "constant":
+      return unwrapAngle((seg.degrees ?? 0) + (seg.reverse ? 180 : 0), h);
+    case "tangential":
+      return tangentHeading(ctx.curve, localT, seg.reverse, h) ?? h;
+    case "linear": {
+      const t = ctx.progress(i);
+      const span = seg.tEnd - seg.tStart;
+      const segT =
+        span > 0 ? Math.max(0, Math.min(1, (t - seg.tStart) / span)) : 0;
+      const start = seg.startDeg ?? 0;
+      return (
+        unwrapAngle(start, h) +
+        linearHeadingSweep(start, seg.endDeg ?? 0, seg.reverse) * segT
+      );
+    }
+    case "facingPoint":
+      return facingHeading(ctx.curve, localT, seg, h);
+    default:
+      return h;
+  }
+}
+
 /**
  * Headings for a piecewise heading: each segment covers part of the path
  * (by t), and the robot turns towards each segment's heading as fast as it
  * physically can.
  */
 function piecewiseProfile(
+  ctx: ProfileContext,
   segments: PiecewiseSegment[],
-  curve: BasePoint[],
-  samples: number,
-  startHeading: number,
-  tAtStep: (i: number) => number,
-  stepDuration: (i: number) => number,
-  maxTurnRate: number,
-  settings: Settings,
 ): number[] {
   const headings: number[] = [];
-  let h = startHeading;
+  let h = ctx.input.currentHeading;
 
-  for (let i = 1; i <= samples; i++) {
-    const localT = i / samples;
-    const t = tAtStep(i);
+  for (let i = 1; i <= ctx.samples; i++) {
+    const t = ctx.progress(i);
     const seg = segments.find((s) => t >= s.tStart && t <= s.tEnd);
     if (!seg) {
       headings.push(h);
       continue;
     }
 
-    let target = h;
-    switch (seg.heading) {
-      case "constant":
-        target = unwrapAngle((seg.degrees ?? 0) + (seg.reverse ? 180 : 0), h);
-        break;
-      case "tangential":
-        target = tangentHeading(curve, localT, seg.reverse, h) ?? h;
-        break;
-      case "linear": {
-        const span = seg.tEnd - seg.tStart;
-        const segT =
-          span > 0 ? Math.max(0, Math.min(1, (t - seg.tStart) / span)) : 0;
-        const start = seg.startDeg ?? 0;
-        target =
-          unwrapAngle(start, h) +
-          linearHeadingSweep(start, seg.endDeg ?? 0, seg.reverse) * segT;
-        break;
-      }
-      case "facingPoint":
-        target = facingHeading(curve, localT, seg, h);
-        break;
-    }
-
-    const dt = stepDuration(i);
+    const target = segmentTarget(ctx, seg, i, h);
+    const dt = ctx.stepDuration(i);
     if (seg.heading === "tangential") {
-      const maxTurn = maxTurnRate * dt;
-      h = turnToward(h, target, maxTurn);
+      h = turnToward(h, target, ctx.maxTurnRate * dt);
     } else {
       // Close as much of the gap as the robot can in this step.
-      const turnTime = calculateRotationTime(Math.abs(target - h), settings);
+      const turnTime = calculateRotationTime(
+        Math.abs(target - h),
+        ctx.input.settings,
+      );
       h =
         turnTime > 0 && dt < turnTime
           ? h + (target - h) * Math.min(1, dt / turnTime)

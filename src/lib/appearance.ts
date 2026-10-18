@@ -10,7 +10,7 @@ const POTATO_ROBOT_IMAGE = "/JefferyThePotato.png";
 // Class added for the active plugin theme so its CSS can be scoped.
 let customThemeClass: string | null = null;
 
-export function isPotatoMode(settings: Settings): boolean {
+function isPotatoMode(settings: Settings): boolean {
   const now = new Date();
   const isAprilFools = now.getMonth() === 3 && now.getDate() === 1;
   return settings.robotImage === POTATO_ROBOT_IMAGE || isAprilFools;

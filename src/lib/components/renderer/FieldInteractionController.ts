@@ -248,6 +248,23 @@ export class FieldInteractionController {
     }
   }
 
+  /** The grid settings that decide where dragged and drawn points snap. */
+  private gridSnapOptions() {
+    return {
+      snapToGrid: get(this.snapToGrid),
+      showGrid: get(this.showGrid),
+      gridSize: get(this.gridSize),
+    };
+  }
+
+  /** Tells the field about the freehand path being drawn. */
+  private notifyDrawingChanged(): void {
+    this.options.onDrawingChange?.({
+      isDrawing: this.isDrawing,
+      points: this.drawPoints,
+    });
+  }
+
   private handleMouseEnter(): void {
     this.updateRects();
     if (typeof globalThis.window !== "undefined") {
@@ -374,15 +391,8 @@ export class FieldInteractionController {
 
     // Drawing mode continuation
     if (isDrawingModeActive && this.isDrawing) {
-      continueDrawing(this.drawPoints, mouseX, mouseY, {
-        snapToGrid: get(this.snapToGrid),
-        showGrid: get(this.showGrid),
-        gridSize: get(this.gridSize),
-      });
-      this.options.onDrawingChange?.({
-        isDrawing: this.isDrawing,
-        points: this.drawPoints,
-      });
+      continueDrawing(this.drawPoints, mouseX, mouseY, this.gridSnapOptions());
+      this.notifyDrawingChanged();
       return;
     }
 
@@ -415,9 +425,7 @@ export class FieldInteractionController {
         yPos,
         xInvert: x.invert,
         yInvert: y.invert,
-        snapToGrid: get(this.snapToGrid),
-        showGrid: get(this.showGrid),
-        gridSize: get(this.gridSize),
+        ...this.gridSnapOptions(),
         smartSnappingEnabled: settings.smartSnapping !== false,
         isAltKey: evt.altKey,
         lines,
@@ -506,16 +514,9 @@ export class FieldInteractionController {
       this.drawPoints = initDrawingPoints(
         x.invert(transformedForMouse.x),
         y.invert(transformedForMouse.y),
-        {
-          snapToGrid: get(this.snapToGrid),
-          showGrid: get(this.showGrid),
-          gridSize: get(this.gridSize),
-        },
+        this.gridSnapOptions(),
       );
-      this.options.onDrawingChange?.({
-        isDrawing: this.isDrawing,
-        points: this.drawPoints,
-      });
+      this.notifyDrawingChanged();
       return;
     }
 

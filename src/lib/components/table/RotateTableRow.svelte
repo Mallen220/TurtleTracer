@@ -2,27 +2,13 @@
 <script lang="ts">
   import StepTableRow from "./StepTableRow.svelte";
   import { focusOnRequest } from "../../actions/focusOnRequest";
-  import type { SequenceRotateItem, SequenceItem } from "../../../types";
+  import type { SequenceRotateItem } from "../../../types";
+  import type { StepRowProps } from "./stepRowProps";
   import TriangleWarningIcon from "../icons/TriangleWarningIcon.svelte";
   import { isRotateLinked } from "../../../utils/pointLinking";
   import { transformAngle } from "../../../utils/math";
 
-  interface Props {
-    item: SequenceRotateItem;
-    index: number;
-    isLocked?: boolean;
-    dragOverIndex?: number | null;
-    dragPosition?: string | null;
-    draggingIndex?: number | null;
-    onUpdate: (item: SequenceRotateItem) => void;
-    onLock: () => void;
-    onDelete: () => void;
-    onDragStart: (e: DragEvent) => void;
-    onDragEnd: () => void;
-    onContextMenu: (e: MouseEvent) => void;
-    /** Used to show when other turns share this one's heading. */
-    sequence?: SequenceItem[];
-  }
+  type Props = StepRowProps<SequenceRotateItem>;
 
   let {
     item,

@@ -40,10 +40,8 @@
     sequenceItemKey,
     toggleChain,
   } from "../../sequenceOperations";
-  import {
-    updateLinkedWaits,
-    updateLinkedRotations,
-  } from "../../../utils/pointLinking";
+  import { updateLinkedItems } from "../../../utils/pointLinking";
+  import { pathReferenceProblems } from "../../../utils/pathReferences";
   import PathActionButtons from "./PathActionButtons.svelte";
   import DebugPanel from "../common/DebugPanel.svelte";
   import MapPinIcon from "../icons/MapPinIcon.svelte";
@@ -441,12 +439,10 @@
   function insertAction(index: number, def: ActionDefinition) {
     const newItem = def.createDefault?.();
     if (!newItem || newItem.kind === "path") return;
-    sequence = sequence.toSpliced(index, 0, newItem);
-    if (newItem.kind === "wait") {
-      sequence = updateLinkedWaits(sequence, newItem.id);
-    } else if (newItem.kind === "rotate") {
-      sequence = updateLinkedRotations(sequence, newItem.id);
-    }
+    sequence = updateLinkedItems(
+      sequence.toSpliced(index, 0, newItem),
+      newItem,
+    );
     recordChange(`Add ${def.label}`);
   }
 
@@ -466,31 +462,13 @@
   }
 
   let showDebug = $derived(settings?.showDebugSequence);
-  // Debug helpers
-  let debugLinesIds = $derived(
-    Array.isArray(lines)
-      ? lines.map((l) => l.id).filter((id): id is string => id != null)
-      : [],
-  );
   $effect(() => {
     if (lines && sequence && !repairedSequenceOnce) {
       ensureSequenceConsistency();
       repairedSequenceOnce = true;
     }
   });
-  let debugSequenceIds = $derived(
-    Array.isArray(sequence)
-      ? sequence.flatMap((s) => (s.kind === "path" ? [s.lineId] : []))
-      : ([] as string[]),
-  );
-  let debugMissing = $derived(
-    debugLinesIds.filter(
-      (id) => id && !debugSequenceIds.includes(id),
-    ) as string[],
-  );
-  let debugInvalidRefs = $derived(
-    debugSequenceIds.filter((id) => !debugLinesIds.includes(id)) as string[],
-  );
+  let referenceProblems = $derived(pathReferenceProblems(lines, sequence));
   // Reactive statements to update UI state when lines change
   $effect(() => {
     if (lines.length !== collapsedSections.lines.length) {
@@ -544,8 +522,8 @@
   {#if showDebug}
     <DebugPanel
       componentName="PathTab"
-      {debugMissing}
-      {debugInvalidRefs}
+      debugMissing={referenceProblems.missing}
+      debugInvalidRefs={referenceProblems.invalid}
       linesLength={lines.length}
       sequenceLength={(sequence || []).length}
     />
@@ -579,6 +557,12 @@
   <div role="list" class="flex flex-col gap-4">
     {#each sequence as item, sIdx (sequenceItemKey(item))}
       {@const def = $actionRegistry[item.kind]}
+      {@const reorder = {
+        onMoveUp: () => moveSequenceItem(sIdx, -1),
+        onMoveDown: () => moveSequenceItem(sIdx, 1),
+        canMoveUp: sIdx !== 0,
+        canMoveDown: sIdx !== sequence.length - 1,
+      }}
       {@const prevItem = sIdx > 0 ? sequence[sIdx - 1] : null}
       {@const nextItem = sIdx < sequence.length - 1 ? sequence[sIdx + 1] : null}
       {@const isChain =
@@ -657,10 +641,7 @@
               }
               onRemove={() => removeLine(lineIdx)}
               onAddAction={(def) => addActionAfterFor(sIdx, def)}
-              onMoveUp={() => moveSequenceItem(sIdx, -1)}
-              onMoveDown={() => moveSequenceItem(sIdx, 1)}
-              canMoveUp={sIdx !== 0}
-              canMoveDown={sIdx !== sequence.length - 1}
+              {...reorder}
               {recordChange}
               onScrollToItem={scrollToItem}
             />
@@ -688,10 +669,7 @@
                 unlinkMacro(item, sIdx);
               }
             }}
-            onMoveUp={() => moveSequenceItem(sIdx, -1)}
-            onMoveDown={() => moveSequenceItem(sIdx, 1)}
-            canMoveUp={sIdx !== 0}
-            canMoveDown={sIdx !== sequence.length - 1}
+            {...reorder}
             {recordChange}
           />
         {/if}

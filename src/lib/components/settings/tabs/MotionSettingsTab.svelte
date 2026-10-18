@@ -1,18 +1,14 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { settingsEditor } from "../settingsEditor";
+  import { settingsEditor, type SettingsTabProps } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import NumberSetting from "./NumberSetting.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import { MIN_TRANSLATIONAL_P } from "../../../../utils/timeCalculator/chainRecovery";
   import TranslationalPPreview from "./TranslationalPPreview.svelte";
-  import type { Settings } from "../../../../types/index";
   import { ui } from "../../../ui";
 
-  interface Props {
-    settings: Settings;
-    searchQuery: string;
-  }
+  type Props = SettingsTabProps;
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 

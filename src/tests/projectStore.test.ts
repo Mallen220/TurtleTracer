@@ -4,7 +4,6 @@ import { get } from "svelte/store";
 import {
   normalizeLines,
   sanitizeSequence,
-  renumberDefaultPathNames,
   resetProject,
   startPointStore,
   linesStore,
@@ -120,30 +119,6 @@ describe("projectStore Utilities", () => {
       // result = [l1, wait, l2]
       expect(result).toHaveLength(3);
       expect(result[1].kind).toBe(waitKind());
-    });
-  });
-
-  describe("renumberDefaultPathNames", () => {
-    it("should renumber 'Path N' names", () => {
-      const lines: Line[] = [
-        { name: "Path 1" } as Line,
-        { name: "Custom" } as Line,
-        { name: "Path 5" } as Line,
-      ];
-      const result = renumberDefaultPathNames(lines);
-      expect(result[0].name).toBe("Path 1");
-      expect(result[1].name).toBe("Custom");
-      expect(result[2].name).toBe("Path 3"); // Should be renumbered based on index + 1
-    });
-
-    it("should ignore custom names", () => {
-      const lines: Line[] = [
-        { name: "Start" } as Line,
-        { name: "End" } as Line,
-      ];
-      const result = renumberDefaultPathNames(lines);
-      expect(result[0].name).toBe("Start");
-      expect(result[1].name).toBe("End");
     });
   });
 });

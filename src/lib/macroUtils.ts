@@ -19,13 +19,11 @@ import {
 import { startingHeading } from "../utils/timeCalculator/pathCalculator";
 import { makeId } from "../utils/nameGenerator";
 import { pathInMessage } from "../utils/messagePaths";
+import { MAX_MACRO_DEPTH } from "../config";
 
 type XY = { x: number; y: number };
 
 const FIELD_CENTER: XY = { x: 72, y: 72 };
-
-/** Deeper nesting than this is treated as a mistake rather than expanded. */
-export const MAX_MACRO_DEPTH = 50;
 
 /** `target` moved by whole turns to within 180 degrees of `reference`. */
 function unwrapAngle(target: number, reference: number): number {

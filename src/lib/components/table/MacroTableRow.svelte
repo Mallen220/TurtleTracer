@@ -1,26 +1,13 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import StepTableRow from "./StepTableRow.svelte";
-  import type { SequenceMacroItem, SequenceItem } from "../../../types";
+  import type { SequenceMacroItem } from "../../../types";
+  import type { StepRowProps } from "./stepRowProps";
   import LinkIcon from "../icons/LinkIcon.svelte";
 
-  interface Props {
-    item: SequenceMacroItem;
-    index: number;
-    isLocked?: boolean;
-    dragOverIndex?: number | null;
-    dragPosition?: string | null;
-    draggingIndex?: number | null;
-    onUpdate: (item: SequenceMacroItem) => void;
-    onLock: () => void;
-    onDelete: () => void;
+  interface Props extends StepRowProps<SequenceMacroItem> {
     /** Turns the macro's steps into ordinary, editable steps. */
     onUnlink?: () => void;
-    onDragStart: (e: DragEvent) => void;
-    onDragEnd: () => void;
-    onContextMenu: (e: MouseEvent) => void;
-    /** Passed to every row; macros don't need it. */
-    sequence?: SequenceItem[];
   }
 
   let {

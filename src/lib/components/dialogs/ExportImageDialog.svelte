@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import { observeSize } from "../../actions/observeSize";
   import { get } from "svelte/store";
   import { scale } from "svelte/transition";
   import { exportPathToImage } from "../../../utils/exportAnimation";
@@ -52,7 +53,6 @@
   let savedPan = { x: 0, y: 0 };
 
   // Preview sizing helpers
-  let previewContainer: HTMLDivElement | null = $state(null);
   let containerW = $state(0);
   let containerH = $state(0);
   let iconSize = $derived(
@@ -161,8 +161,6 @@
     if (e.key === "Escape") close();
   }
 
-  // ResizeObserver
-  let _ro: ResizeObserver | null = null;
   onMount(() => {
     // Save current view state
     savedZoom = get(fieldZoom);
@@ -171,17 +169,6 @@
     // Force default view
     fieldZoom.set(1);
     fieldPan.set({ x: 0, y: 0 });
-
-    if (typeof ResizeObserver !== "undefined" && previewContainer) {
-      _ro = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const c = entry.contentRect;
-          containerW = c.width;
-          containerH = c.height;
-        }
-      });
-      _ro.observe(previewContainer);
-    }
 
     // Wait a brief moment for store updates to propagate to Two.js scene before capturing
     setTimeout(() => {
@@ -198,7 +185,6 @@
     toggleValidationVisibility(true);
     if (twoInstance) twoInstance.update();
 
-    if (_ro) _ro.disconnect();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   });
 </script>
@@ -334,7 +320,10 @@
 
         <!-- Preview Area -->
         <div
-          bind:this={previewContainer}
+          use:observeSize={(size) => {
+            containerW = size.width;
+            containerH = size.height;
+          }}
           class="{ui.well} flex-1 min-h-[200px] flex items-center justify-center overflow-hidden relative p-2"
         >
           {#if previewUrl}

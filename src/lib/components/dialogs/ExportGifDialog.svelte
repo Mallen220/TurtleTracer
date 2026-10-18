@@ -1,7 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { DEFAULT_FIELD_MAP } from "../../../config";
-  import { untrack, onMount, onDestroy } from "svelte";
+  import { untrack } from "svelte";
+  import { observeSize } from "../../actions/observeSize";
   import { scale } from "svelte/transition";
   import {
     exportPathToGif,
@@ -48,7 +49,6 @@
 
   // Preview sizing helpers — measure the preview container and constrain
   // the preview image to a square sized by min(width, height)
-  let previewContainer: HTMLDivElement | null = $state(null);
   let containerW = $state(0);
   let containerH = $state(0);
 
@@ -177,7 +177,6 @@
   }
 
   // ResizeObserver to track preview container size
-  let _ro: ResizeObserver | null = null;
 
   interface Props {
     show?: boolean;
@@ -205,21 +204,6 @@
     onclose,
   }: Props = $props();
 
-  onMount(() => {
-    if (typeof ResizeObserver !== "undefined" && previewContainer) {
-      _ro = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const c = entry.contentRect;
-          containerW = c.width;
-          containerH = c.height;
-        }
-      });
-      _ro.observe(previewContainer);
-    }
-  });
-  onDestroy(() => {
-    if (_ro) _ro.disconnect();
-  });
   // One-way reactive sync: when sliderQuality changes, update internal `quality`.
   $effect(() => {
     quality = 31 - sliderQuality;
@@ -422,7 +406,10 @@
 
         <!-- Preview Area -->
         <div
-          bind:this={previewContainer}
+          use:observeSize={(size) => {
+            containerW = size.width;
+            containerH = size.height;
+          }}
           class="{ui.well} flex-1 min-h-[200px] flex items-center justify-center overflow-hidden relative p-2"
         >
           {#if previewUrl}

@@ -2,7 +2,7 @@
 import { writable, get } from "svelte/store";
 import type { TurtleData } from "../../types/index";
 
-export interface Exporter {
+interface Exporter {
   id: string; // The unique id used for the format (e.g., 'java', 'sequential', 'points')
   name: string; // Display name
   description?: string; // Description of the export format

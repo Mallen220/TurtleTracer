@@ -64,30 +64,42 @@ async function get(key: string): Promise<Entry | undefined> {
   return fileCache.get(key);
 }
 
-async function set(key: string, value: Entry): Promise<void> {
-  await initCache();
-  fileCache.set(key, value);
+/** Makes one change to the stored files, settling when that request does. */
+async function writeOne(
+  request: (store: IDBObjectStore) => IDBRequest,
+): Promise<void> {
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.put(value, key);
+    const req = request(tx.objectStore(STORE_NAME));
     req.onsuccess = () => resolve();
     req.onerror = () => reject(new Error(req.error?.message));
   });
 }
 
-async function del(key: string): Promise<void> {
-  await initCache();
-  fileCache.delete(key);
+/** Makes several changes to the stored files at once, settling when all are saved. */
+async function writeMany(
+  changes: (store: IDBObjectStore) => void,
+): Promise<void> {
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.delete(key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(new Error(req.error?.message));
+    changes(tx.objectStore(STORE_NAME));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(new Error(tx.error?.message));
   });
+}
+
+async function set(key: string, value: Entry): Promise<void> {
+  await initCache();
+  fileCache.set(key, value);
+  return writeOne((store) => store.put(value, key));
+}
+
+async function del(key: string): Promise<void> {
+  await initCache();
+  fileCache.delete(key);
+  return writeOne((store) => store.delete(key));
 }
 
 async function keys(): Promise<string[]> {
@@ -100,14 +112,9 @@ async function setMultiple(
 ): Promise<void> {
   await initCache();
   entries.forEach((e) => fileCache.set(e.key, e.value));
-  const db = await getDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    entries.forEach((e) => store.put(e.value, e.key));
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(new Error(tx.error?.message));
-  });
+  return writeMany((store) =>
+    entries.forEach((e) => store.put(e.value, e.key)),
+  );
 }
 
 async function renameInDB(
@@ -118,14 +125,9 @@ async function renameInDB(
   await initCache();
   fileCache.delete(oldPath);
   fileCache.set(newPath, value);
-  const db = await getDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+  return writeMany((store) => {
     store.put(value, newPath);
     store.delete(oldPath);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(new Error(tx.error?.message));
   });
 }
 

@@ -463,6 +463,29 @@
   );
 </script>
 
+{#snippet poseInput(
+  marker: GlobalMarker,
+  field: "poseX" | "poseY",
+  label: string,
+)}
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-neutral-500 dark:text-neutral-400 w-3"
+      >{label}:</span
+    >
+    <input
+      type="number"
+      value={(marker.ref[field] ?? 0).toFixed(2)}
+      step="0.01"
+      class="{ui.inputXs} flex-1"
+      onchange={(e) => {
+        const val = Number.parseFloat(e.currentTarget.value);
+        marker.ref[field] = Math.round(val * 100) / 100;
+        notifyChanged(marker);
+      }}
+    />
+  </div>
+{/snippet}
+
 <div class="{ui.card} flex flex-col w-full overflow-hidden">
   <SectionHeader
     title="Event Markers"
@@ -656,42 +679,8 @@
               </div>
             {:else if marker.ref.type === "pose"}
               <div class="grid grid-cols-2 gap-2 mt-1">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="text-xs text-neutral-500 dark:text-neutral-400 w-3"
-                    >X:</span
-                  >
-                  <input
-                    type="number"
-                    value={(marker.ref.poseX ?? 0).toFixed(2)}
-                    step="0.01"
-                    class="{ui.inputXs} flex-1"
-                    onchange={(e) => {
-                      const val = Number.parseFloat(e.currentTarget.value);
-                      marker.ref.poseX = Math.round(val * 100) / 100;
-                      if (marker.parentType === "path") lines = [...lines];
-                      else sequence = [...sequence];
-                    }}
-                  />
-                </div>
-                <div class="flex items-center gap-2">
-                  <span
-                    class="text-xs text-neutral-500 dark:text-neutral-400 w-3"
-                    >Y:</span
-                  >
-                  <input
-                    type="number"
-                    value={(marker.ref.poseY ?? 0).toFixed(2)}
-                    step="0.01"
-                    class="{ui.inputXs} flex-1"
-                    onchange={(e) => {
-                      const val = Number.parseFloat(e.currentTarget.value);
-                      marker.ref.poseY = Math.round(val * 100) / 100;
-                      if (marker.parentType === "path") lines = [...lines];
-                      else sequence = [...sequence];
-                    }}
-                  />
-                </div>
+                {@render poseInput(marker, "poseX", "X")}
+                {@render poseInput(marker, "poseY", "Y")}
                 <div class="flex items-center gap-2">
                   <span
                     class="text-xs text-neutral-500 dark:text-neutral-400 w-3 shrink-0"

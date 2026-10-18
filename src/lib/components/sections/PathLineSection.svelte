@@ -15,7 +15,7 @@
     focusRequest,
   } from "../../../stores";
   import { startPointStore } from "../../projectStore";
-  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import CardControls from "./CardControls.svelte";
   import InsertAfterBar from "./InsertAfterBar.svelte";
   import {
     handleWaypointRename,
@@ -30,16 +30,7 @@
   } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount } from "svelte";
-  import {
-    ChevronRightIcon,
-    EyeIcon,
-    EyeSlashIcon,
-    LockIcon,
-    UnlockIcon,
-    ArrowUpIcon,
-    ArrowDownIcon,
-    LinkIcon,
-  } from "../icons";
+  import { ChevronRightIcon, LinkIcon } from "../icons";
   import { ui } from "../../ui";
 
   interface Props {
@@ -420,104 +411,49 @@
     </div>
 
     <!-- Right: Controls -->
-    <div class="flex items-center gap-1">
-      <ColorPicker
-        color={line.color}
-        oninput={(e) => setColor(e)}
-        onchange={(e) => {
-          setColor(e);
-          recordChange?.("Change Path Color");
-        }}
-        title="Change Path Color"
-        disabled={line.locked}
-      />
-
-      <button
-        onclick={(e) => {
-          e.stopPropagation();
-          const currentLine = lines[idx];
-          const newLine = { ...currentLine, hidden: !isHidden };
-          lines[idx] = newLine;
-          lines = [...lines];
-          line = newLine;
-          if (recordChange) recordChange();
-        }}
-        class={ui.iconBtnSm.neutral}
-        title={isHidden ? "Show Path" : "Hide Path"}
-        aria-label={isHidden ? "Show Path" : "Hide Path"}
-      >
-        {#if isHidden}
-          <EyeSlashIcon
-            className="size-4 text-neutral-500 dark:text-neutral-400"
-            strokeWidth={2}
-          />
-        {:else}
-          <EyeIcon className="size-4" strokeWidth={2} />
-        {/if}
-      </button>
-
-      <button
-        onclick={(e) => {
-          e.stopPropagation();
-          const currentLine = lines[idx];
-          const newLine = { ...currentLine, locked: !currentLine.locked };
-          lines[idx] = newLine;
-          lines = [...lines];
-          line = newLine;
-        }}
-        class={ui.iconBtnSm.neutral}
-        title={line.locked ? "Unlock Path" : "Lock Path"}
-        aria-label={line.locked ? "Unlock Path" : "Lock Path"}
-      >
-        {#if line.locked}
-          <LockIcon className="size-4 text-amber-600 dark:text-amber-400" />
-        {:else}
-          <UnlockIcon className="size-4" strokeWidth={2} />
-        {/if}
-      </button>
-
-      <div
-        class="h-4 w-px bg-neutral-200 dark:bg-neutral-700 mx-1"
-        role="presentation"
-        aria-hidden="true"
-      ></div>
-
-      <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-md p-0.5"
-      >
-        <button
-          onclick={(e) => {
-            e.stopPropagation();
-            if (!line.locked && onMoveUp) onMoveUp();
+    <CardControls
+      label="Path"
+      hidden={isHidden}
+      locked={!!line.locked}
+      {canMoveUp}
+      {canMoveDown}
+      ontoggleHidden={() => {
+        const currentLine = lines[idx];
+        const newLine = { ...currentLine, hidden: !isHidden };
+        lines[idx] = newLine;
+        lines = [...lines];
+        line = newLine;
+        if (recordChange) recordChange();
+      }}
+      ontoggleLocked={() => {
+        const currentLine = lines[idx];
+        const newLine = { ...currentLine, locked: !currentLine.locked };
+        lines[idx] = newLine;
+        lines = [...lines];
+        line = newLine;
+      }}
+      onMoveUp={() => onMoveUp?.()}
+      onMoveDown={() => onMoveDown?.()}
+      onRemove={() => onRemove?.()}
+      buttonClass={ui.iconBtnSm.neutral}
+      moveClass={ui.iconBtnSm.neutral}
+      lockedIconClass="text-amber-600 dark:text-amber-400"
+      deleteTitle="Delete Path"
+      deleteClass="ml-1"
+    >
+      {#snippet before()}
+        <ColorPicker
+          color={line.color}
+          oninput={(e) => setColor(e)}
+          onchange={(e) => {
+            setColor(e);
+            recordChange?.("Change Path Color");
           }}
-          disabled={!canMoveUp || line.locked}
-          class={ui.iconBtnSm.neutral}
-          title="Move Up"
-          aria-label="Move Up"
-        >
-          <ArrowUpIcon className="size-3.5" />
-        </button>
-        <button
-          onclick={(e) => {
-            e.stopPropagation();
-            if (!line.locked && onMoveDown) onMoveDown();
-          }}
-          disabled={!canMoveDown || line.locked}
-          class={ui.iconBtnSm.neutral}
-          title="Move Down"
-          aria-label="Move Down"
-        >
-          <ArrowDownIcon className="size-3.5" />
-        </button>
-      </div>
-
-      <DeleteButtonWithConfirm
-        onclick={() => !line.locked && onRemove && onRemove()}
-        disabled={line.locked}
-        title="Delete Path"
-        className="ml-1"
-      />
-    </div>
+          title="Change Path Color"
+          disabled={line.locked}
+        />
+      {/snippet}
+    </CardControls>
   </div>
 
   {#if !collapsed}

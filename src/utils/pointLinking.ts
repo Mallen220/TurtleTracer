@@ -256,3 +256,19 @@ export function isRotateLinked(
     (s) => s.kind === "rotate" && s.id !== rotateId && s.name === rotate.name,
   );
 }
+
+/**
+ * Waits and turns that share a name share their settings. After `changed` is
+ * added or edited in `sequence`, brings the others that share its name into
+ * line with it. Other kinds of step aren't linked.
+ */
+export function updateLinkedItems(
+  sequence: SequenceItem[],
+  changed: SequenceItem,
+): SequenceItem[] {
+  if (changed.kind === "wait") return updateLinkedWaits(sequence, changed.id);
+  if (changed.kind === "rotate") {
+    return updateLinkedRotations(sequence, changed.id);
+  }
+  return sequence;
+}

@@ -2,26 +2,12 @@
 <script lang="ts">
   import StepTableRow from "./StepTableRow.svelte";
   import { focusOnRequest } from "../../actions/focusOnRequest";
-  import type { SequenceWaitItem, SequenceItem } from "../../../types";
+  import type { SequenceWaitItem } from "../../../types";
+  import type { StepRowProps } from "./stepRowProps";
   import { isWaitLinked } from "../../../utils/pointLinking";
   import { ui } from "../../ui";
 
-  interface Props {
-    item: SequenceWaitItem;
-    index: number;
-    isLocked?: boolean;
-    dragOverIndex?: number | null;
-    dragPosition?: string | null;
-    draggingIndex?: number | null;
-    onUpdate: (item: SequenceWaitItem) => void;
-    onLock: () => void;
-    onDelete: () => void;
-    onDragStart: (e: DragEvent) => void;
-    onDragEnd: () => void;
-    onContextMenu: (e: MouseEvent) => void;
-    /** Used to show when other waits share this one's duration. */
-    sequence?: SequenceItem[];
-  }
+  type Props = StepRowProps<SequenceWaitItem>;
 
   let {
     item,

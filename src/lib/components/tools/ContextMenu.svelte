@@ -1,8 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
   import { menuNavigation } from "../../actions/menuNavigation";
+  import { floatingMenu } from "../../actions/floatingMenu";
   import type { MenuEntry } from "../../../types";
   import { ui } from "../../ui";
 
@@ -16,14 +16,6 @@
 
   let { x, y, items = [], onclose, onaction }: Props = $props();
 
-  let menuElement: HTMLDivElement | undefined = $state();
-
-  function handleClickOutside(event: MouseEvent) {
-    if (menuElement && !menuElement.contains(event.target as Node)) {
-      onclose?.();
-    }
-  }
-
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return {
@@ -34,49 +26,6 @@
       },
     };
   }
-
-  // Adjust position if it goes off screen
-  let adjustedX = $state(0);
-  let adjustedY = $state(0);
-
-  function updatePosition() {
-    let nextX = x;
-    let nextY = y;
-
-    if (menuElement) {
-      const rect = menuElement.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      if (x + rect.width > viewportWidth) {
-        nextX = x - rect.width;
-      }
-      if (y + rect.height > viewportHeight) {
-        nextY = y - rect.height;
-      }
-    }
-
-    adjustedX = nextX;
-    adjustedY = nextY;
-  }
-
-  $effect(() => {
-    // Re-run whenever x, y or menuElement change
-    // Just mentioning them here tracks them
-    x;
-    y;
-    menuElement;
-
-    // We defer to tick so the menuElement has a chance to be mounted/rendered
-    tick().then(() => {
-      updatePosition();
-    });
-  });
-
-  onMount(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  });
 
   function handleItemClick(item: any) {
     if (item.disabled) return;
@@ -93,9 +42,8 @@
   use:portal
   use:menuNavigation
   onclose={() => onclose?.()}
-  bind:this={menuElement}
+  use:floatingMenu={{ x, y, onclose: () => onclose?.() }}
   class="{ui.menu} fixed z-[9999] min-w-[180px] text-sm select-none"
-  style="top: {adjustedY}px; left: {adjustedX}px;"
   transition:fade={{ duration: 100 }}
   role="menu"
   tabindex="-1"

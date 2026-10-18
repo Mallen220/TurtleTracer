@@ -20,14 +20,11 @@ export function cyclePathColor(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
   const selLineId = get(selectedLineId);
   if (selLineId) {
-    linesStore.update((l) => {
-      const newLines = [...l];
-      const idx = newLines.findIndex((line) => line.id === selLineId);
-      if (idx !== -1) {
-        newLines[idx] = { ...newLines[idx], color: getRandomColor() };
-      }
-      return newLines;
-    });
+    linesStore.update((lines) =>
+      lines.map((line) =>
+        line.id === selLineId ? { ...line, color: getRandomColor() } : line,
+      ),
+    );
     recordChange("Cycle Path Color");
   }
 }

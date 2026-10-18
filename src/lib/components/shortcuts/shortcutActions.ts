@@ -107,7 +107,8 @@ function openUrl(url: string) {
   }
 }
 
-export interface ShortcutActionContext {
+/** The app actions the keyboard shortcuts trigger, supplied by App.svelte. */
+export interface ShortcutAppActions {
   saveProject: () => void;
   resetProject: () => void;
   saveFileAs: () => void;
@@ -122,12 +123,15 @@ export interface ShortcutActionContext {
   stepBackward: () => void;
   splitPath?: () => void;
   recordChange: (action?: string) => void;
-  controlTabRef?: ControlTabInstance | null;
-  getActiveControlTab: () => "path" | "field" | "table" | "code";
-  setActiveControlTab: (tab: "path" | "field" | "table" | "code") => void;
   toggleStats?: () => void;
   toggleSidebar?: () => void;
   toggleControlTab?: () => void;
+}
+
+export interface ShortcutActionContext extends ShortcutAppActions {
+  controlTabRef?: ControlTabInstance | null;
+  getActiveControlTab: () => "path" | "field" | "table" | "code";
+  setActiveControlTab: (tab: "path" | "field" | "table" | "code") => void;
   fieldRenderer?: { panToField?: (x: number, y: number) => void } | null;
   openWhatsNew?: () => void;
   toggleCommandPalette: () => void;

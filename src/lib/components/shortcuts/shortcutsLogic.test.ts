@@ -28,7 +28,6 @@ vi.mock("../../projectStore", () => ({
       return () => {};
     },
   },
-  renumberDefaultPathNames: vi.fn((lines) => lines),
 }));
 
 vi.mock("../../../stores", () => ({

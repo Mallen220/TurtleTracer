@@ -134,7 +134,7 @@ function show(project: TurtleData) {
 }
 
 /** Reads the followed file and shows it, or says why it can't. */
-export async function readFollowed(path: string): Promise<void> {
+async function readFollowed(path: string): Promise<void> {
   const read = ++reads;
   const update = (change: Partial<FollowedJava>) => {
     if (read !== reads) return false;

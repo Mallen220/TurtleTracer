@@ -28,8 +28,6 @@ describe("WaypointTable Drop Handling", () => {
     lines: [],
     sequence: [],
     recordChange: vi.fn(),
-    shapes: [],
-    collapsedObstacles: [],
     settings: DEFAULT_SETTINGS,
     // Added missing props
     handleOptimizationApply: vi.fn(),

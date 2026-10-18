@@ -34,7 +34,5 @@
   bind:lines={$lineStore}
   bind:sequence={$sequenceStore}
   {recordChange}
-  shapes={[]}
-  collapsedObstacles={[]}
   settings={DEFAULT_SETTINGS}
 />

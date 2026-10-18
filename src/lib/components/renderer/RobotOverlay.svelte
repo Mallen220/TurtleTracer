@@ -8,7 +8,6 @@
   interface Props {
     x: (val: number) => number;
     y: (val: number) => number;
-    ppI: number;
     robotXY?: { x: number; y: number } | null;
     robotHeading?: number;
     hoverRobotXY?: { x: number; y: number } | null;
@@ -25,7 +24,6 @@
   let {
     x,
     y,
-    ppI,
     robotXY = null,
     robotHeading = 0,
     hoverRobotXY = null,
@@ -59,6 +57,23 @@
    */
   function placeAt(px: number, py: number, heading: number) {
     return `top: 0; left: 0; transform: translate(${px}px, ${py}px) translate(-50%, -50%) rotate(${heading}deg);`;
+  }
+
+  /** The robot's length and width as drawn, in pixels. */
+  let robotLengthPx = $derived(
+    Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
+  );
+  let robotWidthPx = $derived(
+    Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
+  );
+
+  /** The style that puts a robot-sized box at a pose on the field. */
+  function footprint(
+    pose: { x: number; y: number },
+    heading: number,
+    zIndex: number,
+  ) {
+    return `position: absolute; ${placeAt(x(pose.x), y(pose.y), heading)} z-index: ${zIndex}; width: ${robotLengthPx}px; height: ${robotWidthPx}px;`;
   }
 
   /** Wiggles the turtle's legs and tail by how fast each wheel turns. */
@@ -167,12 +182,22 @@
   {/if}
 {/snippet}
 
+<!-- The robot's features, drawn at its current size. -->
+{#snippet features()}
+  {@render renderRobotFeatures(
+    settings.robotFeatures,
+    robotLengthPx,
+    robotWidthPx,
+    zoomedPpI,
+  )}
+{/snippet}
+
 {#if !isDiffMode && showRobot && robotXY}
   {#if settings.robotImage === "none"}
     <!-- Current (Green Square) -->
     <div
       class="flex items-center justify-center relative shadow-sm"
-      style={`overflow: visible; position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.10); border: 2px solid #16a34a; border-radius: 8px;`}
+      style={`overflow: visible; ${footprint(robotXY, robotHeading, 20)} pointer-events: none; background-color: rgba(34, 197, 94, 0.10); border: 2px solid #16a34a; border-radius: 8px;`}
     >
       {#if settings.showRobotArrows}
         <!-- Mecanum / Swerve wheel arrows -->
@@ -212,16 +237,11 @@
           style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
         />
       </div>
-      {@render renderRobotFeatures(
-        settings.robotFeatures,
-        Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
-        Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-        zoomedPpI,
-      )}
+      {@render features()}
     </div>
   {:else if settings.robotImage === "turtle"}
     <div
-      style={`position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
+      style={`${footprint(robotXY, robotHeading, 20)} pointer-events: none;`}
     >
       <!-- Turtle Parts Container -->
       <div
@@ -283,16 +303,11 @@
           class="absolute w-[58%] h-[93%] left-[21%] top-[3.5%] object-fill z-10"
         />
       </div>
-      {@render renderRobotFeatures(
-        settings.robotFeatures,
-        Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
-        Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-        zoomedPpI,
-      )}
+      {@render features()}
     </div>
   {:else}
     <div
-      style={`position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
+      style={`${footprint(robotXY, robotHeading, 20)} pointer-events: none;`}
     >
       <img
         src={settings.robotImage || "/robot.png"}
@@ -318,26 +333,21 @@
           />
         </div>
       {/if}
-      {@render renderRobotFeatures(
-        settings.robotFeatures,
-        Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
-        Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-        zoomedPpI,
-      )}
+      {@render features()}
     </div>
   {/if}
 {:else if isDiffMode}
   <!-- Current (Green) -->
   {#if robotXY}
     <div
-      style={`position: absolute; ${placeAt(x(robotXY.x), y(robotXY.y), robotHeading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
+      style={`${footprint(robotXY, robotHeading, 20)} pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
     ></div>
   {/if}
 
   <!-- Committed (Red) -->
   {#if committedRobotState}
     <div
-      style={`position: absolute; ${placeAt(x(committedRobotState.x), y(committedRobotState.y), committedRobotState.heading)} z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(239, 68, 68, 0.5); border: 2px solid #dc2626;`}
+      style={`${footprint(committedRobotState, committedRobotState.heading, 20)} pointer-events: none; background-color: rgba(239, 68, 68, 0.5); border: 2px solid #dc2626;`}
     ></div>
   {/if}
 {/if}
@@ -346,7 +356,7 @@
 {#if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && settings.robotImage !== "none" && settings.robotImage !== "turtle"}
   <div
     class="field-element transition-all duration-[20ms] ease-linear pointer-events-none"
-    style={`position: absolute; ${placeAt(x(hoverRobotXY.x), y(hoverRobotXY.y), hoverRobotHeading)} z-index: 21; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; opacity: 0.5;`}
+    style={`${footprint(hoverRobotXY, hoverRobotHeading, 21)} opacity: 0.5;`}
   >
     <img
       src={settings.robotImage || "/robot.png"}
@@ -371,17 +381,12 @@
         ></div>
       </div>
     {/if}
-    {@render renderRobotFeatures(
-      settings.robotFeatures,
-      Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
-      Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-      zoomedPpI,
-    )}
+    {@render features()}
   </div>
 {:else if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && (settings.robotImage === "none" || settings.robotImage === "turtle")}
   <div
     class="field-element transition-all duration-[20ms] ease-linear pointer-events-none"
-    style={`position: absolute; ${placeAt(x(hoverRobotXY.x), y(hoverRobotXY.y), hoverRobotHeading)} z-index: 21; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; background-color: rgba(100, 116, 139, 0.3); border: 2px dashed #94a3b8; border-radius: 8px;`}
+    style={`${footprint(hoverRobotXY, hoverRobotHeading, 21)} background-color: rgba(100, 116, 139, 0.3); border: 2px dashed #94a3b8; border-radius: 8px;`}
   >
     <!-- heading arrow indicator for no-image robot -->
     <div
@@ -393,19 +398,14 @@
         style="border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 12px solid #94a3b8;"
       ></div>
     </div>
-    {@render renderRobotFeatures(
-      settings.robotFeatures,
-      Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0)),
-      Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0)),
-      zoomedPpI,
-    )}
+    {@render features()}
   </div>
 {/if}
 
 <!-- Telemetry Ghost Robot -->
 {#if ghostRobotState}
   <div
-    style={`position: absolute; ${placeAt(x(ghostRobotState.x), y(ghostRobotState.y), ghostRobotState.heading)} z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
+    style={`${footprint(ghostRobotState, ghostRobotState.heading, 19)} pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
   >
     {#if settings.robotImage === "none"}
       <div

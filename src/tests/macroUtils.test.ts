@@ -4,8 +4,8 @@ import {
   expandMacro,
   wouldCreateCycle,
   regenerateProjectMacros,
-  MAX_MACRO_DEPTH,
 } from "../lib/macroUtils";
+import { MAX_MACRO_DEPTH } from "../config";
 import type {
   Line,
   Point,

@@ -2,6 +2,12 @@
 import { DEFAULT_SETTINGS } from "../../../config/defaults";
 import type { Settings } from "../../../types";
 
+/** What the settings dialog gives each of its tabs. */
+export interface SettingsTabProps {
+  settings: Settings;
+  searchQuery: string;
+}
+
 /**
  * Helpers for a settings tab. The tabs' `settings` prop is bound to the
  * settings store, so changes must replace the object (not mutate it) for
