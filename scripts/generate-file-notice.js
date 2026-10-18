@@ -76,7 +76,7 @@ async function appendToNotice() {
     const newFiles = getModifiedFiles();
 
     if (newFiles.length === 0) {
-      console.log("ℹ️ No modified, added, or untracked files found.");
+      console.log("No modified, added, or untracked files found.");
       return;
     }
 
@@ -120,7 +120,7 @@ async function appendToNotice() {
     const filesToAdd = newFiles.filter((f) => !existingFiles.has(f));
 
     if (filesToAdd.length === 0) {
-      console.log("✅ All files already documented in NOTICE.");
+      console.log("All files already documented in NOTICE.");
       return;
     }
 
@@ -144,7 +144,7 @@ async function appendToNotice() {
     // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.writeFile(noticeFile, updatedContent);
 
-    console.log(`✅ Added ${filesToAdd.length} file(s) to NOTICE:`);
+    console.log(`Added ${filesToAdd.length} file(s) to NOTICE:`);
     filesToAdd.forEach((f) => console.log(`   - ${f}`));
   } catch (error) {
     console.error("Error appending to NOTICE:", error.message);
