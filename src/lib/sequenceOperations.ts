@@ -2,14 +2,14 @@
 // Edits to the sequence that both the path list and the table offer.
 import { get } from "svelte/store";
 import type { Line, Point, SequenceItem, SequenceMacroItem } from "../types";
-import {
-  loadMacro,
-  macrosStore,
-  renumberDefaultPathNames,
-} from "./projectStore";
+import { loadMacro, macrosStore } from "./projectStore";
 import { wouldCreateCycle } from "./macroUtils";
 import { currentFilePath, notification } from "../stores";
-import { generateName, makeId } from "../utils/nameGenerator";
+import {
+  generateName,
+  makeId,
+  renumberDefaultPathNames,
+} from "../utils/nameGenerator";
 import { FIELD_SIZE } from "../config";
 import { isSupportedProjectFileName } from "../utils/fileExtensions";
 

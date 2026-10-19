@@ -537,7 +537,7 @@ export interface TurtleData {
 }
 
 // Registry Interfaces
-export interface Registry<T> {
+interface Registry<T> {
   subscribe: (run: (value: any) => void) => () => void;
   register: (item: T) => void;
   unregister?: (id: string) => void;
@@ -569,7 +569,7 @@ export interface NavbarAction {
 
 export type HookCallback = (...args: any[]) => void | Promise<void>;
 
-export interface HookRegistry {
+interface HookRegistry {
   register: (hookName: string, callback: HookCallback) => void;
   run: (hookName: string, ...args: any[]) => Promise<void>;
   clear: () => void;
@@ -598,14 +598,14 @@ export interface ContextMenuItem {
 }
 
 // Writable Store Interface (simplified from Svelte)
-export interface Writable<T> {
+interface Writable<T> {
   set: (value: T) => void;
   update: (updater: (value: T) => T) => void;
   subscribe: (run: (value: T) => void) => () => void;
 }
 
 // Project Store Interface
-export interface ProjectStore {
+interface ProjectStore {
   startPointStore: Writable<Point>;
   linesStore: Writable<Line[]>;
   shapesStore: Writable<Shape[]>;
@@ -625,7 +625,7 @@ export interface FieldView {
   height: number;
 }
 
-export interface AppStore {
+interface AppStore {
   fieldViewStore: Writable<FieldView>;
   isUnsaved: Writable<boolean>;
 }
@@ -636,7 +636,7 @@ export interface DialogDefinition {
   props?: any;
 }
 
-export interface PluginMetadata {
+interface PluginMetadata {
   description?: string;
   author?: string;
   version?: string;
@@ -963,12 +963,6 @@ export interface UpdateData {
   version: string;
   releaseNotes: string;
   url: string;
-}
-
-export interface NamedCommand {
-  name: string;
-  description?: string;
-  parameters?: string[];
 }
 
 export interface ElectronTelemetryAPI {

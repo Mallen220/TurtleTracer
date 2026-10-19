@@ -118,7 +118,7 @@ export interface RecoveryResult {
 }
 
 /** The translational P to use: kept within what the simulation can stand. */
-export function effectiveTranslationalP(settings: Settings): number {
+function effectiveTranslationalP(settings: Settings): number {
   const gain = settings.translationalP ?? DEFAULT_TRANSLATIONAL_P;
   if (Number.isNaN(gain)) return DEFAULT_TRANSLATIONAL_P;
   return Math.min(MAX_TRANSLATIONAL_P, Math.max(MIN_TRANSLATIONAL_P, gain));

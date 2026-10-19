@@ -11,14 +11,14 @@ export type AppState = {
   settings: Settings;
 };
 
-export type HistoryItem = {
+type HistoryItem = {
   id: string;
   state: AppState;
   description: string;
   timestamp: number;
 };
 
-export type HistoryStoreItem = {
+type HistoryStoreItem = {
   item: HistoryItem;
   future: boolean;
 };

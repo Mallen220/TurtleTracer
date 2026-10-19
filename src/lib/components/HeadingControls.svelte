@@ -131,6 +131,16 @@
     changed();
   }
 
+  function segmentChanged() {
+    endPoint.segments = segments.map((seg) => ({ ...seg }));
+    onchange?.();
+  }
+
+  function segmentCommitted() {
+    endPoint.segments = segments.map((seg) => ({ ...seg }));
+    oncommit?.();
+  }
+
   function reorder(reordered: PiecewiseSegment[]) {
     endPoint.segments = reordered.map((seg, i) => ({
       ...seg,
@@ -463,8 +473,8 @@
                 bind:endPoint={segments[i]}
                 {locked}
                 nested={true}
-                {onchange}
-                {oncommit}
+                onchange={segmentChanged}
+                oncommit={segmentCommitted}
               />
             </div>
           </div>

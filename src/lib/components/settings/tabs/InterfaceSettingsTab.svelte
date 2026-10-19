@@ -1,12 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { settingsEditor } from "../settingsEditor";
+  import { settingsEditor, type SettingsTabProps } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import {
     DEFAULT_SETTINGS,
     AVAILABLE_FIELD_MAPS,
   } from "../../../../config/defaults";
-  import type { Settings, CustomFieldConfig } from "../../../../types/index";
+  import type { CustomFieldConfig } from "../../../../types/index";
   import { themesStore } from "../../../pluginsStore";
   import { followRobotStore, shapesStore } from "../../../projectStore";
   import { fieldZoom, fieldPan } from "../../../../stores";
@@ -14,10 +14,7 @@
   import CustomFieldWizard from "../../settings/CustomFieldWizard.svelte";
   import { ui } from "../../../ui";
 
-  interface Props {
-    settings: Settings;
-    searchQuery: string;
-  }
+  type Props = SettingsTabProps;
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 

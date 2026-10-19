@@ -102,6 +102,48 @@ export function translatePathData(
   return t;
 }
 
+/**
+ * A copy of `data` with every position moved by `move` (start point, path ends,
+ * the point a path faces, control points and obstacle corners) and the heading
+ * of the start point and each path end changed by `turn`.
+ */
+function transformPathData(
+  data: PathData,
+  move: (x: number, y: number) => { x: number; y: number },
+  turn: (point: Point) => Point,
+): PathData {
+  const out = structuredClone(data);
+
+  const moveInPlace = (p: { x: number; y: number }) => {
+    const moved = move(p.x, p.y);
+    p.x = moved.x;
+    p.y = moved.y;
+  };
+
+  if (out.startPoint) {
+    moveInPlace(out.startPoint);
+    out.startPoint = turn(out.startPoint);
+  }
+
+  out.lines?.forEach((line: Line) => {
+    const end = line.endPoint;
+    if (end) {
+      moveInPlace(end);
+      if (end.targetX !== undefined && end.targetY !== undefined) {
+        const target = move(end.targetX, end.targetY);
+        end.targetX = target.x;
+        end.targetY = target.y;
+      }
+      line.endPoint = turn(end);
+    }
+    line.controlPoints?.forEach(moveInPlace);
+  });
+
+  out.shapes?.forEach((s: Shape) => s.vertices?.forEach(moveInPlace));
+
+  return out;
+}
+
 // Rotate path data by a given angle (in degrees) around a pivot point
 export function rotatePathData(
   data: PathData,
@@ -109,7 +151,6 @@ export function rotatePathData(
   pivotX: number,
   pivotY: number,
 ): PathData {
-  const r = structuredClone(data);
   const rad = (degrees * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
@@ -140,53 +181,7 @@ export function rotatePathData(
     return point;
   };
 
-  if (r.startPoint) {
-    const newPt = rotatePoint(r.startPoint.x, r.startPoint.y);
-    r.startPoint.x = newPt.x;
-    r.startPoint.y = newPt.y;
-    r.startPoint = rotateHeading(r.startPoint);
-  }
-
-  if (r.lines) {
-    r.lines.forEach((line: Line) => {
-      if (line.endPoint) {
-        const newPt = rotatePoint(line.endPoint.x, line.endPoint.y);
-        line.endPoint.x = newPt.x;
-        line.endPoint.y = newPt.y;
-        if (
-          line.endPoint.targetX !== undefined &&
-          line.endPoint.targetY !== undefined
-        ) {
-          const newTarget = rotatePoint(
-            line.endPoint.targetX,
-            line.endPoint.targetY,
-          );
-          line.endPoint.targetX = newTarget.x;
-          line.endPoint.targetY = newTarget.y;
-        }
-        line.endPoint = rotateHeading(line.endPoint);
-      }
-      if (line.controlPoints) {
-        line.controlPoints.forEach((cp: ControlPoint) => {
-          const newPt = rotatePoint(cp.x, cp.y);
-          cp.x = newPt.x;
-          cp.y = newPt.y;
-        });
-      }
-    });
-  }
-
-  if (r.shapes) {
-    r.shapes.forEach((s: Shape) =>
-      s.vertices?.forEach((v: any) => {
-        const newPt = rotatePoint(v.x, v.y);
-        v.x = newPt.x;
-        v.y = newPt.y;
-      }),
-    );
-  }
-
-  return r;
+  return transformPathData(data, rotatePoint, rotateHeading);
 }
 
 // Flip path data horizontally and/or vertically around a pivot point
@@ -197,8 +192,6 @@ export function flipPathData(
   pivotX: number,
   pivotY: number,
 ): PathData {
-  const f = structuredClone(data);
-
   const flipPoint = (x: number, y: number) => {
     let nx = x;
     let ny = y;
@@ -237,53 +230,7 @@ export function flipPathData(
     return newPoint;
   };
 
-  if (f.startPoint) {
-    const newPt = flipPoint(f.startPoint.x, f.startPoint.y);
-    f.startPoint.x = newPt.x;
-    f.startPoint.y = newPt.y;
-    f.startPoint = flipHeading(f.startPoint);
-  }
-
-  if (f.lines) {
-    f.lines.forEach((line: Line) => {
-      if (line.endPoint) {
-        const newPt = flipPoint(line.endPoint.x, line.endPoint.y);
-        line.endPoint.x = newPt.x;
-        line.endPoint.y = newPt.y;
-        if (
-          line.endPoint.targetX !== undefined &&
-          line.endPoint.targetY !== undefined
-        ) {
-          const newTarget = flipPoint(
-            line.endPoint.targetX,
-            line.endPoint.targetY,
-          );
-          line.endPoint.targetX = newTarget.x;
-          line.endPoint.targetY = newTarget.y;
-        }
-        line.endPoint = flipHeading(line.endPoint);
-      }
-      if (line.controlPoints) {
-        line.controlPoints.forEach((cp: ControlPoint) => {
-          const newPt = flipPoint(cp.x, cp.y);
-          cp.x = newPt.x;
-          cp.y = newPt.y;
-        });
-      }
-    });
-  }
-
-  if (f.shapes) {
-    f.shapes.forEach((s: Shape) =>
-      s.vertices?.forEach((v: any) => {
-        const newPt = flipPoint(v.x, v.y);
-        v.x = newPt.x;
-        v.y = newPt.y;
-      }),
-    );
-  }
-
-  return f;
+  return transformPathData(data, flipPoint, flipHeading);
 }
 
 // Reverse path direction

@@ -8,6 +8,7 @@
   import ArrowUpIcon from "./icons/ArrowUpIcon.svelte";
   import ArrowDownIcon from "./icons/ArrowDownIcon.svelte";
   import { ui } from "../ui";
+  import { preferredShortcut } from "../../utils/shortcuts";
 
   interface Props {
     isOpen?: boolean;
@@ -25,23 +26,7 @@
   const LEGACY_RECENTS_KEY = "pedro-pathing-recent-commands";
 
   function getDisplayShortcut(shortcut: string): string {
-    if (!shortcut) return "";
-    const isMac =
-      /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||
-      /Mac/.test(navigator.userAgent);
-    const parts = shortcut.split(",").map((s) => s.trim());
-    let best = parts[0];
-    if (isMac) {
-      const mac = parts.find((p) => p.toLowerCase().includes("cmd"));
-      if (mac) best = mac;
-    } else {
-      const nonMac = parts.find(
-        (p) =>
-          !p.toLowerCase().includes("cmd") || p.toLowerCase().includes("ctrl"),
-      );
-      if (nonMac) best = nonMac;
-    }
-    return best;
+    return shortcut ? preferredShortcut(shortcut) : "";
   }
 
   onMount(() => {

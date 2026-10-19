@@ -130,6 +130,48 @@
   });
 </script>
 
+{#snippet vertexInput(
+  axis: "x" | "y",
+  shape: Shape,
+  vertex: Shape["vertices"][number],
+  shapeIdx: number,
+  vertexIdx: number,
+)}
+  {@const system = $settingsStore.coordinateSystem || "Pedro"}
+  {@const extent =
+    (axis === "x" ? $settingsStore.fieldWidth : $settingsStore.fieldHeight) ??
+    144}
+  <div class="flex items-center gap-1">
+    <span class="font-extralight text-xs text-neutral-500 dark:text-neutral-400"
+      >{axis.toUpperCase()}</span
+    >
+    <input
+      value={toUserCoordinate(vertex[axis], system)}
+      oninput={(e) => {
+        const val = Number.parseFloat(e.currentTarget.value);
+        if (!Number.isNaN(val)) {
+          vertex[axis] = toFieldCoordinate(val, system);
+          shapes = [...shapes];
+          shapesStore.set(shapes);
+        }
+      }}
+      onblur={() => recordChange?.("Move Obstacle Vertex")}
+      type="number"
+      min={system === "FTC" ? -extent / 2 : 0}
+      max={system === "FTC" ? extent / 2 : extent}
+      step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+      title={snapToGridTitle}
+      class="{ui.inputXs} pl-1.5 w-20 font-mono"
+      disabled={shape.locked ?? false}
+      use:focusOnRequest={{
+        id: `obstacle-${shapeIdx}-${vertexIdx}`,
+        field: axis,
+        enabled: isActive,
+      }}
+    />
+  </div>
+{/snippet}
+
 <div class="{ui.card} flex flex-col w-full overflow-hidden">
   <SectionHeader
     title="Obstacles"
@@ -376,90 +418,20 @@
                       >
                         {vertexIdx + 1}
                       </div>
-                      <div class="flex items-center gap-1">
-                        <span
-                          class="font-extralight text-xs text-neutral-500 dark:text-neutral-400"
-                          >X</span
-                        >
-                        <input
-                          value={toUserCoordinate(
-                            vertex.x,
-                            $settingsStore.coordinateSystem || "Pedro",
-                          )}
-                          oninput={(e) => {
-                            const val = Number.parseFloat(
-                              e.currentTarget.value,
-                            );
-                            if (!Number.isNaN(val)) {
-                              vertex.x = toFieldCoordinate(
-                                val,
-                                $settingsStore.coordinateSystem || "Pedro",
-                              );
-                              shapes = [...shapes];
-                              shapesStore.set(shapes);
-                            }
-                          }}
-                          onblur={() => recordChange?.("Move Obstacle Vertex")}
-                          type="number"
-                          min={$settingsStore.coordinateSystem === "FTC"
-                            ? -($settingsStore.fieldWidth ?? 144) / 2
-                            : 0}
-                          max={$settingsStore.coordinateSystem === "FTC"
-                            ? ($settingsStore.fieldWidth ?? 144) / 2
-                            : ($settingsStore.fieldWidth ?? 144)}
-                          step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                          title={snapToGridTitle}
-                          class="{ui.inputXs} pl-1.5 w-20 font-mono"
-                          disabled={shape.locked ?? false}
-                          use:focusOnRequest={{
-                            id: `obstacle-${shapeIdx}-${vertexIdx}`,
-                            field: "x",
-                            enabled: isActive,
-                          }}
-                        />
-                      </div>
-                      <div class="flex items-center gap-1">
-                        <span
-                          class="font-extralight text-xs text-neutral-500 dark:text-neutral-400"
-                          >Y</span
-                        >
-                        <input
-                          value={toUserCoordinate(
-                            vertex.y,
-                            $settingsStore.coordinateSystem || "Pedro",
-                          )}
-                          oninput={(e) => {
-                            const val = Number.parseFloat(
-                              e.currentTarget.value,
-                            );
-                            if (!Number.isNaN(val)) {
-                              vertex.y = toFieldCoordinate(
-                                val,
-                                $settingsStore.coordinateSystem || "Pedro",
-                              );
-                              shapes = [...shapes];
-                              shapesStore.set(shapes);
-                            }
-                          }}
-                          onblur={() => recordChange?.("Move Obstacle Vertex")}
-                          type="number"
-                          min={$settingsStore.coordinateSystem === "FTC"
-                            ? -($settingsStore.fieldHeight ?? 144) / 2
-                            : 0}
-                          max={$settingsStore.coordinateSystem === "FTC"
-                            ? ($settingsStore.fieldHeight ?? 144) / 2
-                            : ($settingsStore.fieldHeight ?? 144)}
-                          step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                          class="{ui.inputXs} pl-1.5 w-20 font-mono"
-                          title={snapToGridTitle}
-                          disabled={shape.locked ?? false}
-                          use:focusOnRequest={{
-                            id: `obstacle-${shapeIdx}-${vertexIdx}`,
-                            field: "y",
-                            enabled: isActive,
-                          }}
-                        />
-                      </div>
+                      {@render vertexInput(
+                        "x",
+                        shape,
+                        vertex,
+                        shapeIdx,
+                        vertexIdx,
+                      )}
+                      {@render vertexInput(
+                        "y",
+                        shape,
+                        vertex,
+                        shapeIdx,
+                        vertexIdx,
+                      )}
                       <div class="flex items-center gap-1 ml-auto">
                         <button
                           title="Add Vertex After"

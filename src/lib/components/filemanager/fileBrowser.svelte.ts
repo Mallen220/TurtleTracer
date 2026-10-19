@@ -4,7 +4,7 @@ import { tick } from "svelte";
 import type { FileInfo, Line, Point } from "../../../types";
 import { getElectronAPI } from "../../../utils/platform";
 
-export type PathPreview = { startPoint: Point; lines: Line[] };
+type PathPreview = { startPoint: Point; lines: Line[] };
 
 const BATCH_SIZE = 3;
 const MAX_RETRIES = 5;
@@ -205,7 +205,7 @@ export function setDraggedFile(e: DragEvent, file: FileInfo) {
 }
 
 /** The file being dragged, if the drag came from the file manager. */
-export function getDraggedFile(e: DragEvent): FileInfo | null {
+function getDraggedFile(e: DragEvent): FileInfo | null {
   try {
     const data = e.dataTransfer?.getData("application/json");
     return data ? (JSON.parse(data) as FileInfo) : null;
@@ -213,4 +213,108 @@ export function getDraggedFile(e: DragEvent): FileInfo | null {
     console.error("Failed to parse dragged file data:", err);
     return null;
   }
+}
+
+/** What the file manager gives the grid and list views. */
+export interface FileBrowserProps {
+  files?: FileInfo[];
+  selectedFilePath?: string | null;
+  sortMode?: "name" | "date";
+  renamingFile?: FileInfo | null;
+  fieldImage?: string | null;
+  showGitStatus?: boolean;
+  onselect?: (file: FileInfo) => void;
+  onopen?: (file: FileInfo) => void;
+  onrenameStart?: (file: FileInfo) => void;
+  onrenameSave?: (name: string) => void;
+  onrenameCancel?: () => void;
+  onmoveFile?: (data: { sourceFile: FileInfo; targetDir: FileInfo }) => void;
+  /** Folders can't be renamed or deleted (in a GitHub repository). */
+  lockFolders?: boolean;
+  onmenuAction?: (data: { action: string; file: FileInfo }) => void;
+}
+
+/** The sections a view shows: grouped by date, or all files together. */
+export const fileSections = (
+  files: FileInfo[],
+  sortMode: "name" | "date",
+): FileGroup[] =>
+  sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
+
+/**
+ * What the grid and list views do with the mouse and keyboard: the context
+ * menu, renaming and dropping a file onto a folder. Create it while the view
+ * is being set up; `props` returns the view's current props.
+ */
+export class FileBrowserState {
+  contextMenu: { x: number; y: number; file: FileInfo } | null = $state(null);
+  /** The name being typed in the rename box. */
+  renameInput = $state("");
+  /** The folder a file is being dragged over. */
+  dragOverTarget: string | null = $state(null);
+
+  #props: () => FileBrowserProps;
+  #lastRenamingPath: string | null = null;
+
+  constructor(props: () => FileBrowserProps) {
+    this.#props = props;
+
+    // Start each rename from the file's current name.
+    $effect(() => {
+      const renaming = this.#props().renamingFile;
+      if (!renaming) {
+        this.#lastRenamingPath = null;
+      } else if (renaming.path !== this.#lastRenamingPath) {
+        this.renameInput = renameableName(renaming);
+        this.#lastRenamingPath = renaming.path;
+      }
+    });
+  }
+
+  closeMenu = () => {
+    this.contextMenu = null;
+  };
+
+  /** Opens the menu for `file` at a point on screen, selecting it. */
+  openMenuAt(x: number, y: number, file: FileInfo) {
+    this.contextMenu = { x, y, file };
+    this.#props().onselect?.(file);
+  }
+
+  handleContextMenu = (event: MouseEvent, file: FileInfo) => {
+    event.preventDefault();
+    this.openMenuAt(event.clientX, event.clientY, file);
+  };
+
+  handleMenuAction = (action: string) => {
+    if (!this.contextMenu) return;
+    const file = this.contextMenu.file;
+    this.contextMenu = null;
+    if (action === "rename") this.#props().onrenameStart?.(file);
+    else this.#props().onmenuAction?.({ action, file });
+  };
+
+  handleDragOver = (e: DragEvent, file: FileInfo) => {
+    if (!file.isDirectory) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    this.dragOverTarget = file.path;
+  };
+
+  handleDragLeave = (_e: DragEvent, file: FileInfo) => {
+    if (this.dragOverTarget === file.path) this.dragOverTarget = null;
+  };
+
+  handleDrop = (e: DragEvent, file: FileInfo) => {
+    this.dragOverTarget = null;
+    // Don't let the window's file-drop handler treat this as opening a file.
+    e.preventDefault();
+    e.stopPropagation();
+    if (!file.isDirectory) return;
+
+    const sourceFile = getDraggedFile(e);
+    if (sourceFile && sourceFile.path !== file.path) {
+      this.#props().onmoveFile?.({ sourceFile, targetDir: file });
+    }
+  };
 }

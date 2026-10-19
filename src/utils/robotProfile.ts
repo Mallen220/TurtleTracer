@@ -39,3 +39,27 @@ export function tuningFromProfile(
   }
   return tuning;
 }
+
+/** What a profile saves of the robot: its size, speeds, tuning and looks, from the current settings. */
+export function robotSettingsOf(
+  settings: Settings,
+): Omit<RobotProfile, "id" | "name"> {
+  return {
+    rLength: settings.rLength,
+    rWidth: settings.rWidth,
+    maxVelocity: settings.maxVelocity,
+    maxAcceleration: settings.maxAcceleration,
+    maxDeceleration: settings.maxDeceleration || 0,
+    maxAngularAcceleration: settings.maxAngularAcceleration,
+    kFriction: settings.kFriction,
+    aVelocity: settings.aVelocity,
+    xVelocity: settings.xVelocity,
+    yVelocity: settings.yVelocity,
+    ...tuningOf(settings),
+    robotImage: settings.robotImage,
+    robotDriveType: settings.robotDriveType,
+    showRobotArrows: settings.showRobotArrows,
+    showFakeHeadingArrow: settings.showFakeHeadingArrow,
+    fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
+  } as Omit<RobotProfile, "id" | "name">;
+}

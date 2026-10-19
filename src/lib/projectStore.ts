@@ -29,7 +29,7 @@ import {
   multiSelectedLineIds,
 } from "../stores";
 import { getElectronAPI } from "../utils/platform";
-import { makeId } from "../utils/nameGenerator";
+import { makeId, renumberDefaultPathNames } from "../utils/nameGenerator";
 import { isGitHubPath } from "../utils/github/paths";
 import { githubRepos } from "../utils/github/repos";
 import pkg from "../../package.json";
@@ -101,16 +101,6 @@ export function sanitizeSequence(
   ];
 
   return fullySanitized;
-}
-
-// Helper: renumber default path names to match display order
-export function renumberDefaultPathNames(lines: Line[]): Line[] {
-  return lines.map((l, idx) => {
-    if (/^Path \d+$/.test(l.name || "")) {
-      return { ...l, name: `Path ${idx + 1}` };
-    }
-    return l;
-  });
 }
 
 // Create writable stores for the project state
@@ -508,11 +498,6 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   // In App.svelte loadData does NOT load settings from the file data usually,
   // except if it's a full project save.
 }
-
-export {
-  getUpdatedPath,
-  updateAllMacroReferences,
-} from "./macroReferenceUpdater";
 
 // Public repair function: ensure sequence and line names are consistent at runtime
 export function ensureSequenceConsistency() {

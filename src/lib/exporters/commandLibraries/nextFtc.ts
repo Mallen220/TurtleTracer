@@ -1,6 +1,12 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { CommandLibrary } from "./types";
-import { PEDRO_IMPORTS } from "./pedroImports";
+import {
+  buildPathsMethod,
+  constructorSetup,
+  fields,
+  fileHeader,
+  helperMethods,
+} from "./classSections";
 
 export const nextFtc: CommandLibrary = {
   id: "NextFTC",
@@ -33,41 +39,19 @@ import dev.nextftc.core.commands.utility.LambdaCommand;
   },
 
   classTemplate: (p) => `
-${p.warning}
-
-package ${p.packageName};
-
-${PEDRO_IMPORTS}
-${p.imports}
+${fileHeader(p)}
 ${p.hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\nimport com.turtletracerlib.pathing.NamedCommands;\n" : ""}${p.ppReaderImport}
 import java.io.IOException;
 
 public class ${p.className} extends Command {
 
-    private final Follower follower;
-    private final PoseFactory p = PoseFactory.degrees();${p.trackerField}
-    private Command group;
-
-    // Poses
-${p.poseDeclarations}
-
-    // Path chains
-${p.pathChainDeclarations}
+${fields(p, "\n    private Command group;")}
 
     public ${p.className}(final Follower follower, HardwareMap hw) throws IOException {
-        this.follower = follower;
-
-        ${p.ppReaderInit}${p.eventBindingCode}
-
-        // Load poses
-${p.poseInitializations}
-
-        follower.setPose(startPoint);
+${constructorSetup(p)}
     }
 
-    public void buildPaths() {
-        ${p.pathBuilders}
-    }
+${buildPathsMethod(p)}
 
     @Override
     public void start() {
@@ -93,8 +77,7 @@ ${p.commands}
         return group != null && group.isDone();
     }
 
-    ${p.ftcPoseHelper}
-    ${p.metricHelper}
+${helperMethods(p)}
 }
 `,
 };

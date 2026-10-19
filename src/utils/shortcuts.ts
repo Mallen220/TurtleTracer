@@ -49,6 +49,30 @@ export function matchShortcut(event: KeyboardEvent, shortcut: string): boolean {
   return false;
 }
 
+const runningOnMac = () =>
+  /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||
+  /Mac/.test(navigator.userAgent);
+
+/**
+ * The one to show from alternatives such as "cmd+s, ctrl+s": the Cmd one on a
+ * Mac, otherwise one that doesn't need Cmd.
+ */
+export function preferredShortcut(
+  shortcuts: string,
+  isMac = runningOnMac(),
+): string {
+  const parts = shortcuts.split(",").map((s) => s.trim());
+  if (isMac) {
+    return parts.find((p) => p.toLowerCase().includes("cmd")) ?? parts[0];
+  }
+  return (
+    parts.find(
+      (p) =>
+        !p.toLowerCase().includes("cmd") || p.toLowerCase().includes("ctrl"),
+    ) ?? parts[0]
+  );
+}
+
 export function getDisplayShortcut(
   actionId: string,
   settingsKeybindings?: KeyBinding[],
@@ -60,26 +84,10 @@ export function getDisplayShortcut(
   );
   if (!binding?.key) return "";
 
-  const isMac =
-    /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||
-    /Mac/.test(navigator.userAgent);
-
-  const parts = binding.key.split(",").map((s) => s.trim());
-  let best = parts[0];
-
-  if (isMac) {
-    const mac = parts.find((p) => p.toLowerCase().includes("cmd"));
-    if (mac) best = mac;
-  } else {
-    const nonMac = parts.find(
-      (p) =>
-        !p.toLowerCase().includes("cmd") || p.toLowerCase().includes("ctrl"),
-    );
-    if (nonMac) best = nonMac;
-  }
+  const isMac = runningOnMac();
 
   // Format the keys
-  return best
+  return preferredShortcut(binding.key, isMac)
     .split("+")
     .map((key) => key.trim())
     .map((key) => {

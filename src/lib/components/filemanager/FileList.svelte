@@ -1,11 +1,11 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type { FileInfo } from "../../../types";
-  import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
-  import LegacyFileBadge from "./LegacyFileBadge.svelte";
-  import JavaFileBadge from "./JavaFileBadge.svelte";
-  import { isLegacyProjectFileName } from "../../../utils/fileExtensions";
+  import FileBrowserMenu from "./FileBrowserMenu.svelte";
+  import FileRenameInput from "./FileRenameInput.svelte";
+  import FileTypeBadge from "./FileTypeBadge.svelte";
+  import { gitStatusTitle } from "../../../utils/gitStatusTitle";
   import {
     FolderIcon,
     DocumentIcon,
@@ -17,34 +17,18 @@
     DotIcon,
   } from "../icons";
   import {
+    FileBrowserState,
     filePreviews,
+    fileSections,
     loadPreviewWhenVisible,
-    selectOnMount,
     formatFileSize,
-    groupFilesByDate,
     renameableName,
     setDraggedFile,
-    getDraggedFile,
+    type FileBrowserProps,
   } from "./fileBrowser.svelte";
   import { ui } from "../../ui";
 
-  interface Props {
-    fieldImage?: string | null;
-    files?: FileInfo[];
-    selectedFilePath?: string | null;
-    sortMode?: "name" | "date";
-    renamingFile?: FileInfo | null;
-    showGitStatus?: boolean;
-    onselect?: (file: FileInfo) => void;
-    onopen?: (file: FileInfo) => void;
-    onrenameStart?: (file: FileInfo) => void;
-    onrenameSave?: (name: string) => void;
-    onrenameCancel?: () => void;
-    onmoveFile?: (data: { sourceFile: FileInfo; targetDir: FileInfo }) => void;
-    /** Folders can't be renamed or deleted (in a GitHub repository). */
-    lockFolders?: boolean;
-    onmenuAction?: (data: { action: string; file: FileInfo }) => void;
-  }
+  type Props = FileBrowserProps;
 
   let {
     fieldImage = null,
@@ -66,29 +50,17 @@
   // How many of the first files get their previews loaded straight away.
   const PRELOAD_COUNT = 12;
 
-  let contextMenu: { x: number; y: number; file: FileInfo } | null =
-    $state(null);
-  let renameInput = $state("");
-  let lastRenamingPath: string | null = null;
-  let dragOverTarget: string | null = $state(null);
+  const browser = new FileBrowserState(() => ({
+    renamingFile,
+    onselect,
+    onrenameStart,
+    onmenuAction,
+    onmoveFile,
+  }));
 
   const previews = $derived(filePreviews.previews);
 
   const formatDate = (date: Date) => new Date(date).toLocaleDateString();
-
-  function handleContextMenu(event: MouseEvent, file: FileInfo) {
-    event.preventDefault();
-    contextMenu = { x: event.clientX, y: event.clientY, file };
-    onselect?.(file);
-  }
-
-  function handleMenuAction(action: string) {
-    if (!contextMenu) return;
-    const file = contextMenu.file;
-    contextMenu = null;
-    if (action === "rename") onrenameStart?.(file);
-    else onmenuAction?.({ action, file });
-  }
 
   function handleDragStart(e: DragEvent, file: FileInfo) {
     setDraggedFile(e, file);
@@ -98,42 +70,7 @@
     if (icon) e.dataTransfer?.setDragImage(icon, 24, 24);
   }
 
-  function handleDragOver(e: DragEvent, file: FileInfo) {
-    if (!file.isDirectory) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    dragOverTarget = file.path;
-  }
-
-  function handleDragLeave(_e: DragEvent, file: FileInfo) {
-    if (dragOverTarget === file.path) dragOverTarget = null;
-  }
-
-  function handleDrop(e: DragEvent, file: FileInfo) {
-    dragOverTarget = null;
-    // Don't let the window's file-drop handler treat this as opening a file.
-    e.preventDefault();
-    e.stopPropagation();
-    if (!file.isDirectory) return;
-
-    const sourceFile = getDraggedFile(e);
-    if (sourceFile && sourceFile.path !== file.path) {
-      onmoveFile?.({ sourceFile, targetDir: file });
-    }
-  }
-
-  $effect(() => {
-    if (!renamingFile) {
-      lastRenamingPath = null;
-    } else if (renamingFile.path !== lastRenamingPath) {
-      renameInput = renameableName(renamingFile);
-      lastRenamingPath = renamingFile.path;
-    }
-  });
-
-  let groups = $derived(
-    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }],
-  );
+  let groups = $derived(fileSections(files, sortMode));
 
   // Load previews for the first few files straight away; the rest load as
   // they scroll into view.
@@ -146,7 +83,7 @@
 
 <div
   class="flex-1 overflow-y-auto pb-4"
-  onclick={() => (contextMenu = null)}
+  onclick={browser.closeMenu}
   role="presentation"
 >
   {#each groups as group}
@@ -167,20 +104,20 @@
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
             : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}
-          {dragOverTarget === file.path
+          {browser.dragOverTarget === file.path
             ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
             : ''}"
           onclick={() => onselect?.(file)}
           ondblclick={() => onopen?.(file)}
-          oncontextmenu={(e) => handleContextMenu(e, file)}
+          oncontextmenu={(e) => browser.handleContextMenu(e, file)}
           role="button"
           tabindex="0"
           aria-label={file.name}
           draggable="true"
           ondragstart={(e) => handleDragStart(e, file)}
-          ondragover={(e) => handleDragOver(e, file)}
-          ondragleave={(e) => handleDragLeave(e, file)}
-          ondrop={(e) => handleDrop(e, file)}
+          ondragover={(e) => browser.handleDragOver(e, file)}
+          ondragleave={(e) => browser.handleDragLeave(e, file)}
+          ondrop={(e) => browser.handleDrop(e, file)}
           onkeydown={(e) => {
             if (e.key === "Enter") onopen?.(file);
           }}
@@ -221,17 +158,10 @@
                 }}
                 role="presentation"
               >
-                <input
-                  type="text"
-                  bind:value={renameInput}
-                  use:selectOnMount
-                  class="{ui.inputXs} w-full"
-                  onkeydown={(e: KeyboardEvent) => {
-                    e.stopPropagation();
-                    if (e.key === "Enter") onrenameSave?.(renameInput);
-                    if (e.key === "Escape") onrenameCancel?.();
-                  }}
-                  onblur={() => onrenameCancel?.()}
+                <FileRenameInput
+                  bind:value={browser.renameInput}
+                  onsave={onrenameSave}
+                  oncancel={onrenameCancel}
                 />
               </div>
             {:else}
@@ -241,25 +171,15 @@
                     class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
                     title={file.name}
                   >
-                    {file.name.replaceAll(/\.(pp|turt|java)$/gi, "")}
+                    {renameableName(file)}
                   </span>
-                  {#if !file.isDirectory && isLegacyProjectFileName(file.name)}
-                    <LegacyFileBadge />
-                  {:else if !file.isDirectory && file.name
-                      .toLowerCase()
-                      .endsWith(".java")}
-                    <JavaFileBadge />
-                  {/if}
+                  <FileTypeBadge {file} />
                 </span>
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
                     <div
                       class={ui.badge[ui.gitTone(file.gitStatus)]}
-                      title={file.gitStatus === "modified"
-                        ? "Git: Modified (Unstaged Changes)"
-                        : file.gitStatus === "staged"
-                          ? "Git: Staged (Ready to Commit)"
-                          : "Git: Untracked (New File)"}
+                      title={gitStatusTitle(file.gitStatus)}
                     >
                       {#if file.gitStatus === "modified"}
                         <PenIcon className="size-3" strokeWidth={2} />
@@ -302,7 +222,7 @@
               class={ui.iconBtnSm.neutral}
               onclick={(e: MouseEvent) => {
                 e.stopPropagation();
-                handleContextMenu(e, file);
+                browser.handleContextMenu(e, file);
               }}
               title="More actions"
               aria-label="File actions"
@@ -316,14 +236,11 @@
   {/each}
 </div>
 
-{#if contextMenu}
-  <FileContextMenu
-    x={contextMenu.x}
-    y={contextMenu.y}
-    fileName={contextMenu.file.name}
-    isDirectory={contextMenu.file.isDirectory}
-    canChange={!(lockFolders && contextMenu.file.isDirectory)}
-    onclose={() => (contextMenu = null)}
-    onaction={(action) => handleMenuAction(action)}
+{#if browser.contextMenu}
+  <FileBrowserMenu
+    menu={browser.contextMenu}
+    {lockFolders}
+    onclose={browser.closeMenu}
+    onaction={browser.handleMenuAction}
   />
 {/if}

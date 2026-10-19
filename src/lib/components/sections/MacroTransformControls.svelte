@@ -88,6 +88,47 @@
   }
 </script>
 
+{#snippet pivotPicker(heading: string, originLabel: string)}
+  <div>
+    <div
+      class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
+    >
+      {heading}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      {#each [["center", "Center"], ["origin", originLabel], ["custom", "Custom"]] as const as [value, label]}
+        <label class="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            bind:group={pivotType}
+            {value}
+            class={ui.checkbox}
+          />
+          <span class="text-xs">{label}</span>
+        </label>
+      {/each}
+    </div>
+    {#if pivotType === "custom"}
+      <div
+        class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700"
+      >
+        <input
+          type="number"
+          placeholder="X"
+          bind:value={pivotX}
+          class="{ui.inputXs} w-full"
+        />
+        <input
+          type="number"
+          placeholder="Y"
+          bind:value={pivotY}
+          class="{ui.inputXs} w-full"
+        />
+      </div>
+    {/if}
+  </div>
+{/snippet}
+
 <div class="{ui.well} space-y-4 p-3">
   <div class="flex items-center justify-between">
     <h4 class={ui.heading}>Transformations</h4>
@@ -164,61 +205,7 @@
             </label>
           </div>
 
-          <div>
-            <div
-              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
-            >
-              Pivot
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  bind:group={pivotType}
-                  value="center"
-                  class={ui.checkbox}
-                />
-                <span class="text-xs">Center</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  bind:group={pivotType}
-                  value="origin"
-                  class={ui.checkbox}
-                />
-                <span class="text-xs">Origin (72,72)</span>
-                <span class="text-xs">Origin (72,72)</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  bind:group={pivotType}
-                  value="custom"
-                  class={ui.checkbox}
-                />
-                <span class="text-xs">Custom</span>
-              </label>
-            </div>
-            {#if pivotType === "custom"}
-              <div
-                class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700"
-              >
-                <input
-                  type="number"
-                  placeholder="X"
-                  bind:value={pivotX}
-                  class="{ui.inputXs} w-full"
-                />
-                <input
-                  type="number"
-                  placeholder="Y"
-                  bind:value={pivotY}
-                  class="{ui.inputXs} w-full"
-                />
-              </div>
-            {/if}
-          </div>
+          {@render pivotPicker("Pivot", "Origin (72,72)")}
         </div>
       {:else}
         <div class="space-y-2">
@@ -250,60 +237,7 @@
             </div>
           </div>
 
-          <div>
-            <div
-              class="block text-[10px] font-medium text-neutral-500 dark:text-neutral-400 mb-1"
-            >
-              Around
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  bind:group={pivotType}
-                  value="center"
-                  class={ui.checkbox}
-                />
-                <span class="text-xs">Center</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  bind:group={pivotType}
-                  value="origin"
-                  class={ui.checkbox}
-                />
-                <span class="text-xs">Origin</span>
-              </label>
-              <label class="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  bind:group={pivotType}
-                  value="custom"
-                  class={ui.checkbox}
-                />
-                <span class="text-xs">Custom</span>
-              </label>
-            </div>
-            {#if pivotType === "custom"}
-              <div
-                class="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700"
-              >
-                <input
-                  type="number"
-                  placeholder="X"
-                  bind:value={pivotX}
-                  class="{ui.inputXs} w-full"
-                />
-                <input
-                  type="number"
-                  placeholder="Y"
-                  bind:value={pivotY}
-                  class="{ui.inputXs} w-full"
-                />
-              </div>
-            {/if}
-          </div>
+          {@render pivotPicker("Around", "Origin")}
         </div>
       {/if}
 

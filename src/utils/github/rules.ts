@@ -5,7 +5,7 @@
 
 import { pathInMessage } from "../messagePaths";
 
-export const PROJECT_FILE = /\.(turt|pp)$/i;
+const PROJECT_FILE = /\.(turt|pp)$/i;
 
 export const isProjectFile = (path: string) => PROJECT_FILE.test(path);
 

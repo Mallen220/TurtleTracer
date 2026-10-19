@@ -5,17 +5,42 @@ import net from "node:net";
 
 let telemetrySocket = null;
 
+/** Sends to the window that connected, unless it has been closed since. */
+function sendTo(sender, channel, payload) {
+  if (!sender.isDestroyed()) {
+    sender.send(channel, payload);
+  }
+}
+
+function closeSocket(socket) {
+  if (socket instanceof WebSocket) {
+    socket.terminate();
+  } else {
+    socket.destroy();
+  }
+}
+
+/** Tells the window when the socket closes or fails. `label` names the protocol in the log. */
+function reportClosingAndErrors(socket, sender, label) {
+  socket.on("close", () => {
+    console.log(`Telemetry disconnected (${label})`);
+    sendTo(sender, "telemetry:status", "DISCONNECTED");
+    telemetrySocket = null;
+  });
+
+  socket.on("error", (err) => {
+    console.error(`Telemetry error (${label}):`, err);
+    sendTo(sender, "telemetry:status", "ERROR");
+  });
+}
+
 export function registerTelemetryHandlers() {
   ipcMain.handle(
     "telemetry:connect",
     async (event, ip, port, protocol = "tcp") => {
       if (telemetrySocket) {
         try {
-          if (telemetrySocket instanceof WebSocket) {
-            telemetrySocket.terminate();
-          } else {
-            telemetrySocket.destroy();
-          }
+          closeSocket(telemetrySocket);
         } catch (e) {
           console.warn("Error terminating existing socket:", e);
         }
@@ -31,31 +56,14 @@ export function registerTelemetryHandlers() {
 
           telemetrySocket.on("open", () => {
             console.log("Telemetry connected (WS)");
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:status", "CONNECTED");
-            }
+            sendTo(event.sender, "telemetry:status", "CONNECTED");
           });
 
           telemetrySocket.on("message", (data) => {
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:data", data.toString());
-            }
+            sendTo(event.sender, "telemetry:data", data.toString());
           });
 
-          telemetrySocket.on("close", () => {
-            console.log("Telemetry disconnected (WS)");
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:status", "DISCONNECTED");
-            }
-            telemetrySocket = null;
-          });
-
-          telemetrySocket.on("error", (err) => {
-            console.error("Telemetry error (WS):", err);
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:status", "ERROR");
-            }
-          });
+          reportClosingAndErrors(telemetrySocket, event.sender, "WS");
 
           event.sender.send("telemetry:status", "CONNECTING");
           return true;
@@ -75,9 +83,7 @@ export function registerTelemetryHandlers() {
 
           telemetrySocket.connect(port, ip, () => {
             console.log("Telemetry connected (TCP)");
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:status", "CONNECTED");
-            }
+            sendTo(event.sender, "telemetry:status", "CONNECTED");
           });
 
           telemetrySocket.on("data", (data) => {
@@ -87,28 +93,13 @@ export function registerTelemetryHandlers() {
               const line = buffer.slice(0, Math.max(0, boundary));
               buffer = buffer.slice(Math.max(0, boundary + 1));
               if (line.trim().length > 0) {
-                if (!event.sender.isDestroyed()) {
-                  event.sender.send("telemetry:data", line);
-                }
+                sendTo(event.sender, "telemetry:data", line);
               }
               boundary = buffer.indexOf("\n");
             }
           });
 
-          telemetrySocket.on("close", () => {
-            console.log("Telemetry disconnected (TCP)");
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:status", "DISCONNECTED");
-            }
-            telemetrySocket = null;
-          });
-
-          telemetrySocket.on("error", (err) => {
-            console.error("Telemetry error (TCP):", err);
-            if (!event.sender.isDestroyed()) {
-              event.sender.send("telemetry:status", "ERROR");
-            }
-          });
+          reportClosingAndErrors(telemetrySocket, event.sender, "TCP");
 
           event.sender.send("telemetry:status", "CONNECTING");
           return true;
@@ -122,15 +113,9 @@ export function registerTelemetryHandlers() {
 
   ipcMain.handle("telemetry:disconnect", async (event) => {
     if (telemetrySocket) {
-      if (telemetrySocket instanceof WebSocket) {
-        telemetrySocket.terminate();
-      } else {
-        telemetrySocket.destroy();
-      }
+      closeSocket(telemetrySocket);
       telemetrySocket = null;
-      if (!event.sender.isDestroyed()) {
-        event.sender.send("telemetry:status", "DISCONNECTED");
-      }
+      sendTo(event.sender, "telemetry:status", "DISCONNECTED");
     }
     return true;
   });

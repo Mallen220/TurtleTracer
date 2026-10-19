@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
- * Tests for updateAllMacroReferences in projectStore.ts.
+ * Tests for updateAllMacroReferences in macroReferenceUpdater.ts.
  *
  * Critical invariant being verified: files stored on disk use RELATIVE macro paths (written
  * by makeRelativePath at save time).  updateAllMacroReferences must:
@@ -10,11 +10,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { get } from "svelte/store";
+import { sequenceStore, macrosStore } from "../lib/projectStore";
 import {
-  sequenceStore,
-  macrosStore,
+  getUpdatedPath,
   updateAllMacroReferences,
-} from "../lib/projectStore";
+} from "../lib/macroReferenceUpdater";
 import { currentDirectoryStore, notification } from "../stores";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
@@ -257,8 +257,6 @@ describe("updateAllMacroReferences", () => {
 });
 
 // ─── more cases ──────────────────────────────────────────────────────────────
-
-import { getUpdatedPath } from "../lib/macroReferenceUpdater";
 
 describe("getUpdatedPath", () => {
   it("replaces an exact match", () => {

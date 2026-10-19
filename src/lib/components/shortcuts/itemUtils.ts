@@ -11,6 +11,13 @@ export type SelectionInfo =
   | { type: "obstacle"; shapeIdx: number; vertexIdx: number }
   | { type: "unknown"; raw: string };
 
+/** Which kind of step an event marker selection belongs to. */
+export function eventStepKind(
+  info: Extract<SelectionInfo, { type: "event-wait" | "event-rotate" }>,
+): "wait" | "rotate" {
+  return info.type === "event-wait" ? "wait" : "rotate";
+}
+
 export function parseSelectionId(sel: string): SelectionInfo {
   if (!sel) return { type: "unknown", raw: "" };
 

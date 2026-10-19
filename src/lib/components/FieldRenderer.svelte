@@ -648,7 +648,6 @@
     <RobotOverlay
       {x}
       {y}
-      {ppI}
       {robotXY}
       {robotHeading}
       {hoverRobotXY}

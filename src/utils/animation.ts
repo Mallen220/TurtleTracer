@@ -91,6 +91,80 @@ export function travelCurve(
 }
 
 /**
+ * The heading, in field degrees, of a robot at `pos` on a line that faces
+ * along the path (tangential) or at a point (facing point), and 0 for any
+ * other heading or when it has nowhere to look.
+ */
+function headingFromGeometry(
+  endPoint: Point,
+  pos: BasePoint,
+  curve: BasePoint[],
+  t: number,
+  stayOnCurve: boolean,
+): number {
+  let target: BasePoint | null = null;
+  let offset = 0;
+  if (endPoint.heading === "tangential") {
+    const ahead = t + (endPoint.reverse ? -0.01 : 0.01);
+    target = getCurvePoint(stayOnCurve ? Math.min(ahead, 1) : ahead, curve);
+  } else if (endPoint.heading === "facingPoint") {
+    target = { x: endPoint.targetX || 0, y: endPoint.targetY || 0 };
+    offset = endPoint.reverse ? 180 : 0;
+  }
+  if (!target || (target.x === pos.x && target.y === pos.y)) return 0;
+  return (
+    radiansToDegrees(Math.atan2(target.y - pos.y, target.x - pos.x)) + offset
+  );
+}
+
+/** Off the path, between one chained path and the next. */
+function recoveryPose(
+  trace: NonNullable<TimelineEvent["trace"]>,
+  relative: number,
+): RobotState {
+  const { time, x, y, heading: headings } = trace;
+  let i = 0;
+  while (i < time.length - 2 && relative > time[i + 1]) i++;
+  const span = time[i + 1] - time[i];
+  const f = span > 0 ? clamp01((relative - time[i]) / span) : 0;
+  return {
+    x: x[i] + (x[i + 1] - x[i]) * f,
+    y: y[i] + (y[i + 1] - y[i]) * f,
+    heading: headings[i] + (headings[i + 1] - headings[i]) * f,
+  };
+}
+
+/**
+ * How far along its line (0..1) the robot is, and its heading there if the
+ * time calculator produced a heading profile for the segment.
+ */
+function progressAlongLine(
+  event: TimelineEvent,
+  seconds: number,
+  progress: number,
+): { t: number; profileHeading: number | null } {
+  const profile = event.motionProfile;
+  if (!profile || profile.length === 0) {
+    return { t: easeInOutQuad(progress), profileHeading: null };
+  }
+
+  const relativeTime = Math.max(0, seconds - event.startTime);
+  const t = clamp01(interpolateTFromProfile(relativeTime, profile));
+
+  const headings = event.headingProfile;
+  let profileHeading: number | null = null;
+  if (headings?.length === profile.length) {
+    const { index, fraction } = locateInProfile(relativeTime, profile);
+    const hStart = headings[index];
+    const hEnd = headings[index + 1];
+    if (Number.isFinite(hStart) && Number.isFinite(hEnd)) {
+      profileHeading = hStart + (hEnd - hStart) * fraction;
+    }
+  }
+  return { t, profileHeading };
+}
+
+/**
  * Where the robot is `seconds` into the timeline, during `event`: position
  * in field inches and heading in field degrees (counter-clockwise from +x).
  * Returns null if the event's line can't be found.
@@ -107,19 +181,7 @@ export function robotPoseDuring(
       : 1;
 
   if (event.type === "recovery" && event.trace) {
-    // Off the path, between one chained path and the next.
-    const { time, x, y } = event.trace;
-    const relative = Math.max(0, seconds - event.startTime);
-    let i = 0;
-    while (i < time.length - 2 && relative > time[i + 1]) i++;
-    const span = time[i + 1] - time[i];
-    const f = span > 0 ? clamp01((relative - time[i]) / span) : 0;
-    const headings = event.trace.heading;
-    return {
-      x: x[i] + (x[i + 1] - x[i]) * f,
-      y: y[i] + (y[i + 1] - y[i]) * f,
-      heading: headings[i] + (headings[i + 1] - headings[i]) * f,
-    };
+    return recoveryPose(event.trace, Math.max(0, seconds - event.startTime));
   }
 
   if (event.type === "wait") {
@@ -137,52 +199,15 @@ export function robotPoseDuring(
   if (!travel) return null;
   const { line, curve } = travel;
 
-  // Where along the line we are (0..1), and the heading if the time
-  // calculator produced a heading profile for this segment.
-  let t: number;
-  let profileHeading: number | null = null;
-  const profile = event.motionProfile;
-  if (profile && profile.length > 0) {
-    const relativeTime = Math.max(0, seconds - event.startTime);
-    t = clamp01(interpolateTFromProfile(relativeTime, profile));
-
-    const headings = event.headingProfile;
-    if (headings?.length === profile.length) {
-      const { index, fraction } = locateInProfile(relativeTime, profile);
-      const hStart = headings[index];
-      const hEnd = headings[index + 1];
-      if (Number.isFinite(hStart) && Number.isFinite(hEnd)) {
-        profileHeading = hStart + (hEnd - hStart) * fraction;
-      }
-    }
-  } else {
-    t = easeInOutQuad(progress);
-  }
-
+  const { t, profileHeading } = progressAlongLine(event, seconds, progress);
   const pos = getCurvePoint(t, curve);
   if (profileHeading !== null && Number.isFinite(profileHeading)) {
     return { x: pos.x, y: pos.y, heading: profileHeading };
   }
 
-  const endPoint = line.endPoint;
-  const interpolated = getInterpolatedHeading(endPoint, t);
-  if (interpolated !== null) {
-    return { x: pos.x, y: pos.y, heading: interpolated };
-  }
-
-  let target: BasePoint | null = null;
-  let offset = 0;
-  if (endPoint.heading === "tangential") {
-    target = getCurvePoint(t + (endPoint.reverse ? -0.01 : 0.01), curve);
-  } else if (endPoint.heading === "facingPoint") {
-    target = { x: endPoint.targetX || 0, y: endPoint.targetY || 0 };
-    offset = endPoint.reverse ? 180 : 0;
-  }
-  let heading = 0;
-  if (target && (target.x !== pos.x || target.y !== pos.y)) {
-    heading =
-      radiansToDegrees(Math.atan2(target.y - pos.y, target.x - pos.x)) + offset;
-  }
+  const heading =
+    getInterpolatedHeading(line.endPoint, t) ??
+    headingFromGeometry(line.endPoint, pos, curve, t, false);
   return { x: pos.x, y: pos.y, heading };
 }
 
@@ -468,23 +493,9 @@ export function generateOnionLayers(
         const overshoot = distanceTravelled - nextLayerDistance;
         const layerT = prevT + (t - prevT) * (1 - overshoot / stepLength);
         const layerPos = getCurvePoint(layerT, curve);
-
-        let heading = getInterpolatedHeading(endPoint, layerT) ?? 0;
-        let target: { x: number; y: number } | null = null;
-        let offset = 0;
-        if (endPoint.heading === "tangential") {
-          const step = endPoint.reverse ? -0.01 : 0.01;
-          target = getCurvePoint(Math.min(layerT + step, 1), curve);
-        } else if (endPoint.heading === "facingPoint") {
-          target = { x: endPoint.targetX || 0, y: endPoint.targetY || 0 };
-          offset = endPoint.reverse ? 180 : 0;
-        }
-        if (target && (target.x !== layerPos.x || target.y !== layerPos.y)) {
-          heading =
-            radiansToDegrees(
-              Math.atan2(target.y - layerPos.y, target.x - layerPos.x),
-            ) + offset;
-        }
+        const heading =
+          getInterpolatedHeading(endPoint, layerT) ??
+          headingFromGeometry(endPoint, layerPos, curve, layerT, true);
 
         layers.push({
           x: layerPos.x,

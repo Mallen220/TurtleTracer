@@ -6,15 +6,14 @@
     ratingDialogAutoOpened,
   } from "../../../stores";
   import { fade, fly } from "svelte/transition";
-  import { onMount, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
+  import { CloseIcon, FeedbackIcon, InfoIcon } from "../icons";
+  import SubmitButton from "./SubmitButton.svelte";
+  import SubmissionStatus from "./SubmissionStatus.svelte";
   import {
-    CloseIcon,
-    FeedbackIcon,
-    InfoIcon,
-    ErrorIcon,
-    SuccessIcon,
-    SpinnerIcon,
-  } from "../icons";
+    WebhookSubmission,
+    dialogDismissal,
+  } from "./webhookSubmission.svelte";
   import { settingsStore } from "../../projectStore";
   import { saveSettings } from "../../../utils/settingsPersistence";
   import pkg from "../../../../package.json";
@@ -22,9 +21,7 @@
 
   let description = $state("");
   let contactInfo = $state("");
-  let isSubmitting = $state(false);
-  let status: "idle" | "success" | "error" = $state("idle");
-  let errorMessage = $state("");
+  const submission = new WebhookSubmission();
   let cooldownSeconds = $state(0);
   let cooldownInterval: NodeJS.Timeout | null = null;
 
@@ -33,24 +30,10 @@
 
   let dialogContainer: HTMLElement | undefined = $state();
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape" && !isSubmitting) {
-      closeDialog();
-    }
-  }
-
-  function handleClickOutside(event?: Event) {
-    if (
-      dialogContainer &&
-      (!event || !dialogContainer.contains(event.target as Node)) &&
-      !isSubmitting
-    ) {
-      closeDialog();
-    }
-  }
-
-  onMount(() => {
-    document.addEventListener("keydown", handleKeydown);
+  const handleClickOutside = dialogDismissal({
+    close: () => closeDialog(),
+    busy: () => submission.isSubmitting,
+    container: () => dialogContainer,
   });
 
   function startCooldownTimer() {
@@ -65,7 +48,6 @@
   }
 
   onDestroy(() => {
-    document.removeEventListener("keydown", handleKeydown);
     if (cooldownInterval) clearInterval(cooldownInterval);
   });
 
@@ -74,8 +56,7 @@
     // Reset state after transition completes
     setTimeout(() => {
       description = "";
-      status = "idle";
-      errorMessage = "";
+      submission.reset();
     }, 300);
   }
 
@@ -87,83 +68,62 @@
 
   async function submitFeedback() {
     if (description.trim().length === 0) {
-      errorMessage = "Please enter a description.";
-      status = "error";
+      submission.fail("Please enter a description.");
       return;
     }
 
     if (!WEBHOOK_URL) {
-      errorMessage = "Webhook URL is not configured. Feedback cannot be sent.";
-      status = "error";
+      submission.fail(
+        "Webhook URL is not configured. Feedback cannot be sent.",
+      );
       return;
     }
 
-    isSubmitting = true;
-    status = "idle";
-    errorMessage = "";
-
-    try {
-      const payload = {
-        embeds: [
-          {
-            title: "New Issue / Feature Request",
-            color: 16753920, // Orange
-            description:
-              description.length > 4000
-                ? description.slice(0, 4000) + "..."
-                : description,
-            fields: [
-              {
-                name: "Version",
-                value: `v${pkg.version}`,
-                inline: true,
-              },
-            ],
-            footer: {
-              text: "Turtle Tracer Feedback",
+    const payload = {
+      embeds: [
+        {
+          title: "New Issue / Feature Request",
+          color: 16753920, // Orange
+          description:
+            description.length > 4000
+              ? description.slice(0, 4000) + "..."
+              : description,
+          fields: [
+            {
+              name: "Version",
+              value: `v${pkg.version}`,
+              inline: true,
             },
-            timestamp: new Date().toISOString(),
+          ],
+          footer: {
+            text: "Turtle Tracer Feedback",
           },
-        ],
-      };
-
-      if (contactInfo.trim().length > 0) {
-        payload.embeds[0].fields.push({
-          name: "Contact Info",
-          value: contactInfo.trim(),
-          inline: true,
-        });
-      }
-
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+          timestamp: new Date().toISOString(),
         },
-        body: JSON.stringify(payload),
-      });
+      ],
+    };
 
-      if (response.ok) {
-        status = "success";
-        settingsStore.update((s) => ({
-          ...s,
-          lastFeedbackSubmit: Date.now().toString(),
-        }));
-        saveSettings($settingsStore).catch((e) =>
-          console.error("Failed to save lastFeedbackSubmit", e),
-        );
-        setTimeout(() => {
-          closeDialog();
-        }, 2000);
-      } else {
-        throw new Error(`Failed to send: ${response.status}`);
-      }
-    } catch (e: any) {
-      errorMessage = e.message || "An unknown error occurred.";
-      status = "error";
-    } finally {
-      isSubmitting = false;
+    if (contactInfo.trim().length > 0) {
+      payload.embeds[0].fields.push({
+        name: "Contact Info",
+        value: contactInfo.trim(),
+        inline: true,
+      });
     }
+
+    if (!(await submission.post(WEBHOOK_URL, payload))) return;
+
+    submission.status = "success";
+    settingsStore.update((s) => ({
+      ...s,
+      lastFeedbackSubmit: Date.now().toString(),
+    }));
+    saveSettings($settingsStore).catch((e) =>
+      console.error("Failed to save lastFeedbackSubmit", e),
+    );
+    setTimeout(() => {
+      closeDialog();
+    }, 2000);
   }
   $effect(() => {
     if ($showFeedbackDialog) {
@@ -215,7 +175,7 @@
         <button
           aria-label="Close dialog"
           onclick={closeDialog}
-          disabled={isSubmitting}
+          disabled={submission.isSubmitting}
           class="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors disabled:opacity-50"
           title="Close dialog"
         >
@@ -232,7 +192,7 @@
           <textarea
             id="description"
             bind:value={description}
-            disabled={isSubmitting}
+            disabled={submission.isSubmitting}
             rows="5"
             placeholder="What's on your mind? Found a bug? Have a suggestion?"
             class="{ui.input} w-full resize-none"
@@ -256,23 +216,16 @@
             id="contactInfo"
             type="text"
             bind:value={contactInfo}
-            disabled={isSubmitting}
+            disabled={submission.isSubmitting}
             placeholder="User#1234 or email@example.com (Optional, only contacted if questions arise)"
             class="{ui.input} w-full"
           />
         </div>
 
-        {#if status === "error"}
-          <div class="{ui.alert.danger} flex items-start gap-2">
-            <ErrorIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <p>{errorMessage}</p>
-          </div>
-        {:else if status === "success"}
-          <div class="{ui.alert.success} flex items-center gap-2">
-            <SuccessIcon className="w-5 h-5 flex-shrink-0" />
-            <p>Feedback sent successfully! Thank you.</p>
-          </div>
-        {/if}
+        <SubmissionStatus
+          status={submission.status}
+          errorMessage={submission.errorMessage}
+        />
       </div>
 
       <!-- Footer -->
@@ -281,7 +234,7 @@
           {#if !($settingsStore.submittedRatings && $settingsStore.submittedRatings[pkg.version])}
             <button
               onclick={openRatingDialog}
-              disabled={isSubmitting}
+              disabled={submission.isSubmitting}
               class={ui.link}
             >
               Want to rate the app?
@@ -291,29 +244,19 @@
         <div class="flex items-center gap-3">
           <button
             onclick={closeDialog}
-            disabled={isSubmitting}
+            disabled={submission.isSubmitting}
             class={ui.btn.ghost}
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
+            busy={submission.isSubmitting}
+            disabled={submission.status === "success" || cooldownSeconds > 0}
+            waitLabel={cooldownSeconds > 0
+              ? `Wait ${Math.floor(cooldownSeconds / 60) + 1}m`
+              : null}
             onclick={submitFeedback}
-            disabled={isSubmitting ||
-              status === "success" ||
-              cooldownSeconds > 0}
-            class={ui.btn.primary}
-          >
-            {#if cooldownSeconds > 0}
-              Wait {Math.floor(cooldownSeconds / 60) + 1}m
-            {:else if isSubmitting}
-              <SpinnerIcon
-                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-              />
-              Submitting...
-            {:else}
-              Submit Feedback
-            {/if}
-          </button>
+          />
         </div>
       </div>
     </div>

@@ -1,20 +1,16 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { getElectronAPI } from "../../../../utils/platform";
-  import { settingsEditor } from "../settingsEditor";
+  import { settingsEditor, type SettingsTabProps } from "../settingsEditor";
   import { fade } from "svelte/transition";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
-  import type { Settings } from "../../../../types/index";
   import { currentFilePath, currentDirectoryStore } from "../../../../stores";
   import * as ICONS from "../../icons";
   import { isBrowser } from "../../../../utils/platform";
   import { COMMAND_LIBRARIES } from "../../../exporters/commandLibraries";
   import { ui } from "../../../ui";
 
-  interface Props {
-    settings: Settings;
-    searchQuery: string;
-  }
+  type Props = SettingsTabProps;
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 

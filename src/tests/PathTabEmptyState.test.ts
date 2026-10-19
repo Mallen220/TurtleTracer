@@ -5,44 +5,6 @@ import PathTab from "../lib/components/tabs/PathTab.svelte";
 import { DEFAULT_SETTINGS, getDefaultStartPoint } from "../config";
 import type { Line, SequenceItem } from "../types";
 
-// Mock stores that PathTab uses
-vi.mock("../../../stores", () => {
-  const { writable } = require("svelte/store");
-  return {
-    selectedLineId: writable(null),
-    selectedPointId: writable(null),
-    toggleCollapseAllTrigger: writable(0),
-    snapToGrid: writable(false),
-    showGrid: writable(false),
-    gridSize: writable(12),
-    focusRequest: writable(null),
-  };
-});
-
-// Mock dependencies
-vi.mock("../../actionRegistry", () => {
-  const { writable } = require("svelte/store");
-  return {
-    actionRegistry: writable({
-      path: { kind: "path", label: "Path", isPath: true, buttonColor: "blue" },
-      wait: {
-        kind: "wait",
-        label: "Wait",
-        isWait: true,
-        buttonColor: "gray",
-        createDefault: () => ({ kind: "wait", id: "wait-1", durationMs: 0 }),
-      },
-      rotate: {
-        kind: "rotate",
-        label: "Rotate",
-        isRotate: true,
-        buttonColor: "gray",
-        createDefault: () => ({ kind: "rotate", id: "rotate-1", degrees: 0 }),
-      },
-    }),
-  };
-});
-
 test("EmptyState appears when all items are deleted", async () => {
   const settings = structuredClone(DEFAULT_SETTINGS);
   const startPoint = getDefaultStartPoint();

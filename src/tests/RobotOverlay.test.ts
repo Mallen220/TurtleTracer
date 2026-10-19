@@ -29,7 +29,6 @@ function mount(
   return render(RobotOverlay, {
     x,
     y,
-    ppI: 2,
     robotXY: { x: 20, y: 30 },
     robotHeading: 45,
     settings: settings(over),

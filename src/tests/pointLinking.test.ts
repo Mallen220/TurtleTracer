@@ -10,6 +10,7 @@ import {
   updateLinkedRotations,
   handleRotateRename,
   isRotateLinked,
+  updateLinkedItems,
 } from "../utils/pointLinking";
 import type {
   Line,
@@ -192,5 +193,36 @@ describe("Point Linking Utils", () => {
       expect(isRotateLinked(sequence, "1")).toBe(true);
       expect(isRotateLinked(sequence, "3")).toBe(false);
     });
+  });
+});
+
+describe("updateLinkedItems", () => {
+  const wait = (id: string, name: string, durationMs: number) =>
+    ({ kind: waitKind(), id, name, durationMs }) as SequenceItem;
+  const turn = (id: string, name: string, degrees: number) =>
+    ({ kind: rotateKind(), id, name, degrees }) as SequenceItem;
+
+  it("brings waits that share the changed wait's name into line with it", () => {
+    const sequence = [wait("a", "Grab", 500), wait("b", "Grab", 100)];
+    const result = updateLinkedItems(sequence, sequence[0]);
+    expect((result[1] as SequenceWaitItem).durationMs).toBe(500);
+  });
+
+  it("does the same for turns", () => {
+    const sequence = [turn("a", "Face", 90), turn("b", "Face", 10)];
+    const result = updateLinkedItems(sequence, sequence[0]);
+    expect((result[1] as SequenceRotateItem).degrees).toBe(90);
+  });
+
+  it("leaves everything alone for other kinds of step", () => {
+    const sequence = [wait("a", "Grab", 500), wait("b", "Grab", 100)];
+    const path = { kind: "path", lineId: "x" } as SequenceItem;
+    expect(updateLinkedItems(sequence, path)).toBe(sequence);
+  });
+
+  it("only changes steps of the same kind", () => {
+    const sequence = [wait("a", "Same", 500), turn("b", "Same", 45)];
+    const result = updateLinkedItems(sequence, sequence[0]);
+    expect((result[1] as SequenceRotateItem).degrees).toBe(45);
   });
 });

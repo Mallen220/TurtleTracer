@@ -39,7 +39,7 @@ import { buildHeadingProfile } from "./headingProfile";
 import { calculateRotationTime } from "./rotation";
 import { calculateMotionProfileDetailed } from "./motionProfile";
 import { actionRegistry } from "../../lib/actionRegistry";
-import { MAX_MACRO_DEPTH } from "../../lib/macroUtils";
+import { MAX_MACRO_DEPTH } from "../../config";
 
 /** The steps that get run: the sequence, or every line in order without one. */
 function stepsToRun(lines: Line[], sequence?: SequenceItem[]): SequenceItem[] {

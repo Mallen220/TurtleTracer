@@ -9,7 +9,13 @@ import {
   linearHeadingSweep,
   radiansToDegrees,
 } from "../math";
-import type { SequenceItem, Line, Point, BasePoint } from "../../types";
+import type {
+  SequenceItem,
+  Line,
+  Point,
+  BasePoint,
+  PiecewiseSegment,
+} from "../../types";
 import type { PathAnalysis } from "./types";
 
 /** Whether the chain's own heading, set on its first line, applies to its lines. */
@@ -189,6 +195,124 @@ export function findSharpJunctions(
   );
 }
 
+/** What the heading calculations of one path share. */
+interface EndHeadingContext {
+  /** The end heading `getLineEndHeading` works out, which may be near a different turn than the robot makes. */
+  raw: number;
+  currentHeading: number;
+  /** `deg` turned by whole turns to within half a turn of the current heading. */
+  near: (deg: number) => number;
+  /** `deg` turned round to face backwards, if `reverse`. */
+  flip: (deg: number, reverse?: boolean) => number;
+  /** The direction from the path's end to a point. */
+  facing: (targetX?: number, targetY?: number) => number;
+}
+
+/** A heading the robot turns to, and the turn it takes to get there. */
+const turnedTo = (endHeading: number, currentHeading: number) => ({
+  endHeading,
+  rotationRequired: Math.abs(endHeading - currentHeading),
+});
+
+/** The end heading of whichever piecewise segment covers the end of the line. */
+function piecewiseEndHeading(
+  ctx: EndHeadingContext,
+  segments: PiecewiseSegment[],
+  covers: number,
+): number {
+  const seg =
+    segments.find((s) => covers >= s.tStart && covers <= s.tEnd) ??
+    segments.at(-1);
+  switch (seg?.heading) {
+    case "constant":
+      return ctx.near(ctx.flip(seg.degrees ?? 0, seg.reverse));
+    case "tangential":
+      return ctx.near(ctx.raw);
+    case "linear":
+      return seg.reverse
+        ? ctx.near(seg.startDeg ?? 0) +
+            linearHeadingSweep(seg.startDeg ?? 0, seg.endDeg ?? 0, true)
+        : ctx.near(seg.endDeg ?? 0);
+    case "facingPoint":
+      return ctx.near(
+        ctx.flip(ctx.facing(seg.targetX, seg.targetY), seg.reverse),
+      );
+    default:
+      return ctx.currentHeading;
+  }
+}
+
+/** What `calculateEndHeadingAndRotation` knows about the path besides its heading. */
+interface PathFacts {
+  isChained: boolean;
+  isGlobal: boolean;
+  chainMeta: ChainInfo | undefined;
+  length: number;
+  analysis: PathAnalysis;
+}
+
+/** The end heading for a heading of the given kind, and the turn it takes. */
+function endHeadingFor(
+  source: ReturnType<typeof getEffectiveHeadingSource>["source"],
+  ctx: EndHeadingContext,
+  facts: PathFacts,
+): { endHeading: number; rotationRequired: number } {
+  const { currentHeading } = ctx;
+  switch (source.heading) {
+    case "tangential":
+      return facts.isChained
+        ? turnedTo(ctx.near(ctx.raw), currentHeading)
+        : {
+            endHeading: currentHeading + facts.analysis.netRotation,
+            rotationRequired: facts.analysis.tangentRotation,
+          };
+
+    case "constant":
+      return turnedTo(
+        ctx.near(ctx.flip(source.degrees || 0, source.reverse)),
+        currentHeading,
+      );
+
+    case "linear": {
+      const startDeg = source.startDeg || 0;
+      const endDeg = source.endDeg || 0;
+      const sweep = linearHeadingSweep(startDeg, endDeg, source.reverse);
+      // A reversed heading deliberately goes the long way round, so its end
+      // can't simply be unwrapped next to the current heading.
+      return {
+        endHeading: source.reverse
+          ? ctx.near(startDeg) + sweep
+          : ctx.near(endDeg),
+        rotationRequired: Math.abs(sweep),
+      };
+    }
+
+    case "facingPoint":
+      return turnedTo(
+        ctx.near(
+          ctx.flip(ctx.facing(source.targetX, source.targetY), source.reverse),
+        ),
+        currentHeading,
+      );
+
+    case "piecewise": {
+      const { chainMeta, length } = facts;
+      const chainLength = chainMeta ? chainMeta.chainTotalLength : length;
+      const covers =
+        facts.isGlobal && chainLength > 0
+          ? ((chainMeta ? chainMeta.distanceBefore : 0) + length) / chainLength
+          : 1;
+      return {
+        endHeading: piecewiseEndHeading(ctx, source.segments ?? [], covers),
+        rotationRequired: 0,
+      };
+    }
+
+    default:
+      return { endHeading: ctx.raw, rotationRequired: 0 };
+  }
+}
+
 /**
  * The heading the robot ends `line` at (kept near `currentHeading`), and how
  * far it has to turn along the way.
@@ -203,7 +327,7 @@ export function calculateEndHeadingAndRotation(
   isChained: boolean,
   analysis: PathAnalysis,
 ): { endHeading: number; rotationRequired: number } {
-  const endHeadingRaw = getLineEndHeading(
+  const raw = getLineEndHeading(
     line,
     prevPoint as Point,
     rootLine,
@@ -211,78 +335,28 @@ export function calculateEndHeadingAndRotation(
     (chainMeta?.distanceBefore || 0) + length,
   );
   const { isGlobal, source } = getEffectiveHeadingSource(line, rootLine);
-  const flip = (deg: number, reverse?: boolean) => (reverse ? deg + 180 : deg);
-  const facing = (targetX = 0, targetY = 0) =>
-    radiansToDegrees(
-      Math.atan2(targetY - line.endPoint.y, targetX - line.endPoint.x),
-    );
-  const near = (deg: number) => unwrapAngle(deg, currentHeading);
+  const ctx: EndHeadingContext = {
+    raw,
+    currentHeading,
+    near: (deg) => unwrapAngle(deg, currentHeading),
+    flip: (deg, reverse) => (reverse ? deg + 180 : deg),
+    facing: (targetX = 0, targetY = 0) =>
+      radiansToDegrees(
+        Math.atan2(targetY - line.endPoint.y, targetX - line.endPoint.x),
+      ),
+  };
 
-  let endHeading = endHeadingRaw;
-  let rotationRequired = 0;
-
-  switch (source.heading) {
-    case "tangential":
-      if (isChained) {
-        endHeading = near(endHeadingRaw);
-        rotationRequired = Math.abs(endHeading - currentHeading);
-      } else {
-        endHeading = currentHeading + analysis.netRotation;
-        rotationRequired = analysis.tangentRotation;
-      }
-      break;
-
-    case "constant":
-      endHeading = near(flip(source.degrees || 0, source.reverse));
-      rotationRequired = Math.abs(endHeading - currentHeading);
-      break;
-
-    case "linear": {
-      const startDeg = source.startDeg || 0;
-      const endDeg = source.endDeg || 0;
-      const sweep = linearHeadingSweep(startDeg, endDeg, source.reverse);
-      // A reversed heading deliberately goes the long way round, so its end
-      // can't simply be unwrapped next to the current heading.
-      endHeading = source.reverse ? near(startDeg) + sweep : near(endDeg);
-      rotationRequired = Math.abs(sweep);
-      break;
-    }
-
-    case "facingPoint":
-      endHeading = near(
-        flip(facing(source.targetX, source.targetY), source.reverse),
-      );
-      rotationRequired = Math.abs(endHeading - currentHeading);
-      break;
-
-    case "piecewise": {
-      // The heading of whichever segment covers the end of this line.
-      const segments = source.segments ?? [];
-      const chainLength = chainMeta ? chainMeta.chainTotalLength : length;
-      const t =
-        isGlobal && chainLength > 0
-          ? ((chainMeta ? chainMeta.distanceBefore : 0) + length) / chainLength
-          : 1;
-      const seg =
-        segments.find((s) => t >= s.tStart && t <= s.tEnd) ?? segments.at(-1);
-
-      endHeading = currentHeading;
-      if (seg?.heading === "constant") {
-        endHeading = near(flip(seg.degrees ?? 0, seg.reverse));
-      } else if (seg?.heading === "tangential") {
-        endHeading = near(endHeadingRaw);
-      } else if (seg?.heading === "linear") {
-        endHeading = seg.reverse
-          ? near(seg.startDeg ?? 0) +
-            linearHeadingSweep(seg.startDeg ?? 0, seg.endDeg ?? 0, true)
-          : near(seg.endDeg ?? 0);
-      } else if (seg?.heading === "facingPoint") {
-        endHeading = near(flip(facing(seg.targetX, seg.targetY), seg.reverse));
-      }
-      break;
-    }
-  }
-
-  if (!Number.isFinite(endHeading)) endHeading = currentHeading;
-  return { endHeading, rotationRequired };
+  const result = endHeadingFor(source, ctx, {
+    isChained,
+    isGlobal,
+    chainMeta,
+    length,
+    analysis,
+  });
+  return {
+    endHeading: Number.isFinite(result.endHeading)
+      ? result.endHeading
+      : currentHeading,
+    rotationRequired: result.rotationRequired,
+  };
 }

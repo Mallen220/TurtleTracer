@@ -5,11 +5,7 @@ import { solversLib } from "./solversLib";
 import { nextFtc } from "./nextFtc";
 import { ivy } from "./ivy";
 
-export type {
-  CommandLibrary,
-  CommandVocabulary,
-  SequentialClassParts,
-} from "./types";
+export type { CommandLibrary } from "./types";
 
 export const DEFAULT_COMMAND_LIBRARY: CommandLibraryId = "SolversLib";
 

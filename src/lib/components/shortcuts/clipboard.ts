@@ -5,14 +5,13 @@ import {
   sequenceStore,
   startPointStore,
   settingsStore,
-  renumberDefaultPathNames,
 } from "../../projectStore";
 import { copyName, duplicateStep } from "../../sequenceOperations";
 import { selectedLineId, selectedPointId, notification } from "../../../stores";
 import type { Line, SequenceItem } from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import { parseSelectionId, findSequenceItem } from "./itemUtils";
-import { makeId } from "../../../utils/nameGenerator";
+import { makeId, renumberDefaultPathNames } from "../../../utils/nameGenerator";
 
 type WaitOrRotate = "wait" | "rotate";
 

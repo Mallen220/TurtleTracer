@@ -20,6 +20,9 @@ export const LINE_WIDTH = 0.57;
 // DEPRECATED: use settingsStore.fieldWidth / fieldHeight instead
 export const FIELD_SIZE = 144;
 
+/** Macros nested deeper than this are treated as a mistake rather than expanded. */
+export const MAX_MACRO_DEPTH = 50;
+
 /**
  * Available field maps
  */
@@ -322,5 +325,3 @@ export function getDefaultShapes(): Shape[] {
   }
   return [];
 }
-
-export { DEFAULT_KEY_BINDINGS } from "./keybindings";

@@ -4,20 +4,20 @@ The security of **Turtle Tracer** and the safety of its users are important to u
 
 ---
 
-## 🔐 Supported Versions
+## Supported Versions
 
 Due to the rapid development cycle, **only the latest release** is actively supported with security updates.
 
 | Version        | Supported |
 | -------------- | --------- |
-| Latest Release | ✅ Yes    |
-| Older Releases | ❌ No     |
+| Latest Release | Yes       |
+| Older Releases | No        |
 
 If you are using an older version and encounter a security issue, please upgrade to the latest release and verify whether the issue still exists.
 
 ---
 
-## 🚨 Reporting a Security Vulnerability
+## Reporting a Security Vulnerability
 
 If you discover a security vulnerability, **please do not open a public GitHub issue**.
 
@@ -44,7 +44,7 @@ You will receive acknowledgment as soon as possible.
 
 ---
 
-## 🕒 Response Timeline
+## Response Timeline
 
 While response times may vary depending on severity and availability:
 
@@ -55,7 +55,7 @@ While response times may vary depending on severity and availability:
 
 ---
 
-## 🧩 Scope of Security Concerns
+## Scope of Security Concerns
 
 This policy covers:
 
@@ -75,7 +75,7 @@ This policy does **not** cover:
 
 ---
 
-## 🔍 Security Best Practices
+## Security Best Practices
 
 Users and contributors are encouraged to:
 
@@ -87,7 +87,7 @@ Users and contributors are encouraged to:
 
 ---
 
-## 🧪 Contributors & Security
+## Contributors & Security
 
 If you are contributing code:
 
@@ -100,13 +100,13 @@ If unsure, ask before merging potentially risky changes.
 
 ---
 
-## 📄 License & Responsibility
+## License & Responsibility
 
 Turtle Tracer is provided **as-is** under the Apache 2.0 License. While reasonable efforts are made to maintain security, no guarantees are made regarding absolute safety.
 
 ---
 
-## 🙏 Thanks
+## Thanks
 
 We appreciate the effort of researchers, contributors, and users who help keep this project safe. Responsible disclosure helps protect teams relying on this tool during competition season.
 

@@ -1,12 +1,15 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable } from "svelte/store";
+import type {
+  ComponentRegistryState,
+  ContextMenuItem,
+  DialogDefinition,
+  HookCallback,
+  TabDefinition,
+} from "../types";
 
 // --- Component Registry ---
 // Maps a string key (e.g., "Navbar", "FieldRenderer") to a Svelte component class.
-export interface ComponentRegistryState {
-  [key: string]: any;
-}
-
 const createComponentRegistry = () => {
   const { subscribe, update, set } = writable<ComponentRegistryState>({});
 
@@ -30,15 +33,6 @@ export const componentRegistry = createComponentRegistry();
 
 // --- Tab Registry ---
 // Manages tabs in the ControlTab component.
-export interface TabDefinition {
-  id: string;
-  label: string;
-  component: any;
-  icon?: string; // SVG string or image URL
-  iconComponent?: any;
-  order?: number;
-}
-
 const createTabRegistry = () => {
   const { subscribe, update, set } = writable<TabDefinition[]>([]);
 
@@ -88,8 +82,6 @@ const createNavbarActionRegistry = () => {
 export const navbarActionRegistry = createNavbarActionRegistry();
 
 // --- Field Context Menu Registry ---
-import type { ContextMenuItem } from "../types";
-
 const createFieldContextMenuRegistry = () => {
   const { subscribe, update, set } = writable<ContextMenuItem[]>([]);
 
@@ -113,8 +105,6 @@ export const fieldContextMenuRegistry = createFieldContextMenuRegistry();
 // --- Hook Registry ---
 // Allows registering callbacks for specific named events (hooks).
 // e.g., "onSave", "onLoad", "onProjectReset"
-export type HookCallback = (...args: any[]) => void | Promise<void>;
-
 const createHookRegistry = () => {
   const hooks = new Map<string, HookCallback[]>();
 
@@ -145,12 +135,6 @@ const createHookRegistry = () => {
 export const hookRegistry = createHookRegistry();
 
 // --- Dialog Registry ---
-export interface DialogDefinition {
-  id: string;
-  component: any;
-  props?: any;
-}
-
 const createDialogRegistry = () => {
   const { subscribe, update, set } = writable<DialogDefinition[]>([]);
 
@@ -209,5 +193,3 @@ export interface FieldRenderEntry {
 }
 
 export const fieldRenderRegistry = createListRegistry<FieldRenderEntry>();
-
-export { type ContextMenuItem } from "../types";

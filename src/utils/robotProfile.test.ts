@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { tuningFromProfile, tuningOf } from "./robotProfile";
-import type { RobotProfile } from "../types";
+import { robotSettingsOf, tuningFromProfile, tuningOf } from "./robotProfile";
+import type { RobotProfile, Settings } from "../types";
 
 describe("robot profile tuning", () => {
   it("takes the tuning from the current settings", () => {
@@ -45,5 +45,56 @@ describe("robot profile tuning", () => {
     expect(tuningFromProfile(bad, { translationalP: 0.1 }).translationalP).toBe(
       0.1,
     );
+  });
+});
+
+describe("robotSettingsOf", () => {
+  const settings = {
+    rLength: 15,
+    rWidth: 14,
+    maxVelocity: 50,
+    maxAcceleration: 30,
+    maxDeceleration: 0,
+    maxAngularAcceleration: 6,
+    kFriction: 2,
+    aVelocity: 3,
+    xVelocity: 60,
+    yVelocity: 45,
+    translationalP: 0.2,
+    robotImage: "/robot.png",
+    robotDriveType: "mecanum",
+    showRobotArrows: true,
+    showFakeHeadingArrow: false,
+    fakeHeadingArrowColor: "#ef4444",
+    fieldMap: "not part of a profile",
+  } as unknown as Settings;
+
+  it("saves the robot's size, speeds, tuning and looks, but nothing else", () => {
+    expect(robotSettingsOf(settings)).toEqual({
+      rLength: 15,
+      rWidth: 14,
+      maxVelocity: 50,
+      maxAcceleration: 30,
+      maxDeceleration: 0,
+      maxAngularAcceleration: 6,
+      kFriction: 2,
+      aVelocity: 3,
+      xVelocity: 60,
+      yVelocity: 45,
+      translationalP: 0.2,
+      brakingQuadratic: undefined,
+      brakingLinear: undefined,
+      pathSettleTime: undefined,
+      robotImage: "/robot.png",
+      robotDriveType: "mecanum",
+      showRobotArrows: true,
+      showFakeHeadingArrow: false,
+      fakeHeadingArrowColor: "#ef4444",
+    });
+  });
+
+  it("saves no deceleration as 0", () => {
+    const unset = { ...settings, maxDeceleration: undefined } as Settings;
+    expect(robotSettingsOf(unset).maxDeceleration).toBe(0);
   });
 });

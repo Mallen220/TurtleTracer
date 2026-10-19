@@ -5,22 +5,6 @@ import OptimizationDialog from "./OptimizationDialog.svelte";
 
 import { DEFAULT_SETTINGS } from "../../../config/defaults";
 
-vi.mock("$lib/components/icons/ChevronRightSolidIcon.svelte", () => ({
-  default: vi.fn(() => ({})),
-}));
-vi.mock("$lib/components/icons/SpinnerIcon.svelte", () => ({
-  default: vi.fn(() => ({})),
-}));
-vi.mock("$lib/components/icons/PlayIcon.svelte", () => ({
-  default: vi.fn(() => ({})),
-}));
-vi.mock("$lib/components/icons/LockIcon.svelte", () => ({
-  default: vi.fn(() => ({})),
-}));
-vi.mock("$lib/components/SectionHeader.svelte", () => ({
-  default: vi.fn(() => ({})),
-}));
-
 const mockOptimize = vi.fn(async (callback: any) => {
   if (callback) {
     callback({

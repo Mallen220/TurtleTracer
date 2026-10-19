@@ -1,20 +1,16 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { imageToBase64 } from "../../../../utils/file";
-  import { settingsEditor } from "../settingsEditor";
+  import { settingsEditor, type SettingsTabProps } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
-  import type { Settings } from "../../../../types/index";
   import RobotProfileManager from "../../settings/RobotProfileManager.svelte";
   import RobotFeaturesEditor from "../RobotFeaturesEditor.svelte";
   import { notification } from "../../../../stores";
   import { CloseIcon, RobotPlaceholderIcon } from "../../icons";
   import { ui } from "../../../ui";
 
-  interface Props {
-    settings: Settings;
-    searchQuery: string;
-  }
+  type Props = SettingsTabProps;
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 

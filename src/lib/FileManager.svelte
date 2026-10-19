@@ -21,8 +21,8 @@
     sequenceStore,
     shapesStore,
     startPointStore,
-    updateAllMacroReferences,
   } from "./projectStore";
+  import { updateAllMacroReferences } from "./macroReferenceUpdater";
   import {
     autosaveBeforeLeaving,
     chooseSaveFolder,
@@ -66,7 +66,10 @@
   import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
   import { followJavaFile } from "./javaFollow";
   import { importJavaProject } from "../utils/javaImporter";
-  import { filePreviews } from "./components/filemanager/fileBrowser.svelte";
+  import {
+    filePreviews,
+    type FileBrowserProps,
+  } from "./components/filemanager/fileBrowser.svelte";
   import {
     FolderIcon,
     CloudArrowDownIcon,
@@ -142,6 +145,26 @@
           : new Date(b.modified).getTime() - new Date(a.modified).getTime();
       });
   });
+
+  /** What the list and grid views show and tell us about. */
+  let fileBrowserProps = $derived.by(
+    (): FileBrowserProps => ({
+      files: visibleFiles,
+      selectedFilePath: selectedFile?.path ?? null,
+      sortMode,
+      fieldImage: settings.fieldMap,
+      showGitStatus: settings.gitIntegration || !!repo,
+      renamingFile,
+      onselect: (file) => (selectedFile = file),
+      onopen: (file) => handleOpen(file),
+      onrenameStart: (file) => (renamingFile = file),
+      onrenameSave: (name) => renamingFile && renameFile(renamingFile, name),
+      onrenameCancel: () => (renamingFile = null),
+      onmenuAction: handleMenuAction,
+      onmoveFile: moveFile,
+      lockFolders: !!repo,
+    }),
+  );
 
   $effect(() => {
     fileManagerSessionState.set({
@@ -1198,40 +1221,9 @@
           {/if}
         </div>
       {:else if viewMode === "list"}
-        <FileList
-          files={visibleFiles}
-          selectedFilePath={selectedFile?.path ?? null}
-          {sortMode}
-          fieldImage={settings.fieldMap}
-          {renamingFile}
-          onselect={(file) => (selectedFile = file)}
-          onopen={(file) => handleOpen(file)}
-          onrenameStart={(file) => (renamingFile = file)}
-          onrenameSave={(name) =>
-            renamingFile && renameFile(renamingFile, name)}
-          onrenameCancel={() => (renamingFile = null)}
-          onmenuAction={handleMenuAction}
-          onmoveFile={moveFile}
-          lockFolders={!!repo}
-        />
+        <FileList {...fileBrowserProps} />
       {:else}
-        <FileGrid
-          files={visibleFiles}
-          selectedFilePath={selectedFile?.path ?? null}
-          {sortMode}
-          fieldImage={settings.fieldMap}
-          showGitStatus={settings.gitIntegration || !!repo}
-          {renamingFile}
-          onselect={(file) => (selectedFile = file)}
-          onopen={(file) => handleOpen(file)}
-          onrenameStart={(file) => (renamingFile = file)}
-          onrenameSave={(name) =>
-            renamingFile && renameFile(renamingFile, name)}
-          onrenameCancel={() => (renamingFile = null)}
-          onmenuAction={handleMenuAction}
-          onmoveFile={moveFile}
-          lockFolders={!!repo}
-        />
+        <FileGrid {...fileBrowserProps} />
       {/if}
     </div>
 

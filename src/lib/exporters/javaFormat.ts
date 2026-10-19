@@ -108,10 +108,7 @@ export function angleCode(degrees: number, opts: FormatOptions): string {
 export type InterpolatorArgs = (h: HeadingConfig) => string;
 
 /** e.g. `Interpolator.linear(a, b).reverse()`. */
-export function interpolatorCode(
-  h: HeadingConfig,
-  args: InterpolatorArgs,
-): string {
+function interpolatorCode(h: HeadingConfig, args: InterpolatorArgs): string {
   let base: string;
   switch (h.heading) {
     case "constant":

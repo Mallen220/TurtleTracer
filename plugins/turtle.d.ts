@@ -964,12 +964,6 @@ interface UpdateData {
   url: string;
 }
 
-interface NamedCommand {
-  name: string;
-  description?: string;
-  parameters?: string[];
-}
-
 interface ElectronTelemetryAPI {
   connect: (ip: string, port: number, protocol: string) => Promise<any>;
   disconnect: () => Promise<any>;

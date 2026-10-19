@@ -11,6 +11,7 @@ import type {
 } from "../../../types/index";
 import { closestPointOnPath } from "../../../utils/geometry";
 import { updateLinkedWaypoints } from "../../../utils/pointLinking";
+import { nearestSnap, snapTargets } from "../../../utils/smartSnap";
 import {
   parseElementId,
   parseStepEventId,
@@ -78,30 +79,11 @@ export function calculateSmartSnapAndBounds(
   }
 
   // Smart Object Snapping
-  const SNAP_THRESHOLD = 1; // inches
   const shouldSnap = isAltKey ? !smartSnappingEnabled : smartSnappingEnabled;
   const guides: SnapGuide[] = [];
 
   if (shouldSnap && id.startsWith("point-")) {
-    const targets: Point[] = [startPoint];
-    lines.forEach((l) => {
-      if (l?.endPoint) targets.push(l.endPoint);
-    });
-
-    // Add field corners
-    targets.push({ x: 0, y: 0 } as Point);
-    targets.push({ x: fieldW, y: 0 } as Point);
-    targets.push({ x: 0, y: fieldH } as Point);
-    targets.push({ x: fieldW, y: fieldH } as Point);
-
-    // Add shape vertices
-    shapes.forEach((shape) => {
-      if (shape.visible !== false) {
-        shape.vertices.forEach((v) => {
-          targets.push({ x: v.x, y: v.y } as Point);
-        });
-      }
-    });
+    const targets = snapTargets(startPoint, lines, shapes, fieldW, fieldH);
 
     const parts = id.split("-");
     const lineNum = Number(parts[1]);
@@ -111,32 +93,19 @@ export function calculateSmartSnapAndBounds(
     if (lineNum === 0 && pointIdx === 0) excludeIndex = 0;
     else if (lineNum > 0 && pointIdx === 0) excludeIndex = lineNum;
 
-    let bestX: number | null = null;
-    let bestY: number | null = null;
-    let minDistX = SNAP_THRESHOLD;
-    let minDistY = SNAP_THRESHOLD;
+    const snapped = nearestSnap(
+      targets,
+      inchX,
+      inchY,
+      (idx) => idx === excludeIndex && idx <= lines.length,
+    );
 
-    targets.forEach((target, idx) => {
-      if (idx === excludeIndex && idx <= lines.length) return;
-      const dx = Math.abs(target.x - inchX);
-      const dy = Math.abs(target.y - inchY);
-
-      if (dx < minDistX) {
-        minDistX = dx;
-        bestX = target.x;
-      }
-      if (dy < minDistY) {
-        minDistY = dy;
-        bestY = target.y;
-      }
-    });
-
-    if (bestX !== null) {
-      inchX = bestX;
+    if (snapped.x !== null) {
+      inchX = snapped.x;
       guides.push({ type: "vertical", coord: inchX });
     }
-    if (bestY !== null) {
-      inchY = bestY;
+    if (snapped.y !== null) {
+      inchY = snapped.y;
       guides.push({ type: "horizontal", coord: inchY });
     }
   }

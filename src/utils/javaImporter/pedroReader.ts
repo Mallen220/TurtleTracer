@@ -89,6 +89,46 @@ type Value =
 
 type Chain = Extract<Value, { t: "chain" }>;
 
+/** A step of the robot's route, as the code gives them. */
+type Step =
+  | { kind: "follow"; chain: Chain; line: number }
+  | { kind: "wait"; ms: number }
+  | { kind: "turn"; degrees: number };
+
+/** An event marker registered with `onParametric`, waiting for its path. */
+interface PendingMarker {
+  segment: number;
+  t: number;
+  name: string;
+}
+
+/** What reading the code's calls has found so far. */
+interface StepState {
+  steps: Step[];
+  start: Pose | null;
+  /** Markers registered since the last `setCurrentPath`. */
+  markers: PendingMarker[];
+  /** The markers of each path, by its first segment. */
+  markersFor: Map<Segment, PendingMarker[]>;
+}
+
+/** A call or `new` expression in the code, at token `i`. */
+interface CallSite {
+  i: number;
+  /** The function, method or class called. */
+  name: string;
+  line: number;
+  args: Expr[] | null;
+  isNew: boolean;
+}
+
+const asChain = (v: Value): Chain | null =>
+  v.t === "chain"
+    ? v
+    : v.t === "segment"
+      ? { t: "chain", segments: [v] }
+      : null;
+
 const UNKNOWN: Value = { t: "unknown" };
 const toDegrees = (radians: number) => (radians * 180) / Math.PI;
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -104,6 +144,10 @@ const COLORS = [
   "#2dd4bf",
   "#fb923c",
 ];
+
+/** Pedro 3 calls its heading helpers `Interpolator`; older code says `HeadingInterpolator`. */
+const isInterpolatorClass = (name: string) =>
+  name === "Interpolator" || name === "HeadingInterpolator";
 
 function withReverse(h: Heading, reverse: boolean): Heading {
   return { ...h, reverse: reverse || undefined } as Heading;
@@ -175,6 +219,23 @@ class Reader {
     return null;
   }
 
+  /**
+   * The first two arguments as an x and y. When they can't be worked out the
+   * result is null, with a note if `line` says where the call is.
+   */
+  private coordinates(
+    args: Expr[],
+    line?: number,
+  ): { x: number; y: number } | null {
+    const x = args[0] && this.number(args[0]);
+    const y = args[1] && this.number(args[1]);
+    if (typeof x === "number" && typeof y === "number") return { x, y };
+    if (line !== undefined) {
+      this.note(line, "Couldn't work out where this pose is.");
+    }
+    return null;
+  }
+
   private nameOf(expr: Expr): string | null {
     if (expr.kind === "name") return expr.name;
     if (expr.kind === "member") return expr.name;
@@ -226,20 +287,23 @@ class Reader {
     }
   }
 
-  private member(expr: Extract<Expr, { kind: "member" }>): Value {
-    const { object, name } = expr;
-    if (object.kind === "name" && object.name === "Math") {
+  /** `Math.PI`, `Interpolator.tangent` and the like. */
+  private static constant(object: Expr, name: string): Value | null {
+    if (object.kind !== "name") return null;
+    if (object.name === "Math") {
       if (name === "PI") return { t: "number", value: Math.PI };
       if (name === "E") return { t: "number", value: Math.E };
     }
-    if (
-      object.kind === "name" &&
-      (object.name === "Interpolator" || object.name === "HeadingInterpolator")
-    ) {
-      if (name === "tangent") {
-        return { t: "interpolator", heading: { heading: "tangential" } };
-      }
+    if (isInterpolatorClass(object.name) && name === "tangent") {
+      return { t: "interpolator", heading: { heading: "tangential" } };
     }
+    return null;
+  }
+
+  private member(expr: Extract<Expr, { kind: "member" }>): Value {
+    const { object, name } = expr;
+    const constant = Reader.constant(object, name);
+    if (constant) return constant;
     // this.x, paths.x and the like: the variable itself.
     const base = this.evaluate(object);
     if (base.t === "unknown" || object.kind === "name") {
@@ -251,30 +315,38 @@ class Reader {
 
   private construct(expr: Extract<Expr, { kind: "new" }>): Value {
     const { type, args } = expr;
-    if (type === "Pose" || type === "Point") {
-      const x = args[0] && this.number(args[0]);
-      const y = args[1] && this.number(args[1]);
-      if (typeof x !== "number" || typeof y !== "number") {
-        this.note(expr.line, "Couldn't work out where this pose is.");
+    switch (type) {
+      case "Pose":
+      case "Point":
+        return this.constructPose(args, expr.line);
+      case "BezierLine":
+      case "BezierCurve":
+        return this.segment(args, expr.line);
+      case "Path":
+      case "TurtleTracerReader":
+        return this.constructWrapper(type, args);
+      default:
         return UNKNOWN;
-      }
-      const pose: Pose = { t: "pose", x, y };
-      // Pose takes its heading in radians.
-      if (args[2]) pose.degrees = this.angle(args[2]);
-      return pose;
     }
-    if (type === "BezierLine" || type === "BezierCurve") {
-      return this.segment(args, expr.line);
-    }
-    if (type === "Path") {
-      const inner = args[0] ? this.evaluate(args[0]) : UNKNOWN;
-      return inner.t === "segment" ? inner : UNKNOWN;
-    }
-    if (type === "TurtleTracerReader") {
-      const file = args[0] ? this.evaluate(args[0]) : UNKNOWN;
-      if (file.t === "string") return { t: "reader", file: file.value };
-    }
-    return UNKNOWN;
+  }
+
+  /** `new Pose(x, y, heading)`. */
+  private constructPose(args: Expr[], line: number): Value {
+    const xy = this.coordinates(args, line);
+    if (!xy) return UNKNOWN;
+    const pose: Pose = { t: "pose", ...xy };
+    // Pose takes its heading in radians.
+    if (args[2]) pose.degrees = this.angle(args[2]);
+    return pose;
+  }
+
+  /** `new Path(segment)` and `new TurtleTracerReader("file.turt", ...)`. */
+  private constructWrapper(type: "Path" | "TurtleTracerReader", args: Expr[]) {
+    const first = args[0] ? this.evaluate(args[0]) : UNKNOWN;
+    if (type === "Path") return first.t === "segment" ? first : UNKNOWN;
+    return first.t === "string"
+      ? ({ t: "reader", file: first.value } as const)
+      : UNKNOWN;
   }
 
   private segment(args: Expr[], line: number): Value {
@@ -289,106 +361,148 @@ class Reader {
 
   private call(expr: Extract<Expr, { kind: "call" }>): Value {
     const { callee, args } = expr;
-
     if (callee.kind === "name") {
-      switch (callee.name) {
-        case "line":
-        case "curve":
-          return this.segment(args, expr.line);
-        case "path": {
-          const segments: Segment[] = [];
-          for (const arg of args) {
-            const v = this.evaluate(arg);
-            if (v.t === "segment") segments.push(v);
-            else if (v.t === "chain") segments.push(...v.segments);
-            else return UNKNOWN;
-          }
-          return segments.length > 0 ? { t: "chain", segments } : UNKNOWN;
-        }
-        case "cmToInches": {
-          const cm = args[0] && this.number(args[0]);
-          return typeof cm === "number"
-            ? { t: "number", value: cm / 2.54 }
-            : UNKNOWN;
-        }
-        case "buildPose": {
-          // The generated helper for FTC coordinates: degrees, centre origin.
-          const x = args[0] && this.number(args[0]);
-          const y = args[1] && this.number(args[1]);
-          const h = args[2] ? this.number(args[2]) : 0;
-          if (typeof x !== "number" || typeof y !== "number") return UNKNOWN;
-          return { t: "pose", x: y + 72, y: 72 - x, degrees: h ?? 0 };
-        }
-      }
-      return UNKNOWN;
+      return this.functionCall(callee.name, args, expr.line);
     }
-
     if (callee.kind !== "member") return UNKNOWN;
+
     const method = callee.name;
     const target = callee.object;
+    const staticCall = this.staticCall(target, method, args);
+    if (staticCall) return staticCall;
+    if (method === "pathBuilder") return { t: "builder", segments: [] };
+    return this.methodCall(this.evaluate(target), method, args, expr.line);
+  }
 
-    if (target.kind === "name" && target.name === "Math") {
-      const n = args[0] ? this.number(args[0]) : null;
-      if (n === null) return UNKNOWN;
-      if (method === "toRadians") return { t: "number", value: toRadians(n) };
-      if (method === "toDegrees") return { t: "number", value: toDegrees(n) };
-      return UNKNOWN;
+  /** `path(line(a, b), line(b, c))`: the segments of every argument, in order. */
+  private joinPaths(args: Expr[]): Value {
+    const segments: Segment[] = [];
+    for (const arg of args) {
+      const v = this.evaluate(arg);
+      if (v.t === "segment") segments.push(v);
+      else if (v.t === "chain") segments.push(...v.segments);
+      else return UNKNOWN;
     }
-    if (target.kind === "name" && target.name === "PoseFactory") {
+    return segments.length > 0 ? { t: "chain", segments } : UNKNOWN;
+  }
+
+  /** `line(...)`, `path(...)` and the other plain functions. */
+  private functionCall(name: string, args: Expr[], line: number): Value {
+    switch (name) {
+      case "line":
+      case "curve":
+        return this.segment(args, line);
+      case "path":
+        return this.joinPaths(args);
+      case "cmToInches": {
+        const cm = args[0] && this.number(args[0]);
+        return typeof cm === "number"
+          ? { t: "number", value: cm / 2.54 }
+          : UNKNOWN;
+      }
+      case "buildPose": {
+        // The generated helper for FTC coordinates: degrees, centre origin.
+        const xy = this.coordinates(args);
+        const h = args[2] ? this.number(args[2]) : 0;
+        if (!xy) return UNKNOWN;
+        return { t: "pose", x: xy.y + 72, y: 72 - xy.x, degrees: h ?? 0 };
+      }
+      default:
+        return UNKNOWN;
+    }
+  }
+
+  /**
+   * `Math.toRadians(...)`, `PoseFactory.degrees()` and `Interpolator.linear(...)`:
+   * calls on a class. Null if `target` isn't one of them, or the method isn't
+   * one that it has.
+   */
+  private staticCall(target: Expr, method: string, args: Expr[]): Value | null {
+    if (target.kind !== "name") return null;
+
+    if (target.name === "Math") return this.mathCall(method, args);
+    if (target.name === "PoseFactory") {
       if (method === "degrees") return { t: "factory", radians: false };
       if (method === "radians") return { t: "factory", radians: true };
+      return null;
     }
-    if (
-      target.kind === "name" &&
-      (target.name === "Interpolator" || target.name === "HeadingInterpolator")
-    ) {
+    if (isInterpolatorClass(target.name)) {
       return this.interpolator(method, args) ?? UNKNOWN;
     }
-    if (method === "pathBuilder") return { t: "builder", segments: [] };
+    return null;
+  }
 
-    const object = this.evaluate(target);
+  /** `Math.toRadians(n)` and `Math.toDegrees(n)`. */
+  private mathCall(method: string, args: Expr[]): Value {
+    const n = args[0] ? this.number(args[0]) : null;
+    if (n === null) return UNKNOWN;
+    if (method === "toRadians") return { t: "number", value: toRadians(n) };
+    if (method === "toDegrees") return { t: "number", value: toDegrees(n) };
+    return UNKNOWN;
+  }
+
+  /** A method called on a value we know something about. */
+  private methodCall(
+    object: Value,
+    method: string,
+    args: Expr[],
+    line: number,
+  ): Value {
     switch (object.t) {
       case "factory":
-        if (method === "of") {
-          const x = args[0] && this.number(args[0]);
-          const y = args[1] && this.number(args[1]);
-          if (typeof x !== "number" || typeof y !== "number") {
-            this.note(expr.line, "Couldn't work out where this pose is.");
-            return UNKNOWN;
-          }
-          const h = args[2] ? this.number(args[2]) : null;
-          const pose: Pose = { t: "pose", x, y };
-          if (h !== null) pose.degrees = object.radians ? toDegrees(h) : h;
-          return pose;
-        }
-        return UNKNOWN;
+        return method === "of"
+          ? this.poseFromFactory(object.radians, args, line)
+          : UNKNOWN;
       case "reader":
         return method === "get"
-          ? this.projectPose(object.file, args[0], expr.line)
+          ? this.projectPose(object.file, args[0], line)
           : UNKNOWN;
       case "pose":
-        if (method === "withHeading" && args[0]) {
-          return { ...object, degrees: this.angle(args[0]), name: undefined };
-        }
-        if (method === "getHeading" || method === "heading") {
-          return object.degrees === undefined
-            ? UNKNOWN
-            : { t: "number", value: toRadians(object.degrees) };
-        }
-        return UNKNOWN;
+        return this.poseMethod(object, method, args);
       case "interpolator":
         return this.interpolatorMethod(object.heading, method, args) ?? UNKNOWN;
       case "segment":
-      case "chain": {
-        if (method === "build") return object;
-        const heading = this.headingMethod(method, args);
-        return heading ? { ...object, heading } : UNKNOWN;
-      }
+      case "chain":
+        return this.pathMethod(object, method, args);
       case "builder":
         return this.builderMethod(object, method, args);
       default:
         return UNKNOWN;
     }
+  }
+
+  /** `p.of(x, y, heading)`, with the heading in the factory's units. */
+  private poseFromFactory(radians: boolean, args: Expr[], line: number): Value {
+    const xy = this.coordinates(args, line);
+    if (!xy) return UNKNOWN;
+    const h = args[2] ? this.number(args[2]) : null;
+    const pose: Pose = { t: "pose", ...xy };
+    if (h !== null) pose.degrees = radians ? toDegrees(h) : h;
+    return pose;
+  }
+
+  /** `.build()` and the heading calls on a path or chain of them. */
+  private pathMethod(
+    path: Segment | Chain,
+    method: string,
+    args: Expr[],
+  ): Value {
+    if (method === "build") return path;
+    const heading = this.headingMethod(method, args);
+    return heading ? { ...path, heading } : UNKNOWN;
+  }
+
+  /** `.withHeading(...)` and `.getHeading()` on a pose. */
+  private poseMethod(pose: Pose, method: string, args: Expr[]): Value {
+    if (method === "withHeading" && args[0]) {
+      return { ...pose, degrees: this.angle(args[0]), name: undefined };
+    }
+    if (method === "getHeading" || method === "heading") {
+      return pose.degrees === undefined
+        ? UNKNOWN
+        : { t: "number", value: toRadians(pose.degrees) };
+    }
+    return UNKNOWN;
   }
 
   /** `.tangent()`, `.linear(a, b)` and the other heading calls on a path. */
@@ -445,25 +559,34 @@ class Reader {
         ? { t: "chain", segments: builder.segments }
         : UNKNOWN;
     }
+
     const last = builder.segments.at(-1);
-    if (method === "setReversed" && last) {
-      const on = !(args[0]?.kind === "name" && args[0].name === "false");
-      const heading = last.heading ?? { heading: "tangential" as const };
-      const reversed = { ...last, heading: withReverse(heading, on) };
-      return {
-        t: "builder",
-        segments: [...builder.segments.slice(0, -1), reversed],
-      };
-    }
-    const heading = this.headingMethod(method, args);
-    if (heading && last) {
-      return {
-        t: "builder",
-        segments: [...builder.segments.slice(0, -1), { ...last, heading }],
-      };
+    if (last) {
+      const edited = this.editLastSegment(last, method, args);
+      if (edited) {
+        return {
+          t: "builder",
+          segments: [...builder.segments.slice(0, -1), edited],
+        };
+      }
     }
     // Callbacks, constraints and the like don't change where it goes.
     return builder;
+  }
+
+  /** The segment with a heading call such as `.setReversed(true)` applied, or null if `method` isn't one. */
+  private editLastSegment(
+    segment: Segment,
+    method: string,
+    args: Expr[],
+  ): Segment | null {
+    if (method === "setReversed") {
+      const on = !(args[0]?.kind === "name" && args[0].name === "false");
+      const heading = segment.heading ?? { heading: "tangential" as const };
+      return { ...segment, heading: withReverse(heading, on) };
+    }
+    const heading = this.headingMethod(method, args);
+    return heading ? { ...segment, heading } : null;
   }
 
   /** `Interpolator.linear(a, b)` and friends. */
@@ -571,146 +694,172 @@ class Reader {
     return this.tokens[i + 1]?.text === "(" ? this.parser.args(i + 1) : null;
   }
 
+  /**
+   * What each call that matters does to the steps collected so far. The key is
+   * the name called or constructed.
+   */
+  private readonly stepReaders: Record<
+    string,
+    (call: CallSite, state: StepState) => void
+  > = {
+    setPose: (call, state) => this.readStart(call, state),
+    setStartingPose: (call, state) => this.readStart(call, state),
+    follow: (call, state) => this.readFollow(call, state),
+    followPath: (call, state) => this.readFollow(call, state),
+    FollowPathCommand: (call, state) => {
+      if (call.isNew) this.readFollow(call, state);
+    },
+    WaitCommand: (call, state) => this.readWaitCommand(call, state),
+    Delay: (call, state) => this.readWaitCommand(call, state),
+    waitMs: (call, state) => this.readWaitMs(call, state),
+    milliseconds: (call, state) => this.readTimerWait(call, state),
+    getElapsedTimeSeconds: (call, state) => this.readTimerWait(call, state),
+    withHeading: (call, state) => this.readHoldTurn(call, state),
+    setTangentHeadingInterpolation: (call) => this.readPathHeading(call),
+    setConstantHeadingInterpolation: (call) => this.readPathHeading(call),
+    setLinearHeadingInterpolation: (call) => this.readPathHeading(call),
+    setHeadingInterpolation: (call) => this.readPathHeading(call),
+    turnTo: (call, state) =>
+      state.steps.push({ kind: "turn", degrees: this.angle(call.args?.[0]) }),
+    turnToDegrees: (call, state) => {
+      const value = this.argNumber(call, 0);
+      if (value !== null) state.steps.push({ kind: "turn", degrees: value });
+    },
+    onParametric: (call, state) => this.readMarker(call, state),
+    setCurrentPath: (call, state) => this.readCurrentPath(call, state),
+    clearPathEvents: (_call, state) => {
+      state.markers = [];
+    },
+  };
+
+  /** The number the call's `n`th argument works out to, if it does. */
+  private argNumber(call: CallSite, n: number): number | null {
+    return call.args?.[n] ? this.number(call.args[n]) : null;
+  }
+
+  /** `follower.setPose(start)`: where the robot starts. */
+  private readStart(call: CallSite, state: StepState) {
+    const pose = call.args?.[0] && this.pose(call.args[0]);
+    if (pose && !state.start) state.start = pose;
+  }
+
+  /** `follower.follow(path)` / `PedroCommands.follow(follower, path)`. */
+  private readFollow(call: CallSite, state: StepState) {
+    for (const arg of call.args ?? []) {
+      const chain = asChain(this.evaluate(arg));
+      if (!chain) continue;
+      const name = this.nameOf(arg);
+      const named = name ? { ...chain, name } : chain;
+      state.steps.push({ kind: "follow", chain: named, line: call.line });
+      return;
+    }
+  }
+
+  /** `new WaitCommand(ms)`, or NextFTC's `new Delay(seconds)`. */
+  private readWaitCommand(call: CallSite, state: StepState) {
+    if (!call.isNew) return;
+    const value = this.argNumber(call, 0);
+    if (value === null) return;
+    state.steps.push({
+      kind: "wait",
+      ms: call.name === "Delay" ? value * 1000 : value,
+    });
+  }
+
+  private readWaitMs(call: CallSite, state: StepState) {
+    const value = this.argNumber(call, 0);
+    if (value !== null) state.steps.push({ kind: "wait", ms: value });
+  }
+
+  /** `pathTimer.milliseconds() > 1000`, in a state machine. */
+  private readTimerWait(call: CallSite, state: StepState) {
+    const { i } = call;
+    const close =
+      this.tokens[i + 1]?.text === "(" ? this.parser.closing(i + 1) : i;
+    if (this.tokens[close + 1]?.text !== ">") return;
+    const { expr } = this.parser.parse(close + 2);
+    const value = this.number(expr);
+    if (value === null) return;
+    state.steps.push({
+      kind: "wait",
+      ms: call.name === "milliseconds" ? value : value * 1000,
+    });
+  }
+
+  /** `follower.hold(follower.pose().withHeading(radians))`: a turn. */
+  private readHoldTurn(call: CallSite, state: StepState) {
+    const holding = this.tokens
+      .slice(Math.max(0, call.i - 8), call.i)
+      .some((x) => x.text === "hold");
+    if (holding) {
+      state.steps.push({ kind: "turn", degrees: this.angle(call.args?.[0]) });
+    }
+  }
+
+  /** `scorePath.setLinearHeadingInterpolation(a, b)`, on a Path variable. */
+  private readPathHeading(call: CallSite) {
+    const { i } = call;
+    const owner = this.tokens[i - 2];
+    if (this.tokens[i - 1]?.text !== "." || owner?.kind !== "name") return;
+    const path = this.env.get(owner.text);
+    const heading = this.headingMethod(call.name, call.args ?? []);
+    if (path?.t === "segment" && heading) {
+      this.env.set(owner.text, { ...path, heading });
+    }
+  }
+
+  /** `tracker.onParametric(segment, t, command)`: an event marker for the next path set. */
+  private readMarker(call: CallSite, state: StepState) {
+    const segment = this.argNumber(call, 0);
+    const at = this.argNumber(call, 1);
+    const name = call.args?.[2] ? this.markerName(call.args[2]) : null;
+    if (segment !== null && at !== null && name) {
+      state.markers.push({ segment, t: at, name });
+    }
+  }
+
+  /** `tracker.setCurrentPath(path)`: the markers so far belong to that path. */
+  private readCurrentPath(call: CallSite, state: StepState) {
+    const chain = call.args?.[0] ? asChain(this.evaluate(call.args[0])) : null;
+    if (chain && state.markers.length > 0) {
+      const key = chain.segments[0]!;
+      state.markersFor.set(key, [
+        ...(state.markersFor.get(key) ?? []),
+        ...state.markers,
+      ]);
+    }
+    state.markers = [];
+  }
+
   /** What the robot is told to do, in the order the code says it. */
   private readSteps() {
-    type Step =
-      | { kind: "follow"; chain: Chain; line: number }
-      | { kind: "wait"; ms: number }
-      | { kind: "turn"; degrees: number };
-    const steps: Step[] = [];
-    let start: Pose | null = null;
-    let markers: { segment: number; t: number; name: string }[] = [];
-    // By the first segment of the path they're for.
-    const markersFor = new Map<Segment, typeof markers>();
-    const asChain = (v: Value): Chain | null =>
-      v.t === "chain"
-        ? v
-        : v.t === "segment"
-          ? { t: "chain", segments: [v] }
-          : null;
+    const state: StepState = {
+      steps: [],
+      start: null,
+      markers: [],
+      markersFor: new Map(),
+    };
 
     this.tokens.forEach((t, i) => {
       if (t.kind !== "name") return;
       const args = this.callArgs(i);
-      const previous = this.tokens[i - 1]?.text;
-      const isNew = previous === "new";
-      if (
-        !args &&
-        !(t.text === "milliseconds" || t.text === "getElapsedTimeSeconds")
-      ) {
-        return;
-      }
+      const isTimer =
+        t.text === "milliseconds" || t.text === "getElapsedTimeSeconds";
+      if (!args && !isTimer) return;
 
-      switch (t.text) {
-        case "setPose":
-        case "setStartingPose": {
-          const pose = args?.[0] && this.pose(args[0]);
-          if (pose && !start) start = pose;
-          break;
-        }
-        case "follow":
-        case "followPath":
-        case "FollowPathCommand": {
-          if (t.text === "FollowPathCommand" && !isNew) break;
-          // follower.follow(path) / PedroCommands.follow(follower, path)
-          const candidates = args ?? [];
-          for (const arg of candidates) {
-            const chain = asChain(this.evaluate(arg));
-            if (!chain) continue;
-            const name = this.nameOf(arg);
-            const named = name ? { ...chain, name } : chain;
-            steps.push({ kind: "follow", chain: named, line: t.line });
-            break;
-          }
-          break;
-        }
-        case "WaitCommand":
-        case "Delay": {
-          if (!isNew) break;
-          const value = args?.[0] ? this.number(args[0]) : null;
-          if (value === null) break;
-          // WaitCommand takes milliseconds; NextFTC's Delay takes seconds.
-          steps.push({
-            kind: "wait",
-            ms: t.text === "Delay" ? value * 1000 : value,
-          });
-          break;
-        }
-        case "waitMs": {
-          const value = args?.[0] ? this.number(args[0]) : null;
-          if (value !== null) steps.push({ kind: "wait", ms: value });
-          break;
-        }
-        case "milliseconds":
-        case "getElapsedTimeSeconds": {
-          // pathTimer.milliseconds() > 1000, in a state machine.
-          const close =
-            this.tokens[i + 1]?.text === "(" ? this.parser.closing(i + 1) : i;
-          if (this.tokens[close + 1]?.text !== ">") break;
-          const { expr } = this.parser.parse(close + 2);
-          const value = this.number(expr);
-          if (value === null) break;
-          steps.push({
-            kind: "wait",
-            ms: t.text === "milliseconds" ? value : value * 1000,
-          });
-          break;
-        }
-        case "withHeading": {
-          // follower.hold(follower.pose().withHeading(radians)): a turn.
-          const holding = this.tokens
-            .slice(Math.max(0, i - 8), i)
-            .some((x) => x.text === "hold");
-          if (holding)
-            steps.push({ kind: "turn", degrees: this.angle(args?.[0]) });
-          break;
-        }
-        case "setTangentHeadingInterpolation":
-        case "setConstantHeadingInterpolation":
-        case "setLinearHeadingInterpolation":
-        case "setHeadingInterpolation": {
-          // scorePath.setLinearHeadingInterpolation(a, b), on a Path variable.
-          const owner = this.tokens[i - 2];
-          if (this.tokens[i - 1]?.text !== "." || owner?.kind !== "name") break;
-          const path = this.env.get(owner.text);
-          const heading = this.headingMethod(t.text, args ?? []);
-          if (path?.t === "segment" && heading) {
-            this.env.set(owner.text, { ...path, heading });
-          }
-          break;
-        }
-        case "turnTo":
-          steps.push({ kind: "turn", degrees: this.angle(args?.[0]) });
-          break;
-        case "turnToDegrees": {
-          const value = args?.[0] ? this.number(args[0]) : null;
-          if (value !== null) steps.push({ kind: "turn", degrees: value });
-          break;
-        }
-        case "onParametric": {
-          const segment = args?.[0] ? this.number(args[0]) : null;
-          const at = args?.[1] ? this.number(args[1]) : null;
-          const name = args?.[2] ? this.markerName(args[2]) : null;
-          if (segment !== null && at !== null && name) {
-            markers.push({ segment, t: at, name });
-          }
-          break;
-        }
-        case "setCurrentPath": {
-          const chain = args?.[0] ? asChain(this.evaluate(args[0])) : null;
-          if (chain && markers.length > 0) {
-            const key = chain.segments[0]!;
-            markersFor.set(key, [...(markersFor.get(key) ?? []), ...markers]);
-          }
-          markers = [];
-          break;
-        }
-        case "clearPathEvents":
-          markers = [];
-          break;
-      }
+      // Java is free to call something `toString` or `constructor`.
+      if (!Object.hasOwn(this.stepReaders, t.text)) return;
+      const isNew = this.tokens[i - 1]?.text === "new";
+      this.stepReaders[t.text](
+        { i, name: t.text, line: t.line, args, isNew },
+        state,
+      );
     });
-    return { steps, start: start as Pose | null, markersFor };
+    return {
+      steps: state.steps,
+      start: state.start,
+      markersFor: state.markersFor,
+    };
   }
 
   /** `NamedCommands.getCommand("Intake")` or `"Intake"`. */
@@ -720,6 +869,78 @@ class Reader {
       return expr.args[0].value;
     }
     return null;
+  }
+
+  /** Notes a path that doesn't start where the one before it ends. */
+  private noteGap(
+    previousEnd: Pose | null,
+    first: Pose,
+    chain: Chain,
+    line: number,
+  ) {
+    if (!previousEnd) return;
+    const gap = Math.hypot(first.x - previousEnd.x, first.y - previousEnd.y);
+    if (gap > 0.5) {
+      this.note(
+        line,
+        `${chain.name ?? "This path"} starts ${gap.toFixed(1)}" from where the path before it ends; it's drawn from there.`,
+      );
+    }
+  }
+
+  /** The line for segment `k` of a chain, as number `index` in the project. */
+  private toLine(
+    segment: Segment,
+    k: number,
+    chain: Chain,
+    chainMarkers: PendingMarker[],
+    index: number,
+  ): Line {
+    const first = segment.points[0]!;
+    const end = segment.points.at(-1)!;
+    const own =
+      segment.heading ??
+      (chain.heading ? undefined : { heading: "tangential" as const });
+    // The end pose's variable is the line's name in the app's own exports;
+    // otherwise the path's.
+    const name =
+      end.name ??
+      (k === 0
+        ? (chain.name ?? `Path ${index + 1}`)
+        : `${chain.name ?? "Path"} ${k + 1}`);
+    const fromCode = chainMarkers.filter((m) => m.segment === k);
+    const markers: EventMarker[] =
+      fromCode.length > 0
+        ? fromCode.map((m, j) => ({
+            id: `java-marker-${index}-${j}`,
+            name: m.name,
+            position: m.t,
+            lineIndex: index,
+          }))
+        : (end.markers ?? []).map((m, j) => ({
+            ...m,
+            id: `java-marker-${index}-${j}`,
+            lineIndex: index,
+          }));
+    const line: Line = {
+      id: `java-line-${index}`,
+      name,
+      startPoint: { x: first.x, y: first.y } as Point,
+      endPoint: {
+        x: end.x,
+        y: end.y,
+        ...(own ?? { heading: "tangential" }),
+        reverse: own?.reverse ?? false,
+      } as Point,
+      controlPoints: segment.points.slice(1, -1).map(({ x, y }) => ({ x, y })),
+      color: COLORS[index % COLORS.length]!,
+      isChain: k > 0,
+      eventMarkers: markers,
+    };
+    if (k === 0 && chain.heading) {
+      Object.assign(line, globalHeading(chain.heading));
+    }
+    return line;
   }
 
   read(): PedroReadResult {
@@ -768,68 +989,15 @@ class Reader {
       const { chain } = step;
       const chainMarkers = markersFor.get(chain.segments[0]!) ?? [];
       chain.segments.forEach((segment, k) => {
-        const index = lines.length;
-        const first = segment.points[0]!;
-        if (
-          previousEnd &&
-          Math.hypot(first.x - previousEnd.x, first.y - previousEnd.y) > 0.5
-        ) {
-          this.note(
-            step.line,
-            `${chain.name ?? "This path"} starts ${Math.hypot(first.x - previousEnd.x, first.y - previousEnd.y).toFixed(1)}" from where the path before it ends; it's drawn from there.`,
-          );
-        }
-        const end = segment.points.at(-1)!;
-        const own =
-          segment.heading ??
-          (chain.heading ? undefined : { heading: "tangential" as const });
-        // The end pose's variable is the line's name in the app's own
-        // exports; otherwise the path's.
-        const name =
-          end.name ??
-          (k === 0
-            ? (chain.name ?? `Path ${index + 1}`)
-            : `${chain.name ?? "Path"} ${k + 1}`);
-        const fromCode = chainMarkers.filter((m) => m.segment === k);
-        const markers: EventMarker[] =
-          fromCode.length > 0
-            ? fromCode.map((m, j) => ({
-                id: `java-marker-${index}-${j}`,
-                name: m.name,
-                position: m.t,
-                lineIndex: index,
-              }))
-            : (end.markers ?? []).map((m, j) => ({
-                ...m,
-                id: `java-marker-${index}-${j}`,
-                lineIndex: index,
-              }));
-        const line: Line = {
-          id: `java-line-${index}`,
-          name,
-          startPoint: { x: first.x, y: first.y } as Point,
-          endPoint: {
-            x: end.x,
-            y: end.y,
-            ...(own ?? { heading: "tangential" }),
-            reverse: own?.reverse ?? false,
-          } as Point,
-          controlPoints: segment.points
-            .slice(1, -1)
-            .map(({ x, y }) => ({ x, y })),
-          color: COLORS[index % COLORS.length]!,
-          isChain: k > 0,
-          eventMarkers: markers,
-        };
-        if (k === 0 && chain.heading)
-          Object.assign(line, globalHeading(chain.heading));
+        this.noteGap(previousEnd, segment.points[0]!, chain, step.line);
+        const line = this.toLine(segment, k, chain, chainMarkers, lines.length);
         lines.push(line);
         sequence.push({
           kind: "path",
           lineId: line.id!,
           isChain: k > 0 || undefined,
         } as SequenceItem);
-        previousEnd = end;
+        previousEnd = segment.points.at(-1)!;
       });
     }
 

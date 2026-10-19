@@ -6,7 +6,7 @@ import {
 } from "./timeCalculator";
 import { chainCornerIssues } from "./timeCalculator/chainIssues";
 import { getAngularDifference } from "./math";
-import { MAX_MACRO_DEPTH } from "../lib/macroUtils";
+import { MAX_MACRO_DEPTH } from "../config";
 import type {
   Point,
   Line,
@@ -99,105 +99,118 @@ function stepsInOrder(items: SequenceItem[], depth = 0): SequenceItem[] {
   );
 }
 
+/** The turn between two headings, in degrees. */
+const turnBetween = (from: number | undefined, to: number | undefined) =>
+  Math.abs(getAngularDifference(from ?? 0, to ?? 0));
+
 /**
- * Speeds, accelerations, per-segment totals and warnings for the path, as
- * shown in the Path Statistics panel. Times are in seconds.
+ * Collects the graph data, the table rows and the warnings for one path as the
+ * steps and the timeline are walked through together.
  */
-export function computePathStatistics(
-  startPoint: Point,
-  lines: Line[],
-  sequence: SequenceItem[],
-  settings: Settings,
-): PathStats {
-  const prediction = calculatePathTime(startPoint, lines, settings, sequence);
-  const timeline: TimelineEvent[] = prediction.timeline || [];
+class StatsCollector {
+  readonly segments: SegmentStat[] = [];
+  readonly velocityData: DataPoint[] = [];
+  readonly angularVelocityData: DataPoint[] = [];
+  readonly accelerationData: DataPoint[] = [];
+  readonly centripetalData: DataPoint[] = [];
+  readonly insights: Insight[] = [];
+  maxLinear = 0;
+  maxAngular = 0;
 
-  const segments: SegmentStat[] = [];
-  /** Where a step with no timeline event would start: right after the last one. */
-  const endOfLastSegment = () => {
-    const last = segments.at(-1);
-    return last ? last.startTime + last.time : 0;
-  };
-  const velocityData: DataPoint[] = [];
-  const angularVelocityData: DataPoint[] = [];
-  const accelerationData: DataPoint[] = [];
-  const centripetalData: DataPoint[] = [];
-  const insights: Insight[] = [];
+  private heading: number;
+  private position: Point;
 
-  const maxVel = settings.maxVelocity || 100;
-  const kFriction = settings.kFriction || 0;
-  // Beyond this sideways acceleration the wheels are likely to slip.
-  const frictionLimit = kFriction * GRAVITY;
-  const speedWarning = new InsightTracker(
+  private readonly maxVel: number;
+  private readonly kFriction: number;
+  /** Beyond this sideways acceleration the wheels are likely to slip. */
+  private readonly frictionLimit: number;
+  private readonly maxAccel: number;
+  private readonly maxDecel: number;
+  /** Speeding up or slowing down faster than the limits the simulation is meant to respect means the speed profile can't be trusted there. */
+  private readonly accelTolerance = 1.1;
+  private readonly speedWarning = new InsightTracker(
     "info",
     "Max Velocity Reached",
-    insights,
+    this.insights,
   );
-  const slipWarning = new InsightTracker(
+  private readonly slipWarning = new InsightTracker(
     "error",
     "Risk of Wheel Slip (Centripetal)",
-    insights,
+    this.insights,
   );
-
-  // Speeding up or slowing down faster than the limits the simulation is
-  // meant to respect means the speed profile can't be trusted there.
-  const maxAccel = settings.maxAcceleration || 0;
-  const maxDecel = settings.maxDeceleration || 0;
-  const accelTolerance = 1.1;
-  const accelWarning = new InsightTracker(
+  private readonly accelWarning = new InsightTracker(
     "warning",
     "Acceleration beyond the robot's limit",
-    insights,
+    this.insights,
   );
 
-  function addDataPoint(
+  constructor(
+    startPoint: Point,
+    private readonly lines: Line[],
+    sequence: SequenceItem[],
+    private readonly settings: Settings,
+  ) {
+    this.maxVel = settings.maxVelocity || 100;
+    this.kFriction = settings.kFriction || 0;
+    this.frictionLimit = this.kFriction * GRAVITY;
+    this.maxAccel = settings.maxAcceleration || 0;
+    this.maxDecel = settings.maxDeceleration || 0;
+    this.heading = startingHeading(startPoint, lines, sequence);
+    this.position = startPoint;
+  }
+
+  /** Where a step with no timeline event would start: right after the last one. */
+  endOfLastSegment() {
+    const last = this.segments.at(-1);
+    return last ? last.startTime + last.time : 0;
+  }
+
+  addDataPoint(
     time: number,
     linear: number,
     angular: number,
     acceleration: number,
     centripetal: number,
   ) {
-    velocityData.push({ time, value: linear });
-    angularVelocityData.push({ time, value: angular });
-    accelerationData.push({ time, value: acceleration });
-    centripetalData.push({ time, value: centripetal });
-    speedWarning.sample(time, linear >= maxVel * 0.99, linear);
-    accelWarning.sample(
+    this.velocityData.push({ time, value: linear });
+    this.angularVelocityData.push({ time, value: angular });
+    this.accelerationData.push({ time, value: acceleration });
+    this.centripetalData.push({ time, value: centripetal });
+    this.speedWarning.sample(time, linear >= this.maxVel * 0.99, linear);
+    this.accelWarning.sample(
       time,
-      (maxAccel > 0 && acceleration > maxAccel * accelTolerance) ||
-        (maxDecel > 0 && -acceleration > maxDecel * accelTolerance),
+      (this.maxAccel > 0 &&
+        acceleration > this.maxAccel * this.accelTolerance) ||
+        (this.maxDecel > 0 &&
+          -acceleration > this.maxDecel * this.accelTolerance),
       Math.abs(acceleration),
     );
-    slipWarning.sample(
+    this.slipWarning.sample(
       time,
-      kFriction > 0 && centripetal > frictionLimit,
+      this.kFriction > 0 && centripetal > this.frictionLimit,
       centripetal,
     );
   }
 
   /** Graph points for a wait (or a turn in place, which is a wait event). */
-  function graphStationaryEvent(ev: TimelineEvent) {
+  graphStationaryEvent(ev: TimelineEvent) {
     if (ev.type !== "wait" || ev.duration <= 0) return;
-    const turn = Math.abs(
-      getAngularDifference(ev.startHeading || 0, ev.targetHeading || 0),
-    );
-    addDataPoint(ev.startTime, 0, 0, 0, 0);
+    const turn = turnBetween(ev.startHeading, ev.targetHeading);
+    this.addDataPoint(ev.startTime, 0, 0, 0, 0);
     if (turn > 0.1) {
       // Draw the turn as a trapezoid: speed up, hold, slow down.
       const angular = toRadians(turn) / ev.duration;
-      addDataPoint(ev.startTime + ev.duration * 0.1, 0, angular, 0, 0);
-      addDataPoint(ev.endTime - ev.duration * 0.1, 0, angular, 0, 0);
+      this.addDataPoint(ev.startTime + ev.duration * 0.1, 0, angular, 0, 0);
+      this.addDataPoint(ev.endTime - ev.duration * 0.1, 0, angular, 0, 0);
     }
-    addDataPoint(ev.endTime, 0, 0, 0, 0);
+    this.addDataPoint(ev.endTime, 0, 0, 0, 0);
   }
 
   /** A row for a turn in place the simulation added before a path. */
-  function listInsertedTurn(ev: TimelineEvent) {
+  listInsertedTurn(ev: TimelineEvent) {
     if (ev.type !== "wait" || ev.waitId) return;
-    const turn = Math.abs(
-      getAngularDifference(ev.startHeading ?? 0, ev.targetHeading ?? 0),
-    );
-    segments.push({
+    const turn = turnBetween(ev.startHeading, ev.targetHeading);
+    this.segments.push({
       name: "Turn",
       startTime: ev.startTime,
       length: 0,
@@ -213,7 +226,7 @@ export function computePathStatistics(
    * Graph points and a row for the stretch where the robot is off the path
    * between two chained paths. Speeds come from how far the robot moves.
    */
-  function graphRecovery(ev: TimelineEvent) {
+  graphRecovery(ev: TimelineEvent) {
     const trace = ev.type === "recovery" ? ev.trace : undefined;
     if (!trace || trace.time.length < 2) return;
     const stride = 5;
@@ -246,7 +259,7 @@ export function computePathStatistics(
           Math.max(0, ax * ax + ay * ay - acceleration ** 2),
         );
       }
-      addDataPoint(
+      this.addDataPoint(
         ev.startTime + trace.time[i],
         speed,
         0,
@@ -256,7 +269,7 @@ export function computePathStatistics(
       previous = { vx, vy, speed, time: trace.time[i] };
     }
     const last = trace.time.length - 1;
-    segments.push({
+    this.segments.push({
       name: "Chained corner",
       startTime: ev.startTime,
       length: distance,
@@ -266,8 +279,8 @@ export function computePathStatistics(
       degrees: 0,
       color: "#eab308",
     });
-    maxLinear = Math.max(maxLinear, topSpeed);
-    addDataPoint(
+    this.maxLinear = Math.max(this.maxLinear, topSpeed);
+    this.addDataPoint(
       ev.startTime + trace.time[last],
       previous?.speed ?? 0,
       0,
@@ -276,24 +289,149 @@ export function computePathStatistics(
     );
   }
 
-  let heading = startingHeading(startPoint, lines, sequence);
-  let position: Point = startPoint;
-  let maxLinear = 0;
-  let maxAngular = 0;
+  /** The row for a wait, graphing it if it has a timeline event. */
+  addWait(
+    item: Extract<SequenceItem, { kind: "wait" }>,
+    event?: TimelineEvent,
+  ) {
+    if (event) this.graphStationaryEvent(event);
+    this.segments.push({
+      name: item.name || "Wait",
+      startTime: event ? event.startTime : this.endOfLastSegment(),
+      length: 0,
+      time: event ? event.duration : item.durationMs / 1000,
+      maxVel: 0,
+      maxAngVel: 0,
+      degrees: 0,
+      color: "#f59e0b",
+    });
+  }
 
-  /** Samples along one path's motion profile and adds its segment row. */
-  function analyzeTravel(line: Line, ev: TimelineEvent) {
-    const profile = ev.motionProfile;
+  /** The row for a turn in place, graphing it if it has a timeline event. */
+  addRotate(
+    item: Extract<SequenceItem, { kind: "rotate" }>,
+    event?: TimelineEvent,
+  ) {
+    if (event) this.graphStationaryEvent(event);
+    const turn =
+      event && event.duration > 0
+        ? Math.abs(
+            getAngularDifference(event.startHeading!, event.targetHeading!),
+          )
+        : 0;
+    this.segments.push({
+      name: item.name || "Rotate",
+      startTime: event ? event.startTime : this.endOfLastSegment(),
+      length: 0,
+      time: event ? event.duration : 0,
+      maxVel: 0,
+      maxAngVel:
+        event && event.duration > 0 ? toRadians(turn) / event.duration : 0,
+      degrees: turn,
+      color: "#d946ef",
+    });
+  }
+
+  /**
+   * Speeds and acceleration at step `i` of a path's motion profile. Where the
+   * event has no speed profile, they come from how far the step goes.
+   */
+  private stepMetrics(
+    i: number,
+    ev: TimelineEvent,
+    profile: number[],
+    analysis: ReturnType<typeof analyzePathSegment>,
+  ) {
     const headings = ev.headingProfile;
     const velocities = ev.velocityProfile;
+    const step = analysis.steps[i];
+    const dt = profile[i + 1] - profile[i];
+    const moving = dt > 1e-6;
+
+    let linear = 0;
+    if (velocities && velocities.length > i) linear = velocities[i];
+    else if (moving) linear = step.deltaLength / dt;
+
+    let angular = 0;
+    let turn = 0;
+    if (moving) {
+      turn =
+        headings && headings.length > i + 1
+          ? Math.abs(getAngularDifference(headings[i], headings[i + 1]))
+          : step.rotation;
+      angular = toRadians(turn) / dt;
+    }
+
+    let acceleration = 0;
+    if (moving) {
+      let next = 0;
+      if (velocities && velocities.length > i + 1) next = velocities[i + 1];
+      else if (analysis.steps[i + 1]) {
+        next = analysis.steps[i + 1].deltaLength / dt;
+      }
+      acceleration = (next - linear) / dt;
+    }
+
+    const centripetal =
+      step.radius > 0.001 ? (linear * linear) / step.radius : 0;
+    return { linear, angular, turn, acceleration, centripetal };
+  }
+
+  /**
+   * Graph points for the steps of a path's motion profile the robot drives.
+   * The robot may join the path part way along, or be handed over before its
+   * end; steps it doesn't drive have no place on the graph.
+   */
+  private graphProfile(
+    ev: TimelineEvent,
+    profile: number[],
+    analysis: ReturnType<typeof analyzePathSegment>,
+  ) {
+    const velocities = ev.velocityProfile;
+    let maxLinear = 0;
+    let maxAngular = 0;
+    let degreesTurned = 0;
+
+    const count = Math.min(profile.length - 1, analysis.steps.length);
+    let end = count;
+    for (let i = 0; i < count; i++) {
+      if (profile[i + 1] <= 1e-7) continue;
+      if (profile[i] >= ev.duration - 1e-9) {
+        end = i;
+        break;
+      }
+      const m = this.stepMetrics(i, ev, profile, analysis);
+      degreesTurned += m.turn;
+      maxLinear = Math.max(maxLinear, m.linear);
+      maxAngular = Math.max(maxAngular, m.angular);
+      this.addDataPoint(
+        ev.startTime + Math.max(0, profile[i]),
+        m.linear,
+        m.angular,
+        m.acceleration,
+        m.centripetal,
+      );
+    }
+    // Finish at the speed the robot actually leaves at; chained paths carry
+    // on without stopping, so this isn't always zero.
+    const exitSpeed =
+      velocities && velocities.length > end ? velocities[end] : 0;
+    this.addDataPoint(ev.endTime, exitSpeed, 0, 0, 0);
+    return { maxLinear, maxAngular, degreesTurned };
+  }
+
+  /** Samples along one path's motion profile and adds its segment row. */
+  analyzeTravel(line: Line, ev: TimelineEvent) {
+    const profile = ev.motionProfile;
+    const headings = ev.headingProfile;
     const analysis = analyzePathSegment(
-      position,
+      this.position,
       line.controlPoints as any,
       line.endPoint as any,
       profile?.length
         ? profile.length - 1
-        : (settings as any).resolution || 100,
-      headings?.length ? headings[0] : heading,
+        : (this.settings as any).resolution || 100,
+      headings?.length ? headings[0] : this.heading,
       // The profile's steps must line up with the analysis's steps.
       profile?.length ? profile.length - 1 : 0,
     );
@@ -303,69 +441,18 @@ export function computePathStatistics(
     let degreesTurned = 0;
 
     if (profile && analysis.steps.length > 0) {
-      const count = Math.min(profile.length - 1, analysis.steps.length);
-      // The robot may join the path part way along, or be handed over before
-      // its end; steps it doesn't drive have no place on the graph.
-      let end = count;
-      for (let i = 0; i < count; i++) {
-        if (profile[i + 1] <= 1e-7) continue;
-        if (profile[i] >= ev.duration - 1e-9) {
-          end = i;
-          break;
-        }
-        const step = analysis.steps[i];
-        const dt = profile[i + 1] - profile[i];
-        const moving = dt > 1e-6;
-
-        let linear = 0;
-        if (velocities && velocities.length > i) linear = velocities[i];
-        else if (moving) linear = step.deltaLength / dt;
-
-        let angular = 0;
-        if (moving) {
-          const turn =
-            headings && headings.length > i + 1
-              ? Math.abs(getAngularDifference(headings[i], headings[i + 1]))
-              : step.rotation;
-          angular = toRadians(turn) / dt;
-          degreesTurned += turn;
-        }
-
-        let acceleration = 0;
-        if (moving) {
-          let next = 0;
-          if (velocities && velocities.length > i + 1) next = velocities[i + 1];
-          else if (analysis.steps[i + 1]) {
-            next = analysis.steps[i + 1].deltaLength / dt;
-          }
-          acceleration = (next - linear) / dt;
-        }
-
-        const centripetal =
-          step.radius > 0.001 ? (linear * linear) / step.radius : 0;
-
-        segMaxLinear = Math.max(segMaxLinear, linear);
-        segMaxAngular = Math.max(segMaxAngular, angular);
-        addDataPoint(
-          ev.startTime + Math.max(0, profile[i]),
-          linear,
-          angular,
-          acceleration,
-          centripetal,
-        );
-      }
-      // Finish at the speed the robot actually leaves at; chained paths carry
-      // on without stopping, so this isn't always zero.
-      const exitSpeed =
-        velocities && velocities.length > end ? velocities[end] : 0;
-      addDataPoint(ev.endTime, exitSpeed, 0, 0, 0);
+      ({
+        maxLinear: segMaxLinear,
+        maxAngular: segMaxAngular,
+        degreesTurned,
+      } = this.graphProfile(ev, profile, analysis));
     } else {
       // No profile: assume constant speed across the segment.
       if (ev.duration > 0) {
         segMaxLinear = analysis.length / ev.duration;
         segMaxAngular = toRadians(analysis.netRotation) / ev.duration;
-        addDataPoint(ev.startTime, segMaxLinear, segMaxAngular, 0, 0);
-        addDataPoint(ev.endTime, segMaxLinear, segMaxAngular, 0, 0);
+        this.addDataPoint(ev.startTime, segMaxLinear, segMaxAngular, 0, 0);
+        this.addDataPoint(ev.endTime, segMaxLinear, segMaxAngular, 0, 0);
       }
       degreesTurned =
         line.endPoint.heading === "tangential"
@@ -373,8 +460,10 @@ export function computePathStatistics(
           : Math.abs(analysis.netRotation);
     }
 
-    segments.push({
-      name: line.name || `Path ${lines.findIndex((l) => l.id === line.id) + 1}`,
+    this.segments.push({
+      name:
+        line.name ||
+        `Path ${this.lines.findIndex((l) => l.id === line.id) + 1}`,
       startTime: ev.startTime,
       length: analysis.length,
       time: ev.duration,
@@ -383,15 +472,66 @@ export function computePathStatistics(
       degrees: degreesTurned,
       color: line.color,
     });
-    maxLinear = Math.max(maxLinear, segMaxLinear);
-    maxAngular = Math.max(maxAngular, segMaxAngular);
+    this.maxLinear = Math.max(this.maxLinear, segMaxLinear);
+    this.maxAngular = Math.max(this.maxAngular, segMaxAngular);
 
-    position = line.endPoint;
-    heading = analysis.startHeading + analysis.netRotation;
+    this.position = line.endPoint;
+    this.heading = analysis.startHeading + analysis.netRotation;
   }
 
+  /** Ends the warnings that are still going when the path finishes. */
+  closeWarnings(totalTime: number) {
+    this.speedWarning.close(totalTime);
+    this.accelWarning.close(totalTime);
+    this.slipWarning.close(totalTime);
+  }
+}
+
+/** A place in the timeline, moving forward as the steps that own its events are graphed. */
+class TimelineCursor {
+  private position = 0;
+
+  constructor(
+    private readonly stats: StatsCollector,
+    private readonly timeline: TimelineEvent[],
+  ) {}
+
+  /**
+   * The index of the next event that belongs to a step, or -1. The events
+   * passed on the way (inserted turns, say) are graphed as they are.
+   */
+  seek(belongsTo: (ev: TimelineEvent) => boolean): number {
+    const found = this.timeline.findIndex(
+      (ev, i) => i >= this.position && belongsTo(ev),
+    );
+    if (found === -1) return -1;
+    for (let i = this.position; i < found; i++) {
+      this.stats.graphStationaryEvent(this.timeline[i]);
+      this.stats.graphRecovery(this.timeline[i]);
+      this.stats.listInsertedTurn(this.timeline[i]);
+    }
+    this.position = found;
+    return found;
+  }
+
+  /** The event at `found` (from `seek`), moving past it. */
+  take(found: number): TimelineEvent | undefined {
+    return found === -1 ? undefined : this.timeline[this.position++];
+  }
+}
+
+/**
+ * Walks the steps and the timeline together, graphing each step. Timeline
+ * events between two steps (e.g. inserted turns) are graphed as they're passed.
+ */
+function graphSteps(
+  stats: StatsCollector,
+  steps: SequenceItem[],
+  lines: Line[],
+  timeline: TimelineEvent[],
+) {
   const lineIndexById = new Map(lines.map((l, i) => [l.id, i]));
-  const eventBelongsTo = (item: SequenceItem, ev: TimelineEvent) => {
+  const eventBelongsTo = (item: SequenceItem) => (ev: TimelineEvent) => {
     if (item.kind === "wait" || item.kind === "rotate") {
       // Turns in place are "wait" events in the timeline.
       return ev.type === "wait" && ev.waitId === item.id;
@@ -403,70 +543,36 @@ export function computePathStatistics(
     return false;
   };
 
-  addDataPoint(0, 0, 0, 0, 0);
-
-  // Walk the steps and the timeline together. Timeline events between two
-  // steps (e.g. inserted turns) are graphed as they're passed.
-  let cursor = 0;
-  for (const item of stepsInOrder(sequence)) {
-    const found = timeline.findIndex(
-      (ev, i) => i >= cursor && eventBelongsTo(item, ev),
-    );
-    let event: TimelineEvent | undefined;
-    if (found !== -1) {
-      for (let i = cursor; i < found; i++) {
-        graphStationaryEvent(timeline[i]);
-        graphRecovery(timeline[i]);
-        listInsertedTurn(timeline[i]);
-      }
-      cursor = found;
+  const cursor = new TimelineCursor(stats, timeline);
+  for (const item of steps) {
+    const found = cursor.seek(eventBelongsTo(item));
+    if (item.kind === "wait") {
+      stats.addWait(item, cursor.take(found));
+    } else if (item.kind === "rotate") {
+      stats.addRotate(item, cursor.take(found));
+    } else if (item.kind === "path") {
+      const line = lines[lineIndexById.get(item.lineId) ?? -1];
+      if (line && found !== -1) stats.analyzeTravel(line, cursor.take(found)!);
     }
-
-    if (item.kind === "wait" || item.kind === "rotate") {
-      if (found !== -1) {
-        event = timeline[found];
-        cursor++;
-        graphStationaryEvent(event);
-      }
-      if (item.kind === "wait") {
-        segments.push({
-          name: item.name || "Wait",
-          startTime: event ? event.startTime : endOfLastSegment(),
-          length: 0,
-          time: event ? event.duration : item.durationMs / 1000,
-          maxVel: 0,
-          maxAngVel: 0,
-          degrees: 0,
-          color: "#f59e0b",
-        });
-      } else {
-        const turn =
-          event && event.duration > 0
-            ? Math.abs(
-                getAngularDifference(event.startHeading!, event.targetHeading!),
-              )
-            : 0;
-        segments.push({
-          name: item.name || "Rotate",
-          startTime: event ? event.startTime : endOfLastSegment(),
-          length: 0,
-          time: event ? event.duration : 0,
-          maxVel: 0,
-          maxAngVel:
-            event && event.duration > 0 ? toRadians(turn) / event.duration : 0,
-          degrees: turn,
-          color: "#d946ef",
-        });
-      }
-      continue;
-    }
-
-    if (item.kind !== "path") continue;
-    const line = lines[lineIndexById.get(item.lineId) ?? -1];
-    if (!line || found === -1) continue;
-    cursor++;
-    analyzeTravel(line, timeline[found]);
   }
+}
+
+/**
+ * Speeds, accelerations, per-segment totals and warnings for the path, as
+ * shown in the Path Statistics panel. Times are in seconds.
+ */
+export function computePathStatistics(
+  startPoint: Point,
+  lines: Line[],
+  sequence: SequenceItem[],
+  settings: Settings,
+): PathStats {
+  const prediction = calculatePathTime(startPoint, lines, settings, sequence);
+  const timeline: TimelineEvent[] = prediction.timeline || [];
+  const stats = new StatsCollector(startPoint, lines, sequence, settings);
+
+  stats.addDataPoint(0, 0, 0, 0, 0);
+  graphSteps(stats, stepsInOrder(sequence), lines, timeline);
 
   // The chained corners worth a word: each is said once.
   for (const issue of chainCornerIssues(
@@ -476,7 +582,7 @@ export function computePathStatistics(
     sequence,
     settings,
   )) {
-    insights.push({
+    stats.insights.push({
       startTime: issue.startTime,
       endTime: issue.endTime,
       type: issue.severity,
@@ -486,22 +592,19 @@ export function computePathStatistics(
     });
   }
 
-  insights.sort((a, b) => a.startTime - b.startTime);
-
-  speedWarning.close(prediction.totalTime);
-  accelWarning.close(prediction.totalTime);
-  slipWarning.close(prediction.totalTime);
+  stats.insights.sort((a, b) => a.startTime - b.startTime);
+  stats.closeWarnings(prediction.totalTime);
 
   return {
     totalTime: prediction.totalTime,
     totalDistance: prediction.totalDistance,
-    maxLinearVelocity: maxLinear,
-    maxAngularVelocity: maxAngular,
-    segments,
-    velocityData,
-    angularVelocityData,
-    accelerationData,
-    centripetalData,
-    insights,
+    maxLinearVelocity: stats.maxLinear,
+    maxAngularVelocity: stats.maxAngular,
+    segments: stats.segments,
+    velocityData: stats.velocityData,
+    angularVelocityData: stats.angularVelocityData,
+    accelerationData: stats.accelerationData,
+    centripetalData: stats.centripetalData,
+    insights: stats.insights,
   };
 }

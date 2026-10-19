@@ -3,10 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/svelte";
 import ExportCodeDialog from "./ExportCodeDialog.svelte";
 
-vi.mock("../../../utils/codeExport/index", () => ({
-  generateCode: vi.fn(() => "export code"),
-}));
-
 vi.mock("../../../stores", async () => {
   const svelteStore = await import("svelte/store");
   return {

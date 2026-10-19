@@ -4,7 +4,6 @@
     Point,
     Line,
     SequenceItem,
-    Shape,
     Settings,
   } from "../../../types/index";
   // Fixed incorrect relative import: WaypointTable is one level up from the tabs folder
@@ -15,7 +14,6 @@
     lines: Line[];
     sequence: SequenceItem[];
     recordChange: () => void;
-    shapes: Shape[];
     settings: Settings;
     isActive?: boolean;
   }
@@ -25,19 +23,11 @@
     lines = $bindable(),
     sequence = $bindable(),
     recordChange,
-    shapes = $bindable(),
     settings,
     isActive = false,
   }: Props = $props();
 
   let waypointTableRef: ReturnType<typeof WaypointTable> | null = $state(null);
-
-  let collapsedObstacles = $state(shapes.map(() => true));
-  $effect(() => {
-    if (shapes.length !== collapsedObstacles.length) {
-      collapsedObstacles = shapes.map(() => true);
-    }
-  });
 
   // Exported methods
   export function copyTable() {
@@ -53,8 +43,6 @@
     bind:lines
     bind:sequence
     {recordChange}
-    bind:shapes
-    bind:collapsedObstacles
     {settings}
   />
 </div>

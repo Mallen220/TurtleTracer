@@ -42,56 +42,109 @@ const isNameStart = (c: string) => /[A-Za-z_$]/.test(c);
 const isNamePart = (c: string) => /[\w$]/.test(c);
 const isDigit = (c: string) => c >= "0" && c <= "9";
 
+/** Index just after the line comment at `i`: the end of the line. */
+function endOfLineComment(source: string, i: number): number {
+  while (i < source.length && source[i] !== "\n") i++;
+  return i;
+}
+
+/** Index just after the block comment at `i`, or the end of the source if it isn't closed. */
+function endOfBlockComment(source: string, i: number): number {
+  const end = source.indexOf("*/", i + 2);
+  return end === -1 ? source.length : end + 2;
+}
+
+/**
+ * The string or character literal that starts at `start` (on its quote), with
+ * escapes resolved, and the index to carry on from. A literal that isn't
+ * closed ends at the end of its line.
+ */
+function readLiteral(
+  source: string,
+  start: number,
+): { text: string; next: number } {
+  const quote = source[start];
+  let j = start + 1;
+  let text = "";
+  while (j < source.length && source[j] !== quote && source[j] !== "\n") {
+    if (source[j] === "\\") j++;
+    text += source[j] ?? "";
+    j++;
+  }
+  return { text, next: j + 1 };
+}
+
+/** The number at `i` as written (`1_000`, `3f`), and as its digits alone. */
+function readNumber(source: string, i: number): { raw: string; text: string } {
+  const match = /^(?:\d[\d_]*)?(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?[dDfFlL]?/.exec(
+    source.slice(i),
+  )!;
+  const raw = match[0] || source[i]!;
+  return { raw, text: raw.replaceAll("_", "").replace(/[dDfFlL]$/, "") };
+}
+
+/** What was found at a position in the source: a token (if any), how many lines it spanned and where to carry on. */
+interface Scanned {
+  token?: { kind: Token["kind"]; text: string };
+  lines?: number;
+  next: number;
+}
+
+/** Steps over whitespace and comments, if that's what starts at `i`. */
+function skipOver(source: string, i: number): Scanned | null {
+  const c = source[i]!;
+  if (c === "\n") return { lines: 1, next: i + 1 };
+  if (/\s/.test(c)) return { next: i + 1 };
+  if (source.startsWith("//", i)) return { next: endOfLineComment(source, i) };
+  if (source.startsWith("/*", i)) {
+    const stop = endOfBlockComment(source, i);
+    let lines = 0;
+    for (let j = i; j < stop; j++) if (source[j] === "\n") lines++;
+    return { lines, next: stop };
+  }
+  return null;
+}
+
+/** Reads the token that starts at `i`: a literal, number, name or symbol. */
+function readToken(source: string, i: number): Scanned {
+  const c = source[i]!;
+  if (c === '"' || c === "'") {
+    const literal = readLiteral(source, i);
+    return {
+      token: { kind: "string", text: literal.text },
+      next: literal.next,
+    };
+  }
+  if (isDigit(c) || (c === "." && isDigit(source[i + 1] ?? ""))) {
+    const number = readNumber(source, i);
+    return {
+      token: { kind: "number", text: number.text },
+      next: i + number.raw.length,
+    };
+  }
+  if (isNameStart(c)) {
+    let j = i + 1;
+    while (j < source.length && isNamePart(source[j]!)) j++;
+    return { token: { kind: "name", text: source.slice(i, j) }, next: j };
+  }
+  const symbol = SYMBOLS.find((s) => source.startsWith(s, i)) ?? c;
+  return { token: { kind: "symbol", text: symbol }, next: i + symbol.length };
+}
+
+/** Reads whatever starts at `i`, which is never past the end of `source`. */
+const scan = (source: string, i: number): Scanned =>
+  skipOver(source, i) ?? readToken(source, i);
+
 /** Splits Java source into tokens, leaving out whitespace and comments. */
 export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
   let line = 1;
   let i = 0;
-  const push = (kind: Token["kind"], text: string) =>
-    tokens.push({ kind, text, line });
-
   while (i < source.length) {
-    const c = source[i]!;
-    if (c === "\n") {
-      line++;
-      i++;
-    } else if (/\s/.test(c)) {
-      i++;
-    } else if (source.startsWith("//", i)) {
-      while (i < source.length && source[i] !== "\n") i++;
-    } else if (source.startsWith("/*", i)) {
-      const end = source.indexOf("*/", i + 2);
-      const stop = end === -1 ? source.length : end + 2;
-      for (let j = i; j < stop; j++) if (source[j] === "\n") line++;
-      i = stop;
-    } else if (c === '"' || c === "'") {
-      let j = i + 1;
-      let text = "";
-      while (j < source.length && source[j] !== c && source[j] !== "\n") {
-        if (source[j] === "\\") j++;
-        text += source[j] ?? "";
-        j++;
-      }
-      push("string", text);
-      i = j + 1;
-    } else if (isDigit(c) || (c === "." && isDigit(source[i + 1] ?? ""))) {
-      const match =
-        /^(?:\d[\d_]*)?(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?[dDfFlL]?/.exec(
-          source.slice(i),
-        )!;
-      const text = match[0] || c;
-      push("number", text.replaceAll("_", "").replace(/[dDfFlL]$/, ""));
-      i += text.length;
-    } else if (isNameStart(c)) {
-      let j = i + 1;
-      while (j < source.length && isNamePart(source[j]!)) j++;
-      push("name", source.slice(i, j));
-      i = j;
-    } else {
-      const symbol = SYMBOLS.find((s) => source.startsWith(s, i)) ?? c;
-      push("symbol", symbol);
-      i += symbol.length;
-    }
+    const scanned = scan(source, i);
+    if (scanned.token) tokens.push({ ...scanned.token, line });
+    line += scanned.lines ?? 0;
+    i = scanned.next;
   }
   return tokens;
 }
@@ -235,63 +288,73 @@ export class ExpressionParser {
       at.i++;
       return { kind: "string", value: t.text, line };
     }
-    if (t.kind === "name" && t.text === "new") {
-      at.i++;
-      let type = "";
-      while (this.peek(at)?.kind === "name" || this.peek(at)?.text === ".") {
-        type = this.peek(at)!.text === "." ? "" : this.peek(at)!.text;
-        at.i++;
-      }
-      // Type arguments: new ArrayList<>()
-      if (this.peek(at)?.text === "<") {
-        let depth = 0;
-        do {
-          const s = this.peek(at)?.text;
-          if (s === "<") depth++;
-          if (s === ">") depth--;
-          if (s === ">>") depth -= 2;
-          at.i++;
-        } while (depth > 0 && at.i < this.tokens.length);
-      }
-      if (this.peek(at)?.text !== "(") return { kind: "other", line };
-      const open = at.i;
-      at.i = this.closing(open) + 1;
-      // An anonymous class body.
-      if (this.peek(at)?.text === "{") at.i = this.closing(at.i) + 1;
-      return { kind: "new", type, args: this.args(open), line };
-    }
+    if (t.kind === "name" && t.text === "new")
+      return this.construction(at, line);
     if (t.kind === "name") {
       at.i++;
       // A lambda with one parameter: x -> ...
       if (this.peek(at)?.text === "->") return this.skipLambda(at, line);
       return { kind: "name", name: t.text, line };
     }
-    if (t.text === "(") {
-      const close = this.closing(at.i);
-      // A lambda: (...) -> ...
-      if (this.tokens[close + 1]?.text === "->") {
-        at.i = close + 1;
-        return this.skipLambda(at, line);
-      }
-      // A cast, such as (double) x, keeps the value.
-      const inner = this.tokens.slice(at.i + 1, close);
-      if (
-        inner.length === 1 &&
-        inner[0]!.kind === "name" &&
-        /^[a-z]/.test(inner[0]!.text) &&
-        this.tokens[close + 1] &&
-        this.tokens[close + 1]!.text !== "."
-      ) {
-        at.i = close + 1;
-        return this.unary(at);
-      }
-      at.i++;
-      const expr = this.expression(at, 0);
-      at.i = close + 1;
-      return expr;
-    }
+    if (t.text === "(") return this.parenthesized(at, line);
     at.i++;
     return { kind: "other", line };
+  }
+
+  /** `new Type<...>(args) { body }`, from the `new`. */
+  private construction(at: { i: number }, line: number): Expr {
+    at.i++;
+    let type = "";
+    while (this.peek(at)?.kind === "name" || this.peek(at)?.text === ".") {
+      type = this.peek(at)!.text === "." ? "" : this.peek(at)!.text;
+      at.i++;
+    }
+    this.skipTypeArguments(at);
+    if (this.peek(at)?.text !== "(") return { kind: "other", line };
+    const open = at.i;
+    at.i = this.closing(open) + 1;
+    // An anonymous class body.
+    if (this.peek(at)?.text === "{") at.i = this.closing(at.i) + 1;
+    return { kind: "new", type, args: this.args(open), line };
+  }
+
+  /** Steps over type arguments such as `<>` or `<String, List<Integer>>`. */
+  private skipTypeArguments(at: { i: number }) {
+    if (this.peek(at)?.text !== "<") return;
+    let depth = 0;
+    do {
+      const s = this.peek(at)?.text;
+      if (s === "<") depth++;
+      if (s === ">") depth--;
+      if (s === ">>") depth -= 2;
+      at.i++;
+    } while (depth > 0 && at.i < this.tokens.length);
+  }
+
+  /** A bracketed expression, a cast, or the start of a lambda, from the `(`. */
+  private parenthesized(at: { i: number }, line: number): Expr {
+    const close = this.closing(at.i);
+    // A lambda: (...) -> ...
+    if (this.tokens[close + 1]?.text === "->") {
+      at.i = close + 1;
+      return this.skipLambda(at, line);
+    }
+    // A cast, such as (double) x, keeps the value.
+    const inner = this.tokens.slice(at.i + 1, close);
+    if (
+      inner.length === 1 &&
+      inner[0]!.kind === "name" &&
+      /^[a-z]/.test(inner[0]!.text) &&
+      this.tokens[close + 1] &&
+      this.tokens[close + 1]!.text !== "."
+    ) {
+      at.i = close + 1;
+      return this.unary(at);
+    }
+    at.i++;
+    const expr = this.expression(at, 0);
+    at.i = close + 1;
+    return expr;
   }
 
   /** Steps over a lambda's body (after `->`): a block or one expression. */

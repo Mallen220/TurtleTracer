@@ -31,7 +31,5 @@
   bind:lines
   bind:sequence
   {recordChange}
-  shapes={[]}
-  collapsedObstacles={[]}
   {settings}
 />

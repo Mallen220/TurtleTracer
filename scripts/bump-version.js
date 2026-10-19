@@ -31,7 +31,7 @@ async function bumpVersion() {
   const newVersion = await ask("Enter new version (e.g., 1.2.0): ");
 
   if (!newVersion.match(/^\d+\.\d+\.\d+$/)) {
-    console.error("❌ Version must be in format X.Y.Z");
+    console.error("Version must be in format X.Y.Z");
     rl.close();
     return;
   }
@@ -41,7 +41,7 @@ async function bumpVersion() {
   // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   await fs.writeFile(packagePath, JSON.stringify(packageJson, null, 2));
 
-  console.log(`✅ Updated version to ${newVersion}`);
+  console.log(`Updated version to ${newVersion}`);
 
   // Handle newest.md
   const newestPath = path.join(
@@ -58,11 +58,11 @@ async function bumpVersion() {
       );
       // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.rename(newestPath, newFeaturePath);
-      console.log(`✅ Renamed newest.md to v${newVersion}.md`);
+      console.log(`Renamed newest.md to v${newVersion}.md`);
     }
   } catch (err) {
     if (err.code !== "ENOENT") {
-      console.error("❌ Error handling newest.md:", err);
+      console.error("Error handling newest.md:", err);
     }
   }
 
@@ -85,10 +85,10 @@ async function bumpVersion() {
       // It doesn't exist, create it.
       // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.writeFile(newestPath, template);
-      console.log(`✅ Created new newest.md`);
+      console.log(`Created new newest.md`);
     }
   } catch (err) {
-    console.error("❌ Error creating newest.md:", err);
+    console.error("Error creating newest.md:", err);
   }
 
   // Create a simple changelog entry
@@ -110,45 +110,45 @@ async function bumpVersion() {
 
     // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.writeFile(changelogPath, newEntry + changelogContent);
-    console.log("✅ Updated CHANGELOG.md");
+    console.log("Updated CHANGELOG.md");
   }
 
   rl.close();
-  console.log("\n🎉 Version bumped successfully!");
+  console.log("\nVersion bumped successfully!");
   console.log("\nCommitting and pushing changes...");
 
   try {
     // Stage all changes
     await execAsync("git add .", { cwd: path.join(__dirname, "..") });
-    console.log("✅ Staged changes");
+    console.log("Staged changes");
 
     // Commit changes
     await execAsync(`git commit -m "Bump version to v${newVersion}"`, {
       cwd: path.join(__dirname, ".."),
     });
-    console.log("✅ Committed changes");
+    console.log("Committed changes");
 
     // Push changes
     await execAsync("git push", { cwd: path.join(__dirname, "..") });
-    console.log("✅ Pushed changes");
+    console.log("Pushed changes");
 
     // Create and push tag
     await execAsync(`git tag -a v${newVersion} -m "Release ${newVersion}"`, {
       cwd: path.join(__dirname, ".."),
     });
-    console.log(`✅ Created tag v${newVersion}`);
+    console.log(`Created tag v${newVersion}`);
 
     await execAsync(`git push origin v${newVersion}`, {
       cwd: path.join(__dirname, ".."),
     });
-    console.log(`✅ Pushed tag v${newVersion}`);
+    console.log(`Pushed tag v${newVersion}`);
 
-    console.log("\n🚀 Release complete!");
+    console.log("\nRelease complete!");
     console.log(
       "The GitHub Actions workflow will now build and create a draft release.",
     );
   } catch (error) {
-    console.error("\n❌ Git operation failed:", error.message);
+    console.error("\nGit operation failed:", error.message);
     console.log("\nYou may need to run these commands manually:");
     console.log("1. git add .");
     console.log('2. git commit -m "Bump version to v' + newVersion + '"');

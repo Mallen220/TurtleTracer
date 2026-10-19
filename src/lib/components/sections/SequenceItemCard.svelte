@@ -7,20 +7,11 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { selectedPointId, selectedLineId } from "../../../stores";
-  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import CardControls from "./CardControls.svelte";
   import type { ActionDefinition, SequenceItem } from "../../../types/index";
   import { tooltipPortal } from "../../actions/portal";
   import InsertAfterBar from "./InsertAfterBar.svelte";
-  import {
-    ChevronRightIcon,
-    LinkIcon,
-    EyeIcon,
-    EyeSlashIcon,
-    LockIcon,
-    UnlockIcon,
-    ArrowUpIcon,
-    ArrowDownIcon,
-  } from "../icons";
+  import { ChevronRightIcon, LinkIcon } from "../icons";
 
   type Step = Extract<SequenceItem, { kind: "wait" | "rotate" | "macro" }>;
 
@@ -205,87 +196,23 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-1">
-      <button
-        onclick={(e) => {
-          e.stopPropagation();
-          toggle("hidden");
-        }}
-        class="{iconButton} {colors.focus}"
-        title="{isHidden ? 'Show' : 'Hide'} {label}"
-        aria-label="{isHidden ? 'Show' : 'Hide'} {label}"
-      >
-        {#if isHidden}
-          <EyeSlashIcon
-            className="size-4 text-neutral-500 dark:text-neutral-400"
-            strokeWidth={2}
-          />
-        {:else}
-          <EyeIcon className="size-4" strokeWidth={2} />
-        {/if}
-      </button>
-
-      <button
-        onclick={(e) => {
-          e.stopPropagation();
-          toggle("locked");
-        }}
-        class="{iconButton} {colors.focus}"
-        title="{item.locked ? 'Unlock' : 'Lock'} {label}"
-        aria-label="{item.locked ? 'Unlock' : 'Lock'} {label}"
-      >
-        {#if item.locked}
-          <LockIcon className="size-4 {colors.text}" />
-        {:else}
-          <UnlockIcon className="size-4" strokeWidth={2} />
-        {/if}
-      </button>
-
-      <div
-        class="h-4 w-px bg-neutral-200 dark:bg-neutral-700 mx-1"
-        role="presentation"
-        aria-hidden="true"
-      ></div>
-
-      <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-md p-0.5"
-      >
-        <button
-          onclick={(e) => {
-            e.stopPropagation();
-            onMoveUp();
-          }}
-          disabled={!canMoveUp || item.locked}
-          class="{moveButton} {colors.focus}"
-          title="Move Up"
-          aria-label="Move Up"
-        >
-          <ArrowUpIcon className="size-3.5" />
-        </button>
-        <button
-          onclick={(e) => {
-            e.stopPropagation();
-            onMoveDown();
-          }}
-          disabled={!canMoveDown || item.locked}
-          class="{moveButton} {colors.focus}"
-          title="Move Down"
-          aria-label="Move Down"
-        >
-          <ArrowDownIcon className="size-3.5" />
-        </button>
-      </div>
-
-      {@render headerButtons?.()}
-
-      <DeleteButtonWithConfirm
-        onclick={() => {
-          if (!item.locked) onRemove();
-        }}
-        disabled={item.locked}
-        title="Remove {label}"
-      />
-    </div>
+    <CardControls
+      {label}
+      hidden={isHidden}
+      locked={!!item.locked}
+      {canMoveUp}
+      {canMoveDown}
+      ontoggleHidden={() => toggle("hidden")}
+      ontoggleLocked={() => toggle("locked")}
+      {onMoveUp}
+      {onMoveDown}
+      {onRemove}
+      buttonClass="{iconButton} {colors.focus}"
+      moveClass="{moveButton} {colors.focus}"
+      lockedIconClass={colors.text}
+      deleteTitle="Remove {label}"
+      extra={headerButtons}
+    />
   </div>
 
   {#if !collapsed}
