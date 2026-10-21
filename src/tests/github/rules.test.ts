@@ -47,7 +47,7 @@ describe("what Turtle Tracer may write in a repository", () => {
   });
 
   it("won't touch anything else", () => {
-    for (const path of ["README.md", "build.gradle", "TeamCode/Robot.kt"]) {
+    for (const path of ["README.md", "build.gradle", "TeamCode/robot.py"]) {
       expect(() => checkWrite(path, undefined), path).toThrow(
         /only changes path projects/,
       );
@@ -61,6 +61,22 @@ describe("what Turtle Tracer may write in a repository", () => {
         undefined,
       ),
     ).toThrow(/isn't compiled/);
+  });
+
+  it("writes generated Kotlin where Kotlin is compiled, and never a person's", () => {
+    const KOTLIN = "TeamCode/src/main/kotlin/org/team";
+    expect(() => checkWrite(`${KOTLIN}/Far.kt`, undefined)).not.toThrow();
+    expect(() => checkWrite(`${JAVA}/Far.kt`, GENERATED)).not.toThrow();
+    expect(() => checkWrite(`${KOTLIN}/Robot.kt`, "class Robot")).toThrow(
+      /wasn't generated/,
+    );
+    // Java isn't compiled from the Kotlin folder.
+    expect(() => checkWrite(`${KOTLIN}/Far.java`, undefined)).toThrow(
+      /isn't compiled/,
+    );
+    expect(() => checkWrite("TeamCode/Robot.kt", undefined)).toThrow(
+      /isn't compiled/,
+    );
   });
 
   it("only deletes or renames path projects", () => {
@@ -91,6 +107,15 @@ describe("what Turtle Tracer may write in a repository", () => {
     );
     expect(packageForJavaFile("TeamCode/src/main/java/Far.java")).toBeNull();
     expect(packageForJavaFile("elsewhere/Far.java")).toBeNull();
+    expect(packageForJavaFile(`${JAVA}/autos/Far.kt`)).toBe(
+      "org.firstinspires.ftc.teamcode.autos",
+    );
+    expect(packageForJavaFile("TeamCode/src/main/kotlin/a/b/Far.kt")).toBe(
+      "a.b",
+    );
+    expect(
+      packageForJavaFile("TeamCode/src/main/kotlin/a/Far.java"),
+    ).toBeNull();
   });
 });
 

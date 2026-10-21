@@ -1,10 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// Reads paths from Pedro Pathing 3 code: poses (p.of, new Pose, buildPose,
-// pp.get), line(...) / curve(...) segments, path(...) chains and their
-// headings, the order they're followed in, waits, turns and event markers.
-// It works out the values the code would have, as far as the building blocks
-// above go; it isn't a Java interpreter, so anything else it meets is skipped,
-// with a note for the user.
+// Reads paths from Pedro Pathing 3 code, in Java or Kotlin: poses (p.of,
+// new Pose, buildPose, pp.get), line(...) / curve(...) segments, path(...)
+// chains and their headings, the order they're followed in, waits, turns and
+// event markers. It works out the values the code would have, as far as the
+// building blocks above go; it isn't an interpreter, so anything else it
+// meets is skipped, with a note for the user.
 import type {
   EventMarker,
   Line,
@@ -18,6 +18,7 @@ import {
   ExpressionParser,
   tokenize,
   type Expr,
+  type SourceLanguage,
   type Token,
 } from "./javaTokens";
 
@@ -38,6 +39,8 @@ export interface PedroReadOptions {
    * from, or null if it can't be found.
    */
   projectFile?: (fileName: string) => TurtleData | null;
+  /** Java when missing. */
+  language?: SourceLanguage;
 }
 
 type Heading =
@@ -130,6 +133,9 @@ const asChain = (v: Value): Chain | null =>
       : null;
 
 const UNKNOWN: Value = { t: "unknown" };
+
+/** What can start a Kotlin line that continues the expression above it. */
+const CONTINUATIONS = new Set([".", "?.", "?:", "&&", "||"]);
 const toDegrees = (radians: number) => (radians * 180) / Math.PI;
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
@@ -161,13 +167,16 @@ class Reader {
   private readonly assigned: { name: string; line: number }[] = [];
   readonly notes: ReadNote[] = [];
   private readonly projects = new Map<string, Map<string, Pose> | null>();
+  private readonly kotlin: boolean;
 
   constructor(
     source: string,
     private readonly options: PedroReadOptions,
   ) {
-    this.tokens = tokenize(source);
-    this.parser = new ExpressionParser(this.tokens);
+    const language = options.language ?? "java";
+    this.kotlin = language === "kotlin";
+    this.tokens = tokenize(source, language);
+    this.parser = new ExpressionParser(this.tokens, language);
   }
 
   private note(line: number, message: string) {
@@ -253,6 +262,10 @@ class Reader {
         if (known) {
           return known.t === "pose" ? { ...known, name: expr.name } : known;
         }
+        // kotlin.math.PI
+        if (this.kotlin && expr.name === "PI") {
+          return { t: "number", value: Math.PI };
+        }
         return UNKNOWN;
       }
       case "member":
@@ -267,6 +280,10 @@ class Reader {
         return { t: "number", value: expr.op === "-" ? -v : v };
       }
       case "binary": {
+        if (expr.op === "?:") {
+          const left = this.evaluate(expr.left);
+          return left.t === "unknown" ? this.evaluate(expr.right) : left;
+        }
         const a = this.number(expr.left);
         const b = this.number(expr.right);
         if (a === null || b === null) return UNKNOWN;
@@ -306,10 +323,21 @@ class Reader {
     if (constant) return constant;
     // this.x, paths.x and the like: the variable itself.
     const base = this.evaluate(object);
+    if (base.t === "number" && this.kotlin) return Reader.duration(base, name);
     if (base.t === "unknown" || object.kind === "name") {
       const known = this.env.get(name);
       if (known) return known.t === "pose" ? { ...known, name } : known;
     }
+    return UNKNOWN;
+  }
+
+  /**
+   * Kotlin's `0.5.seconds` and `500.milliseconds`, as seconds: the one place
+   * they're read (NextFTC's Delay) takes seconds.
+   */
+  private static duration(n: { value: number }, unit: string): Value {
+    if (unit === "seconds") return { t: "number", value: n.value };
+    if (unit === "milliseconds") return { t: "number", value: n.value / 1000 };
     return UNKNOWN;
   }
 
@@ -449,6 +477,9 @@ class Reader {
     line: number,
   ): Value {
     switch (object.t) {
+      case "number":
+        // Kotlin's conversions, such as `90.toDouble()`.
+        return /^to(Double|Float|Int|Long)$/.test(method) ? object : UNKNOWN;
       case "factory":
         return method === "of"
           ? this.poseFromFactory(object.radians, args, line)
@@ -665,14 +696,76 @@ class Reader {
 
   // --- The file -------------------------------------------------------------
 
+  /**
+   * The variable assigned by the `=` (or Kotlin `by`) at token `i`. In
+   * Kotlin that's before the type, if there is one: `val start: Pose = ...`.
+   */
+  private assignmentTarget(i: number): Token | null {
+    const before = this.tokens[i - 1];
+    if (before?.kind !== "name" && !this.kotlin) return null;
+    if (this.kotlin) {
+      let j = i - 1;
+      const isTypePart = (t: Token) =>
+        t.kind === "name" ||
+        [".", "<", ">", ">>", ",", "?", "*"].includes(t.text);
+      while (
+        j > 0 &&
+        isTypePart(this.tokens[j]!) &&
+        this.tokens[j]!.line === before?.line
+      ) {
+        j--;
+      }
+      const name = this.tokens[j - 1];
+      if (this.tokens[j]?.text === ":") {
+        // `fun f(): Pose = ...` has a return type, not a variable.
+        return name?.kind === "name" ? name : null;
+      }
+    }
+    return before?.kind === "name" ? before : null;
+  }
+
+  /**
+   * Where the value of `val x by lazy { ... }` starts: the last statement in
+   * the braces at `open`.
+   */
+  private lazyValueStart(open: number): number {
+    const close = this.parser.closing(open);
+    let start = open + 1;
+    let depth = 0;
+    for (let i = open + 1; i < close; i++) {
+      const t = this.tokens[i]!;
+      // A line starting `.member` or `?: x` carries on the one before.
+      const continues = CONTINUATIONS.has(t.text) && t.kind === "symbol";
+      const newStatement =
+        depth === 0 &&
+        ((t.line > this.tokens[i - 1]!.line && !continues) ||
+          this.tokens[i - 1]!.text === ";");
+      if (newStatement) start = i;
+      if ("([{".includes(t.text) && t.kind === "symbol") depth++;
+      if (")]}".includes(t.text) && t.kind === "symbol") depth--;
+    }
+    return start;
+  }
+
   /** Every `name = value` in the file, worked out in order. */
   private readAssignments() {
     const assignments: { name: string; start: number; line: number }[] = [];
+    // Kotlin's named arguments and default parameter values are `=` in brackets.
+    let parens = 0;
     this.tokens.forEach((t, i) => {
-      if (t.kind !== "symbol" || t.text !== "=") return;
-      const target = this.tokens[i - 1];
-      if (target?.kind !== "name") return;
-      assignments.push({ name: target.text, start: i + 1, line: target.line });
+      if (t.kind === "symbol" && t.text === "(") parens++;
+      if (t.kind === "symbol" && t.text === ")") parens--;
+      const lazy =
+        this.kotlin &&
+        t.text === "by" &&
+        this.tokens[i + 1]?.text === "lazy" &&
+        this.tokens[i + 2]?.text === "{";
+      const assigns = t.kind === "symbol" && t.text === "=";
+      if (!lazy && !(assigns && !(this.kotlin && parens > 0))) return;
+      const target = this.assignmentTarget(i);
+      if (!target) return;
+      const start = lazy ? this.lazyValueStart(i + 2) : i + 1;
+      assignments.push({ name: target.text, start, line: target.line });
     });
     // Twice, so a value can use one assigned later in the file (a field
     // declared below the constructor that sets it, say).
@@ -849,7 +942,14 @@ class Reader {
 
       // Java is free to call something `toString` or `constructor`.
       if (!Object.hasOwn(this.stepReaders, t.text)) return;
-      const isNew = this.tokens[i - 1]?.text === "new";
+      const before = this.tokens[i - 1]?.text;
+      // Kotlin constructs a class by calling it.
+      const isNew =
+        before === "new" ||
+        (this.kotlin &&
+          /^[A-Z]/.test(t.text) &&
+          before !== "." &&
+          before !== "?.");
       this.stepReaders[t.text](
         { i, name: t.text, line: t.line, args, isNew },
         state,
@@ -1068,8 +1168,9 @@ function globalHeading(h: Heading): Partial<Line> {
 }
 
 /**
- * The paths in Pedro Pathing 3 code, as a project, with notes on anything
- * that couldn't be read. A project with no lines means none were found.
+ * The paths in Pedro Pathing 3 code (Java unless `options.language` says
+ * Kotlin), as a project, with notes on anything that couldn't be read. A
+ * project with no lines means none were found.
  */
 export function readPedroJava(
   source: string,

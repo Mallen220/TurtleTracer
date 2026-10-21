@@ -33,8 +33,8 @@ const auto = (endX: number) => `
     public void loop() { follower.follow(Score); }
   }`;
 
-/** The desktop app's API, with a Java file whose saves the test makes. */
-function desktop(files: Record<string, string>) {
+/** The desktop app's API, with a code file at `path` whose saves the test makes. */
+function desktop(files: Record<string, string>, path = JAVA) {
   let changed: ((path: string) => void) | null = null;
   const api = {
     readFile: vi.fn(async (path: string) => {
@@ -42,7 +42,7 @@ function desktop(files: Record<string, string>) {
       return files[path]!;
     }),
     fileExists: vi.fn(async (path: string) => path in files),
-    chooseJavaFile: vi.fn(async () => JAVA),
+    chooseJavaFile: vi.fn(async () => path),
     followJavaFile: vi.fn(async () => true),
     unfollowJavaFile: vi.fn(async () => true),
     onJavaFileChanged: vi.fn((callback: (path: string) => void) => {
@@ -50,10 +50,10 @@ function desktop(files: Record<string, string>) {
       return () => (changed = null);
     }),
   };
-  /** Saves the Java file "in the editor". */
+  /** Saves the file "in the editor". */
   const save = async (source: string) => {
-    files[JAVA] = source;
-    changed?.(JAVA);
+    files[path] = source;
+    changed?.(path);
     await vi.waitFor(() => {
       const followed = get(followedJava);
       if (!followed) return;
@@ -222,6 +222,100 @@ describe("following a Java file", () => {
     expect(get(followedJava)).toBeNull();
     expect(get(isUnsaved)).toBe(true);
     confirmSpy.mockRestore();
+  });
+});
+
+const KOTLIN =
+  "/team/TeamCode/src/main/kotlin/org/firstinspires/ftc/teamcode/Auto.kt";
+
+const kotlinAuto = (endX: number) => `
+class Auto : OpMode() {
+    private val p = PoseFactory.degrees()
+    private lateinit var score: Path
+
+    override fun init() {
+        follower.setPose(p.of(10.0, 20.0, 0.0))
+        score = line(p.of(10.0, 20.0, 0.0), p.of(${endX}.0, 20.0, 0.0)).tangent()
+    }
+
+    override fun loop() {
+        follower.follow(score)
+    }
+}`;
+
+describe("following a Kotlin file", () => {
+  beforeEach(() => {
+    env = desktop({ [KOTLIN]: kotlinAuto(50) }, KOTLIN);
+    (globalThis as { electronAPI?: unknown }).electronAPI = env.api;
+  });
+
+  it("shows its paths and updates them on each save", async () => {
+    expect(await followJavaFile()).toBe(true);
+    expect(endX()).toBe(50);
+    expect(get(followedJava)).toMatchObject({ name: "Auto.kt", error: null });
+    await env.save(kotlinAuto(80));
+    expect(endX()).toBe(80);
+  });
+
+  it("keeps the last version that worked while a bracket or string is open", async () => {
+    await followJavaFile();
+    await env.save(
+      kotlinAuto(80).replace("follower.follow(score)", "follower.follow(score"),
+    );
+    expect(endX()).toBe(50);
+    expect(get(followedJava)?.error).toMatchObject({
+      line: 12,
+      message: "This ( isn't closed before the } on line 13.",
+    });
+
+    await env.save(`${kotlinAuto(80)}
+val s = "half`);
+    expect(endX()).toBe(50);
+    expect(get(followedJava)?.error).toMatchObject({
+      line: 15,
+      message: "This string or comment isn't closed.",
+    });
+
+    await env.save(kotlinAuto(90));
+    expect(endX()).toBe(90);
+    expect(get(followedJava)?.error).toBeNull();
+  });
+
+  it("finds the project file a Kotlin reader loads, from src/main/kotlin", async () => {
+    const project = {
+      startPoint: { x: 1, y: 2, heading: "constant", degrees: 0 },
+      lines: [
+        {
+          id: "x",
+          name: "Score",
+          endPoint: { x: 30, y: 40, heading: "tangential" },
+          controlPoints: [],
+          color: "#fff",
+        },
+      ],
+      sequence: [{ kind: "path", lineId: "x" }],
+      shapes: [],
+    };
+    env = desktop(
+      {
+        [KOTLIN]: `
+class Auto(hw: HardwareMap) {
+    init {
+        val pp = TurtleTracerReader("Far.turt", hw.appContext)
+        val startPoint = pp.get("startPoint")
+        val Score = pp.get("Score")
+        follower.follow(line(startPoint, Score).tangent())
+    }
+}`,
+        "/team/TeamCode/src/main/assets/AutoPaths/Far.turt":
+          JSON.stringify(project),
+      },
+      KOTLIN,
+    );
+    (globalThis as { electronAPI?: unknown }).electronAPI = env.api;
+    await followJavaFile();
+    expect(get(linesStore)[0]?.endPoint).toMatchObject({ x: 30, y: 40 });
+    expect(get(followedJava)?.notes).toEqual([]);
   });
 });
 

@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   COMMAND_LIBRARIES,
   DEFAULT_COMMAND_LIBRARY,
+  commandsForContext,
   getCommandLibrary,
   libraryForContext,
 } from "../lib/exporters/commandLibraries";
@@ -29,5 +30,21 @@ describe("command library registry", () => {
     expect(
       libraryForContext({ targetLibrary: "Ivy", isNextFTC: true }).id,
     ).toBe("Ivy");
+  });
+
+  it("gives actions the commands for their context's library and language", () => {
+    expect(commandsForContext({ targetLibrary: "Ivy" }).wait(500)).toBe(
+      "Commands.waitMs(500)",
+    );
+    expect(
+      commandsForContext({ targetLibrary: "Ivy", language: "kotlin" }).wait(
+        500,
+      ),
+    ).toBe("Commands.waitMs(500.0)");
+    expect(
+      commandsForContext({ isNextFTC: true, language: "kotlin" }).instant(
+        "{ a(); }",
+      ),
+    ).toBe("InstantCommand { a(); }");
   });
 });

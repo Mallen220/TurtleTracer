@@ -1,16 +1,19 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// The Java files this process has shown the page: one picked in the file dialog
-// or listed in a folder. Only those can be followed, so a path the page makes
-// up never reaches the file system watcher.
+// The Java and Kotlin files this process has shown the page: one picked in the
+// file dialog or listed in a folder. Only those can be followed, so a path the
+// page makes up never reaches the file system watcher.
 import path from "node:path";
 
 /** Normalized full paths, by the form `path.normalize` gives them. */
 const offered = new Set();
 
-/** Records a Java file the page may now follow. Anything else is ignored. */
+/** Whether a path is a Java or Kotlin file, the kinds the page can follow. */
+export const isCodeFilePath = (filePath) => /\.(java|kt)$/i.test(filePath);
+
+/** Records a code file the page may now follow. Anything else is ignored. */
 export function offerJavaFile(filePath, files = offered) {
   if (typeof filePath !== "string") return;
-  if (!filePath.toLowerCase().endsWith(".java")) return;
+  if (!isCodeFilePath(filePath)) return;
   files.add(path.normalize(filePath));
 }
 

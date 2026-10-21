@@ -16,6 +16,12 @@ const lines: Line[] = [
 ];
 
 describe("javaClassName", () => {
+  it("avoids Kotlin's keywords too when the code is Kotlin", () => {
+    expect(javaClassName("fun.turt", "X", "kotlin")).toBe("funAuto");
+    expect(javaClassName("fun.turt", "X")).toBe("fun");
+    expect(javaClassName("class.turt", "X", "kotlin")).toBe("classAuto");
+  });
+
   it("names the class after the project file", () => {
     expect(javaClassName("Far.turt", "X")).toBe("Far");
     expect(javaClassName("/repo/AutoPaths/Far Side.turt", "X")).toBe(

@@ -339,6 +339,8 @@ export interface Settings {
   autoExportPathMode?: "relative" | "absolute";
   autoExportFormat?: "java" | "sequential" | "points" | "json";
   autoExportTargetLibrary?: CommandLibraryId;
+  /** The language OpMode and sequential exports are written in. */
+  codeLanguage?: CodeLanguage;
   autoExportFullClass?: boolean;
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
@@ -840,6 +842,9 @@ export interface FieldRenderContext {
 /** The command-based libraries the sequential exporter can target. */
 export type CommandLibraryId = "SolversLib" | "NextFTC" | "Ivy";
 
+/** The languages the OpMode and sequential exporters write. */
+export type CodeLanguage = "java" | "kotlin";
+
 export interface CodeExportContext {
   stateStep?: number; // For state machine generation
   indent?: string;
@@ -847,6 +852,8 @@ export interface CodeExportContext {
   /** @deprecated Use targetLibrary. Kept so existing plugins keep working. */
   isNextFTC?: boolean;
   targetLibrary?: CommandLibraryId; // For sequential generation target
+  /** The language to write the code in. Java when missing. */
+  language?: CodeLanguage;
 }
 
 export interface JavaCodeResult {
@@ -932,8 +939,8 @@ export interface ActionDefinition {
   renderField?: (item: SequenceItem, context: FieldRenderContext) => any[];
 
   /**
-   * Generate Java code for the OpMode state machine approach.
-   * Returns code and number of state steps used.
+   * Generate code for the OpMode state machine approach, in the context's
+   * `language`. Returns code and number of state steps used.
    */
   toJavaCode?: (
     item: SequenceItem,
@@ -941,13 +948,20 @@ export interface ActionDefinition {
   ) => JavaCodeResult;
 
   /**
-   * Generate Java code for the SequentialCommandGroup approach.
-   * Returns a string command instantiation.
+   * Generate code for the SequentialCommandGroup approach, in the
+   * context's `language`. Returns a string command instantiation.
    */
   toSequentialCommand?: (
     item: SequenceItem,
     context: CodeExportContext,
   ) => string;
+
+  /**
+   * Whether toJavaCode and toSequentialCommand write Kotlin when the context
+   * asks for it. Kotlin exports leave a TODO comment in place of actions
+   * without it.
+   */
+  supportsKotlin?: boolean;
 
   /**
    * Calculate timeline events and duration for this action.
@@ -1055,7 +1069,7 @@ export interface ElectronAPI {
     error?: string;
   }>;
 
-  // Following a Java file (desktop): told each time it's saved in an editor.
+  // Following a Java or Kotlin file (desktop): told each time it's saved in an editor.
   chooseJavaFile?: () => Promise<string | null>;
   followJavaFile?: (filePath: string) => Promise<boolean>;
   unfollowJavaFile?: () => Promise<boolean>;

@@ -292,7 +292,7 @@ describe("FileManager", () => {
         }
       }`;
     const input = document.querySelector<HTMLInputElement>(
-      'input[accept=".java"]',
+      'input[accept=".java,.kt"]',
     )!;
     Object.defineProperty(input, "files", {
       value: [new File([java], "RedAuto.java")],
@@ -306,6 +306,29 @@ describe("FileManager", () => {
     expect(saved.version).toBeTruthy();
     expect(saved.lines.length).toBeGreaterThan(0);
     expect(get(isUnsaved)).toBe(false);
+  });
+
+  it("imports a Kotlin auto as a project file", async () => {
+    const kotlin = `
+      class BlueAuto(private val follower: Follower) {
+          private val p = PoseFactory.degrees()
+          val toScore = line(p.of(56.0, 8.0, 90.0), p.of(56.0, 36.0, 90.0)).tangent()
+          init { follower.follow(toScore) }
+      }`;
+    const input = document.querySelector<HTMLInputElement>(
+      'input[accept=".java,.kt"]',
+    )!;
+    Object.defineProperty(input, "files", {
+      value: [new File([kotlin], "BlueAuto.kt")],
+      configurable: true,
+    });
+    await fireEvent.change(input);
+    await waitFor(() =>
+      expect(get(currentFilePath)).toBe("/proj/BlueAuto.turt"),
+    );
+    const saved = JSON.parse(disk.fs.get("/proj/BlueAuto.turt")!);
+    expect(saved.lines).toHaveLength(1);
+    expect(saved.lines[0].endPoint).toMatchObject({ x: 56, y: 36 });
   });
 
   it("reports failures through the app's notifications", async () => {
@@ -705,8 +728,10 @@ describe("FileManager", () => {
       });
 
       const toggleBtn =
-        document.querySelector('[title="Show Importable Java Files"]') ||
-        document.querySelector('[aria-label="Show Importable Java Files"]');
+        document.querySelector('[title="Show Importable Java/Kotlin Files"]') ||
+        document.querySelector(
+          '[aria-label="Show Importable Java/Kotlin Files"]',
+        );
       expect(toggleBtn).not.toBeNull();
       await fireEvent.click(toggleBtn!);
 
@@ -720,8 +745,10 @@ describe("FileManager", () => {
     it("caches Java import checks using mtime", async () => {
       disk.fs.set("/proj/ValidAuto.java", validJavaContent);
       const toggleBtn =
-        document.querySelector('[title="Show Importable Java Files"]') ||
-        document.querySelector('[aria-label="Show Importable Java Files"]');
+        document.querySelector('[title="Show Importable Java/Kotlin Files"]') ||
+        document.querySelector(
+          '[aria-label="Show Importable Java/Kotlin Files"]',
+        );
       expect(toggleBtn).not.toBeNull();
       await fireEvent.click(toggleBtn!);
 

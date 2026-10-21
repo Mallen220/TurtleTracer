@@ -7,6 +7,19 @@ import {
   fileHeader,
   helperMethods,
 } from "./classSections";
+import * as kt from "./kotlinClassSections";
+
+const imports = `
+import com.pedropathing.ivy.Command;
+import com.pedropathing.ivy.commands.Commands;
+import com.pedropathing.ivy.groups.Groups;
+import com.pedropathing.ivy.pedro.PedroCommands;
+`;
+
+const markerImports = (p: { hasEventMarkers: boolean }) =>
+  p.hasEventMarkers
+    ? "import com.turtletracerlib.pathing.ProgressTracker;\nimport com.turtletracerlib.pathing.NamedCommands;\n"
+    : "";
 
 /**
  * Pedro Pathing's Ivy (https://github.com/Pedro-Pathing/Ivy). Commands are
@@ -19,25 +32,21 @@ export const ivy: CommandLibrary = {
   description: "Command-based sequence for Pedro Pathing's Ivy.",
   experimental: true,
   trackerTelemetry: "null",
-  imports: `
-import com.pedropathing.ivy.Command;
-import com.pedropathing.ivy.commands.Commands;
-import com.pedropathing.ivy.groups.Groups;
-import com.pedropathing.ivy.pedro.PedroCommands;
-`,
-  commands: {
-    wait: (ms) => `Commands.waitMs(${ms.toFixed(0)})`,
-    waitUntil: (condition) => `Commands.waitUntil(() -> ${condition})`,
-    instant: (body) => `Commands.instant(() -> ${body})`,
-    sequential: (inner) => `Groups.sequential(${inner})`,
-    race: (inner) => `Groups.race(${inner})`,
-    perpetual: (body) => `Commands.infinite(() -> ${body})`,
-    followPath: (path) => `PedroCommands.follow(follower, ${path})`,
-  },
+  java: {
+    imports,
+    commands: {
+      wait: (ms) => `Commands.waitMs(${ms.toFixed(0)})`,
+      waitUntil: (condition) => `Commands.waitUntil(() -> ${condition})`,
+      instant: (body) => `Commands.instant(() -> ${body})`,
+      sequential: (inner) => `Groups.sequential(${inner})`,
+      race: (inner) => `Groups.race(${inner})`,
+      perpetual: (body) => `Commands.infinite(() -> ${body})`,
+      followPath: (path) => `PedroCommands.follow(follower, ${path})`,
+    },
 
-  classTemplate: (p) => `
+    classTemplate: (p) => `
 ${fileHeader(p)}
-${p.hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\nimport com.turtletracerlib.pathing.NamedCommands;\n" : ""}${p.ppReaderImport}
+${markerImports(p)}${p.ppReaderImport}
 import java.io.IOException;
 
 /**
@@ -65,4 +74,52 @@ ${p.commands}
 ${helperMethods(p)}
 }
 `,
+  },
+
+  kotlin: {
+    imports: kt.kotlinImports(imports),
+    commands: {
+      // waitMs takes a double, which Kotlin won't make from a whole number.
+      wait: (ms) => `Commands.waitMs(${ms.toFixed(0)}.0)`,
+      waitUntil: (condition) => `Commands.waitUntil { ${condition} }`,
+      instant: (body) => `Commands.instant ${kt.kotlinLambda(body)}`,
+      sequential: (inner) => `Groups.sequential(${inner})`,
+      race: (inner) => `Groups.race(${inner})`,
+      perpetual: (body) => `Commands.infinite ${kt.kotlinLambda(body)}`,
+      followPath: (path) => `PedroCommands.follow(follower, ${path})`,
+    },
+
+    classTemplate: (p) => `
+${kt.fileHeader(p)}
+${markerImports(p)}${p.ppReaderImport}
+
+/**
+ * Call \`Scheduler.reset()\` in init(), start it with
+ * \`${p.className}(follower, hardwareMap).command().schedule()\`, and call
+ * \`follower.update()\` and \`Scheduler.execute()\` every loop.
+ */
+class ${p.className}(
+    private val follower: Follower,
+    hw: HardwareMap,
+) {
+
+${kt.fields(p)}
+
+    init {
+${kt.constructorSetup(p)}
+    }
+
+${kt.buildPathsMethod(p)}
+
+    fun command(): Command {
+        buildPaths()
+        return Groups.sequential(
+${p.commands}
+        )
+    }
+
+${helperMethods(p)}
+}
+`,
+  },
 };

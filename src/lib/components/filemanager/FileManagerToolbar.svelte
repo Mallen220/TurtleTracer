@@ -59,16 +59,18 @@
       />
     </div>
 
-    <!-- Java Files Toggle -->
+    <!-- Java/Kotlin Files Toggle -->
     <button
       onclick={() => ontogglejava?.()}
       class="{showJavaFiles
         ? ui.iconBtnSm.active
         : ui.iconBtnSm.neutral} shrink-0"
-      title={showJavaFiles ? "Hide Java Files" : "Show Importable Java Files"}
+      title={showJavaFiles
+        ? "Hide Java/Kotlin Files"
+        : "Show Importable Java/Kotlin Files"}
       aria-label={showJavaFiles
-        ? "Hide Java Files"
-        : "Show Importable Java Files"}
+        ? "Hide Java/Kotlin Files"
+        : "Show Importable Java/Kotlin Files"}
     >
       <CodeBracketSquareIcon className="size-5" />
     </button>

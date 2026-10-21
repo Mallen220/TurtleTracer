@@ -39,3 +39,17 @@ export function getProjectExtensionFromPath(path?: string | null): string {
     return DEFAULT_PROJECT_EXTENSION;
   return DEFAULT_PROJECT_EXTENSION;
 }
+
+/** Whether a file is Java or Kotlin code the app can read paths from. */
+export function isCodeFileName(name: string): boolean {
+  return /\.(java|kt)$/i.test(name);
+}
+
+/** The language of a Java or Kotlin file, from its name. */
+export function codeLanguageOfFile(name: string): "java" | "kotlin" {
+  return /\.kt$/i.test(name) ? "kotlin" : "java";
+}
+
+export function stripCodeExtension(name: string): string {
+  return name.replace(/\.(java|kt)$/i, "");
+}

@@ -24,6 +24,7 @@ import {
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 import { exporterRegistry } from "../lib/exporters";
 import type {
+  CodeLanguage,
   Line,
   Notification,
   Point,
@@ -676,7 +677,11 @@ export async function handleAutoExport(
 
   try {
     const format = settings.autoExportFormat;
-    const { baseName, filename } = exportFileName(format, targetPath);
+    const { baseName, filename } = exportFileName(
+      format,
+      targetPath,
+      settings.codeLanguage,
+    );
     const exportDirName = settings.autoExportPath || "GeneratedCode";
     const exportDir = await electronAPI.resolvePath(targetPath, exportDirName);
     const finalPath = await electronAPI.resolvePath(
@@ -730,22 +735,32 @@ export async function handleAutoExport(
   }
 }
 
-/** Each export format's file extension; the others are Java. */
+/** Each export format's file extension; the others are Java or Kotlin. */
 const EXPORT_EXTENSIONS: Partial<Record<string, string>> = {
   json: "json",
   points: "txt",
 };
 
 /** The project's name, and the name of the file its export goes in. */
-function exportFileName(format: string | undefined, projectPath: string) {
-  const extension = EXPORT_EXTENSIONS[format ?? ""] ?? "java";
+function exportFileName(
+  format: string | undefined,
+  projectPath: string,
+  language: CodeLanguage = "java",
+) {
   const baseName = stripProjectExtension(fileNameOf(projectPath)) || "AutoPath";
-  if (extension !== "java") {
-    return { baseName, filename: `${baseName}.${extension}` };
-  }
+  const extension = EXPORT_EXTENSIONS[format ?? ""];
+  if (extension) return { baseName, filename: `${baseName}.${extension}` };
+  // The OpMode and sequential exports come in Kotlin; other exporters don't.
+  const kotlin =
+    (format === "java" || format === "sequential") && language === "kotlin";
   // Java needs a public class's file to share its name.
   const fallback = format === "java" ? "TurtleTracerAutonomous" : "AutoPath";
-  return { baseName, filename: `${javaClassName(baseName, fallback)}.java` };
+  const className = javaClassName(
+    baseName,
+    fallback,
+    kotlin ? "kotlin" : "java",
+  );
+  return { baseName, filename: `${className}.${kotlin ? "kt" : "java"}` };
 }
 
 /**
@@ -767,7 +782,7 @@ function readyForRepository(
       'Turn on "Generate Full Class" in the Code Export settings to export code into a GitHub repository. On its own, the Paths class won\'t compile.',
     );
   }
-  if (filename.endsWith(".java") && !isCompiledJavaPath(finalPath)) {
+  if (/\.(java|kt)$/.test(filename) && !isCompiledJavaPath(finalPath)) {
     suggestJavaExportPath(projectPath, finalPath, filename, settings);
     return false;
   }
@@ -800,7 +815,7 @@ function exportedCode(
 }
 
 /**
- * Generated Java in a repository has to go where it's compiled. Says where
+ * Generated code in a repository has to go where it's compiled. Says where
  * it would have gone, and offers the Auto Export path that puts it in the
  * project's package folder instead.
  */

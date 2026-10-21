@@ -14,7 +14,8 @@ import WaitSection from "../components/sections/WaitSection.svelte";
 import type { SequenceItem, SequenceWaitItem } from "../../types";
 import { stationaryMarkerElements } from "./stationaryMarkers";
 import { makeId } from "../../utils/nameGenerator";
-import { libraryForContext } from "../exporters/commandLibraries";
+import { commandsForContext } from "../exporters/commandLibraries";
+import { stateCase } from "../exporters/javaFormat";
 
 /** A new one-second wait. */
 export const createWait = (): SequenceWaitItem => ({
@@ -74,20 +75,23 @@ export const WaitAction: ActionDefinition = {
     const waitItem = item as SequenceWaitItem;
     const waitMs = waitItem.durationMs || 0;
     const stateStep = context.stateStep || 0;
+    const { language } = context;
 
-    let code = `
-        case ${stateStep}:
-          setPathState(${stateStep + 1});
-          break;
-
-        case ${stateStep + 1}:
-          if(pathTimer.milliseconds() > ${waitMs}) {
+    const code =
+      stateCase(stateStep, `setPathState(${stateStep + 1});`, language) +
+      stateCase(
+        stateStep + 1,
+        `if(pathTimer.milliseconds() > ${waitMs}) {
             setPathState(${stateStep + 2});
-          }
-          break;`;
+          }`,
+        language,
+      );
 
     return { code, stepsUsed: 2 };
   },
+
+  // Both exports are written through helpers that know Kotlin too.
+  supportsKotlin: true,
 
   toSequentialCommand: (
     item: SequenceItem,
@@ -95,7 +99,7 @@ export const WaitAction: ActionDefinition = {
   ): string => {
     const waitItem = item as SequenceWaitItem;
     const waitDuration = waitItem.durationMs || 0;
-    const { commands } = libraryForContext(context);
+    const commands = commandsForContext(context);
 
     const markers = (waitItem.eventMarkers ?? []).toSorted(
       (a, b) => (a.position || 0) - (b.position || 0),
@@ -120,9 +124,7 @@ export const WaitAction: ActionDefinition = {
                         tracker.registerEvent("${marker.name}", ${(marker.position || 0).toFixed(3)});
                         tracker.executeEvent("${marker.name}");
                     }`;
-      markerCommandParts.push(
-        `${commands.wait(delta)}, ${commands.instant(fire)}`,
-      );
+      markerCommandParts.push(commands.wait(delta), commands.instant(fire));
     });
 
     const remaining = Math.max(0, waitDuration - scheduled);
@@ -130,7 +132,9 @@ export const WaitAction: ActionDefinition = {
 
     return commands.race(`
                     ${commands.wait(waitDuration)},
-                    ${commands.sequential(markerCommandParts.join(","))}
+                    ${commands.sequential(`
+                        ${markerCommandParts.join(",\n                        ")}
+                    `)}
                 `);
   },
 

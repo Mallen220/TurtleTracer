@@ -65,7 +65,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   githubFetch: (url, init) => ipcRenderer.invoke("github:fetch", url, init),
 
-  // Following a Java file: told each time it's saved in an editor.
+  // Following a Java or Kotlin file: told each time it's saved in an editor.
   chooseJavaFile: () => ipcRenderer.invoke("java:choose-file"),
   followJavaFile: (filePath) => ipcRenderer.invoke("java:follow", filePath),
   unfollowJavaFile: () => ipcRenderer.invoke("java:unfollow"),

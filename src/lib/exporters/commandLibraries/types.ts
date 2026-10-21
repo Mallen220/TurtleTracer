@@ -1,15 +1,16 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { CommandLibraryId } from "../../../types";
+import type { CodeLanguage, CommandLibraryId } from "../../../types";
 
 /**
  * How a library spells the building blocks of a command sequence. Each method
- * returns a Java expression; the exporter and the actions only ever build
- * sequences through these, so they don't need to know which library is chosen.
+ * returns an expression in the export's language; the exporter and the
+ * actions only ever build sequences through these, so they don't need to know
+ * which library or language is chosen.
  */
 export interface CommandVocabulary {
   /** Do nothing for this many milliseconds. */
   wait(ms: number): string;
-  /** Finish once `condition`, a Java boolean expression, is true. */
+  /** Finish once `condition`, a boolean expression, is true. */
   waitUntil(condition: string): string;
   /** Run `body` once. `body` is a lambda body: an expression or a `{ ... }` block. */
   instant(body: string): string;
@@ -17,7 +18,7 @@ export interface CommandVocabulary {
   sequential(inner: string): string;
   /** Run the comma-separated commands in `inner` together, ending with the first. */
   race(inner: string): string;
-  /** Run `body`, a Java statement expression, on every loop until the command it races is done. */
+  /** Run `body`, a statement expression, on every loop until the command it races is done. */
   perpetual(body: string): string;
   /** Drive `path` (a Path variable) with the `follower` variable in scope. */
   followPath(path: string): string;
@@ -51,7 +52,16 @@ export interface SequentialClassParts {
   metricHelper: string;
 }
 
-export interface CommandLibrary {
+/** How a library's code is written in one language. */
+export interface LanguageTemplate {
+  /** Import lines for the commands this library's vocabulary uses. */
+  imports: string;
+  commands: CommandVocabulary;
+  /** The whole generated class. */
+  classTemplate(parts: SequentialClassParts): string;
+}
+
+export interface CommandLibrary extends Record<CodeLanguage, LanguageTemplate> {
   /** The value stored in settings. */
   id: CommandLibraryId;
   /** Shown in the UI. */
@@ -65,9 +75,4 @@ export interface CommandLibrary {
    * whose generated class has no Telemetry to hand pass `null`.
    */
   trackerTelemetry: "telemetry" | "null";
-  /** Java import lines for the commands this library's vocabulary uses. */
-  imports: string;
-  commands: CommandVocabulary;
-  /** The whole generated class. */
-  classTemplate(parts: SequentialClassParts): string;
 }

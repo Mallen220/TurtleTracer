@@ -1,5 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
-<!-- In the Navbar while a Java file is followed: whether the field is up to date with it, and the way out. -->
+<!-- In the Navbar while a Java or Kotlin file is followed: whether the field is up to date with it, and the way out. -->
 <script lang="ts">
   import {
     followedJava,
@@ -42,7 +42,7 @@
       ]} max-w-[260px] whitespace-nowrap hover:opacity-80"
       title={followed.error
         ? `Line ${followed.error.line}: ${followed.error.message} The field shows the last version that worked.`
-        : "The field shows this Java file, and updates each time it's saved in your editor."}
+        : "The field shows this file, and updates each time it's saved in your editor."}
       aria-expanded={open}
       onclick={() => (open = !open)}
     >
@@ -62,7 +62,7 @@
       <div
         class="{ui.popover} absolute left-0 top-full mt-2 z-[1100] w-80 p-3 flex flex-col gap-2 text-xs text-neutral-700 dark:text-neutral-300"
         role="dialog"
-        aria-label="Following a Java file"
+        aria-label="Following a code file"
       >
         <div
           class="font-semibold text-sm text-neutral-900 dark:text-neutral-100"

@@ -172,3 +172,83 @@ describe("ExpressionParser", () => {
     expect(parse(") ]")).toMatchObject({ kind: "other" });
   });
 });
+
+describe("Kotlin", () => {
+  const ktTexts = (source: string) =>
+    tokenize(source, "kotlin").map((t) => t.text);
+  const ktParse = (source: string) => {
+    const { expr } = new ExpressionParser(
+      tokenize(source, "kotlin"),
+      "kotlin",
+    ).parse(0);
+    return JSON.parse(
+      JSON.stringify(expr, (k, v) => (k === "line" ? undefined : v)),
+    );
+  };
+
+  it("reads Kotlin's own operators, which Java splits up", () => {
+    expect(ktTexts("a?.b ?: c!! 0..<5")).toEqual([
+      "a",
+      "?.",
+      "b",
+      "?:",
+      "c",
+      "!!",
+      "0",
+      "..<",
+      "5",
+    ]);
+    expect(texts("a?.b")).toEqual(["a", "?", ".", "b"]);
+  });
+
+  it("skips nested comments and keeps raw strings whole", () => {
+    expect(ktTexts("/* a /* b */ c */ x")).toEqual(["x"]);
+    const tokens = tokenize('val s = """\nline(a, b)\n"""\ny', "kotlin");
+    expect(tokens.map((t) => t.text)).toEqual([
+      "val",
+      "s",
+      "=",
+      "\nline(a, b)\n",
+      "y",
+    ]);
+    expect(tokens.at(-1)!.line).toBe(4);
+  });
+
+  it("reads a call on a class name as constructing it", () => {
+    expect(ktParse("Pose(1.0, 2.0)")).toMatchObject({
+      kind: "new",
+      type: "Pose",
+      args: [{ value: 1 }, { value: 2 }],
+    });
+    expect(ktParse("line(a, b)")).toMatchObject({ kind: "call" });
+    expect(parse("Pose(1.0, 2.0)")).toMatchObject({ kind: "call" });
+  });
+
+  it("treats trailing lambdas as calls and steps over them", () => {
+    expect(ktParse("InstantCommand { follower.follow(p) }")).toMatchObject({
+      kind: "new",
+      type: "InstantCommand",
+    });
+    expect(ktParse("x.setStart { a() }.setIsDone { true }")).toMatchObject({
+      kind: "call",
+      callee: { name: "setIsDone" },
+    });
+    expect(ktParse("{ a -> a + 1 }")).toMatchObject({ kind: "other" });
+  });
+
+  it("ends an expression at a line break unless the next line continues it", () => {
+    expect(ktParse("a\n(b)")).toMatchObject({ kind: "name", name: "a" });
+    expect(ktParse("a\n-b")).toMatchObject({ kind: "name", name: "a" });
+    expect(ktParse("a\n  .b()")).toMatchObject({ kind: "call" });
+    expect(ktParse("a ?:\n b")).toMatchObject({ kind: "binary", op: "?:" });
+    // Java has no such rule.
+    expect(parse("a\n-b")).toMatchObject({ kind: "binary", op: "-" });
+  });
+
+  it("drops casts, !! and named argument names", () => {
+    expect(ktParse("x!! as Double")).toMatchObject({ kind: "name", name: "x" });
+    expect(ktParse("Pose(x = 1.0, y = 2.0)")).toMatchObject({
+      args: [{ value: 1 }, { value: 2 }],
+    });
+  });
+});

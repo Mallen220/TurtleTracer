@@ -6,9 +6,11 @@
     SequenceItem,
     Shape,
     CommandLibraryId,
+    CodeLanguage,
   } from "../../../types/index";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
+  import kotlin from "svelte-highlight/languages/kotlin";
   import json from "svelte-highlight/languages/json";
   import plaintext from "svelte-highlight/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
@@ -58,13 +60,25 @@
     shapes = $bindable([]),
   }: Props = $props();
 
-  let exportFormat: "java" | "points" | "sequential" | "json" | "custom" =
-    $state("java");
+  let exportFormat = $state<
+    "java" | "points" | "sequential" | "json" | "custom"
+  >("java");
   let customExporterName: string | null = $state(null);
   let sequentialClassName = $state("AutoPath");
   let selectedLibrary = $derived(
     getCommandLibrary($settingsStore.autoExportTargetLibrary),
   );
+  // The OpMode and sequential exports can be written in either language.
+  let hasLanguage = $derived(
+    exportFormat === "java" || exportFormat === "sequential",
+  );
+  let writesKotlin = $derived(
+    hasLanguage && $settingsStore.codeLanguage === "kotlin",
+  );
+  const LANGUAGES: { id: CodeLanguage; label: string }[] = [
+    { id: "java", label: "Java" },
+    { id: "kotlin", label: "Kotlin" },
+  ];
   // Tab colours, written out in full so Tailwind can see the class names.
   // Adding a library to CommandLibraryId makes TypeScript ask for its colours.
   const LIBRARY_COLORS: Record<
@@ -88,8 +102,11 @@
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
 
   let exportedCode = $state("");
-  let currentLanguage: typeof java | typeof plaintext | typeof json =
-    $state(java);
+  let currentLanguage:
+    | typeof java
+    | typeof kotlin
+    | typeof plaintext
+    | typeof json = $state(java);
   let copied = $state(false);
   let dialogRef: HTMLDivElement | undefined = $state();
   let scrollContainer: HTMLDivElement | undefined = $state();
@@ -150,7 +167,7 @@
         targetLibrary: $settingsStore.autoExportTargetLibrary || "SolversLib",
       });
       const isJava = exportFormat === "java" || exportFormat === "sequential";
-      return [code, isJava ? java : plaintext];
+      return [code, writesKotlin ? kotlin : isJava ? java : plaintext];
     }
 
     if (exportFormat !== "custom" || !customExporterName) {
@@ -233,7 +250,7 @@
     let fileName = "generated_code.txt";
     if (isJava) {
       const className = /class\s+(\w+)/.exec(exportedCode)?.[1] ?? "AutoPath";
-      fileName = `${className}.java`;
+      fileName = `${className}.${writesKotlin ? "kt" : "java"}`;
     } else if (exportFormat === "points") {
       fileName = "points.txt";
     }
@@ -253,9 +270,11 @@
       const filePath = await electronAPI.showSaveDialog({
         title: "Save Generated Code",
         defaultPath: fileName,
-        filters: isJava
-          ? [{ name: "Java File", extensions: ["java"] }]
-          : [{ name: "Text File", extensions: ["txt"] }],
+        filters: writesKotlin
+          ? [{ name: "Kotlin File", extensions: ["kt"] }]
+          : isJava
+            ? [{ name: "Java File", extensions: ["java"] }]
+            : [{ name: "Text File", extensions: ["txt"] }],
       });
       if (filePath) await electronAPI.writeFile(filePath, exportedCode);
     } catch (err) {
@@ -374,7 +393,9 @@
             id="export-dialog-title"
             class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
           >
-            {#if exportFormat === "java"}Export Java Code
+            {#if exportFormat === "java"}Export {writesKotlin
+                ? "Kotlin"
+                : "Java"} Code
             {:else if exportFormat === "points"}Export Points
             {:else if exportFormat === "json"}Project Data
             {:else if exportFormat === "custom"}{customExporterName ||
@@ -383,7 +404,7 @@
           </h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">
             {#if exportFormat === "java"}
-              Standard Java code for your path.
+              A Pedro Pathing OpMode for your path. No command library needed.
             {:else if exportFormat === "points"}
               Raw array of points for processing.
             {:else if exportFormat === "json"}
@@ -503,6 +524,47 @@
               placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
             />
           </div>
+
+          {#if hasLanguage}
+            <!-- Language Selector -->
+            <div class="flex flex-col gap-1.5">
+              <span class={ui.heading}> Language </span>
+              <div
+                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-md self-start"
+                role="tablist"
+              >
+                {#each LANGUAGES as language (language.id)}
+                  {@const selected =
+                    ($settingsStore.codeLanguage ?? "java") === language.id}
+                  <button
+                    role="tab"
+                    aria-selected={selected}
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {selected
+                      ? 'bg-white dark:bg-neutral-700 shadow-sm text-purple-600 dark:text-purple-300'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                    onclick={() => {
+                      $settingsStore.codeLanguage = language.id;
+                      refreshCode();
+                    }}
+                  >
+                    {language.label}
+                  </button>
+                {/each}
+              </div>
+            </div>
+            {#if writesKotlin && exportedCode.includes("has no Kotlin export yet")}
+              <div
+                class="{ui.alert.warning} flex items-center gap-2"
+                role="alert"
+              >
+                <TriangleWarningIcon className="size-4 shrink-0" />
+                <span
+                  >Some steps come from plugins that can't write Kotlin yet;
+                  they're left as TODO comments.</span
+                >
+              </div>
+            {/if}
+          {/if}
 
           <!-- Sequential Controls -->
           {#if exportFormat === "sequential"}

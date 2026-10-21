@@ -94,6 +94,12 @@ const project: TurtleData = {
 
 const FORMATS = [
   ["the OpMode", "java", {}],
+  ["the OpMode in Kotlin", "java", { codeLanguage: "kotlin" }],
+  [
+    "the OpMode in Kotlin, FTC coordinates and cm",
+    "java",
+    { coordinateSystem: "FTC", codeUnits: "metric", codeLanguage: "kotlin" },
+  ],
   [
     "the OpMode in FTC coordinates and cm",
     "java",
@@ -115,6 +121,27 @@ const FORMATS = [
     "sequential",
     { targetLibrary: "Ivy", hardcodeValues: true, coordinateSystem: "FTC" },
   ],
+  [
+    "SolversLib in Kotlin, loading poses from the project",
+    "sequential",
+    { targetLibrary: "SolversLib", codeLanguage: "kotlin" },
+  ],
+  [
+    "NextFTC in Kotlin",
+    "sequential",
+    { targetLibrary: "NextFTC", hardcodeValues: true, codeLanguage: "kotlin" },
+  ],
+  [
+    "Ivy in Kotlin, FTC coordinates and cm",
+    "sequential",
+    {
+      targetLibrary: "Ivy",
+      hardcodeValues: true,
+      coordinateSystem: "FTC",
+      codeUnits: "metric",
+      codeLanguage: "kotlin",
+    },
+  ],
 ] as const;
 
 async function exported(format: string, options: object) {
@@ -135,6 +162,7 @@ describe("reading the code the app exports", () => {
       const code = await exported(format, options);
       const { project: read, notes } = readPedroJava(code, {
         projectFile: (name) => (name === "Auto.turt" ? project : null),
+        language: "codeLanguage" in options ? options.codeLanguage : "java",
       });
       expect(notes).toEqual([]);
       expect(read.startPoint).toMatchObject({ x: 9, y: 25 });

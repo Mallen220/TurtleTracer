@@ -234,6 +234,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoExportPath: "GeneratedCode",
   autoExportFormat: "java",
   autoExportTargetLibrary: "SolversLib",
+  codeLanguage: "java",
   autoExportFullClass: true,
   autoExportEmbedPoseData: false,
   telemetryImplementation: "Panels",
