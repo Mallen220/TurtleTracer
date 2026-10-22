@@ -1,13 +1,23 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Point, Line, SequenceItem, TurtleData } from "../../types";
+import type {
+  CodeLanguage,
+  Point,
+  Line,
+  SequenceItem,
+  TurtleData,
+} from "../../types";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
+import { formatKotlin } from "./kotlinFormat";
+import { kotlinImports } from "./commandLibraries/kotlinClassSections";
 import {
   formatJava,
+  kotlinIdentifier,
+  stateCase,
   flattenMacros,
   poseCode,
   angleCode,
@@ -23,11 +33,11 @@ import {
   type HeadingConfig,
 } from "./javaFormat";
 
-/** A Java identifier for each line, based on its name and made unique. */
-function uniqueVariableNames(lines: Line[]): string[] {
+/** A variable name for each line, based on its name and made unique. */
+function uniqueVariableNames(lines: Line[], language?: CodeLanguage): string[] {
   return uniqueNames(
     lines.map((line, idx) => identifierFor(line.name, `line${idx + 1}`)),
-  );
+  ).map((name) => (language === "kotlin" ? kotlinIdentifier(name) : name));
 }
 
 /** Interpolator arguments with every angle and target written out. */
@@ -65,7 +75,7 @@ function pathConstructionCode(
     const call =
       line.controlPoints.length === 0
         ? `line(\n          ${start},\n          ${end}\n        )`
-        : `curve(\n          ${start},\n          ${line.controlPoints.map((cp) => poseCode(cp, opts)).join(",\n")},${end}\n        )`;
+        : `curve(\n          ${start},\n          ${line.controlPoints.map((cp) => poseCode(cp, opts)).join(",\n")},\n          ${end}\n        )`;
 
     const global = chainGlobalHeading(lines, idx);
     return {
@@ -74,10 +84,10 @@ function pathConstructionCode(
       call,
       heading: global
         ? ""
-        : headingMethodCode(line.endPoint, literalArgs(opts)),
+        : headingMethodCode(line.endPoint, literalArgs(opts), opts.language),
       chainHeading:
         global && !line.isChain
-          ? `\n        ${headingMethodCode(global, literalArgs(opts))}`
+          ? `\n        ${headingMethodCode(global, literalArgs(opts), opts.language)}`
           : "",
     };
   });
@@ -93,8 +103,9 @@ function pathConstructionCode(
 }
 
 /**
- * The OpMode's autonomousPathUpdate() switch cases. Each path takes two
- * states: start following it, then wait until the follower is done.
+ * The OpMode's autonomousPathUpdate() switch cases (`when` branches in
+ * Kotlin). Each path takes two states: start following it, then wait until
+ * the follower is done.
  */
 function stateMachineCode(
   sequence: SequenceItem[],
@@ -103,6 +114,8 @@ function stateMachineCode(
   trackEvents: boolean,
   opts: FormatOptions,
 ): string {
+  const { language } = opts;
+  const kotlin = language === "kotlin";
   let code = "";
   let state = 0;
   const lineIndexById = (id: string) =>
@@ -110,27 +123,42 @@ function stateMachineCode(
 
   for (const item of sequence) {
     const action = actionRegistry.get(item.kind);
+    if (action?.toJavaCode && kotlin && !action.supportsKotlin) {
+      // Its Java wouldn't compile here, so the state is only passed through.
+      code += stateCase(
+        state,
+        `// TODO: ${action.label} has no Kotlin export yet.
+          setPathState(${state + 1});`,
+        language,
+      );
+      state += 1;
+      continue;
+    }
     if (action?.toJavaCode) {
-      const res = action.toJavaCode(item, { stateStep: state });
+      const res = action.toJavaCode(item, { stateStep: state, language });
       code += res.code;
       state += res.stepsUsed;
       continue;
     }
 
-    code += `\n        case ${state}:`;
-    if (item.kind !== "path") continue;
+    if (item.kind !== "path") {
+      // Kotlin's branches don't fall through to the next state's.
+      if (!kotlin) code += `\n        case ${state}:`;
+      continue;
+    }
 
     const idx = lineIndexById(item.lineId);
     if (idx === -1 || lines[idx].isChain) {
       // Chained lines are followed as part of the path before them.
-      if (idx !== -1) code += `\n          // Handled by previous chained path`;
-      code += `\n          setPathState(${state + 1});\n          break;`;
+      const note =
+        idx === -1 ? "" : "// Handled by previous chained path\n          ";
+      code += stateCase(state, `${note}setPathState(${state + 1});`, language);
       state += 1;
       continue;
     }
 
     const path = `paths.${names[idx]}`;
-    code += `\n          follower.follow(${path});`;
+    let start = `follower.follow(${path});`;
     if (trackEvents) {
       // The tracker watches one path at a time, so it gets this path's
       // markers (and none of the others') when the path starts.
@@ -138,17 +166,27 @@ function stateMachineCode(
         indent: "          ",
         ...opts,
       });
-      code += `\n          tracker.clearPathEvents();${registrations}`;
-      code += `\n          tracker.setCurrentPath(${path});`;
+      start += `\n          tracker.clearPathEvents();${registrations}`;
+      start += `\n          tracker.setCurrentPath(${path});`;
     }
-    code += `\n          setPathState(${state + 1});\n          break;`;
-    code += `\n        case ${state + 1}:`;
-    code += `\n          if(!follower.isBusy()) {\n            setPathState(${state + 2});\n          }\n          break;`;
+    code += stateCase(
+      state,
+      `${start}\n          setPathState(${state + 1});`,
+      language,
+    );
+    code += stateCase(
+      state + 1,
+      `if(!follower.isBusy()) {\n            setPathState(${state + 2});\n          }`,
+      language,
+    );
     state += 2;
   }
 
-  code += `\n        case ${state}:`;
-  code += `\n          requestOpModeStop();\n          pathState = -1;\n          break;`;
+  code += stateCase(
+    state,
+    "requestOpModeStop();\n          pathState = -1;",
+    language,
+  );
   return code;
 }
 
@@ -214,7 +252,166 @@ const TELEMETRY_CODE: Record<
   None: { imports: "", field: "", init: "", loop: "" },
 };
 
-/** Generates the Pedro Pathing Java class for the project. */
+/**
+ * The same in Kotlin. Only the fields and the set-up differ: Panels is a
+ * Kotlin object, and Java's getters are properties. The logging is the same.
+ */
+const KOTLIN_TELEMETRY_CODE: Record<
+  TelemetryImpl,
+  { imports: string; field: string; init: string; loop: string }
+> = {
+  Panels: {
+    ...TELEMETRY_CODE.Panels,
+    field:
+      "private lateinit var panelsTelemetry: TelemetryManager // Panels Telemetry instance",
+    init: `
+        panelsTelemetry = PanelsTelemetry.telemetry
+        // ...
+        panelsTelemetry.debug("Status", "Initialized")
+        panelsTelemetry.update(telemetry)`,
+  },
+  Dashboard: {
+    ...TELEMETRY_CODE.Dashboard,
+    field: "private lateinit var telemetryA: Telemetry",
+    init: `
+        telemetryA = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
+        telemetryA.addData("Status", "Initialized")
+        telemetryA.update()`,
+  },
+  Standard: TELEMETRY_CODE.Standard,
+  None: TELEMETRY_CODE.None,
+};
+
+/** The imports every OpMode needs, after its package line. */
+const OPMODE_IMPORTS = `
+    import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+    import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+    import com.qualcomm.robotcore.util.ElapsedTime;
+    import org.firstinspires.ftc.teamcode.pedro.Constants;`;
+
+const PEDRO_OPMODE_IMPORTS = `
+    import com.pedropathing.api.PoseFactory;
+    import com.pedropathing.follower.Follower;
+    import com.pedropathing.paths.Path;
+    import static com.pedropathing.api.Paths.curve;
+    import static com.pedropathing.api.Paths.line;
+    import static com.pedropathing.api.Paths.path;
+    import com.pedropathing.math.Pose;
+    import com.pedropathing.paths.interpolator.Interpolator;`;
+
+/** Everything a language's OpMode template needs, already generated. */
+interface OpModeParts {
+  packageName: string;
+  className: string;
+  opModeName: string;
+  /** Line variable names, with "" for chained lines, which have none. */
+  pathFields: string[];
+  pathConstruction: string;
+  stateCases: string;
+  startPose: string;
+  hasEventMarkers: boolean;
+  telemetryImpl: TelemetryImpl;
+  ftc: boolean;
+  metric: boolean;
+}
+
+/** The OpMode in Kotlin: the Java one's shape, with a companion object for its statics. */
+function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
+  const pathsClass = `
+  class Paths {
+    ${o.pathFields
+      .filter(Boolean)
+      .map((name) => `val ${name}: Path`)
+      .join("\n")}
+
+    init {
+      ${o.pathConstruction}
+    }
+
+    companion object {
+      private val p = PoseFactory.degrees()
+      ${
+        o.ftc
+          ? `
+      fun buildPose(x: Double, y: Double, heading: Double): Pose {
+          return p.of(y + 72.0, 72.0 - x, heading)
+      }
+      `
+          : ""
+      }
+      ${o.metric ? "fun cmToInches(cm: Double): Double = cm / 2.54" : ""}
+    }
+  }
+  `;
+  if (!exportFullCode) return AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass;
+
+  const telemetry = KOTLIN_TELEMETRY_CODE[o.telemetryImpl];
+  const markerImports = o.hasEventMarkers
+    ? "import com.turtletracerlib.pathing.NamedCommands;\nimport com.turtletracerlib.pathing.ProgressTracker;\n"
+    : "";
+  return `
+    ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
+
+    package ${o.packageName}
+    ${kotlinImports(`${OPMODE_IMPORTS}\n${markerImports}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}`)}
+
+    @Autonomous(name = "${o.opModeName}", group = "Autonomous")
+    ${o.telemetryImpl === "Panels" ? "@Configurable // Panels" : ""}
+    class ${o.className} : OpMode() {
+      ${telemetry.field}
+      lateinit var follower: Follower // Pathing follower instance
+      private val p = PoseFactory.degrees()
+      ${o.hasEventMarkers ? "private lateinit var tracker: ProgressTracker // Progress tracker instance for event markers\n      " : ""}private var pathState = 0 // Current autonomous path state (state machine)
+      private lateinit var pathTimer: ElapsedTime // Timer for path state machine
+      private lateinit var paths: Paths // Paths defined in the Paths class
+
+      override fun init() {
+        ${telemetry.init}
+
+        follower = Constants.create(hardwareMap)
+        follower.setPose(${o.startPose})
+
+        pathTimer = ElapsedTime()
+        paths = Paths() // Build paths
+        ${o.hasEventMarkers ? "\n        tracker = ProgressTracker(follower, telemetry)" : ""}
+      }
+
+      override fun loop() {
+        follower.update() // Update follower
+        ${o.hasEventMarkers ? "tracker.update() // Update tracker\n        " : ""}pathState = autonomousPathUpdate() // Update autonomous state machine
+
+        ${telemetry.loop}
+      }
+
+      ${pathsClass}
+
+      ${
+        o.ftc
+          ? `
+      private fun buildPose(x: Double, y: Double, heading: Double): Pose {
+          return Paths.buildPose(x, y, heading)
+      }
+      `
+          : ""
+      }
+      ${o.metric ? "private fun cmToInches(cm: Double): Double = Paths.cmToInches(cm)" : ""}
+
+      fun autonomousPathUpdate(): Int {
+        when (pathState) {
+          ${o.stateCases}
+        }
+        return pathState
+      }
+
+      fun setPathState(pState: Int) {
+        pathState = pState
+        pathTimer.reset()
+      }
+    }
+    `;
+}
+
+/** Generates the Pedro Pathing OpMode class for the project, in Java or Kotlin. */
 export async function generateJavaCode(
   startPoint: Point,
   lines: Line[],
@@ -226,13 +423,14 @@ export async function generateJavaCode(
   codeUnits: "imperial" | "metric" = "imperial",
   /** The project file; the class and OpMode are named after it. */
   fileName: string | null = null,
+  language: CodeLanguage = "java",
 ): Promise<string> {
-  const pathChainNames = uniqueVariableNames(lines);
-  const className = javaClassName(fileName, "TurtleTracerAutonomous");
+  const pathChainNames = uniqueVariableNames(lines, language);
+  const className = javaClassName(fileName, "TurtleTracerAutonomous", language);
   const opModeName = (
     projectBaseName(fileName) || "Turtle Tracer Autonomous"
   ).replaceAll(/["\\]/g, "");
-  const opts: FormatOptions = { coordinateSystem, codeUnits };
+  const opts: FormatOptions = { coordinateSystem, codeUnits, language };
 
   let pathsClass = `
   public static class Paths {
@@ -288,6 +486,39 @@ export async function generateJavaCode(
     hasEventMarkers,
     opts,
   );
+  const startPose = poseCode(
+    startPoint,
+    opts,
+    startingHeading(startPoint, lines, sequence),
+  );
+
+  if (language === "kotlin") {
+    return formatKotlin(
+      kotlinOpMode(
+        {
+          packageName,
+          className,
+          opModeName,
+          pathFields: pathChainNames.map((name, idx) =>
+            lines[idx].isChain ? "" : name,
+          ),
+          pathConstruction: pathConstructionCode(
+            startPoint,
+            lines,
+            pathChainNames,
+            opts,
+          ),
+          stateCases,
+          startPose,
+          hasEventMarkers,
+          telemetryImpl,
+          ftc: coordinateSystem === "FTC",
+          metric: codeUnits === "metric",
+        },
+        exportFullCode,
+      ),
+    );
+  }
 
   let file = "";
   if (exportFullCode) {
@@ -297,29 +528,12 @@ export async function generateJavaCode(
       : "";
     const classAnnotations =
       telemetryImpl === "Panels" ? "@Configurable // Panels" : "";
-    const startPose = poseCode(
-      startPoint,
-      opts,
-      startingHeading(startPoint, lines, sequence),
-    );
 
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
-    package ${packageName};
-    import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-    import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-    import com.qualcomm.robotcore.util.ElapsedTime;
-    import org.firstinspires.ftc.teamcode.pedro.Constants;
-    ${namedCommandsImport}${telemetry.imports}
-    import com.pedropathing.api.PoseFactory;
-    import com.pedropathing.follower.Follower;
-    import com.pedropathing.paths.Path;
-    import static com.pedropathing.api.Paths.curve;
-    import static com.pedropathing.api.Paths.line;
-    import static com.pedropathing.api.Paths.path;
-    import com.pedropathing.math.Pose;
-    import com.pedropathing.paths.interpolator.Interpolator;
+    package ${packageName};${OPMODE_IMPORTS}
+    ${namedCommandsImport}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}
     
     @Autonomous(name = "${opModeName}", group = "Autonomous")
     ${classAnnotations}
@@ -398,8 +612,9 @@ export async function generateJavaCode(
 
 exporterRegistry.register({
   id: "java",
-  name: "Export Java Code",
-  description: "Export the path as a standard Pedro Pathing Java OpMode.",
+  name: "Export OpMode Code",
+  description:
+    "Export the path as a standard Pedro Pathing OpMode, in Java or Kotlin.",
   exportCode: async (data: TurtleData, settings: any) => {
     return await generateJavaCode(
       data.startPoint,
@@ -412,6 +627,7 @@ exporterRegistry.register({
       settings.coordinateSystem ?? "Pedro",
       settings.codeUnits ?? "imperial",
       settings.fileName ?? null,
+      settings.codeLanguage ?? "java",
     );
   },
 });

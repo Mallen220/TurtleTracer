@@ -180,7 +180,7 @@
             set("autoExportFormat", e.currentTarget.value as any)}
           class="{ui.input} w-full"
         >
-          <option value="java">Java Class</option>
+          <option value="java">OpMode Class</option>
           <option value="sequential">Sequential Command</option>
           <option value="points">Points Array</option>
           <option value="json">.Turt Project Data</option>
@@ -295,6 +295,24 @@
 
       {#if settings.autoExportFormat === "java" || settings.autoExportFormat === "sequential"}
         <div transition:fade>
+          <SettingsItem
+            label="Language"
+            {...resettable("codeLanguage")}
+            description="Write the code in Java or Kotlin"
+            {searchQuery}
+            layout="col"
+          >
+            <select
+              value={settings.codeLanguage ?? "java"}
+              onchange={(e) =>
+                set("codeLanguage", e.currentTarget.value as any)}
+              class="{ui.input} w-full"
+            >
+              <option value="java">Java</option>
+              <option value="kotlin">Kotlin</option>
+            </select>
+          </SettingsItem>
+
           <SettingsItem
             label="Package Name"
             {...resettable("javaPackageName")}

@@ -1,11 +1,12 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// Following a Java file: the page picks one and is told each time it's saved,
+// Following a Java or Kotlin file: the page picks one and is told each time it's saved,
 // so the field shows what the code in the team's editor says.
 import { ipcMain, BrowserWindow, dialog } from "electron";
 import fs from "node:fs";
 import { validateArbitraryPath } from "../utils.js";
 import {
   findOfferedJavaFile,
+  isCodeFilePath,
   offerJavaFile,
   sharedOfferedJavaFiles,
 } from "./offeredJavaFiles.js";
@@ -37,15 +38,15 @@ export function createJavaFollower({
 
   function follow(sender, filePath) {
     const requested = validateArbitraryPath(filePath);
-    if (!requested.toLowerCase().endsWith(".java")) {
-      throw new Error("Only Java files can be followed.");
+    if (!isCodeFilePath(requested)) {
+      throw new Error("Only Java and Kotlin files can be followed.");
     }
     // Only a file this process offered the page: picked in the dialog or listed
     // in a folder. The path watched is the offered one, not the caller's.
     const resolved = findOfferedJavaFile(requested, offered);
     if (!resolved) {
       throw new Error(
-        "Only a Java file chosen in the file dialog or listed in the file manager can be followed.",
+        "Only a file chosen in the file dialog or listed in the file manager can be followed.",
       );
     }
     stop(sender);
@@ -77,9 +78,9 @@ export function registerJavaFollowHandlers() {
   ipcMain.handle("java:choose-file", async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win, {
-      title: "Follow a Java file",
+      title: "Follow a Java or Kotlin file",
       properties: ["openFile"],
-      filters: [{ name: "Java", extensions: ["java"] }],
+      filters: [{ name: "Java or Kotlin", extensions: ["java", "kt"] }],
     });
     const chosen = result.canceled ? null : (result.filePaths[0] ?? null);
     if (chosen) offerJavaFile(chosen);

@@ -1,10 +1,14 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import hljs from "highlight.js/lib/core";
 import java from "highlight.js/lib/languages/java";
+import kotlin from "highlight.js/lib/languages/kotlin";
 
-// Ensure Java is registered
+// Ensure Java and Kotlin are registered
 if (!hljs.getLanguage("java")) {
   hljs.registerLanguage("java", java);
+}
+if (!hljs.getLanguage("kotlin")) {
+  hljs.registerLanguage("kotlin", kotlin);
 }
 
 /**

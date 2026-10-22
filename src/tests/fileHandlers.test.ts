@@ -457,6 +457,77 @@ describe("fileHandlers", () => {
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
     });
 
+    it("auto-exports sequential Kotlin to a .kt file named after the project", async () => {
+      await import("../lib/exporters/sequentialExporter");
+      mockElectronAPI.resolvePath.mockImplementation(
+        async (_base: string, relative: string) => `/project/dir/${relative}`,
+      );
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+
+      await fileHandlers.handleAutoExport(
+        { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
+        [
+          {
+            id: "a",
+            name: "Score",
+            endPoint: { x: 10, y: 10, heading: "tangential" },
+            controlPoints: [],
+            color: "#000",
+          } as any,
+        ],
+        [],
+        {
+          ...DEFAULT_SETTINGS,
+          autoExportCode: true,
+          autoExportFormat: "sequential",
+          autoExportPath: "GeneratedCode",
+          codeLanguage: "kotlin",
+        },
+        [],
+        {} as TurtleData,
+        "/project/dir/red side.turt",
+      );
+
+      const [path, code] = mockElectronAPI.writeFile.mock.calls.at(-1)!;
+      expect(path).toBe("/project/dir/GeneratedCode/red_side.kt");
+      expect(code).toContain("class red_side(");
+      expect(code).not.toContain(";\n");
+    });
+
+    it("auto-exports the OpMode in Kotlin to a .kt file too", async () => {
+      await import("../lib/exporters/javaExporter");
+      mockElectronAPI.resolvePath.mockImplementation(
+        async (_base: string, relative: string) => `/project/dir/${relative}`,
+      );
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+      await fileHandlers.handleAutoExport(
+        { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
+        [
+          {
+            id: "a",
+            name: "Score",
+            endPoint: { x: 10, y: 10, heading: "tangential" },
+            controlPoints: [],
+            color: "#000",
+          } as any,
+        ],
+        [],
+        {
+          ...DEFAULT_SETTINGS,
+          autoExportCode: true,
+          autoExportFormat: "java",
+          autoExportPath: "GeneratedCode",
+          codeLanguage: "kotlin",
+        },
+        [],
+        {} as TurtleData,
+        "/project/dir/far.turt",
+      );
+      const [path, code] = mockElectronAPI.writeFile.mock.calls.at(-1)!;
+      expect(path).toBe("/project/dir/GeneratedCode/far.kt");
+      expect(code).toContain("class far : OpMode() {");
+    });
+
     it("autoExportAfterChange exports the current project as JSON", async () => {
       settingsStore.set({
         ...DEFAULT_SETTINGS,

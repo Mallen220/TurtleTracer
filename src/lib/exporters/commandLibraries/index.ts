@@ -1,11 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { CommandLibraryId } from "../../../types";
-import type { CommandLibrary } from "./types";
+import type { CodeLanguage, CommandLibraryId } from "../../../types";
+import type { CommandLibrary, CommandVocabulary } from "./types";
 import { solversLib } from "./solversLib";
 import { nextFtc } from "./nextFtc";
 import { ivy } from "./ivy";
 
-export type { CommandLibrary } from "./types";
+export type { CommandLibrary, CommandVocabulary } from "./types";
 
 export const DEFAULT_COMMAND_LIBRARY: CommandLibraryId = "SolversLib";
 
@@ -46,4 +46,13 @@ export function libraryForContext(context: {
   return getCommandLibrary(
     context.targetLibrary ?? (context.isNextFTC ? "NextFTC" : undefined),
   );
+}
+
+/** How an action builds commands for its export context's library and language. */
+export function commandsForContext(context: {
+  targetLibrary?: CommandLibraryId;
+  isNextFTC?: boolean;
+  language?: CodeLanguage;
+}): CommandVocabulary {
+  return libraryForContext(context)[context.language ?? "java"].commands;
 }

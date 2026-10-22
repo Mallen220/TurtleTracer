@@ -15,7 +15,8 @@ import type { SequenceItem, SequenceRotateItem } from "../../types";
 import { stationaryMarkerElements } from "./stationaryMarkers";
 import { calculateRotationTime, unwrapAngle } from "../../utils/timeCalculator";
 import { makeId } from "../../utils/nameGenerator";
-import { libraryForContext } from "../exporters/commandLibraries";
+import { commandsForContext } from "../exporters/commandLibraries";
+import { stateCase } from "../exporters/javaFormat";
 
 /** A new turn to 0°. */
 export const createRotate = (): SequenceRotateItem => ({
@@ -82,22 +83,29 @@ export const RotateAction: ActionDefinition = {
     const degrees = rotateItem.degrees || 0;
     const radians = (degrees * Math.PI) / 180;
     const stateStep = context.stateStep || 0;
+    const { language } = context;
 
-    let code = `
-        case ${stateStep}:
-          follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
+    const code =
+      stateCase(
+        stateStep,
+        `follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
           follower.algorithm().reset();
-          setPathState(${stateStep + 1});
-          break;
-
-        case ${stateStep + 1}:
-          if(!follower.isBusy()) {
+          setPathState(${stateStep + 1});`,
+        language,
+      ) +
+      stateCase(
+        stateStep + 1,
+        `if(!follower.isBusy()) {
             setPathState(${stateStep + 2});
-          }
-          break;`;
+          }`,
+        language,
+      );
 
     return { code, stepsUsed: 2 };
   },
+
+  // Both exports are written through helpers that know Kotlin too.
+  supportsKotlin: true,
 
   toSequentialCommand: (
     item: SequenceItem,
@@ -106,7 +114,7 @@ export const RotateAction: ActionDefinition = {
     const rotateItem = item as SequenceRotateItem;
     const degrees = rotateItem.degrees || 0;
     const radians = (degrees * Math.PI) / 180;
-    const { commands } = libraryForContext(context);
+    const commands = commandsForContext(context);
     // hold() doesn't mark the follower busy again, so isBusy() would already
     // be false and the turn would be skipped. Resetting the algorithm does it.
     const holdHeading = `follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
@@ -150,7 +158,8 @@ export const RotateAction: ActionDefinition = {
                     ${waitForStop},
                     ${commands.sequential(`${markerSteps},
                         ${waitForStop}
-                    `)}`);
+                    `)}
+                `);
 
     // Combine them
     return `${turnCommand},

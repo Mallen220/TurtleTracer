@@ -38,6 +38,9 @@
     getProjectExtensionFromPath,
     isSupportedProjectFileName,
     stripProjectExtension,
+    isCodeFileName,
+    codeLanguageOfFile,
+    stripCodeExtension,
   } from "../utils/fileExtensions";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { saveSettings } from "../utils/settingsPersistence";
@@ -288,7 +291,7 @@
       for (const f of listed) {
         if (f.isDirectory || isSupportedProjectFileName(f.name)) {
           validFiles.push(f);
-        } else if (showJavaFiles && f.name.toLowerCase().endsWith(".java")) {
+        } else if (showJavaFiles && isCodeFileName(f.name)) {
           const mtime = new Date(f.modified).getTime();
           const cached = javaImportCache.get(f.path);
           let hasPaths = false;
@@ -298,7 +301,9 @@
             try {
               const content = await electronAPI.readFile?.(f.path);
               if (content) {
-                const imported = importJavaProject(content);
+                const imported = importJavaProject(content, {
+                  language: codeLanguageOfFile(f.name),
+                });
                 hasPaths = !!(imported.lines && imported.lines.length > 0);
               }
             } catch {
@@ -437,7 +442,7 @@
   // --- Opening and importing ---
 
   async function loadFile(file: FileInfo) {
-    if (file.name.toLowerCase().endsWith(".java")) {
+    if (isCodeFileName(file.name)) {
       const ok = await followJavaFile(file.path);
       if (ok) {
         isOpen = false;
@@ -519,16 +524,19 @@
     }
   }
 
-  /** Converts a Java auto file into a project, saved next to the others. */
+  /** Converts a Java or Kotlin auto file into a project, saved next to the others. */
   async function importJavaFile(file: File) {
-    if (!file.name.endsWith(".java")) {
-      notify("Please select a .java file", "error");
+    if (!isCodeFileName(file.name)) {
+      notify("Please select a .java or .kt file", "error");
       return;
     }
-    if (!confirmDiscardChanges("a new Java file")) return;
+    if (!confirmDiscardChanges(`a new ${file.name.split(".").pop()} file`))
+      return;
 
     try {
-      const imported = importJavaProject(await file.text());
+      const imported = importJavaProject(await file.text(), {
+        language: codeLanguageOfFile(file.name),
+      });
       startPointStore.set(imported.startPoint);
       linesStore.set(imported.lines);
       shapesStore.set(imported.shapes || []);
@@ -537,10 +545,8 @@
         settings = imported.extraData.settings;
       }
 
-      const projectName = file.name.replace(
-        /\.java$/,
-        DEFAULT_PROJECT_EXTENSION,
-      );
+      const projectName =
+        stripCodeExtension(file.name) + DEFAULT_PROJECT_EXTENSION;
       if (electronAPI && currentDirectory) {
         await saveProject({
           path: joinPath(currentDirectory, projectName),
@@ -555,8 +561,8 @@
       notify(`Successfully imported ${file.name}`, "success");
       isOpen = false;
     } catch (error) {
-      console.error("Error importing Java file:", error);
-      notify(`Error importing Java file: ${errorText(error)}`, "error");
+      console.error("Error importing code file:", error);
+      notify(`Error importing ${file.name}: ${errorText(error)}`, "error");
     }
   }
 
@@ -742,7 +748,7 @@
     const fileName =
       file.isDirectory ||
       isSupportedProjectFileName(cleanName) ||
-      cleanName.toLowerCase().endsWith(".java")
+      isCodeFileName(cleanName)
         ? cleanName
         : cleanName + getProjectExtensionFromPath(file.name);
     if (fileName === file.name) return;
@@ -1135,7 +1141,7 @@
               class={ui.menuItem}
             >
               <CodeBracketSquareIcon className="size-4 text-orange-500" />
-              Import Java
+              Import Code
             </button>
 
             {#if electronAPI?.followJavaFile}
@@ -1144,11 +1150,11 @@
                   showAddMenu = false;
                   if (await followJavaFile()) isOpen = false;
                 }}
-                title="Show a Java file's paths on the field, updated each time you save it in your editor"
+                title="Show a Java or Kotlin file's paths on the field, updated each time you save it in your editor"
                 class={ui.menuItem}
               >
                 <EyeIcon className="size-4 text-emerald-600" />
-                Follow Java File
+                Follow Java/Kotlin File
               </button>
             {/if}
 
@@ -1182,7 +1188,7 @@
       <input
         bind:this={javaInput}
         type="file"
-        accept=".java"
+        accept=".java,.kt"
         class="hidden"
         onchange={(e) => onFileChosen(e, importJavaFile)}
         tabindex="-1"
