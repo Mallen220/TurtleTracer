@@ -339,7 +339,6 @@ export interface Settings {
   autoExportPathMode?: "relative" | "absolute";
   autoExportFormat?: "java" | "sequential" | "points" | "json";
   autoExportTargetLibrary?: CommandLibraryId;
-  /** The language OpMode and sequential exports are written in. */
   codeLanguage?: CodeLanguage;
   autoExportFullClass?: boolean;
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
@@ -842,7 +841,6 @@ export interface FieldRenderContext {
 /** The command-based libraries the sequential exporter can target. */
 export type CommandLibraryId = "SolversLib" | "NextFTC" | "Ivy";
 
-/** The languages the OpMode and sequential exporters write. */
 export type CodeLanguage = "java" | "kotlin";
 
 export interface CodeExportContext {
@@ -852,7 +850,6 @@ export interface CodeExportContext {
   /** @deprecated Use targetLibrary. Kept so existing plugins keep working. */
   isNextFTC?: boolean;
   targetLibrary?: CommandLibraryId; // For sequential generation target
-  /** The language to write the code in. Java when missing. */
   language?: CodeLanguage;
 }
 
