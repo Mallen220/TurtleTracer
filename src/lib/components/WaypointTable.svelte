@@ -34,7 +34,6 @@
   import { formatDisplayCoordinate, cmToInch } from "../../utils/coordinates";
   import {
     snapToGrid,
-    showGrid,
     gridSize,
     selectedLineId,
     multiSelectedLineIds,
@@ -151,7 +150,7 @@
   );
 
   // Use snap stores to determine step size for inputs
-  let stepSize = $derived($snapToGrid && $showGrid ? $gridSize : 0.1);
+  let stepSize = $derived($snapToGrid ? $gridSize : 0.1);
 
   function handleInput(
     e: Event,

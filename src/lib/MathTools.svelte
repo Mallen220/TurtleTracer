@@ -93,7 +93,7 @@
     let inchY = y.invert(mouseY);
 
     if (rulerDragging === "start" || rulerDragging === "end") {
-      if ($snapToGrid && $showGrid && $gridSize > 0) {
+      if ($snapToGrid && $gridSize > 0) {
         inchX = Math.round(inchX / $gridSize) * $gridSize;
         inchY = Math.round(inchY / $gridSize) * $gridSize;
       }

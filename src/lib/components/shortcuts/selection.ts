@@ -6,7 +6,7 @@ import {
   sequenceStore,
   startPointStore,
 } from "../../projectStore";
-import { snapToGrid, showGrid, gridSize } from "../../../stores";
+import { snapToGrid, gridSize } from "../../../stores";
 import {
   selectedLineId,
   selectedPointId,
@@ -344,7 +344,7 @@ export function movePoint(
   const selections = selectedIds();
   if (selections.length === 0) return;
 
-  const snapMode = get(snapToGrid) && get(showGrid);
+  const snapMode = get(snapToGrid);
   const gridStep = (get(gridSize) as number) || 1;
   const eps = 1e-8;
 

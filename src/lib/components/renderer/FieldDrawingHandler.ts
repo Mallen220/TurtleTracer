@@ -9,7 +9,6 @@ export interface DrawingPoint {
 
 export interface DrawingGridConfig {
   snapToGrid: boolean;
-  showGrid: boolean;
   gridSize: number;
 }
 
@@ -20,7 +19,7 @@ export function snapDrawingCoordinate(
   coord: number,
   gridConfig: DrawingGridConfig,
 ): number {
-  if (gridConfig.snapToGrid && gridConfig.showGrid && gridConfig.gridSize > 0) {
+  if (gridConfig.snapToGrid && gridConfig.gridSize > 0) {
     return Math.round(coord / gridConfig.gridSize) * gridConfig.gridSize;
   }
   return coord;

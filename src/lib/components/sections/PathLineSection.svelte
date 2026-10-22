@@ -3,7 +3,7 @@
   import { untrack } from "svelte";
 
   import type { ActionDefinition, Line } from "../../../types/index";
-  import { snapToGrid, showGrid, gridSize } from "../../../stores";
+  import { snapToGrid, gridSize } from "../../../stores";
   import ControlPointsSection from "./ControlPointsSection.svelte";
   import HeadingControls, {
     type HeadingFields,
@@ -70,7 +70,7 @@
   let isHidden = $derived(line.hidden ?? false);
 
   let snapToGridTitle = $derived(
-    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
+    $snapToGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
   );
 
   let hoveredLinkId: string | null = $state(null);
@@ -481,7 +481,7 @@
               <input
                 bind:this={xInput}
                 class="{ui.inputSm} w-full pl-6 pr-2"
-                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+                step={$snapToGrid ? $gridSize : 0.1}
                 type="number"
                 min={$settingsStore.coordinateSystem === "FTC"
                   ? -($settingsStore.fieldHeight ?? 144) / 2
@@ -514,7 +514,7 @@
               <input
                 bind:this={yInput}
                 class="{ui.inputSm} w-full pl-6 pr-2"
-                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+                step={$snapToGrid ? $gridSize : 0.1}
                 min={$settingsStore.coordinateSystem === "FTC"
                   ? -($settingsStore.fieldWidth ?? 144) / 2
                   : 0}

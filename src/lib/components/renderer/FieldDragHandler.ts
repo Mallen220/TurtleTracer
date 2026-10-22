@@ -24,7 +24,6 @@ export interface SnapAndBoundsParams {
   rawInchX: number;
   rawInchY: number;
   snapToGrid: boolean;
-  showGrid: boolean;
   gridSize: number;
   smartSnappingEnabled: boolean;
   isAltKey: boolean;
@@ -58,7 +57,6 @@ export function calculateSmartSnapAndBounds(
     rawInchX,
     rawInchY,
     snapToGrid,
-    showGrid,
     gridSize,
     smartSnappingEnabled,
     isAltKey,
@@ -73,7 +71,7 @@ export function calculateSmartSnapAndBounds(
   let inchX = rawInchX;
   let inchY = rawInchY;
 
-  if (snapToGrid && showGrid && gridSize > 0) {
+  if (snapToGrid && gridSize > 0) {
     inchX = Math.round(rawInchX / gridSize) * gridSize;
     inchY = Math.round(rawInchY / gridSize) * gridSize;
   }
@@ -511,7 +509,6 @@ export interface DragIterationParams {
   xInvert: (v: number) => number;
   yInvert: (v: number) => number;
   snapToGrid: boolean;
-  showGrid: boolean;
   gridSize: number;
   smartSnappingEnabled: boolean;
   isAltKey: boolean;
@@ -554,7 +551,6 @@ export function executeMultiDragIteration(
     xInvert,
     yInvert,
     snapToGrid,
-    showGrid,
     gridSize,
     smartSnappingEnabled,
     isAltKey,
@@ -593,7 +589,6 @@ export function executeMultiDragIteration(
       rawInchX,
       rawInchY,
       snapToGrid,
-      showGrid,
       gridSize,
       smartSnappingEnabled,
       isAltKey,

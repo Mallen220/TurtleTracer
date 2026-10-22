@@ -3,7 +3,6 @@
   import random from "lodash/random";
   import {
     snapToGrid,
-    showGrid,
     gridSize,
     selectedLineId,
     selectedPointId,
@@ -40,7 +39,7 @@
   }: Props = $props();
 
   let snapToGridTitle = $derived(
-    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
+    $snapToGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
   );
   let coordinateSystem = $derived($settingsStore.coordinateSystem || "Pedro");
 
@@ -328,7 +327,7 @@
                 max={$settingsStore.coordinateSystem === "FTC"
                   ? ($settingsStore.fieldHeight ?? 144) / 2
                   : ($settingsStore.fieldWidth ?? 144)}
-                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+                step={$snapToGrid ? $gridSize : 0.1}
                 class="{ui.inputSm} w-full pl-6 pr-2"
                 aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
                 oninput={(e) =>
@@ -353,7 +352,7 @@
                 max={$settingsStore.coordinateSystem === "FTC"
                   ? ($settingsStore.fieldWidth ?? 144) / 2
                   : ($settingsStore.fieldHeight ?? 144)}
-                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+                step={$snapToGrid ? $gridSize : 0.1}
                 class="{ui.inputSm} w-full pl-6 pr-2"
                 aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
                 oninput={(e) =>

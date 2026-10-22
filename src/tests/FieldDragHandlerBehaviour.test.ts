@@ -367,7 +367,6 @@ describe("calculateSmartSnapAndBounds", () => {
       rawInchX: 70,
       rawInchY: 70,
       snapToGrid: false,
-      showGrid: false,
       gridSize: 5,
       smartSnappingEnabled: true,
       isAltKey: false,
@@ -450,17 +449,15 @@ describe("calculateSmartSnapAndBounds", () => {
       rawInchX: 73,
       rawInchY: 68,
       snapToGrid: true,
-      showGrid: true,
       gridSize: 10,
       smartSnappingEnabled: false,
     });
     expect(res).toMatchObject({ inchX: 70, inchY: 70 });
-    // Not without a visible grid, or with a grid of no size.
+    // Not when snapping is off, or with a grid of no size.
     expect(
       snap({
         rawInchX: 73,
-        snapToGrid: true,
-        showGrid: false,
+        snapToGrid: false,
         smartSnappingEnabled: false,
       }).inchX,
     ).toBe(73);
@@ -468,7 +465,6 @@ describe("calculateSmartSnapAndBounds", () => {
       snap({
         rawInchX: 73,
         snapToGrid: true,
-        showGrid: true,
         gridSize: 0,
         smartSnappingEnabled: false,
       }).inchX,
@@ -625,7 +621,6 @@ describe("executeMultiDragIteration", () => {
       xInvert: (v: number) => v,
       yInvert: (v: number) => v,
       snapToGrid: false,
-      showGrid: false,
       gridSize: 1,
       smartSnappingEnabled: false,
       isAltKey: false,
