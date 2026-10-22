@@ -25,6 +25,7 @@
     "dist:publish": "node scripts/publish.js",
     "generate:types": "node scripts/generate-plugin-types.js",
     "generate:icons": "node scripts/generate-windows-icons.cjs",
+    "docs:examples": "vite-node scripts/generate-doc-examples.ts --",
     "check:tiles": "node scripts/check-tile-assets.cjs",
     "copy:icon": "node scripts/prepare-mac-icon.js",
     "fix:headers": "node scripts/add-copyright.js",
