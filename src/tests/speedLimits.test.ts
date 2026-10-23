@@ -418,15 +418,24 @@ describe("export", () => {
     expect(code).not.toMatch(/\.at\(\d+\)/);
   });
 
-  it("explains the build error it can cause, where the speeds are set", async () => {
+  it("explains the build error it can cause, where the speeds are set, in the language it is written in", async () => {
     for (const code of [
       await stateMachine(),
       await commands("SolversLib", "java"),
-      await commands("NextFTC", "kotlin"),
     ]) {
       expect(code).toContain("Constants.foresightConfig");
-      expect(code).toContain("cannot find symbol ... foresightConfig");
+      expect(code).toContain('"cannot find symbol ... foresightConfig"');
       expect(code).toContain("public static ForesightConfig foresightConfig");
+      expect(code).not.toContain("Unresolved reference");
+    }
+    for (const code of [
+      await commands("NextFTC", "kotlin"),
+      await commands("Ivy", "kotlin"),
+    ]) {
+      expect(code).toContain("Constants.foresightConfig");
+      expect(code).toContain(`"Unresolved reference 'foresightConfig'"`);
+      expect(code).toContain("@JvmField var foresightConfig");
+      expect(code).not.toContain("cannot find symbol");
     }
   });
 

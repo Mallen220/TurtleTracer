@@ -942,8 +942,9 @@
     Exported as <code>maxVelocityConstraint</code>
     {isChain ? "on the chain" : "on the path"} through
     <code>Constants.foresightConfig</code>. If your build fails with "cannot
-    find symbol foresightConfig", add
-    <code>public static ForesightConfig foresightConfig</code> to your Constants class
-    and build your Follower from it (see Pedro's "Modifying Constants").
+    find symbol foresightConfig" (Java) or "Unresolved reference
+    'foresightConfig'" (Kotlin), your Constants needs a public
+    <code>foresightConfig</code> that your Follower is built from (see Pedro's "Modifying
+    Constants").
   </p>
 {/snippet}

@@ -43,3 +43,4 @@ coverage/
 tmp/jscpd/jscpd-report.json
 DuplicationReport.txt
 screenshots/
+/Project_tests

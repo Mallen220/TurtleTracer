@@ -94,9 +94,19 @@ export const CONSTANTS_IMPORT =
  * What to tell the user about the speed limits in the code, in the place they
  * start: they only compile if the user's Constants has `foresightConfig`.
  */
-export const SPEED_LIMIT_NOTE = `// Max speeds are set through Constants.foresightConfig (Pedro's "Modifying Constants").
-      // If the build fails with "cannot find symbol ... foresightConfig", your Constants class
-      // needs a public static ForesightConfig foresightConfig that your Follower is built from.`;
+export function speedLimitNote(language: CodeLanguage | undefined): string {
+  const kotlin = language === "kotlin";
+  return `// Max speeds are set through Constants.foresightConfig (Pedro's "Modifying Constants").
+      // If the build fails with ${
+        kotlin
+          ? `"Unresolved reference 'foresightConfig'"`
+          : `"cannot find symbol ... foresightConfig"`
+      }, your Constants ${kotlin ? "object" : "class"} needs ${
+        kotlin
+          ? "a @JvmField var foresightConfig"
+          : "a public static ForesightConfig foresightConfig"
+      } that your Follower is built from.`;
+}
 
 /** The Pedro modifier that limits a path or chain to `speed` in/s. */
 const speedModifier = (speed: number) =>

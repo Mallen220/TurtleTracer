@@ -545,7 +545,8 @@ describe("PathLineSection speed limits", () => {
     const chainTip = screen.getByText(/limits every path in this chain/);
     const said = chainTip.parentElement!.textContent!.replaceAll(/\s+/g, " ");
     expect(said).toContain("Constants.foresightConfig");
-    expect(said).toContain('"cannot find symbol foresightConfig"');
+    expect(said).toContain('"cannot find symbol foresightConfig" (Java)');
+    expect(said).toContain(`"Unresolved reference 'foresightConfig'" (Kotlin)`);
     await fireEvent.mouseLeave(info);
 
     await fireEvent.mouseEnter(screen.getByLabelText("About Max Speed"));

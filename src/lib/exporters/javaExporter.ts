@@ -32,7 +32,7 @@ import {
   type FormatOptions,
   type HeadingConfig,
   speedCodes,
-  SPEED_LIMIT_NOTE,
+  speedLimitNote,
 } from "./javaFormat";
 
 /** A variable name for each line, based on its name and made unique. */
@@ -112,7 +112,7 @@ function pathConstructionCode(
     return `${root.name} = path(\n${calls.join(",\n")}\n      )${root.chainHeading}${chainSpeed};`;
   });
   const code = blocks.join("\n\n      ");
-  return speeds.any ? `${SPEED_LIMIT_NOTE}\n      ${code}` : code;
+  return speeds.any ? `${speedLimitNote(opts.language)}\n      ${code}` : code;
 }
 
 /**

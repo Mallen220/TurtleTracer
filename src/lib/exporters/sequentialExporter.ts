@@ -38,7 +38,7 @@ import {
   groupChains,
   uniqueNames,
   speedCodes,
-  SPEED_LIMIT_NOTE,
+  speedLimitNote,
   CONSTANTS_IMPORT,
   type FormatOptions,
   type HeadingConfig,
@@ -254,7 +254,7 @@ export async function generateSequentialCommandCode(
     })
     .join("\n\n");
   const pathBuildersWithNote = speeds.any
-    ? `        ${SPEED_LIMIT_NOTE}\n${pathBuilders}`
+    ? `        ${speedLimitNote(language)}\n${pathBuilders}`
     : pathBuilders;
 
   const ppReaderImport = hardcodeValues
