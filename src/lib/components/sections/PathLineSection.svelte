@@ -5,6 +5,23 @@
   import type { ActionDefinition, Line } from "../../../types/index";
   import { snapToGrid, gridSize } from "../../../stores";
   import ControlPointsSection from "./ControlPointsSection.svelte";
+  import SpeedLimitField from "./SpeedLimitField.svelte";
+  import PathOptionsSection from "./PathOptionsSection.svelte";
+  import SpeedFixButtons from "./SpeedFixButtons.svelte";
+  import { validSpeed } from "../../../utils/timeCalculator/speedCap";
+  import {
+    applySpeedFix,
+    fastestSpeedThatFixes,
+    latestStartThatFixes,
+    followsBends,
+    speedFixes,
+    type FixContext,
+    type SpeedFix,
+  } from "../../../utils/timeCalculator/fixSearch";
+  import {
+    fallsShort,
+    type SegmentFixes,
+  } from "../../../utils/timeCalculator/advice";
   import HeadingControls, {
     type HeadingFields,
   } from "../HeadingControls.svelte";
@@ -14,7 +31,11 @@
     selectedPointId,
     focusRequest,
   } from "../../../stores";
-  import { startPointStore } from "../../projectStore";
+  import {
+    startPointStore,
+    timePredictionStore,
+    sequenceStore,
+  } from "../../projectStore";
   import CardControls from "./CardControls.svelte";
   import InsertAfterBar from "./InsertAfterBar.svelte";
   import {
@@ -30,7 +51,7 @@
   } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount } from "svelte";
-  import { ChevronRightIcon, LinkIcon } from "../icons";
+  import { ChevronRightIcon, LinkIcon, TriangleWarningIcon } from "../icons";
   import { ui } from "../../ui";
 
   interface Props {
@@ -79,6 +100,12 @@
   let xInput: HTMLInputElement | undefined = $state();
   let yInput: HTMLInputElement | undefined = $state();
   let headingControls: HeadingControls | undefined = $state();
+  // How far each piecewise segment of this path ends short of its heading.
+  let piecewiseShortfalls = $derived(
+    $timePredictionStore?.timeline.find(
+      (ev) => ev.type === "travel" && ev.lineIndex === idx,
+    )?.piecewiseShortfalls,
+  );
   let nameInput: HTMLInputElement | undefined = $state();
 
   // Container-based responsiveness: observe the grid container's width and
@@ -208,6 +235,126 @@
   let isOverriddenByGlobalHeading = $derived(
     chainGlobalSourceLine !== null && chainGlobalSourceLine !== line,
   );
+  // What would clear a piecewise segment's shortfall, found by trying changes
+  // in the simulation. It is asked for when the explanation is shown.
+  function segmentFixes(segment: number): SegmentFixes {
+    const ctx: FixContext = {
+      startPoint: $startPointStore,
+      lines: $state.snapshot(lines),
+      sequence: $sequenceStore,
+      settings: $settingsStore,
+    };
+    return {
+      start: latestStartThatFixes(ctx, idx, segment),
+      speed: fastestSpeedThatFixes(
+        ctx,
+        idx,
+        (event) => !fallsShort(event.piecewiseShortfalls?.[segment]),
+      ),
+    };
+  }
+
+  // The speed limits: this path's own, and its chain's (kept on the first path).
+  let robotMaxSpeed = $derived($settingsStore.maxVelocity || 100);
+  let chainSpeedLine = $derived(
+    chainRootIndex === -1 ? line : (lines[chainRootIndex] ?? line),
+  );
+  let chainSpeed = $derived(validSpeed(chainSpeedLine.chainMaxSpeed));
+  // A path that was last in a chain can still carry the chain's speed.
+  let showChainSpeed = $derived(isChainRoot || chainSpeed !== undefined);
+  let pathSpeedPlaceholder = $derived(
+    chainSpeed === undefined
+      ? `${robotMaxSpeed} (robot max)`
+      : `${chainSpeed} (chain)`,
+  );
+
+  // The first problem with how the robot drives this path: a bend it can't
+  // follow at its speed, else a heading it can't finish turning.
+  let travelEvent = $derived(
+    $timePredictionStore?.timeline.find(
+      (ev) => ev.type === "travel" && ev.lineIndex === idx,
+    ),
+  );
+  let motionProblem = $derived.by(() => {
+    const wide = travelEvent?.excursion;
+    if (wide) {
+      return {
+        kind: "wide" as const,
+        chip: "Runs wide",
+        text: `The robot runs ${wide.maxOffset.toFixed(1)} in wide of a bend it can't follow at this speed.`,
+        hint: "Reshape the bend, or split the path there (see Path Statistics).",
+      };
+    }
+    const short = travelEvent?.piecewiseShortfalls?.find(fallsShort);
+    if (short) {
+      return {
+        kind: "turn" as const,
+        chip: "Won't finish turning",
+        text: `A heading segment won't finish turning: it ends ${Math.round(short.degrees)}° short.`,
+        hint: "Start the segment earlier or turn less (hover its warning under Heading).",
+      };
+    }
+    return null;
+  });
+
+  // The speed limits that clear it, found by trying them in the simulation.
+  // That takes a moment, so it waits until editing has settled.
+  let motionFixes: SpeedFix[] = $state([]);
+  let motionFixesChecked = $state(false);
+  $effect(() => {
+    const kind = motionProblem?.kind;
+    motionFixes = [];
+    motionFixesChecked = false;
+    if (!kind) return;
+    const ctx: FixContext = {
+      startPoint: $startPointStore,
+      lines: $state.snapshot(lines),
+      sequence: $sequenceStore,
+      settings: $settingsStore,
+    };
+    const handle = setTimeout(() => {
+      motionFixes = speedFixes(ctx, idx, (event) =>
+        kind === "wide"
+          ? followsBends(ctx.settings)(event)
+          : !event.piecewiseShortfalls?.some(fallsShort),
+      );
+      motionFixesChecked = true;
+    }, 300);
+    return () => clearTimeout(handle);
+  });
+
+  function applyMotionFix(fix: SpeedFix) {
+    lines = applySpeedFix(lines, fix);
+    recordChange?.(
+      fix.field === "chainMaxSpeed" ? "Set Chain Max Speed" : "Set Max Speed",
+    );
+  }
+
+  // The settings under Chain Motion start folded away; what is set shows beside the heading.
+  let optionsOpen = $state(false);
+  let optionsSummary = $derived([
+    ...(validSpeed(line.maxSpeed) === undefined
+      ? []
+      : [`Max ${line.maxSpeed} in/s`]),
+    ...(validSpeed(chainSpeedLine.chainMaxSpeed) === undefined ||
+    !showChainSpeed
+      ? []
+      : [`Chain ${chainSpeedLine.chainMaxSpeed} in/s`]),
+  ]);
+
+  function setSpeed(
+    field: "maxSpeed" | "chainMaxSpeed",
+    speed: number | undefined,
+  ) {
+    const targetIdx =
+      field === "chainMaxSpeed" && chainRootIndex !== -1 ? chainRootIndex : idx;
+    lines[targetIdx] = { ...lines[targetIdx], [field]: speed };
+    lines = [...lines];
+    recordChange?.(
+      field === "maxSpeed" ? "Change Max Speed" : "Change Chain Max Speed",
+    );
+  }
+
   let canShowGlobalHeadingToggle = $derived(
     isPartOfChain && !isOverriddenByGlobalHeading,
   );
@@ -560,6 +707,8 @@
               bind:this={headingControls}
               endPoint={line.endPoint}
               locked={line.locked}
+              shortfalls={piecewiseShortfalls}
+              fixesFor={segmentFixes}
               onchange={() => {
                 lines[idx] = { ...line, endPoint: { ...line.endPoint } };
                 lines = [...lines];
@@ -701,7 +850,100 @@
         }}
       />
 
+      <!-- Settings most people leave alone -->
+      <div>
+        <PathOptionsSection
+          id="path-options-{line.id}"
+          summary={optionsSummary}
+          warning={motionProblem?.chip}
+          bind:open={optionsOpen}
+        >
+          {#if motionProblem}
+            <div class="{ui.alert.warning} mb-3 flex flex-col gap-2">
+              <div class="flex items-start gap-2">
+                <TriangleWarningIcon className="size-4 shrink-0 mt-0.5" />
+                <span>{motionProblem.text}</span>
+              </div>
+              <SpeedFixButtons
+                fixes={motionFixes}
+                onapply={applyMotionFix}
+                disabled={line.locked}
+              />
+              {#if motionFixesChecked && motionFixes.length === 0}
+                <span class="opacity-80">
+                  No speed limit fixes it. {motionProblem.hint}
+                </span>
+              {/if}
+            </div>
+          {/if}
+          <div
+            class="grid gap-4"
+            class:grid-cols-1={isNarrow || !showChainSpeed}
+            class:grid-cols-2={!isNarrow && showChainSpeed}
+          >
+            {#if showChainSpeed}
+              <SpeedLimitField
+                label="Chain Max Speed"
+                value={chainSpeedLine.chainMaxSpeed}
+                placeholder="{robotMaxSpeed} (robot max)"
+                ariaLabel="Chain max speed in inches per second"
+                robotMax={robotMaxSpeed}
+                disabled={line.locked}
+                info={chainSpeedInfo}
+                onchange={(speed) => setSpeed("chainMaxSpeed", speed)}
+              />
+            {/if}
+            <SpeedLimitField
+              label="Max Speed"
+              value={line.maxSpeed}
+              placeholder={pathSpeedPlaceholder}
+              ariaLabel="Max speed of this path in inches per second"
+              robotMax={robotMaxSpeed}
+              disabled={line.locked}
+              info={pathSpeedInfo}
+              onchange={(speed) => setSpeed("maxSpeed", speed)}
+            />
+          </div>
+        </PathOptionsSection>
+      </div>
+
       <InsertAfterBar {onAddAction} />
     </div>
   {/if}
 </div>
+
+{#snippet pathSpeedInfo()}
+  <p>
+    <strong>Max Speed</strong> is the fastest the robot drives this path, in inches
+    per second.
+  </p>
+  <p>
+    Leave it blank to use the chain's speed, or else the robot's Max Velocity
+    (Settings, Motion). A speed set here replaces the chain's for this path,
+    even a higher one, just as in Pedro.
+  </p>
+  {@render exportNote(false)}
+{/snippet}
+
+{#snippet chainSpeedInfo()}
+  <p>
+    <strong>Chain Max Speed</strong> limits every path in this chain, the paths linked
+    together so the robot doesn't stop between them.
+  </p>
+  <p>
+    A path with its own <strong>Max Speed</strong> uses that instead. Leave it blank
+    for no limit beyond the robot's Max Velocity.
+  </p>
+  {@render exportNote(true)}
+{/snippet}
+
+{#snippet exportNote(isChain: boolean)}
+  <p class="text-neutral-300">
+    Exported as <code>maxVelocityConstraint</code>
+    {isChain ? "on the chain" : "on the path"} through
+    <code>Constants.foresightConfig</code>. If your build fails with "cannot
+    find symbol foresightConfig", add
+    <code>public static ForesightConfig foresightConfig</code> to your Constants class
+    and build your Follower from it (see Pedro's "Modifying Constants").
+  </p>
+{/snippet}

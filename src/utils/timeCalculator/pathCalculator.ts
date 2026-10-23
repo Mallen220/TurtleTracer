@@ -8,8 +8,11 @@ import type {
   TimePrediction,
   SequenceItem,
   TimelineEvent,
+  Excursion,
+  PiecewiseShortfall,
 } from "../../types";
 import {
+  getCurvePoint,
   getEffectiveHeadingSource,
   getLineStartHeading,
   restingHeading,
@@ -30,13 +33,16 @@ import {
   headingsAlong,
   idealHeadings,
   recoverFromHandover,
+  runWideFromStep,
 } from "./chainHandover";
 import { RECOVERY_MIN_TURN_DEGREES } from "./chainRecovery";
 import { analyzePathSegment, unwrapAngle } from "./segmentAnalyzer";
 import type { PathAnalysis } from "./types";
 import { speedAtAngle, stepSpeedScales } from "./directionalSpeed";
-import { buildHeadingProfile } from "./headingProfile";
+import { buildHeadingProfile, piecewiseShortfalls } from "./headingProfile";
 import { calculateRotationTime } from "./rotation";
+import { lateralLimit } from "./lateralLimit";
+import { maxSpeedOf } from "./speedCap";
 import { calculateMotionProfileDetailed } from "./motionProfile";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { MAX_MACRO_DEPTH } from "../../config";
@@ -111,6 +117,32 @@ function turnsWithPath(line: Line, rootLine: Line | undefined): boolean {
   );
 }
 
+/**
+ * A robot that leaves its path by less than this (inches) is taken to follow
+ * it. It is Pedro's own tolerance before it puts getting back on the path
+ * ahead of driving along it.
+ */
+const WIDE_MIN_OFFSET = 2.5;
+/** Sideways acceleration demands past this (in/s²) are reported as this. */
+const MAX_DEMAND = 1e6;
+/** A bend ending within this many steps of the end of the path ends with the path. */
+const WIDE_TAIL_STEPS = 4;
+
+/** The motion of a robot along a path: when and how fast it is where, and which way it faces. */
+interface Motion {
+  total: number;
+  /** Time at each step boundary. */
+  motion: number[];
+  velocities: number[];
+  headings: number[];
+  shortfalls: PiecewiseShortfall[] | undefined;
+  /** The step the robot is back on the path at after leaving it, else where it started. */
+  resumeStep: number;
+  excursion?: Excursion;
+  /** The most sideways acceleration the ideal path asks of the robot, in in/s². */
+  peakDemand?: number;
+}
+
 /** Options for one timing that aren't part of the robot's settings. */
 export interface TimeOptions {
   /**
@@ -146,6 +178,8 @@ interface PathContext {
   junctionTurn: number;
   /** The fastest the robot may leave the end of this path. */
   exitLimit: number;
+  /** The fastest the robot is driven on this path, in in/s. */
+  maxSpeed: number;
   analysis: PathAnalysis;
   stepCount: number;
   endHeading: number;
@@ -273,6 +307,7 @@ class TimelineBuilder {
       ? stepSpeedScales(ctx.analysis.steps, built.headings, this.settings)
       : null;
     if (scales) built = this.solveMotion(ctx, scales);
+    built = this.runWide(ctx, built, scales ?? undefined);
 
     const endStep = this.addTravel(ctx, built);
     if (ctx.nextLine) this.handOver(ctx, built, endStep);
@@ -310,10 +345,11 @@ class TimelineBuilder {
       : 0;
     // A chained path doesn't brake at its end; the next path carries on. Timed
     // without the swing, the robot instead slows to turn the corner.
+    const maxSpeed = maxSpeedOf(line, rootLine, settings);
     const exitLimit = handsOver
       ? this.corrects
         ? Infinity
-        : cornerSpeedForTurn(settings.maxVelocity || 100, junctionTurn)
+        : cornerSpeedForTurn(maxSpeed, junctionTurn)
       : 0;
 
     // Chained paths are sampled finely, so the robot can be handed over or
@@ -364,6 +400,7 @@ class TimelineBuilder {
       nextLine: handsOver,
       junctionTurn,
       exitLimit,
+      maxSpeed,
       analysis,
       stepCount,
       endHeading,
@@ -420,7 +457,7 @@ class TimelineBuilder {
    * (possibly slowed) motion profile so headings line up with the robot's
    * position.
    */
-  private solveMotion(ctx: PathContext, stepSpeedScale?: number[]) {
+  private solveMotion(ctx: PathContext, stepSpeedScale?: number[]): Motion {
     const { analysis, startStep, stepCount, rotationTime } = ctx;
     const length = analysis.length;
 
@@ -441,6 +478,7 @@ class TimelineBuilder {
       {
         turnsWithPath: ctx.followsTangent,
         stepSpeedScale: stepSpeedScale?.slice(startStep),
+        speedCap: ctx.maxSpeed,
       },
     );
 
@@ -462,29 +500,229 @@ class TimelineBuilder {
       ...skipped.map(() => ctx.entrySpeed),
       ...solved.velocityProfile.map((v) => v / scale),
     ];
-    const headings = buildHeadingProfile({
+    const headingInput = this.headingInputFor(ctx, motion);
+    const headings = buildHeadingProfile(headingInput);
+    return {
+      total,
+      motion,
+      velocities,
+      headings,
+      shortfalls: piecewiseShortfalls(headingInput, headings),
+      resumeStep: ctx.startStep,
+    };
+  }
+
+  /** What the heading profile of a path is built from, given when the robot is at each step. */
+  private headingInputFor(ctx: PathContext, motion: number[]) {
+    return {
       line: ctx.line,
       prevPoint: ctx.prevPoint,
       rootLine: ctx.rootLine,
       chainMeta: ctx.chainMeta,
       currentHeading: this.currentHeading,
       endHeading: ctx.endHeading,
-      physicalRotationTime: rotationTime,
-      analysis,
+      physicalRotationTime: ctx.rotationTime,
+      analysis: ctx.analysis,
       motionProfile: motion.map((t) => Math.max(0, t)),
       settings: this.settings,
-      length,
+      length: ctx.analysis.length,
       isChained: ctx.turnsWhileDriving,
       isGlobalOverride: ctx.isGlobalOverride,
+    };
+  }
+
+  /**
+   * Where the robot goes when the path bends harder than it can follow at
+   * the speed it is going. Pedro doesn't slow for a bend: it drives along the
+   * tangent at full power, and a robot that can't turn that sharply carries
+   * on wide and is pulled back. So from the first step that asks for more
+   * sideways acceleration than the wheels can grip (the same limit that
+   * flags a risk of wheel slip), the robot is simulated as the follower would
+   * steer it, until it is back on the path past the last such step. A robot
+   * that stays within a few inches of the path follows it as timed.
+   */
+  private runWide(
+    ctx: PathContext,
+    built: Motion,
+    scales: number[] | undefined,
+  ): Motion {
+    if (!this.corrects) return built;
+    const { analysis, stepCount, startStep } = ctx;
+    const { limit } = lateralLimit(this.settings);
+
+    let first = -1;
+    let last = -1;
+    let demand = 0;
+    let peak = 0;
+    for (let k = startStep; k < stepCount; k++) {
+      const speed = built.velocities[k];
+      if (!(speed > 1e-6)) continue;
+      const radius = analysis.steps[k].radius;
+      const need = radius > 1e-6 ? (speed * speed) / radius : MAX_DEMAND;
+      peak = Math.max(peak, Math.min(need, MAX_DEMAND));
+      if (need <= limit) continue;
+      if (first < 0) first = k;
+      last = k;
+      demand = Math.max(demand, Math.min(need, MAX_DEMAND));
+    }
+    if (first < 0) return { ...built, peakDemand: peak };
+
+    // A bend ending close to the end of the path: the robot is simulated all
+    // the way to the end, where it brakes, rather than timed over a few steps
+    // it has hardly any speed for.
+    const leftAt = built.motion[first];
+    const nearEnd = last + 1 >= stepCount - WIDE_TAIL_STEPS;
+    const result = runWideFromStep({
+      line: ctx.line,
+      prevPoint: ctx.prevPoint,
+      stepCount,
+      fromStep: first,
+      releaseStep: nearEnd ? stepCount : last + 1,
+      speed: built.velocities[first],
+      settings: this.settings,
+      brakeAtEnd: !ctx.nextLine,
+      maxTime: Math.max(8, 3 * (built.motion[stepCount] - leftAt)),
+      maxSpeed: ctx.maxSpeed,
     });
-    return { total, motion, velocities, headings };
+    if (!result || result.maxOffset < WIDE_MIN_OFFSET) {
+      return { ...built, peakDemand: peak };
+    }
+
+    // The robot turns to face where the path wants it along the way, as fast
+    // as it can.
+    const wanted = idealHeadings({
+      line: ctx.line,
+      prevPoint: ctx.prevPoint,
+      chainMeta: ctx.chainMeta,
+      currentHeading: this.currentHeading,
+      settings: this.settings,
+    });
+    // (A path with no heading to speak of keeps the heading it has.)
+    const leftHeading = Number.isFinite(built.headings[first])
+      ? built.headings[first]
+      : this.currentHeading;
+    const headings =
+      wanted.length > 0
+        ? headingsAlong(
+            result.time,
+            result.along.map((u) => u + first),
+            wanted,
+            leftHeading,
+            this.settings,
+          )
+        : result.time.map(() => leftHeading);
+
+    // Then it carries on from where it is back on the path, unless that is
+    // the end of it.
+    const finished = first + result.rejoinStep >= stepCount;
+    const resume = finished
+      ? stepCount
+      : Math.max(first + 1, first + result.rejoinStep);
+    const elapsed = leftAt + result.duration;
+    let rest: Motion | null = null;
+    if (!finished) {
+      const heldHeading = this.currentHeading;
+      this.currentHeading = headings.at(-1)!;
+      rest = this.solveMotion(
+        {
+          ...ctx,
+          startStep: resume,
+          entrySpeed: result.rejoinSpeed,
+          rotationTime: Math.max(0, ctx.rotationTime - elapsed),
+        },
+        scales,
+      );
+      this.currentHeading = heldHeading;
+    }
+
+    const motion = [...built.motion];
+    const velocities = [...built.velocities];
+    // (Without a heading profile there is nothing to splice into.)
+    const headed = built.headings.length === motion.length;
+    const headingProfile = [...built.headings];
+    // The steps in between are the robot's when it is closest to them.
+    let reached = 0;
+    let furthest = result.along[0];
+    for (let k = first + 1; k < resume; k++) {
+      while (furthest < k - first && reached < result.time.length - 1) {
+        reached++;
+        furthest = Math.max(furthest, result.along[reached]);
+      }
+      motion[k] = leftAt + result.time[reached];
+      velocities[k] = result.speed[reached];
+      if (headed) headingProfile[k] = headings[reached];
+    }
+    if (rest) {
+      for (let k = resume; k <= stepCount; k++) {
+        motion[k] = elapsed + rest.motion[k];
+        velocities[k] = rest.velocities[k];
+        if (headed) headingProfile[k] = rest.headings[k];
+      }
+    } else {
+      // At the end: stopped, or going on to the next path at the speed it
+      // had when it was back on this one.
+      velocities[stepCount] = ctx.nextLine ? result.rejoinSpeed : 0;
+      motion[stepCount] = Math.max(
+        elapsed,
+        motion[stepCount - 1] +
+          (velocities[stepCount - 1] - velocities[stepCount]) /
+            (this.settings.maxDeceleration ||
+              this.settings.maxAcceleration ||
+              30),
+      );
+      if (headed) headingProfile[stepCount] = headings.at(-1)!;
+    }
+
+    // The tightest part of the bend, for saying where it is.
+    let tight = first;
+    for (let k = first; k <= last; k++) {
+      if (analysis.steps[k].radius < analysis.steps[tight].radius) tight = k;
+    }
+    const where = getCurvePoint((tight + 0.5) / stepCount, [
+      ctx.prevPoint,
+      ...ctx.line.controlPoints,
+      ctx.line.endPoint,
+    ]);
+
+    return {
+      total: elapsed + (rest?.total ?? 0),
+      motion,
+      velocities,
+      headings: headingProfile,
+      shortfalls: piecewiseShortfalls(
+        this.headingInputFor(ctx, motion),
+        headingProfile,
+      ),
+      resumeStep: resume,
+      peakDemand: peak,
+      excursion: {
+        startTime: leftAt,
+        duration: result.duration,
+        trace: {
+          time: result.time,
+          x: result.x,
+          y: result.y,
+          speed: result.speed,
+          heading: headings,
+        },
+        fromT: first / stepCount,
+        toT: resume / stepCount,
+        maxOffset: result.maxOffset,
+        demand,
+        settled: result.settled,
+        tightest: {
+          radius: analysis.steps[tight].radius,
+          x: where.x,
+          y: where.y,
+          speed: built.velocities[tight],
+          time: motion[tight],
+        },
+      },
+    };
   }
 
   /** Adds the travel event for a path, and gives the step it ends at. */
-  private addTravel(
-    ctx: PathContext,
-    built: ReturnType<TimelineBuilder["solveMotion"]>,
-  ): number {
+  private addTravel(ctx: PathContext, built: Motion): number {
     const { line, nextLine, stepCount } = ctx;
     // The step the robot stops driving this path at: its end, unless the next
     // chained path takes over early.
@@ -493,7 +731,7 @@ class TimelineBuilder {
         ? handoverStep(
             ctx.analysis.steps,
             built.velocities,
-            ctx.startStep,
+            built.resumeStep,
             this.settings,
             ctx.junctionTurn,
           )
@@ -517,6 +755,9 @@ class TimelineBuilder {
       motionProfile: built.motion,
       velocityProfile: built.velocities,
       headingProfile: built.headings,
+      piecewiseShortfalls: built.shortfalls,
+      excursion: built.excursion,
+      peakDemand: built.peakDemand,
       isGlobalOverride: ctx.isGlobalOverride,
       rootLine: ctx.rootLine,
       globalHeading: (ctx.isGlobalOverride
@@ -536,11 +777,7 @@ class TimelineBuilder {
    * Hands the robot over to the chained path after this one: adds the swing
    * back onto it, if there is one, and notes where the next path is picked up.
    */
-  private handOver(
-    ctx: PathContext,
-    built: ReturnType<TimelineBuilder["solveMotion"]>,
-    endStep: number,
-  ) {
+  private handOver(ctx: PathContext, built: Motion, endStep: number) {
     const { line, nextLine, stepCount } = ctx;
     if (!nextLine) return;
     const speed = built.velocities[endStep];
@@ -557,6 +794,11 @@ class TimelineBuilder {
           speed,
           settings: this.settings,
           nextIsLast: !continuesChain(ctx.seq, ctx.idx + 2, this.lineById),
+          nextMaxSpeed: maxSpeedOf(
+            nextLine,
+            ctx.chains.get(nextLine.id!)?.rootLine,
+            this.settings,
+          ),
         })
       : null;
     if (!recovery) {

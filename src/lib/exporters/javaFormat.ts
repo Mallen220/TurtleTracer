@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { CodeLanguage, Line, SequenceItem } from "../../types";
+import { validSpeed } from "../../utils/timeCalculator/speedCap";
 import {
   toUser,
   toUserHeading,
@@ -75,6 +76,59 @@ export type FormatOptions = {
 export function doubleCode(value: number, language?: CodeLanguage): string {
   const text = String(value);
   return language === "kotlin" && /^-?\d+$/.test(text) ? `${text}.0` : text;
+}
+
+/**
+ * A speed as a `double` argument. It has to be written with a decimal point:
+ * Pedro's `at(...)` takes a boxed `Double`, which Java won't make from `30`.
+ */
+function speedLiteral(speed: number): string {
+  return Number.isInteger(speed) ? speed.toFixed(1) : String(speed);
+}
+
+/** The `Constants` class every team has, which the speed limits read `foresightConfig` from. */
+export const CONSTANTS_IMPORT =
+  "import org.firstinspires.ftc.teamcode.pedro.Constants";
+
+/**
+ * What to tell the user about the speed limits in the code, in the place they
+ * start: they only compile if the user's Constants has `foresightConfig`.
+ */
+export const SPEED_LIMIT_NOTE = `// Max speeds are set through Constants.foresightConfig (Pedro's "Modifying Constants").
+      // If the build fails with "cannot find symbol ... foresightConfig", your Constants class
+      // needs a public static ForesightConfig foresightConfig that your Follower is built from.`;
+
+/** The Pedro modifier that limits a path or chain to `speed` in/s. */
+const speedModifier = (speed: number) =>
+  `.with(Constants.foresightConfig.maxVelocityConstraint.at(${speedLiteral(speed)}))`;
+
+/** The speed limits to write for each line, and whether there are any. */
+export interface SpeedCodes {
+  /** For the line's own path. */
+  own: string[];
+  /** For the chain that starts at the line; empty for a line that continues one. */
+  chain: string[];
+  any: boolean;
+}
+
+export function speedCodes(lines: Line[]): SpeedCodes {
+  const own = lines.map((line) => {
+    const speed = validSpeed(line.maxSpeed);
+    return speed === undefined ? "" : speedModifier(speed);
+  });
+  const chain = lines.map((line, idx) => {
+    const speed = validSpeed(line.chainMaxSpeed);
+    return idx > 0 && line.isChain === true
+      ? ""
+      : speed === undefined
+        ? ""
+        : speedModifier(speed);
+  });
+  return {
+    own,
+    chain,
+    any: own.some(Boolean) || chain.some(Boolean),
+  };
 }
 
 /** A heading as stored on a point, a piecewise segment or a chain. */

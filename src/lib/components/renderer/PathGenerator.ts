@@ -186,7 +186,14 @@ function heatmapSegments(
     );
     // The part of the line the robot doesn't drive (handed over early, or
     // picked up after a swing) is grey.
-    const driven = t > drivenParts.from && t - 1 / samples < drivenParts.to;
+    // The part the robot runs wide of, because it can't follow the bend, too.
+    const wide = event.excursion;
+    const bypassed =
+      wide !== undefined &&
+      t - 1 / samples >= wide.fromT - 1e-9 &&
+      t <= wide.toT + 1e-9;
+    const driven =
+      t > drivenParts.from && t - 1 / samples < drivenParts.to && !bypassed;
     const color = driven
       ? speedColor(speedAt(middle), topSpeed)
       : UNDRIVEN_COLOR;

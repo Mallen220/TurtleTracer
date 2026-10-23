@@ -12,7 +12,7 @@
 // robot's own speed, or at its top speed if it never got back.
 import type { BasePoint, Settings } from "../../types";
 import { DEFAULT_SETTINGS } from "../../config/defaults";
-import { brakingDistance } from "./braking";
+import { brakingDistance, NATURAL_DECELERATION_SHARE } from "./braking";
 import { Track, newClosest } from "./recoveryTrack";
 
 /** Turns smaller than this are driven straight through. */
@@ -32,12 +32,6 @@ export const MIN_TRANSLATIONAL_P = 0.01;
  * produce artifacts. Anything above this is treated as this.
  */
 export const MAX_TRANSLATIONAL_P = 1;
-/**
- * With no power, the robot slows down on its own (friction and its motors
- * braking). At its top speed this is this share of its maximum deceleration.
- * It is what damps the correction, so a stronger one doesn't just ring.
- */
-const NATURAL_DECELERATION_SHARE = 0.8;
 /** Errors smaller than this aren't corrected (Pedro's `minCorrectionDistance`). */
 const MIN_CORRECTION = 1e-3;
 const TIME_STEP = 0.02;
@@ -83,6 +77,19 @@ export interface RecoveryInput {
    * chained after it), so it brakes for it rather than driving on.
    */
   brakeAtEnd?: boolean;
+  /**
+   * For a robot that starts on the path and may leave it (rather than one
+   * handed over from another): it carries on until it is back on the path at
+   * or past this step, not as soon as it is near it.
+   */
+  releaseStep?: number;
+  /** The longest the simulation runs, in seconds. */
+  maxTime?: number;
+  /**
+   * The fastest the robot is driven on this path, if lower than its Max
+   * Velocity. A robot already going faster slows down on its own to it.
+   */
+  maxSpeed?: number;
 }
 
 /** The result of one recovery. Results are shared between timelines: read only. */
@@ -115,6 +122,8 @@ export interface RecoveryResult {
   readonly overshoot: number;
   /** Whether it got back on the path, rather than running out of time. */
   readonly settled: boolean;
+  /** The furthest the robot gets from the path, in inches. */
+  readonly maxOffset: number;
 }
 
 /** The translational P to use: kept within what the simulation can stand. */
@@ -169,6 +178,9 @@ class Recovery {
   private readonly startBehind: number;
   private overshoot = 0;
   private junctionMiss: number;
+  private maxOffset = 0;
+  private readonly releaseStep: number;
+  private readonly maxTime: number;
 
   // What it records.
   private readonly time = [0];
@@ -182,14 +194,19 @@ class Recovery {
     this.settings = settings;
     this.path = input.path;
     this.brakeAtEnd = input.brakeAtEnd === true;
+    this.releaseStep = input.releaseStep ?? 0;
+    this.maxTime = input.maxTime ?? MAX_TIME;
     this.track = new Track(input.path);
     this.lastStep = input.path.length - 1;
     this.end = input.path[this.lastStep];
 
-    this.maxSpeed = settings.maxVelocity || 100;
+    const robotTop = settings.maxVelocity || 100;
+    this.maxSpeed = Math.min(robotTop, input.maxSpeed ?? Infinity);
     this.accelerate = settings.maxAcceleration || 30;
     this.decelerate = settings.maxDeceleration || this.accelerate;
-    this.drag = (NATURAL_DECELERATION_SHARE * this.decelerate) / this.maxSpeed;
+    // How much the robot slows down on its own depends on how fast it can
+    // go, not on the speed this path is limited to.
+    this.drag = (NATURAL_DECELERATION_SHARE * this.decelerate) / robotTop;
     this.kP = effectiveTranslationalP(settings);
 
     this.px = input.position.x;
@@ -225,9 +242,12 @@ class Recovery {
   }
 
   run(): RecoveryResult {
-    for (let t = TIME_STEP; t <= MAX_TIME; t += TIME_STEP) {
+    for (let t = TIME_STEP; t <= this.maxTime; t += TIME_STEP) {
       this.locate();
-      if (this.backOnPath() || this.holdingStill()) {
+      if (
+        (this.backOnPath() && this.here.u >= this.releaseStep) ||
+        this.holdingStill()
+      ) {
         this.settled = true;
         break;
       }
@@ -262,6 +282,10 @@ class Recovery {
     const { here } = this;
     this.track.closest(this.px, this.py, this.trackU, here);
     this.trackU = here.u;
+    this.maxOffset = Math.max(
+      this.maxOffset,
+      Math.hypot(this.px - here.x, this.py - here.y),
+    );
     if (this.startSide !== 0) {
       this.overshoot = Math.max(
         this.overshoot,
@@ -403,10 +427,13 @@ class Recovery {
     }
     this.vx += netX * TIME_STEP;
     this.vy += netY * TIME_STEP;
+    // It doesn't speed up past its top speed here, but a robot that arrived
+    // faster than that keeps its speed, and loses it as it slows down.
+    const ceiling = Math.max(this.maxSpeed, speed);
     const newSpeed = Math.hypot(this.vx, this.vy);
-    if (newSpeed > this.maxSpeed) {
-      this.vx = (this.vx / newSpeed) * this.maxSpeed;
-      this.vy = (this.vy / newSpeed) * this.maxSpeed;
+    if (newSpeed > ceiling) {
+      this.vx = (this.vx / newSpeed) * ceiling;
+      this.vy = (this.vy / newSpeed) * ceiling;
     }
     this.px += this.vx * TIME_STEP;
     this.py += this.vy * TIME_STEP;
@@ -428,10 +455,13 @@ class Recovery {
   /** Ends the recovery on the path, without a jump, and gives the result. */
   private finish(): RecoveryResult {
     const { time, xs, ys, here } = this;
-    const rejoinStep = Math.min(
-      Math.max(0, Math.round(here.u)),
-      this.lastStep - 1,
-    );
+    // A robot that leaves its own path and ends up holding the end of it is
+    // at the end; one handed over from another path finishes the last step
+    // of the new path with the profile, so it stops a step short.
+    const atEnd = this.releaseStep > 0 && this.holding;
+    const rejoinStep = atEnd
+      ? this.lastStep
+      : Math.min(Math.max(0, Math.round(here.u)), this.lastStep - 1);
     const rejoin = this.path[rejoinStep];
 
     // A gap that can't be closed quietly over the time the recovery took (a
@@ -488,6 +518,7 @@ class Recovery {
       startOffset: this.startOffset,
       overshoot: this.overshoot,
       settled: this.settled,
+      maxOffset: this.maxOffset,
     };
   }
 }

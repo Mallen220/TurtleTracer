@@ -36,6 +36,7 @@ import pkg from "../../package.json";
 import { compareVersions } from "../utils/versions";
 import { pathInMessage } from "../utils/messagePaths";
 import { normalizeLineHeading, normalizeStartPoint } from "../utils/ppFormat";
+import { validSpeed } from "../utils/timeCalculator/speedCap";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map(normalizeLineHeading).map((line) => ({
@@ -56,6 +57,9 @@ export function normalizeLines(input: Line[]): Line[] {
     ),
     waitBeforeName: line.waitBeforeName ?? line.waitBefore?.name ?? "",
     waitAfterName: line.waitAfterName ?? line.waitAfter?.name ?? "",
+    // A speed that isn't a number above zero is no speed at all.
+    maxSpeed: validSpeed(line.maxSpeed),
+    chainMaxSpeed: validSpeed(line.chainMaxSpeed),
   }));
 }
 

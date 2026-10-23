@@ -58,11 +58,10 @@ export function tooltipPortal(node: HTMLElement, anchor: HTMLElement | null) {
     destroy() {
       window.removeEventListener("resize", handleWindow);
       window.removeEventListener("scroll", handleWindow, true);
-      // Remove tooltip from body and try to put placeholder back (cleanup)
-      if (node.parentNode === document.body) document.body.removeChild(node);
-      if (placeholder.parentNode && originalParent) {
-        placeholder.parentNode.replaceChild(node, placeholder);
-      }
+      // The tooltip is going away: take it out of the body, or from wherever
+      // it ended up, and don't leave it behind where it came from.
+      node.remove();
+      placeholder.remove();
     },
   };
 }

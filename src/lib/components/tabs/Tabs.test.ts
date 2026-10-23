@@ -65,6 +65,7 @@ vi.mock("../../../lib/projectStore", async () => {
     loadMacro: vi.fn(),
     ensureSequenceConsistency: vi.fn(),
     linesStore: writable([]),
+    timePredictionStore: writable(null),
     settingsStore: writable({ theme: "light", exportType: "java" }), // Use inline object to avoid hoisting error
     projectActions: {
       recordChange: vi.fn(),

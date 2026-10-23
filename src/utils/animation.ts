@@ -117,7 +117,7 @@ function headingFromGeometry(
   );
 }
 
-/** Off the path, between one chained path and the next. */
+/** Off the path: between one chained path and the next, or round a bend too fast. */
 function recoveryPose(
   trace: NonNullable<TimelineEvent["trace"]>,
   relative: number,
@@ -182,6 +182,15 @@ export function robotPoseDuring(
 
   if (event.type === "recovery" && event.trace) {
     return recoveryPose(event.trace, Math.max(0, seconds - event.startTime));
+  }
+
+  // Off its path at a bend it can't follow at this speed.
+  const { excursion } = event;
+  if (event.type === "travel" && excursion) {
+    const into = seconds - event.startTime - excursion.startTime;
+    if (into >= 0 && into <= excursion.duration) {
+      return recoveryPose(excursion.trace, into);
+    }
   }
 
   if (event.type === "wait") {

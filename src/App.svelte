@@ -98,6 +98,10 @@
     autoExportAfterChange,
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
+  import {
+    applySpeedFix,
+    type SpeedFix,
+  } from "./utils/timeCalculator/fixSearch";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
   import { trackMicrosoftStoreInstall } from "./utils/msStoreTracking";
@@ -536,6 +540,15 @@
     if (layout.showSidebar) statsOpen = !statsOpen;
   }
 
+  /** A speed limit that a warning in Path Statistics offers, set on its path or chain. */
+  function applySpeedFixFromStats(fix: SpeedFix) {
+    if (!confirmFollowedJavaEdit()) return;
+    linesStore.set(applySpeedFix(get(linesStore), fix));
+    recordChange(
+      fix.field === "chainMaxSpeed" ? "Set Chain Max Speed" : "Set Max Speed",
+    );
+  }
+
   function handleSplitPath() {
     if (!confirmFollowedJavaEdit()) return;
     const prediction = playback.timePrediction;
@@ -689,6 +702,7 @@
     percent={$percentStore}
     totalSeconds={playback.effectiveDuration}
     onSeek={playback.seek}
+    onApplyFix={applySpeedFixFromStats}
     onClose={() => (statsOpen = false)}
   />
 {/if}

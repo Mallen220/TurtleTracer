@@ -244,7 +244,12 @@ export class PathOptimizer {
         event.type === "travel" || event.type === "recovery"
           ? event.lineIndex
           : undefined;
-      const offPath = event.type === "recovery";
+      // Off the path at a corner, or round a bend too fast to follow it.
+      const wide = event.excursion;
+      const sinceWide = wide ? t - event.startTime - wide.startTime : -1;
+      const offPath =
+        event.type === "recovery" ||
+        (wide !== undefined && sinceWide >= 0 && sinceWide <= wide.duration);
       if (
         current?.type === type &&
         current.segmentEndIndex === segment &&

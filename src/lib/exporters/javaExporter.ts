@@ -31,6 +31,8 @@ import {
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
   type FormatOptions,
   type HeadingConfig,
+  speedCodes,
+  SPEED_LIMIT_NOTE,
 } from "./javaFormat";
 
 /** A variable name for each line, based on its name and made unique. */
@@ -66,6 +68,7 @@ function pathConstructionCode(
   names: string[],
   opts: FormatOptions,
 ): string {
+  const speeds = speedCodes(lines);
   const segments = lines.map((line, idx) => {
     const start = poseCode(
       idx === 0 ? startPoint : lines[idx - 1].endPoint,
@@ -89,17 +92,27 @@ function pathConstructionCode(
         global && !line.isChain
           ? `\n        ${headingMethodCode(global, literalArgs(opts), opts.language)}`
           : "",
+      speed: speeds.own[idx],
+      chainSpeed: speeds.chain[idx],
     };
   });
 
   const blocks = groupChains(lines, segments).map((members) => {
     const root = members[0];
-    if (members.length === 1)
-      return `${root.name} = ${root.call}${root.heading};`;
-    const calls = members.map((m) => `        ${m.call}${m.heading}`);
-    return `${root.name} = path(\n${calls.join(",\n")}\n      )${root.chainHeading};`;
+    if (members.length === 1) {
+      // A path on its own takes its own speed, else the one set for its chain.
+      const speed = root.speed || root.chainSpeed;
+      return `${root.name} = ${root.call}${root.heading}${speed ? `\n        ${speed}` : ""};`;
+    }
+    const calls = members.map(
+      (m) =>
+        `        ${m.call}${m.heading}${m.speed ? `\n          ${m.speed}` : ""}`,
+    );
+    const chainSpeed = root.chainSpeed ? `\n        ${root.chainSpeed}` : "";
+    return `${root.name} = path(\n${calls.join(",\n")}\n      )${root.chainHeading}${chainSpeed};`;
   });
-  return blocks.join("\n\n      ");
+  const code = blocks.join("\n\n      ");
+  return speeds.any ? `${SPEED_LIMIT_NOTE}\n      ${code}` : code;
 }
 
 /**

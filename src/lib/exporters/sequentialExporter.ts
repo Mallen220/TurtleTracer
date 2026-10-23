@@ -37,6 +37,9 @@ import {
   chainGlobalHeading,
   groupChains,
   uniqueNames,
+  speedCodes,
+  SPEED_LIMIT_NOTE,
+  CONSTANTS_IMPORT,
   type FormatOptions,
   type HeadingConfig,
 } from "./javaFormat";
@@ -202,6 +205,7 @@ export async function generateSequentialCommandCode(
       }
     };
 
+  const speeds = speedCodes(lines);
   const pathData = lines.map((line, idx) => {
     const startPose = poseName(idx - 1);
     const endPose = poseName(idx);
@@ -223,6 +227,8 @@ export async function generateSequentialCommandCode(
         global && !line.isChain
           ? `\n            ${headingMethodCode(global, args, language)}`
           : "",
+      speed: speeds.own[idx],
+      chainSpeed: speeds.chain[idx],
     };
   });
 
@@ -231,15 +237,25 @@ export async function generateSequentialCommandCode(
       const root = members[0];
       if (members.length === 1) {
         const heading = root.heading ? `\n            ${root.heading}` : "";
-        return `        ${root.name} = ${root.call}${heading};`;
+        // A path on its own takes its own speed, else the one set for its chain.
+        const speed = root.speed || root.chainSpeed;
+        const limit = speed ? `\n            ${speed}` : "";
+        return `        ${root.name} = ${root.call}${heading}${limit};`;
       }
       const calls = members.map((m) => {
         const heading = m.heading ? `\n                ${m.heading}` : "";
-        return `            ${m.call}${heading}`;
+        const limit = m.speed ? `\n                ${m.speed}` : "";
+        return `            ${m.call}${heading}${limit}`;
       });
-      return `        ${root.name} = path(\n${calls.join(",\n")}\n        )${root.chainHeading};`;
+      const chainLimit = root.chainSpeed
+        ? `\n            ${root.chainSpeed}`
+        : "";
+      return `        ${root.name} = path(\n${calls.join(",\n")}\n        )${root.chainHeading}${chainLimit};`;
     })
     .join("\n\n");
+  const pathBuildersWithNote = speeds.any
+    ? `        ${SPEED_LIMIT_NOTE}\n${pathBuilders}`
+    : pathBuilders;
 
   const ppReaderImport = hardcodeValues
     ? ""
@@ -291,7 +307,9 @@ export async function generateSequentialCommandCode(
     warning: AUTO_GENERATED_FILE_WARNING_MESSAGE,
     packageName,
     className,
-    imports: template.imports,
+    imports:
+      template.imports +
+      (speeds.any ? `\n${CONSTANTS_IMPORT}${kotlin ? "" : ";"}` : ""),
     ppReaderImport,
     ppReaderInit,
     hasEventMarkers,
@@ -302,7 +320,7 @@ export async function generateSequentialCommandCode(
     poseDeclarations: poseDeclarations.join("\n"),
     poseInitializations: poseInitializations.join("\n"),
     pathChainDeclarations,
-    pathBuilders,
+    pathBuilders: pathBuildersWithNote,
     commands: commands.join(",\n"),
     ftcPoseHelper: coordinateSystem === "FTC" ? ftcPoseHelper(language) : "",
     metricHelper: codeUnits === "metric" ? metricHelper(language) : "",

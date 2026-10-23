@@ -14,6 +14,17 @@ function coefficients(settings: Settings) {
 const decelerationOf = (settings: Settings) =>
   settings.maxDeceleration || settings.maxAcceleration || 30;
 
+/**
+ * With no power, the robot slows down on its own (friction and its motors
+ * braking). At its top speed this is this share of its maximum deceleration.
+ */
+export const NATURAL_DECELERATION_SHARE = 0.8;
+
+/** How fast (in/s²) a robot at its top speed slows down with no power. */
+export function naturalDeceleration(settings: Settings): number {
+  return NATURAL_DECELERATION_SHARE * decelerationOf(settings);
+}
+
 /** Distance (inches) to stop from `speed` (in/s) when braking. */
 export function brakingDistance(speed: number, settings: Settings): number {
   const fit = coefficients(settings);

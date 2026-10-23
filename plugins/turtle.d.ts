@@ -153,6 +153,15 @@ interface Line {
   macroId?: string;
   originalId?: string;
   isChain?: boolean;
+  /**
+   * The fastest this path is driven, in inches per second. Exported as a
+   * Pedro `maxVelocityConstraint` on the path, so it takes the place of the
+   * chain's cap (see `chainMaxSpeed`) rather than being limited by it. The
+   * robot's own Max Velocity setting is the most a path can go either way.
+   */
+  maxSpeed?: number;
+  /** For the first path of a chain: the fastest every path in the chain is driven, in inches per second, unless it has a `maxSpeed` of its own. */
+  chainMaxSpeed?: number;
   globalHeading?: Point["heading"] | "none"; // Used when isChain is true, acts as a global override
   globalDegrees?: number;
   globalStartDeg?: number;
@@ -428,6 +437,49 @@ interface RecoveryTrace {
   readonly heading: readonly number[];
 }
 
+/** How a piecewise heading segment falls short of its heading. */
+interface PiecewiseShortfall {
+  /** What the segment's heading is. */
+  heading: PiecewiseSegment["heading"];
+  /** Degrees short of the heading the segment asks for, at its end. */
+  degrees: number;
+  /** How far the segment asks the robot to turn, from the way it faces where the segment starts. */
+  turn: number;
+  /** Seconds the robot has between the start and the end of the segment. */
+  seconds: number;
+  /** The robot's top turn rate, in degrees per second. */
+  turnRate: number;
+}
+
+/**
+ * Where a robot goes when it can't follow a bend in its path at the speed
+ * it's going: wide of the path, until it is back on it. Shared: read only.
+ */
+interface Excursion {
+  /** Seconds from the start of the travel event to when the robot leaves the path. */
+  readonly startTime: number;
+  readonly duration: number;
+  /** Where the robot goes, with time from the start of the excursion. */
+  readonly trace: RecoveryTrace;
+  /** The part of the line (0 to 1) the robot leaves, and where it is back on it. */
+  readonly fromT: number;
+  readonly toT: number;
+  /** The furthest the robot gets from the path, in inches. */
+  readonly maxOffset: number;
+  /** The most sideways acceleration the robot would need to stay on the path, in in/s². */
+  readonly demand: number;
+  /** Whether the robot got back onto the path, rather than running out of time. */
+  readonly settled: boolean;
+  /** The tightest part of the bend: its radius (inches), where it is, the speed the path had there and when the robot passes it. */
+  readonly tightest: {
+    readonly radius: number;
+    readonly x: number;
+    readonly y: number;
+    readonly speed: number;
+    readonly time: number;
+  };
+}
+
 interface TimelineEvent {
   type: TimelineEventType;
   duration: number;
@@ -461,6 +513,25 @@ interface TimelineEvent {
   velocityProfile?: number[];
   // Detailed heading profile for travel events: maps step index to unwrapped heading
   headingProfile?: number[];
+  /**
+   * For a travel event with a piecewise heading: how each segment falls short
+   * of its heading, because the robot can't turn fast enough.
+   */
+  piecewiseShortfalls?: PiecewiseShortfall[];
+  /**
+   * For a travel event: where the robot leaves its line at a bend it can't
+   * follow at that speed. The profiles of the event describe the whole trip,
+   * the excursion included; the steps in between get the speed and heading
+   * of the robot where it is closest to them.
+   */
+  excursion?: Excursion;
+  /**
+   * For a travel event: the most sideways acceleration the path asks of the
+   * robot at the speeds it is driven, in in/s². Above what the wheels hold it
+   * is a risk of wheel slip, even where the robot stays close enough to the
+   * path that it isn't shown running wide.
+   */
+  peakDemand?: number;
   isGlobalOverride?: boolean;
   rootLine?: Line;
   globalHeading?: Point["heading"];

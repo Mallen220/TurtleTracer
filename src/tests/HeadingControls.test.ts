@@ -4,10 +4,17 @@ import { render, screen, fireEvent } from "@testing-library/svelte";
 import { tick } from "svelte";
 import HeadingControlsWrapper from "./HeadingControlsWrapper.svelte";
 import type { HeadingFields } from "../lib/components/HeadingControls.svelte";
+import type { PiecewiseShortfall } from "../types";
+import type { SegmentFixes } from "../utils/timeCalculator/advice";
 
 function setup(
   endPoint: HeadingFields,
-  options: { nested?: boolean; locked?: boolean } = {},
+  options: {
+    nested?: boolean;
+    locked?: boolean;
+    shortfalls?: PiecewiseShortfall[];
+    fixesFor?: (i: number) => SegmentFixes;
+  } = {},
 ) {
   const project = { endPoint };
   const onchange = vi.fn();
@@ -27,6 +34,18 @@ function setup(
     focus: () => api!.focus(),
   };
 }
+
+const shortBy = (
+  degrees: number,
+  over: Partial<PiecewiseShortfall> = {},
+): PiecewiseShortfall => ({
+  heading: "linear",
+  degrees,
+  turn: 180,
+  seconds: 0.8,
+  turnRate: 90,
+  ...over,
+});
 
 const style = () => screen.getByLabelText("Heading style") as HTMLSelectElement;
 
@@ -233,6 +252,49 @@ describe("HeadingControls", () => {
       });
       await tick();
       expect(project.endPoint.segments![0].degrees).toBe(25);
+    });
+
+    describe("segments the robot can't finish turning", () => {
+      const warning = /Won't finish turning/;
+
+      it("warns on a segment that ends short, and on no other", () => {
+        setup(piecewise(), { shortfalls: [shortBy(0), shortBy(45)] });
+        const icons = screen.getAllByRole("img", { name: warning });
+        expect(icons).toHaveLength(1);
+        expect(icons[0].getAttribute("aria-label")).toBe(
+          "Won't finish turning: 45° short",
+        );
+      });
+
+      it("explains it on hover, with the segment's own numbers and what fixes it", async () => {
+        const fixesFor = vi.fn(
+          (): SegmentFixes => ({ start: { t: 0.41, passes: 1 }, speed: 17 }),
+        );
+        setup(piecewise(), {
+          shortfalls: [shortBy(0), shortBy(45)],
+          fixesFor,
+        });
+        const icon = screen.getByRole("img", { name: warning });
+        // Finding the fixes means simulating, so nothing is asked for yet.
+        expect(fixesFor).not.toHaveBeenCalled();
+        await fireEvent.mouseEnter(icon);
+        expect(fixesFor).toHaveBeenCalledWith(1);
+        const text = screen.getByText(warning, {
+          selector: "div",
+        }).textContent!;
+        expect(text).toContain("has to turn 180°");
+        expect(text).toContain("the 0.8 s it has the robot manages 135°");
+        expect(text).toContain("set the t = value above it to 0.41 or less");
+        expect(text).toContain("Max Speed to 17 in/s or less");
+        await fireEvent.mouseLeave(icon);
+        await tick();
+        expect(screen.queryByText(warning, { selector: "div" })).toBeNull();
+      });
+
+      it("ignores a shortfall too small to matter", () => {
+        setup(piecewise(), { shortfalls: [shortBy(0.5), shortBy(1)] });
+        expect(screen.queryByRole("img", { name: warning })).toBeNull();
+      });
     });
   });
 });

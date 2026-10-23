@@ -75,6 +75,8 @@ interface Segment {
   t: "segment";
   points: Pose[];
   heading?: Heading;
+  /** The path's `maxVelocityConstraint`, in in/s. */
+  speed?: number;
 }
 
 type Value =
@@ -85,7 +87,14 @@ type Value =
   | { t: "interpolator"; heading: Heading }
   | Pose
   | Segment
-  | { t: "chain"; segments: Segment[]; heading?: Heading; name?: string }
+  | {
+      t: "chain";
+      segments: Segment[];
+      heading?: Heading;
+      name?: string;
+      /** The chain's `maxVelocityConstraint`, in in/s. */
+      speed?: number;
+    }
   /** follower.pathBuilder(), with the paths added so far. */
   | { t: "builder"; segments: Segment[] }
   | { t: "unknown" };
@@ -494,7 +503,7 @@ class Reader {
         return this.interpolatorMethod(object.heading, method, args) ?? UNKNOWN;
       case "segment":
       case "chain":
-        return this.pathMethod(object, method, args);
+        return this.pathMethod(object, method, args, line);
       case "builder":
         return this.builderMethod(object, method, args);
       default:
@@ -517,10 +526,52 @@ class Reader {
     path: Segment | Chain,
     method: string,
     args: Expr[],
+    line: number,
   ): Value {
     if (method === "build") return path;
+    if (method === "with") return this.withModifiers(path, args, line);
     const heading = this.headingMethod(method, args);
     return heading ? { ...path, heading } : UNKNOWN;
+  }
+
+  /**
+   * `.with(Constants.foresightConfig.maxVelocityConstraint.at(30.0))`: the
+   * speed limit of a path or chain. Other modifiers are left out, with a
+   * note, and the path is read without them.
+   */
+  private withModifiers(
+    path: Segment | Chain,
+    args: Expr[],
+    line: number,
+  ): Value {
+    let speed = path.speed;
+    for (const arg of args) {
+      // `<something>.<modifier>.at(<value>)`
+      const isAt =
+        arg.kind === "call" &&
+        arg.callee.kind === "member" &&
+        arg.callee.name === "at" &&
+        arg.callee.object.kind === "member";
+      const modifier =
+        isAt && arg.kind === "call" && arg.callee.kind === "member"
+          ? (arg.callee.object as Extract<Expr, { kind: "member" }>).name
+          : null;
+      const value =
+        modifier === "maxVelocityConstraint" && arg.kind === "call"
+          ? this.number(arg.args[0]!)
+          : null;
+      if (value !== null && value > 0) {
+        speed = value;
+      } else {
+        this.note(
+          line,
+          modifier === "maxVelocityConstraint"
+            ? "A max speed that isn't a number above zero is left out."
+            : `${modifier ?? "This modifier"} isn't read; only a maxVelocityConstraint (the path's max speed) is.`,
+        );
+      }
+    }
+    return { ...path, speed };
   }
 
   /** `.withHeading(...)` and `.getHeading()` on a pose. */
@@ -1040,6 +1091,8 @@ class Reader {
     if (k === 0 && chain.heading) {
       Object.assign(line, globalHeading(chain.heading));
     }
+    if (segment.speed !== undefined) line.maxSpeed = segment.speed;
+    if (k === 0 && chain.speed !== undefined) line.chainMaxSpeed = chain.speed;
     return line;
   }
 

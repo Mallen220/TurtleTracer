@@ -4,7 +4,11 @@
   or for piecewise headings, a list of segments each with its own style.
 -->
 <script lang="ts" module>
-  import type { PiecewiseSegment, Point } from "../../types";
+  import type {
+    PiecewiseSegment,
+    PiecewiseShortfall,
+    Point,
+  } from "../../types";
 
   /**
    * The heading fields of a point or piecewise segment. They're edited in
@@ -31,6 +35,7 @@
     ChevronUpIcon,
     EllipsisVerticalIcon,
     TrashIcon,
+    TriangleWarningIcon,
   } from "./icons";
   import HeadingControls from "./HeadingControls.svelte";
   import {
@@ -39,6 +44,12 @@
     type DragPosition,
   } from "../../utils/dragDrop";
   import { ui } from "../ui";
+  import { tooltipPortal } from "../../lib/actions/portal";
+  import {
+    fallsShort,
+    shortfallAdvice,
+    type SegmentFixes,
+  } from "../../utils/timeCalculator/advice";
 
   interface Props {
     endPoint: HeadingFields;
@@ -46,6 +57,16 @@
     tabindex?: number | undefined;
     /** Inside a piecewise segment, where piecewise isn't offered. */
     nested?: boolean;
+    /**
+     * For piecewise headings: how each segment falls short of its heading,
+     * because the robot can't turn fast enough.
+     */
+    shortfalls?: PiecewiseShortfall[];
+    /**
+     * What clears segment `i`'s shortfall: found by trying changes in the
+     * simulation, so asked for only when the explanation is shown.
+     */
+    fixesFor?: (i: number) => SegmentFixes;
     onchange?: () => void;
     oncommit?: () => void;
   }
@@ -55,6 +76,8 @@
     locked = false,
     tabindex = undefined,
     nested = false,
+    shortfalls = [],
+    fixesFor,
     onchange,
     oncommit,
   }: Props = $props();
@@ -105,6 +128,31 @@
 
   let segments = $derived(endPoint.segments ?? []);
   let isPiecewiseCollapsed = $state(false);
+
+  // Segments the robot can't finish turning in: the warning icon says why.
+  const isShort = (i: number) => fallsShort(shortfalls[i]);
+  let anyShort = $derived(segments.some((_, i) => isShort(i)));
+  let hoveredWarning: number | null = $state(null);
+  let hoveredAnchor: HTMLElement | null = $state(null);
+
+  // The explanation, worked out when it is shown: finding what would fix the
+  // segment means trying changes in the simulation.
+  let hoveredText = $state("");
+
+  function showWarning(e: Event, key: number) {
+    hoveredWarning = key;
+    hoveredAnchor = e.currentTarget as HTMLElement;
+    hoveredText =
+      key < 0 ? "" : shortfallAdvice(shortfalls[key], fixesFor?.(key));
+  }
+
+  function hideWarning() {
+    hoveredWarning = null;
+    hoveredAnchor = null;
+  }
+
+  const warningLabel = (i: number) =>
+    `Won't finish turning: ${Math.round(shortfalls[i].degrees)}° short`;
 
   function setTransition(i: number, text: string) {
     const t = Number.parseFloat(text);
@@ -367,6 +415,26 @@
       />
       Piecewise Segments ({segments.length})
     </button>
+    {#if anyShort && isPiecewiseCollapsed}
+      <span
+        role="img"
+        aria-label="A segment won't finish turning"
+        class="ml-2 text-amber-500 cursor-help"
+        onmouseenter={(e) => showWarning(e, -1)}
+        onmouseleave={hideWarning}
+      >
+        <TriangleWarningIcon className="size-4" />
+        {#if hoveredWarning === -1}
+          <div
+            use:tooltipPortal={hoveredAnchor}
+            class="w-72 p-2 bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-700 rounded shadow-lg text-xs text-amber-900 dark:text-amber-100 pointer-events-none"
+          >
+            At least one segment won't finish turning. Expand the segments to
+            see which.
+          </div>
+        {/if}
+      </span>
+    {/if}
   </div>
 
   {#if !isPiecewiseCollapsed}
@@ -477,6 +545,26 @@
                 oncommit={segmentCommitted}
               />
             </div>
+
+            {#if isShort(i)}
+              <span
+                role="img"
+                aria-label={warningLabel(i)}
+                class="shrink-0 text-amber-500 cursor-help"
+                onmouseenter={(e) => showWarning(e, i)}
+                onmouseleave={hideWarning}
+              >
+                <TriangleWarningIcon className="size-4" />
+                {#if hoveredWarning === i}
+                  <div
+                    use:tooltipPortal={hoveredAnchor}
+                    class="w-72 p-2 bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-700 rounded shadow-lg text-xs text-amber-900 dark:text-amber-100 pointer-events-none"
+                  >
+                    {hoveredText}
+                  </div>
+                {/if}
+              </span>
+            {/if}
           </div>
         </div>
       {/each}

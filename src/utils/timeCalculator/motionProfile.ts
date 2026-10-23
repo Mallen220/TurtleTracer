@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Settings } from "../../types";
 import type { PathStep } from "./types";
-import { speedToSlowWithin } from "./braking";
+import { naturalDeceleration, speedToSlowWithin } from "./braking";
 
 /** Per-path details of how the robot drives that the settings can't say. */
 export interface MotionOptions {
@@ -13,6 +13,12 @@ export interface MotionOptions {
   turnsWithPath?: boolean;
   /** Multiplies the top speed on each step, e.g. for driving sideways. */
   stepSpeedScale?: ArrayLike<number>;
+  /**
+   * A speed this path is limited to, below the robot's Max Velocity. A robot
+   * that arrives faster than this doesn't drop to it at once: Pedro has no
+   * negative power to slow it, so it coasts down at its natural deceleration.
+   */
+  speedCap?: number;
 }
 
 /** What the three passes of the motion profile share. */
@@ -22,6 +28,8 @@ interface ProfileLimits {
   /** Turn rate in radians per second, never zero. */
   aVelocity: number;
   turnsWithPath: boolean;
+  /** How fast a robot arriving above `maxVelocity` slows down (in/s²). */
+  coastDown: number;
 }
 
 /**
@@ -36,6 +44,8 @@ function forwardPass(
   speedCaps: ReadonlyMap<number, number>,
   stepSpeedScale: ArrayLike<number> | undefined,
 ) {
+  // Arriving faster than the top speed here, the robot coasts down to it.
+  let coasting = v[0] > limits.maxVelocity;
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
     let limit = limits.maxVelocity * (stepSpeedScale?.[i] ?? 1);
@@ -47,7 +57,16 @@ function forwardPass(
     const maxReachable = Math.sqrt(
       v[i] * v[i] + 2 * limits.maxAcceleration * step.deltaLength,
     );
-    v[i + 1] = Math.min(limit, maxReachable, speedCaps.get(i + 1) ?? Infinity);
+    let next = Math.min(limit, maxReachable);
+    if (coasting && v[i] > limit) {
+      const slowed = Math.sqrt(
+        Math.max(0, v[i] * v[i] - 2 * limits.coastDown * step.deltaLength),
+      );
+      next = Math.max(next, slowed);
+    } else {
+      coasting = false;
+    }
+    v[i + 1] = Math.min(next, speedCaps.get(i + 1) ?? Infinity);
   }
 }
 
@@ -133,18 +152,21 @@ export function calculateMotionProfileDetailed(
   if (n === 0) return { totalTime: 0, profile: [0], velocityProfile: [0] };
 
   const { turnsWithPath = true, stepSpeedScale } = options;
+  const robotTop = settings.maxVelocity || 100;
   const limits: ProfileLimits = {
-    maxVelocity: settings.maxVelocity || 100,
+    maxVelocity: Math.min(robotTop, options.speedCap ?? Infinity),
     maxAcceleration: settings.maxAcceleration || 30,
     // Ensure aVelocity is finite and non-zero to avoid Infinity
     aVelocity: Math.max(settings.aVelocity, 0.001),
     turnsWithPath,
+    coastDown: naturalDeceleration(settings),
   };
 
   const vAtPoints = new Float64Array(n + 1);
+  // The robot can arrive faster than this path's cap, up to its own top speed.
   vAtPoints[0] = Math.min(
     entryVelocity,
-    limits.maxVelocity,
+    robotTop,
     speedCaps.get(0) ?? Infinity,
   );
   forwardPass(steps, vAtPoints, limits, speedCaps, stepSpeedScale);
