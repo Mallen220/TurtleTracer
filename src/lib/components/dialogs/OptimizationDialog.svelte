@@ -34,6 +34,11 @@
   // with the robot cutting and swinging wide at the corners.
   let chainCorrection = $state(true);
   let optimizedWithoutCorrection = $state(false);
+  // The optimizer found nothing better than the path as it is, which is then
+  // all it gives back.
+  let noImprovement = $state(false);
+  // How much faster the best path it found was, though it wasn't worth using.
+  let unusedGain = $state(0);
   let showPreview = $state(true);
   interface Props {
     isOpen?: boolean;
@@ -163,6 +168,8 @@
     optimizationFailed = false;
     optimizationError = "";
     sharpCornerCount = 0;
+    noImprovement = false;
+    unusedGain = 0;
     isStopping = false;
     showPreview = true;
 
@@ -219,6 +226,9 @@
 
     const finalBestTime = optimizationResult.bestTime;
     optimizationFailed = finalBestTime >= 10000 || !!optimizationError;
+    noImprovement =
+      optimizationResult.improved === false && !optimizationFailed;
+    unusedGain = noImprovement ? (optimizationResult.gain ?? 0) : 0;
     sharpCornerCount = optimizedLines
       ? findSharpJunctions(startPoint, optimizedLines, sequence).length
       : 0;
@@ -245,6 +255,8 @@
       optimizationFailed = false;
       optimizationError = "";
       sharpCornerCount = 0;
+      noImprovement = false;
+      unusedGain = 0;
       optimizedWithoutCorrection = false;
       if (onPreviewChange) onPreviewChange(null);
 
@@ -450,6 +462,19 @@
         </div>
       {/if}
 
+      {#if noImprovement && !isRunning && !optimizationError}
+        <div class="{ui.alert.info} mb-4">
+          <strong>No faster path found.</strong>
+          {#if unusedGain >= 0.1}
+            The best the optimizer found saves only {unusedGain.toFixed(1)} s, which
+            isn't worth redrawing your path for, so it is left as it is.
+          {:else}
+            Your path is already about as fast as the optimizer can make it, so
+            it is left as it is.
+          {/if}
+        </div>
+      {/if}
+
       {#if !optimizationFailed && !optimizationError && sharpCornerCount > 0}
         <div class="{ui.alert.warning} mb-4 flex items-start gap-2">
           <TriangleWarningIcon className="size-5 shrink-0 mt-0.5" />
@@ -507,6 +532,20 @@
                 : "Retry optimization with current path"}
             >
               Retry Optimization
+            </button>
+          </div>
+        {:else if noImprovement}
+          <div class="flex gap-2">
+            <button onclick={handleClose} class="{ui.btn.secondary} flex-1">
+              Close
+            </button>
+            <button
+              onclick={startOptimization}
+              class="{ui.btn.primary} flex-1"
+              disabled={isRunning}
+              title="Try again: the search is random, so another run can find something"
+            >
+              Try Again
             </button>
           </div>
         {:else}

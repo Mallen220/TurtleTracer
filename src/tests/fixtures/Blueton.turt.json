@@ -1,0 +1,261 @@
+{
+  "version": "2.5.1",
+  "header": {
+    "info": "Created with Turtle Tracer",
+    "copyright": "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+    "link": "https://github.com/Mallen220/TurtleTracer"
+  },
+  "startPoint": {
+    "x": 91.45803922625564,
+    "y": 132.80886824253122,
+    "name": "Start",
+    "locked": false,
+    "headingDeg": 90,
+    "heading": "linear",
+    "startDeg": 0,
+    "endDeg": 180
+  },
+  "lines": [
+    {
+      "id": "line-mutvh1ux-c2gaf9",
+      "color": "#79D86B",
+      "name": "IntakeCorner",
+      "locked": false,
+      "waitBeforeMs": 0,
+      "waitAfterMs": 0,
+      "waitBeforeName": "",
+      "waitAfterName": "",
+      "kind": "atomic",
+      "endPoint": {
+        "x": 133.16737965735635,
+        "y": 133.58801303475803
+      },
+      "controlPoints": [],
+      "heading": {
+        "type": "constant",
+        "reverse": false,
+        "degrees": 0
+      },
+      "eventMarkers": [],
+      "hidden": false
+    },
+    {
+      "id": "line-mutvj04j-9yeb1d",
+      "color": "#8CBCB7",
+      "name": "TravelThroughHive",
+      "locked": false,
+      "waitBeforeMs": 0,
+      "waitAfterMs": 0,
+      "waitBeforeName": "",
+      "waitAfterName": "",
+      "kind": "atomic",
+      "endPoint": {
+        "x": 80.9863350625012,
+        "y": 11.428506823111011,
+        "heading": "piecewise",
+        "segments": [
+          {
+            "tStart": 0,
+            "tEnd": 0.117,
+            "heading": "constant",
+            "reverse": false,
+            "degrees": 0
+          },
+          {
+            "tStart": 0.117,
+            "tEnd": 0.5585,
+            "heading": "tangential",
+            "reverse": true,
+            "degrees": 0
+          },
+          {
+            "tStart": 0.5585,
+            "tEnd": 0.77925,
+            "heading": "tangential",
+            "reverse": true,
+            "degrees": 0
+          },
+          {
+            "tStart": 0.77925,
+            "tEnd": 1,
+            "heading": "linear",
+            "reverse": true,
+            "degrees": 0,
+            "startDeg": 0,
+            "endDeg": 180
+          }
+        ]
+      },
+      "controlPoints": [
+        {
+          "x": 69.478898007034,
+          "y": 140.12075029308326
+        },
+        {
+          "x": 85.32239155920283,
+          "y": 61.350527549824136
+        }
+      ],
+      "heading": {
+        "type": "piecewise",
+        "reverse": true,
+        "piecewiseHeading": {
+          "segments": [
+            {
+              "startProgress": 0,
+              "endProgress": 0.11660214206231453,
+              "interpolationType": "constant",
+              "reversed": false,
+              "continueFromPrevious": false,
+              "parameters": {
+                "degrees": 0
+              }
+            },
+            {
+              "startProgress": 0.11660214206231453,
+              "endProgress": 0.7804096346439169,
+              "interpolationType": "tangential",
+              "reversed": true,
+              "continueFromPrevious": false
+            },
+            {
+              "startProgress": 0.7804096346439169,
+              "endProgress": 1,
+              "interpolationType": "linear",
+              "reversed": false,
+              "continueFromPrevious": true,
+              "parameters": {
+                "startDeg": 0,
+                "endDeg": 180
+              }
+            }
+          ]
+        },
+        "degrees": 0,
+        "startDeg": 0,
+        "endDeg": 180
+      },
+      "eventMarkers": [],
+      "hidden": false
+    },
+    {
+      "id": "line-mutvr42o-czfmlr",
+      "color": "#CC5A85",
+      "name": "RunToFlower",
+      "locked": false,
+      "waitBeforeMs": 0,
+      "waitAfterMs": 1000,
+      "waitBeforeName": "",
+      "waitAfterName": "",
+      "kind": "atomic",
+      "endPoint": {
+        "x": 93.69547680783636,
+        "y": 14.589181791990793,
+        "heading": "linear",
+        "startDeg": 180,
+        "endDeg": -90
+      },
+      "controlPoints": [
+        {
+          "x": 105.0052754982415,
+          "y": 59.2546801729191
+        }
+      ],
+      "heading": {
+        "type": "linear",
+        "reverse": true,
+        "startDeg": 180,
+        "endDeg": 270
+      },
+      "eventMarkers": [],
+      "hidden": false
+    },
+    {
+      "id": "line-mutvsl91-mojaf9",
+      "color": "#99BDC6",
+      "name": "ReturnFromFlower",
+      "locked": false,
+      "waitBeforeMs": 0,
+      "waitAfterMs": 0,
+      "waitBeforeName": "",
+      "waitAfterName": "",
+      "kind": "atomic",
+      "endPoint": {
+        "x": 80.54054362926941,
+        "y": 11.38812089261617,
+        "heading": "linear",
+        "startDeg": -90,
+        "endDeg": 180
+      },
+      "controlPoints": [
+        {
+          "x": 104.4489014749563,
+          "y": 60.1466350726313
+        }
+      ],
+      "heading": {
+        "type": "linear",
+        "reverse": true,
+        "startDeg": 270,
+        "endDeg": 180
+      },
+      "eventMarkers": [],
+      "hidden": false
+    },
+    {
+      "id": "line-mutvtkyo-sqgo9x",
+      "color": "#9C78AC",
+      "name": "Park",
+      "locked": false,
+      "waitBeforeMs": 0,
+      "waitAfterMs": 0,
+      "waitBeforeName": "",
+      "waitAfterName": "",
+      "kind": "atomic",
+      "endPoint": {
+        "x": 127.24379462321029,
+        "y": 21.271633055398222,
+        "heading": "linear",
+        "startDeg": 180,
+        "endDeg": 180
+      },
+      "controlPoints": [
+        {
+          "x": 93.62724306688419,
+          "y": 38.141109298531816
+        }
+      ],
+      "heading": {
+        "type": "constant",
+        "reverse": true,
+        "degrees": 180
+      },
+      "eventMarkers": [],
+      "hidden": false
+    }
+  ],
+  "sequence": [
+    {
+      "kind": "path",
+      "lineId": "line-mutvh1ux-c2gaf9"
+    },
+    {
+      "kind": "path",
+      "lineId": "line-mutvj04j-9yeb1d"
+    },
+    {
+      "kind": "path",
+      "lineId": "line-mutvr42o-czfmlr"
+    },
+    {
+      "kind": "path",
+      "lineId": "line-mutvsl91-mojaf9"
+    },
+    {
+      "kind": "path",
+      "lineId": "line-mutvtkyo-sqgo9x"
+    }
+  ],
+  "shapes": [],
+  "extraData": {}
+}
