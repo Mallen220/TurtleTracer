@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { robotPose } from "../../telemetryStore";
+  import { robotPose, liveTrail } from "../../telemetryStore";
   import type { ScaleFunction } from "../../../types";
   import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "../../../config";
 
@@ -43,7 +43,31 @@
   // Calculate pixel dimensions
   let widthPx = $derived(Math.abs(x(robotLength) - x(0)));
   let heightPx = $derived(Math.abs(x(robotWidth) - x(0)));
+
+  // The route the live robot has driven, one polyline per unbroken stretch.
+  let trail = $derived(
+    overridePose
+      ? []
+      : $liveTrail
+          .filter((segment) => segment.length > 1)
+          .map((segment) =>
+            segment.map((p) => `${x(p.x)},${y(p.y)}`).join(" "),
+          ),
+  );
 </script>
+
+{#each trail as points}
+  <polyline
+    {points}
+    fill="none"
+    stroke="#22c55e"
+    stroke-width="2"
+    stroke-opacity="0.8"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    pointer-events="none"
+  />
+{/each}
 
 {#if pose}
   <g transform="translate({x(pose.x)}, {y(pose.y)}) rotate({rotation})">

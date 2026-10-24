@@ -286,6 +286,16 @@ export interface Settings {
    * it by the curve parameter and hands over at the end of the path.
    */
   pedroVersion?: "v3" | "v2";
+  /**
+   * Pedro's brake model as written in the robot's code (ForesightConfig
+   * quadraticBrakeCoefficients and linearBrakeCoefficients, forward and strafe).
+   * Pedro uses it to decide when to hand a chained path over to the next one.
+   * All 0: the braking settings above are used instead.
+   */
+  pedroQuadraticBrakeForward?: number;
+  pedroQuadraticBrakeStrafe?: number;
+  pedroLinearBrakeForward?: number;
+  pedroLinearBrakeStrafe?: number;
   /** Seconds the robot holds at the end of a path before the next step starts. */
   pathSettleTime?: number;
   /** Stop to turn in place before a path that starts at a different heading. */
@@ -358,6 +368,10 @@ export interface Settings {
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";
   showTelemetryTab?: boolean;
+  /** Pop up a notice when live telemetry has measured a better motion setting. */
+  telemetrySuggestFixes?: boolean;
+  /** Start the simulation when the live robot starts its first path. */
+  telemetrySyncPlayback?: boolean;
   sidebarItems?: string[];
   customSidebarItems?: CustomSidebarItem[];
   sidebarExpanded?: boolean;
@@ -400,6 +414,10 @@ export interface RobotProfile {
   brakingQuadratic?: number;
   brakingLinear?: number;
   pathSettleTime?: number;
+  pedroQuadraticBrakeForward?: number;
+  pedroQuadraticBrakeStrafe?: number;
+  pedroLinearBrakeForward?: number;
+  pedroLinearBrakeStrafe?: number;
   robotImage?: string;
   robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
   showRobotArrows?: boolean;
@@ -1050,8 +1068,9 @@ export interface UpdateData {
 export interface ElectronTelemetryAPI {
   connect: (ip: string, port: number, protocol: string) => Promise<any>;
   disconnect: () => Promise<any>;
-  onData: (callback: (data: any) => void) => void;
-  onStatus: (callback: (status: any) => void) => void;
+  /** Both return a function that removes the listener. */
+  onData: (callback: (data: any) => void) => (() => void) | void;
+  onStatus: (callback: (status: any) => void) => (() => void) | void;
 }
 
 /** The parts of Electron's save dialog options the app uses. */

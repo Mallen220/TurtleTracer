@@ -63,6 +63,10 @@ export const DEFAULT_SETTINGS: Settings = {
   translationalP: 0.1,
   brakingQuadratic: 0,
   brakingLinear: 0,
+  pedroQuadraticBrakeForward: 0,
+  pedroQuadraticBrakeStrafe: 0,
+  pedroLinearBrakeForward: 0,
+  pedroLinearBrakeStrafe: 0,
   fieldMap: DEFAULT_FIELD_MAP,
   fieldRotation: 0,
   // use no-image by default; users can opt in to the lightweight
@@ -243,6 +247,8 @@ export const DEFAULT_SETTINGS: Settings = {
   visualizerUnits: "imperial",
   codeUnits: "imperial",
   showTelemetryTab: false,
+  telemetrySuggestFixes: true,
+  telemetrySyncPlayback: true,
   sidebarItems: [
     "fileManager",
     "separator",

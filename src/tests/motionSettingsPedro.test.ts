@@ -189,7 +189,27 @@ describe("Pedro Pathing behavior settings", () => {
       screen.getByText(/maxAchievableForwardVelocity/),
     ).toBeInTheDocument();
     expect(screen.getByText(/maxAchievableStrafeVelocity/)).toBeInTheDocument();
-    expect(screen.getByText(/quadraticBrakeCoefficients/)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/quadraticBrakeCoefficients/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("says the handover brake settings come from the robot's code", async () => {
+    const view = mount();
+    expect(screen.getByText(/From your robot's code/)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/From your code: the (first|second) number/),
+    ).toHaveLength(4);
+    const settings = {
+      "Handover Brake, Quadratic (forward)": "pedroQuadraticBrakeForward",
+      "Handover Brake, Quadratic (strafe)": "pedroQuadraticBrakeStrafe",
+      "Handover Brake, Linear (forward)": "pedroLinearBrakeForward",
+      "Handover Brake, Linear (strafe)": "pedroLinearBrakeStrafe",
+    } as const;
+    for (const [label, key] of Object.entries(settings)) {
+      await fireEvent.input(field(label), { target: { value: "0.002" } });
+      expect(view.current()[key]).toBe(0.002);
+    }
   });
 
   it("leaves the note out while searching", () => {

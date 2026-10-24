@@ -10,9 +10,21 @@
 // runs out of path first it holds the end point, as the follower does. What
 // is left between it and the path at the end is crossed, never jumped: at the
 // robot's own speed, or at its top speed if it never got back.
+//
+// Pedro 3 puts turning first while the robot faces far from the heading the
+// path wants (ForesightPowerAllocator): the turn takes the power and driving
+// along the path gets none, so a robot that has to turn at a corner carries
+// straight on past it, braking as its wheels turn it, and only drives once it
+// faces the right way.
 import type { BasePoint, Settings } from "../../types";
 import { DEFAULT_SETTINGS } from "../../config/defaults";
-import { brakingDistance, NATURAL_DECELERATION_SHARE } from "./braking";
+import {
+  brakingDistance,
+  NATURAL_DECELERATION_SHARE,
+  pedroAxisStop,
+} from "./braking";
+import { turnToward } from "./headingProfile";
+import { unwrapAngle } from "./segmentAnalyzer";
 import { Track, newClosest } from "./recoveryTrack";
 
 /** Turns smaller than this are driven straight through. */
@@ -58,6 +70,11 @@ const REJOIN_SIDEWAYS_SPEED = 6;
 const SIDE_MIN = 0.5;
 /** Going back past the start only counts while within this many steps of it. */
 const START_STEPS = 1.5;
+/**
+ * Facing further than this (degrees) from the heading the path wants, Pedro 3
+ * turns before it drives (its headingDeviationTolerance, 11.25° by default).
+ */
+export const TURN_FIRST_DEGREES = 11.25;
 
 interface Vec {
   x: number;
@@ -90,6 +107,12 @@ export interface RecoveryInput {
    * Velocity. A robot already going faster slows down on its own to it.
    */
   maxSpeed?: number;
+  /**
+   * The robot's heading when it is handed over, and the heading the new path
+   * wants at each of its steps, in degrees. With these the robot turns as it
+   * recovers, and Pedro's turning first is simulated (v3 only).
+   */
+  heading?: { start: number; wanted: readonly number[] };
 }
 
 /** The result of one recovery. Results are shared between timelines: read only. */
@@ -124,6 +147,8 @@ export interface RecoveryResult {
   readonly settled: boolean;
   /** The furthest the robot gets from the path, in inches. */
   readonly maxOffset: number;
+  /** The robot's heading at each sample, in degrees, if it was given one. */
+  readonly heading?: readonly number[];
 }
 
 /** The translational P to use: kept within what the simulation can stand. */
@@ -170,6 +195,13 @@ class Recovery {
   private holding = false;
   private settled = false;
 
+  // Which way the robot faces (degrees), and the heading the path wants.
+  private heading: number;
+  private readonly wanted: readonly number[] | null;
+  private readonly turnRate: number;
+  private readonly turnsFirst: boolean;
+  private targetHeading = 0;
+
   // How the recovery is judged.
   private readonly startOffset: number;
   private readonly startSide: number;
@@ -188,6 +220,7 @@ class Recovery {
   private readonly ys: number[];
   private readonly speeds: number[];
   private readonly alongs: number[] = [];
+  private readonly headings: number[];
 
   constructor(input: RecoveryInput) {
     const { settings } = input;
@@ -217,6 +250,12 @@ class Recovery {
     this.ys = [this.py];
     this.speeds = [Math.hypot(this.vx, this.vy)];
 
+    this.heading = input.heading?.start ?? 0;
+    this.wanted = input.heading?.wanted.length ? input.heading.wanted : null;
+    this.turnRate = ((settings.aVelocity || Math.PI) * 180) / Math.PI;
+    this.turnsFirst = this.wanted !== null && settings.pedroVersion !== "v2";
+    this.headings = [this.heading];
+
     this.track.closest(this.px, this.py, 0, this.here);
     this.alongs.push(this.here.u);
 
@@ -244,19 +283,68 @@ class Recovery {
   run(): RecoveryResult {
     for (let t = TIME_STEP; t <= this.maxTime; t += TIME_STEP) {
       this.locate();
+      const turning = this.turningFirst();
       if (
-        (this.backOnPath() && this.here.u >= this.releaseStep) ||
-        this.holdingStill()
+        !turning &&
+        ((this.backOnPath() && this.here.u >= this.releaseStep) ||
+          this.holdingStill())
       ) {
         this.settled = true;
         break;
       }
-      if (this.holding) this.holdPower();
+      if (turning) this.brakePower();
+      else if (this.holding) this.holdPower();
       else this.followPower();
       this.move();
+      this.turn();
       this.record(t);
     }
     return this.finish();
+  }
+
+  /**
+   * Whether the robot faces so far from the heading the path wants here that
+   * Pedro gives all its power to turning.
+   */
+  private turningFirst() {
+    if (!this.wanted) return false;
+    // Step 0 only holds the heading the path is entered with.
+    const step = Math.min(
+      this.wanted.length - 1,
+      Math.max(1, Math.round(this.here.u)),
+    );
+    this.targetHeading = unwrapAngle(this.wanted[step], this.heading);
+    return (
+      this.turnsFirst &&
+      Math.abs(this.targetHeading - this.heading) > TURN_FIRST_DEGREES
+    );
+  }
+
+  /** Turns toward the heading the path wants, as fast as the robot turns. */
+  private turn() {
+    if (!this.wanted) return;
+    this.heading = turnToward(
+      this.heading,
+      this.targetHeading,
+      this.turnRate * TIME_STEP,
+    );
+  }
+
+  /**
+   * No power for driving: the wheels turning the robot drag it to a stop
+   * along the way it was already going.
+   */
+  private brakePower() {
+    const speed = Math.hypot(this.vx, this.vy);
+    if (speed < 1e-6) {
+      this.powerX = 0;
+      this.powerY = 0;
+      return;
+    }
+    // Only as much as stops it, so it comes to rest rather than reversing.
+    const power = Math.min(1, speed / (this.decelerate * TIME_STEP)) / speed;
+    this.powerX = -this.vx * power;
+    this.powerY = -this.vy * power;
   }
 
   /** How far to the left of the path (its normal is its tangent turned left). */
@@ -350,16 +438,35 @@ class Recovery {
     const along = this.vx * here.tx + this.vy * here.ty;
     const side = this.vx * nx + this.vy * ny;
 
-    // Where the robot would come to rest if it braked from here. Pedro works
-    // this out for each of the robot's axes separately, so sideways speed only
-    // adds sideways displacement however fast the robot is going along the
-    // path. The path's own directions stand in for the robot's axes.
-    const alongStop =
-      Math.sign(along) * brakingDistance(Math.abs(along), this.settings);
-    const sideStop =
-      Math.sign(side) * brakingDistance(Math.abs(side), this.settings);
-    const projX = this.px + here.tx * alongStop + nx * sideStop;
-    const projY = this.py + here.ty * alongStop + ny * sideStop;
+    // Where Pedro thinks the robot would come to rest if it braked from here,
+    // from its brake model. It works this out for each of the robot's axes
+    // separately, so sideways speed only adds sideways displacement however
+    // fast the robot is going forwards. Without the robot's heading, the
+    // path's own directions stand in for its axes.
+    let projX: number;
+    let projY: number;
+    if (this.wanted) {
+      const radians = (this.heading * Math.PI) / 180;
+      const fx = Math.cos(radians);
+      const fy = Math.sin(radians);
+      const forwardStop = pedroAxisStop(
+        this.vx * fx + this.vy * fy,
+        "forward",
+        this.settings,
+      );
+      const strafeStop = pedroAxisStop(
+        this.vx * -fy + this.vy * fx,
+        "strafe",
+        this.settings,
+      );
+      projX = this.px + fx * forwardStop - fy * strafeStop;
+      projY = this.py + fy * forwardStop + fx * strafeStop;
+    } else {
+      const alongStop = pedroAxisStop(along, "forward", this.settings);
+      const sideStop = pedroAxisStop(side, "strafe", this.settings);
+      projX = this.px + here.tx * alongStop + nx * sideStop;
+      projY = this.py + here.ty * alongStop + ny * sideStop;
+    }
 
     track.closest(projX, projY, this.projectedU, ahead);
     this.projectedU = ahead.u;
@@ -450,6 +557,7 @@ class Recovery {
     this.xs.push(this.px);
     this.ys.push(this.py);
     this.speeds.push(Math.hypot(this.vx, this.vy));
+    this.headings.push(this.heading);
   }
 
   /** Ends the recovery on the path, without a jump, and gives the result. */
@@ -486,6 +594,7 @@ class Recovery {
         ys.push(this.py + (rejoin.y - this.py) * share);
         this.speeds.push(speed);
         this.alongs.push(here.u);
+        this.headings.push(this.heading);
       }
       if (!this.settled) {
         this.vx = ((rejoin.x - this.px) / gap) * this.maxSpeed;
@@ -519,6 +628,7 @@ class Recovery {
       overshoot: this.overshoot,
       settled: this.settled,
       maxOffset: this.maxOffset,
+      heading: this.wanted ? this.headings : undefined,
     };
   }
 }

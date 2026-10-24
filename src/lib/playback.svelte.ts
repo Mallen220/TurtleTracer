@@ -26,6 +26,7 @@ import {
   timePredictionStore,
 } from "./projectStore";
 import { diffMode, committedData } from "./diffStore";
+import { liveRunStarts } from "./telemetryStore";
 import {
   createAnimationController,
   type AnimationController,
@@ -139,6 +140,37 @@ export class Playback {
     this.#syncController();
     this.#syncRobotPose();
     this.#syncHoverPose();
+    this.#startWithRobot();
+  }
+
+  /** Starts the simulation when the live robot starts its first path. */
+  #startWithRobot() {
+    onMount(() => {
+      let seen = get(liveRunStarts);
+      return liveRunStarts.subscribe((starts) => {
+        if (starts === seen) return;
+        seen = starts;
+        if (this.#settings.current?.telemetrySyncPlayback === false) return;
+        this.#playFromFirstDrive();
+      });
+    });
+  }
+
+  /**
+   * Plays the path in real time from where its first drive starts, so a
+   * wait at the start lines up with the robot's.
+   */
+  #playFromFirstDrive() {
+    const duration = this.effectiveDuration;
+    const timeline = this.timePrediction?.timeline;
+    if (!timeline || duration <= 0) return;
+    const firstDrive = timeline.find((e) => e.type === "travel");
+    const percent = firstDrive ? (firstDrive.startTime / duration) * 100 : 0;
+    playbackSpeedStore.set(1);
+    loopRangeActiveStore.set(false);
+    percentStore.set(percent);
+    this.seek(percent);
+    playingStore.set(true);
   }
 
   #trackTimePrediction() {

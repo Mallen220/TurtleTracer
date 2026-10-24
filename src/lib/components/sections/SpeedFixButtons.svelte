@@ -1,19 +1,19 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!--
-  Buttons that set a speed limit that clears a warning, e.g. "Limit this path
-  to 9 in/s". Each fix was tried in the simulation, so pressing it clears the
-  warning. It goes in the undo history like any other edit.
+  Buttons that apply a change that clears a warning, e.g. "Limit this path
+  to 9 in/s" or "Raise Translational P to 0.3". Each fix was tried in the
+  simulation. It goes in the undo history like any other edit.
 -->
 <script lang="ts">
   import {
-    speedFixLabel,
-    type SpeedFix,
+    motionFixLabel,
+    type MotionFix,
   } from "../../../utils/timeCalculator/fixSearch";
   import { ui } from "../../ui";
 
   interface Props {
-    fixes: SpeedFix[];
-    onapply: (fix: SpeedFix) => void;
+    fixes: MotionFix[];
+    onapply: (fix: MotionFix) => void;
     disabled?: boolean;
   }
 
@@ -22,7 +22,7 @@
 
 {#if fixes.length > 0}
   <div class="flex flex-wrap gap-2">
-    {#each fixes as fix (fix.field)}
+    {#each fixes as fix (motionFixLabel(fix))}
       <button
         type="button"
         class={ui.btnSm.accentSoft}
@@ -34,7 +34,7 @@
         }}
         onkeydown={(e) => e.stopPropagation()}
       >
-        {speedFixLabel(fix)}
+        {motionFixLabel(fix)}
       </button>
     {/each}
   </div>

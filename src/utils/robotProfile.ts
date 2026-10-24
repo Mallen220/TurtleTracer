@@ -7,7 +7,14 @@ import type { RobotProfile, Settings } from "../types";
 
 export type RobotTuning = Pick<
   Settings,
-  "translationalP" | "brakingQuadratic" | "brakingLinear" | "pathSettleTime"
+  | "translationalP"
+  | "brakingQuadratic"
+  | "brakingLinear"
+  | "pathSettleTime"
+  | "pedroQuadraticBrakeForward"
+  | "pedroQuadraticBrakeStrafe"
+  | "pedroLinearBrakeForward"
+  | "pedroLinearBrakeStrafe"
 >;
 
 const TUNING_KEYS = [
@@ -15,6 +22,10 @@ const TUNING_KEYS = [
   "brakingQuadratic",
   "brakingLinear",
   "pathSettleTime",
+  "pedroQuadraticBrakeForward",
+  "pedroQuadraticBrakeStrafe",
+  "pedroLinearBrakeForward",
+  "pedroLinearBrakeStrafe",
 ] as const satisfies readonly (keyof RobotTuning)[];
 
 /** The tuning to save in a profile, from the current settings. */

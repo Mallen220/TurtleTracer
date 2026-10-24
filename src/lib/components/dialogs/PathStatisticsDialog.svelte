@@ -25,7 +25,7 @@
   import { formatDisplayDistance } from "../../../utils/coordinates";
   import SimpleChart from "../tools/SimpleChart.svelte";
   import SpeedFixButtons from "../sections/SpeedFixButtons.svelte";
-  import type { SpeedFix } from "../../../utils/timeCalculator/fixSearch";
+  import type { MotionFix } from "../../../utils/timeCalculator/fixSearch";
   import { ui } from "../../ui";
 
   interface Props {
@@ -37,7 +37,7 @@
     totalSeconds?: number;
     onSeek?: (percent: number) => void;
     /** Applies a fix a warning offers (a speed limit); without it the warning offers none. */
-    onApplyFix?: (fix: SpeedFix) => void;
+    onApplyFix?: (fix: MotionFix) => void;
     isOpen?: boolean;
     onClose: () => void;
     // If provided, position/size will match this rect (from the Control Tab container)

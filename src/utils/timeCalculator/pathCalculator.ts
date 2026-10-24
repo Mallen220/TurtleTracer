@@ -734,6 +734,7 @@ class TimelineBuilder {
             built.resumeStep,
             this.settings,
             ctx.junctionTurn,
+            built.headings,
           )
         : stepCount;
     let travelTime = Math.max(0, built.motion[endStep]);
@@ -784,6 +785,17 @@ class TimelineBuilder {
     const swings =
       this.corrects &&
       (endStep < stepCount || ctx.junctionTurn >= RECOVERY_MIN_TURN_DEGREES);
+    // The robot turns to the heading the next path wants where it is along
+    // that path, as fast as it can turn, and Pedro turns first when far off.
+    const wanted = swings
+      ? idealHeadings({
+          line: nextLine,
+          prevPoint: line.endPoint as Point,
+          chainMeta: ctx.chains.get(nextLine.id!),
+          currentHeading: this.currentHeading,
+          settings: this.settings,
+        })
+      : [];
     const recovery = swings
       ? recoverFromHandover({
           line,
@@ -799,6 +811,7 @@ class TimelineBuilder {
             ctx.chains.get(nextLine.id!)?.rootLine,
             this.settings,
           ),
+          heading: { start: this.currentHeading, wanted },
         })
       : null;
     if (!recovery) {
@@ -806,22 +819,15 @@ class TimelineBuilder {
       return;
     }
 
-    // The robot keeps turning to the heading the next path wants where it is
-    // along that path, as fast as it can turn.
-    const wanted = idealHeadings({
-      line: nextLine,
-      prevPoint: line.endPoint as Point,
-      chainMeta: ctx.chains.get(nextLine.id!),
-      currentHeading: this.currentHeading,
-      settings: this.settings,
-    });
-    const headings = headingsAlong(
-      recovery.time,
-      recovery.along,
-      wanted,
-      this.currentHeading,
-      this.settings,
-    );
+    const headings = recovery.heading
+      ? [...recovery.heading]
+      : headingsAlong(
+          recovery.time,
+          recovery.along,
+          wanted,
+          this.currentHeading,
+          this.settings,
+        );
 
     this.timeline.push({
       type: "recovery",

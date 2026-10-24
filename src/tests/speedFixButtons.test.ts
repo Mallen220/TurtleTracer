@@ -176,9 +176,10 @@ describe("Path Statistics offers the fix", () => {
     );
     const bend = stats.insights.find((i) => i.message.includes("too tight"))!;
     expect(bend.fixes).toHaveLength(1);
-    expect(bend.fixes![0].field).toBe("maxSpeed");
+    const fix = bend.fixes![0] as SpeedFix;
+    expect(fix.field).toBe("maxSpeed");
     // The speed in the words is the speed on the button.
-    expect(bend.message).toContain(`Max Speed to ${bend.fixes![0].speed} in/s`);
+    expect(bend.message).toContain(`Max Speed to ${fix.speed} in/s`);
     // And warnings with nothing to set have no fixes.
     const plain = stats.insights.filter(
       (i) => !i.message.includes("too tight"),
@@ -221,7 +222,7 @@ describe("Path Statistics offers the fix", () => {
       sequenceOf(lines),
       settings,
     );
-    const fix = before.insights.find((i) => i.fixes)!.fixes![0];
+    const fix = before.insights.find((i) => i.fixes)!.fixes![0] as SpeedFix;
     const fixed = applySpeedFix(lines, fix);
     const after = computePathStatistics(
       start,

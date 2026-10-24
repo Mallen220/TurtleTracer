@@ -8,9 +8,45 @@
     telemetryLines,
     processTelemetryMessage,
     setStatus,
+    liveTrail,
+    clearLiveTrail,
+    recording,
+    recordingSummary,
+    clearRecording,
   } from "../../telemetryStore";
-  import { notification } from "../../../stores";
+  import { calibrationState } from "../../motionCalibration";
+  import {
+    settingsStore,
+    startPointStore,
+    linesStore,
+    sequenceStore,
+    shapesStore,
+  } from "../../projectStore";
+  import { notification, currentFilePath } from "../../../stores";
+  import { get } from "svelte/store";
+  import { saveBlob } from "../../../utils/file";
+  import { recordingFileName } from "../../../utils/telemetryRecording";
+  import packageJson from "../../../../package.json";
   import { ui } from "../../ui";
+  import CalibrationPanel from "../telemetry/CalibrationPanel.svelte";
+  import type { Line, Point, SequenceItem, Settings } from "../../../types";
+
+  interface Props {
+    settings: Settings;
+    startPoint?: Point;
+    lines?: Line[];
+    sequence?: SequenceItem[];
+    recordChange?: (action?: string) => void;
+  }
+
+  // `lines` here is the robot's telemetry, so the path's lines are renamed.
+  let {
+    settings,
+    startPoint,
+    lines: pathLines,
+    sequence,
+    recordChange,
+  }: Props = $props();
 
   // Inputs
   let ip = $state("192.168.43.1");
@@ -33,22 +69,75 @@
 
   onMount(() => {
     const api = getElectronAPI();
-    if (api && api.telemetry) {
-      // Set up listeners
+    if (!api?.telemetry) return;
 
-      api.telemetry.onData((data: string) => {
-        processTelemetryMessage(data);
-      });
+    // Removed again on unmount, or turning the tab off and on would
+    // process every message twice.
+    const offData = api.telemetry.onData((data: string) => {
+      processTelemetryMessage(data);
+    });
 
-      api.telemetry.onStatus((s: any) => {
-        setStatus(s);
-        // Sync connecting state
-        if (s === "CONNECTED" || s === "DISCONNECTED" || s === "ERROR") {
-          connecting = false;
-        }
-      });
-    }
+    const offStatus = api.telemetry.onStatus((s: any) => {
+      setStatus(s);
+      // Sync connecting state
+      if (s === "CONNECTED" || s === "DISCONNECTED" || s === "ERROR") {
+        connecting = false;
+      }
+    });
+
+    return () => {
+      offData?.();
+      offStatus?.();
+    };
   });
+
+  let exporting = $state(false);
+
+  function formatDuration(seconds: number) {
+    if (seconds < 60) return `${seconds.toFixed(1)} s`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} min ${Math.round(seconds % 60)} s`;
+  }
+
+  async function exportRecording() {
+    exporting = true;
+    try {
+      const file = get(currentFilePath);
+      const data = recording.toExport({
+        file: file?.split(/[\\/]/).pop() ?? null,
+        startPoint: get(startPointStore),
+        lines: get(linesStore),
+        sequence: get(sequenceStore),
+        shapes: get(shapesStore),
+        settings: get(settingsStore),
+        appVersion: packageJson.version,
+      });
+      const blob = new Blob([JSON.stringify(data)], {
+        type: "application/json",
+      });
+      const result = await saveBlob(
+        blob,
+        recordingFileName(file),
+        "Telemetry recording",
+      );
+      if (result === "cancelled") return;
+      notification.set({
+        message:
+          result === "saved"
+            ? "Telemetry recording saved."
+            : "Telemetry recording downloaded.",
+        type: "success",
+      });
+    } catch (e) {
+      console.error(e);
+      notification.set({
+        message: "Couldn't save the telemetry recording.",
+        type: "error",
+      });
+    } finally {
+      exporting = false;
+    }
+  }
 
   async function toggleConnection() {
     const api = getElectronAPI();
@@ -166,10 +255,93 @@
         <span class="text-neutral-500 dark:text-neutral-400">{fps} FPS</span>
       {/if}
     </div>
+
+    <label class={ui.checkLabel}>
+      <input
+        type="checkbox"
+        class={ui.checkbox}
+        checked={settings.telemetrySyncPlayback !== false}
+        onchange={(e) =>
+          settingsStore.update((s) => ({
+            ...s,
+            telemetrySyncPlayback: e.currentTarget.checked,
+          }))}
+      />
+      Play the simulation when the robot starts its first path
+    </label>
+    {#if $isConnected && $calibrationState.sampleCount > 0 && !$calibrationState.hasBusy}
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">
+        This robot doesn't say when it's following a path, so the simulation
+        can't start with it. Update TurtleTracerLib and link the follower with
+        setFollower.
+      </p>
+    {/if}
+    {#if $liveTrail.length > 0}
+      <button
+        type="button"
+        class="{ui.btnSm.secondary} self-start"
+        onclick={clearLiveTrail}
+      >
+        Clear the robot's trail
+      </button>
+    {/if}
   </div>
 
+  <!-- Recording -->
+  <div class="{ui.card} flex flex-col gap-2 p-4">
+    <h3 class="font-semibold text-lg text-neutral-900 dark:text-neutral-100">
+      Recording
+    </h3>
+    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+      {#if $recordingSummary.messages === 0}
+        Everything the robot sends is recorded once it's connected, so you can
+        save it to a file.
+      {:else}
+        {$recordingSummary.messages.toLocaleString()}
+        {$recordingSummary.messages === 1 ? "message" : "messages"} over {formatDuration(
+          $recordingSummary.seconds,
+        )}{#if $recordingSummary.runs > 0}, {$recordingSummary.runs}
+          {$recordingSummary.runs === 1 ? "run" : "runs"}{/if}.
+        {#if $recordingSummary.trimmed}
+          The oldest messages were dropped to keep it under an hour.
+        {/if}
+      {/if}
+    </p>
+    <div class="flex gap-2">
+      <button
+        type="button"
+        class="{ui.btn.primary} flex-1"
+        disabled={$recordingSummary.messages === 0 || exporting}
+        onclick={exportRecording}
+      >
+        {exporting ? "Saving..." : "Export recording"}
+      </button>
+      <button
+        type="button"
+        class={ui.btn.secondary}
+        disabled={$recordingSummary.messages === 0}
+        onclick={clearRecording}
+      >
+        Clear
+      </button>
+    </div>
+    <p class="text-xs text-neutral-500 dark:text-neutral-400">
+      The file also holds this path and your motion settings, so the simulation
+      can be run again exactly as it was.
+    </p>
+  </div>
+
+  <CalibrationPanel
+    {settings}
+    {startPoint}
+    lines={pathLines}
+    {sequence}
+    {recordChange}
+    connected={$isConnected}
+  />
+
   <!-- Data Table -->
-  <div class="{ui.card} flex-1 overflow-hidden flex flex-col">
+  <div class="{ui.card} flex-1 min-h-48 overflow-hidden flex flex-col">
     <div
       class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
     >

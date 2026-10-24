@@ -113,10 +113,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     connect: (ip, port, protocol) =>
       ipcRenderer.invoke("telemetry:connect", ip, port, protocol),
     disconnect: () => ipcRenderer.invoke("telemetry:disconnect"),
-    onData: (callback) =>
-      ipcRenderer.on("telemetry:data", (_event, data) => callback(data)),
-    onStatus: (callback) =>
-      ipcRenderer.on("telemetry:status", (_event, status) => callback(status)),
+    // Each returns a function that removes the listener again.
+    onData: (callback) => {
+      const listener = (_event, data) => callback(data);
+      ipcRenderer.on("telemetry:data", listener);
+      return () => ipcRenderer.removeListener("telemetry:data", listener);
+    },
+    onStatus: (callback) => {
+      const listener = (_event, status) => callback(status);
+      ipcRenderer.on("telemetry:status", listener);
+      return () => ipcRenderer.removeListener("telemetry:status", listener);
+    },
   },
   // Update
   onUpdateAvailable: (callback) =>
