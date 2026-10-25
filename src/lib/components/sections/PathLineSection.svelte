@@ -645,18 +645,14 @@
       {canMoveDown}
       ontoggleHidden={() => {
         const currentLine = lines[idx];
-        const newLine = { ...currentLine, hidden: !isHidden };
-        lines[idx] = newLine;
+        lines[idx] = { ...currentLine, hidden: !isHidden };
         lines = [...lines];
-        line = newLine;
         if (recordChange) recordChange();
       }}
       ontoggleLocked={() => {
         const currentLine = lines[idx];
-        const newLine = { ...currentLine, locked: !currentLine.locked };
-        lines[idx] = newLine;
+        lines[idx] = { ...currentLine, locked: !currentLine.locked };
         lines = [...lines];
-        line = newLine;
       }}
       onMoveUp={() => onMoveUp?.()}
       onMoveDown={() => onMoveDown?.()}
