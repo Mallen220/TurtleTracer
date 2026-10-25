@@ -57,12 +57,11 @@ export function fastestSpeedThatFixes(
   ctx: FixContext,
   lineIndex: number,
   isFixed: (event: TimelineEvent) => boolean,
-  /** Where the speed is set: the path's own, or its chain's (on the chain's first path). */
-  target: { index: number; field: "maxSpeed" | "chainMaxSpeed" } = {
-    index: lineIndex,
-    field: "maxSpeed",
-  },
+  /** Where the speed is set: the path's own (by default), or its chain's (on the chain's first path). */
+  target?: { index: number; field: "maxSpeed" | "chainMaxSpeed" },
 ): number | null {
+  const index = target?.index ?? lineIndex;
+  const field = target?.field ?? "maxSpeed";
   const now = travelOf(ctx, ctx.lines, lineIndex);
   const top = now?.velocityProfile?.length
     ? Math.max(...now.velocityProfile)
@@ -71,7 +70,7 @@ export function fastestSpeedThatFixes(
   const works = (speed: number) => {
     const event = travelOf(
       ctx,
-      replaceLine(ctx.lines, target.index, { [target.field]: speed }),
+      replaceLine(ctx.lines, index, { [field]: speed }),
       lineIndex,
     );
     return event !== undefined && isFixed(event);

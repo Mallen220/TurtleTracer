@@ -321,8 +321,9 @@ function analyzeTurn(samples: MotionSample[]): TurnEvent | null {
     TURN_START,
     MIN_TURN_TIME,
   );
-  if (runs.length === 0) return null;
-  const best = runs.reduce((a, b) => (b.mean > a.mean ? b : a));
+  const [first, ...rest] = runs;
+  if (!first) return null;
+  const best = rest.reduce((a, b) => (b.mean > a.mean ? b : a), first);
   return {
     kind: "turn",
     t: samples[best.from].t,

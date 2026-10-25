@@ -53,8 +53,11 @@ export const SOURCE_FOLDER = "TeamCode/src/main";
 /** Files that may hold the Pedro constants. */
 export const CONSTANTS_FILE_ENDINGS = ["Constants.java", "Constants.kt"];
 
-const join = (dir: string, file: string) =>
-  dir.replace(/[\\/]+$/, "") + "/" + file;
+const join = (dir: string, file: string) => {
+  let end = dir.length;
+  while (end > 0 && (dir[end - 1] === "/" || dir[end - 1] === "\\")) end--;
+  return dir.slice(0, end) + "/" + file;
+};
 
 /**
  * The FTC project a folder is in: the folder holding TeamCode, if the folder
@@ -100,7 +103,7 @@ export function readConstantsClass(
       .split(/[\\/]/)
       .pop()!
       .replace(/\.(java|kt)$/, "");
-  const packageName = /^\s*package\s+([\w.]+)/m.exec(content)?.[1];
+  const packageName = /^[ \t]*package[ \t]+([\w.]+)/m.exec(content)?.[1];
   return {
     qualifiedName: packageName ? `${packageName}.${className}` : className,
     className,
@@ -153,7 +156,7 @@ export function readBuildFiles(contents: string[]): {
   commandLibrary: CommandLibraryId | null;
 } {
   const text = contents
-    .map((c) => c.replaceAll(/^\s*\/\/.*$/gm, ""))
+    .map((c) => c.replaceAll(/^[ \t]*\/\/.*$/gm, ""))
     .join("\n");
   const pedro =
     /com\.pedropathing:(?!ivy\b|telemetry\b|tuning\b)([\w-]+):(\d+)[\w.+-]*/.exec(

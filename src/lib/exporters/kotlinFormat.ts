@@ -26,6 +26,8 @@ function scanLine(line: string, inComment: boolean): ScannedLine {
   let brackets = "";
   // Where the code ends, before a trailing line comment.
   let codeEnd = -1;
+  let inString = false;
+  let escaped = false;
 
   for (let i = 0; i < line.length; i++) {
     const c = line[i]!;
@@ -35,6 +37,23 @@ function scanLine(line: string, inComment: boolean): ScannedLine {
         text += "/";
         i++;
         inComment = false;
+      }
+      continue;
+    }
+    if (inString) {
+      // Kotlin would read `$name` in a string as a template.
+      if (escaped) {
+        text += c;
+        escaped = false;
+      } else if (c === "\\") {
+        text += c;
+        escaped = true;
+      } else if (c === '"') {
+        text += c;
+        inString = false;
+        codeEnd = text.length;
+      } else {
+        text += c === "$" ? String.raw`\$` : c;
       }
       continue;
     }
@@ -49,26 +68,18 @@ function scanLine(line: string, inComment: boolean): ScannedLine {
       continue;
     }
     if (c === '"') {
-      // A string: Kotlin would read `$name` in it as a template.
-      let j = i + 1;
       text += c;
-      while (j < line.length && line[j] !== '"') {
-        if (line[j] === "\\") {
-          text += line.slice(j, j + 2);
-          j += 2;
-          continue;
-        }
-        text += line[j] === "$" ? String.raw`\$` : line[j];
-        j++;
-      }
-      text += '"';
-      i = j;
-      codeEnd = text.length;
+      inString = true;
       continue;
     }
     if ("()[]{}".includes(c)) brackets += c;
     text += c;
     if (c !== " " && c !== "\t") codeEnd = text.length;
+  }
+  if (inString) {
+    // A string left open is closed where the line ends.
+    text += '"';
+    codeEnd = text.length;
   }
 
   // Semicolons end statements in Java; Kotlin lets a line end do it.

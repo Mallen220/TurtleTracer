@@ -25,10 +25,12 @@ export interface SegmentFixes {
   speed: number | null;
 }
 
+const NO_FIXES: SegmentFixes = { start: null, speed: null };
+
 /** Why a piecewise segment doesn't finish turning, and what to do about it. */
 export function shortfallAdvice(
   s: PiecewiseShortfall,
-  fixes: SegmentFixes = { start: null, speed: null },
+  fixes: SegmentFixes = NO_FIXES,
 ): string {
   const rate = `${Math.round(s.turnRate)}°/s`;
   const speed =
