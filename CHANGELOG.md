@@ -1,3 +1,7 @@
+## 2.6.0 (2026-10-25)
+
+- Added experimental Kotlin code export and import support. Please report bugs involving Kotlin as they are currently unlikely to be independently tested. Simulate path overshooting on sharp turns. Added warning for piecewise angles being unreachable and suggest fixes. Telemetry now automatically watches robot behavior to correct visualizer settings. Support for Feedforward tuned values making the simulation substantially more accurate. Support added for the updated .pp format. Older .pp files are still supported. Allow snapping without forcing users to enable the grid. Both still rely on the same global sizing scheme. Updated the documentation and made it easier to maintain. Make the path chaining button more explicitly clear by adding it during the onboarding tutorial and hinting on hover. Fixed Bug where obstacles were sometimes ignores. Each path or chain can have its own max speed, and it's included in exported code. Bends the robot can't follow at speed are shown running wide, with a warning and a one-click speed fix. The desktop app reads your robot project (constants class, Pedro version, command library) and uses it in exported code. The path optimizer is better at leaving paths that are already good alone. 
+
 ## 2.5.1 (2026-10-18)
 
 - Code cleanup. Recursively check for heading changes within piecewise heading types to ensure the UI doesn't become stale. Insert after on a path was not working in some cases. It should be fixed now. The robot overlay for custom parts now scales with the robot and zoom engine.
