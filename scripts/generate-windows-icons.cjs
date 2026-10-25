@@ -59,7 +59,7 @@ async function resizeWithCanvas(
 
 async function main() {
   const src = path.resolve(__dirname, "..", "public", "icon.png");
-  // electron-builder defaults to `build/appx` for AppX assets if not specified
+  // The Store package (scripts/package-msix.ps1) takes its tiles from `build/appx`
   const outDir = path.resolve(__dirname, "..", "build", "appx");
   // also need `build/win` for NSIS icon.ico
   const winDir = path.resolve(__dirname, "..", "build", "win");
@@ -117,8 +117,8 @@ async function main() {
 
     console.log("Wrote", out100, "and", out200);
 
-    // ensure top-level `build/` also contains the same tile files so electron-builder
-    // includes them in the generated Appx manifest (Windows Start/Store tiles)
+    // ensure top-level `build/` also contains the same tile files so packaging tools
+    // include them in the generated Appx manifest (Windows Start/Store tiles)
     const buildRoot = path.resolve(__dirname, "..", "build");
     try {
       // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename

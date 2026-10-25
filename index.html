@@ -152,15 +152,18 @@
             }
           }
         } else {
-          // If not in Electron, hide the version text
+          // Outside the desktop app, hide the version text
           const versionElement = document.getElementById("app-version");
           if (versionElement) {
             versionElement.textContent = "";
           }
         }
 
-        // Register the service worker to allow the app to work offline
-        if ("serviceWorker" in navigator) {
+        // Register the service worker to allow the app to work offline. The
+        // desktop app has its files already.
+        if (globalThis.isTauri) {
+          // Nothing to do.
+        } else if ("serviceWorker" in navigator) {
           try {
             const registration =
               await navigator.serviceWorker.register("sw.js");

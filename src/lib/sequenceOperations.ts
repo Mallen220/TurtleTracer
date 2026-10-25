@@ -184,7 +184,7 @@ export function isMacroDrag(e: DragEvent): boolean {
 
 /**
  * Path of the project file being dropped: from the file manager, or from
- * the operating system (Electron exposes `path` on dropped files).
+ * the operating system (where the browser gives dropped files a `path`).
  */
 export function getDroppedMacroPath(e: DragEvent): string | null {
   for (const type of MACRO_DRAG_TYPES) {

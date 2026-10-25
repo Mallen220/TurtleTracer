@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
+<!-- Lets the desktop open .turt and .pp files with Turtle Tracer. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-turtle-tracer">
+    <comment>Turtle Tracer Project</comment>
+    <glob pattern="*.turt"/>
+  </mime-type>
+  <mime-type type="application/x-turtle-tracer-legacy">
+    <comment>Turtle Tracer Project (Legacy .pp)</comment>
+    <glob pattern="*.pp"/>
+  </mime-type>
+</mime-info>

@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { isTauri } from "@tauri-apps/api/core";
 import type { ElectronAPI } from "../types";
 import { withGitHubRepos } from "./github/router";
 
@@ -18,13 +19,11 @@ export const isMac =
 export const modKey = isMac ? "Cmd" : "Ctrl";
 export const altKey = isMac ? "Opt" : "Alt";
 
-export const isBrowser =
-  typeof globalThis !== "undefined" &&
-  typeof navigator !== "undefined" &&
-  !/Electron/i.test(navigator.userAgent);
+/** Running as a web page, rather than in the desktop app. */
+export const isBrowser = !isTauri();
 
 /**
- * The desktop app's preload API, or the in-browser stand-in, with files in
+ * The desktop app's API (src/utils/tauriBridge.ts), or the in-browser stand-in, with files in
  * GitHub repositories (/@github/...) handled too. Pass `allowVirtual: false`
  * to get only the real desktop API.
  */
@@ -39,8 +38,8 @@ export function getElectronAPI(options?: {
 }
 
 /**
- * Where a file the user dropped or picked lives on disk, in the desktop app.
- * Electron 32+ no longer sets `File.path`, so ask the preload API instead.
+ * Where a file the user dropped or picked lives on disk, if the platform
+ * says. The desktop app reports dropped paths through `onFileDropped` instead.
  */
 export function diskPathOf(file: File): string | undefined {
   const legacyPath = (file as File & { path?: string }).path;

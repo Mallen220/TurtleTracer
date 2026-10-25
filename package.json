@@ -2,15 +2,16 @@
   "name": "turtle-tracer",
   "private": true,
   "version": "2.6.0",
-  "main": "electron/main.js",
   "author": "Matthew Allen <FTCTurtleTracer@gmail.com>",
   "email": "FTCTurtleTracer@gmail.com",
   "license": "Modified Apache 2.0",
   "description": "A better alternative to the Pedro Pathing Visualizer",
   "type": "module",
   "scripts": {
-    "dev": "npm run generate:types && npm run fix:headers && npm run format && npm run fix:notice && vite build && electron .",
-    "start": "npm run build && electron .",
+    "dev": "npm run generate:types && npm run fix:headers && npm run format && npm run fix:notice && tauri dev",
+    "start": "tauri dev",
+    "tauri": "tauri",
+    "tauri:build": "tauri build",
     "preview": "vite preview",
     "build": "npm run generate:types && npm run generate:icons && npm run copy:icon && vite build",
     "check": "npm run generate:types && npm run generate:icons && npm run check:tiles && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
@@ -33,12 +34,12 @@
     "badges:coverage": "node scripts/update-coverage-badge.js",
     "release": "npm run coverage && node scripts/bump-version.js && npm run lighthouse",
     "version:bump": "npm run release",
-    "electron-builder": "electron-builder",
     "playwright": "playwright"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
     "@sveltejs/vite-plugin-svelte": "4.0.4",
+    "@tauri-apps/cli": "2.12.4",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/svelte": "5.3.1",
     "@tsconfig/svelte": "5.0.8",
@@ -49,8 +50,6 @@
     "@typescript-eslint/parser": "8.58.0",
     "@vitest/coverage-v8": "2.1.9",
     "autoprefixer": "10.4.27",
-    "electron": "^39.8.6",
-    "electron-builder": "24.13.3",
     "eslint": "8.57.1",
     "eslint-config-prettier": "9.1.2",
     "eslint-plugin-prettier": "5.5.5",
@@ -75,6 +74,7 @@
     "vitest": "2.1.9"
   },
   "dependencies": {
+    "@tauri-apps/api": "2.12.4",
     "@types/d3": "7.4.3",
     "@types/lodash": "4.17.24",
     "canvas": "3.2.1",
@@ -82,8 +82,6 @@
     "diff": "8.0.3",
     "dompurify": "3.4.11",
     "driver.js": "1.4.0",
-    "express": "4.22.2",
-    "express-rate-limit": "8.5.1",
     "gif.js": "0.2.0",
     "highlight.js": "11.11.1",
     "html2pdf.js": "0.14.0",
@@ -92,122 +90,10 @@
     "markdown-it": "14.2.0",
     "prettier-plugin-java": "2.9.4",
     "sass": "1.97.3",
-    "simple-git": "3.36.0",
     "svelte-highlight": "7.9.0",
     "two.js": "0.8.23",
     "typescript": "5.9.3",
-    "upng-js": "2.1.0",
-    "ws": "8.21.0"
-  },
-  "build": {
-    "appId": "com.turtletracer.visualizer",
-    "productName": "Turtle Tracer",
-    "asar": true,
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "artifactName": "Turtle-Tracer-${version}-${arch}.${ext}",
-    "files": [
-      "dist/**/*",
-      "public/**/*",
-      "electron/**/*",
-      "plugins/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      "public/**/*"
-    ],
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.developer-tools",
-      "icon": "build/icon.png",
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
-    },
-    "dmg": {
-      "icon": "build/icon.png",
-      "contents": [
-        {
-          "x": 130,
-          "y": 190
-        },
-        {
-          "x": 410,
-          "y": 190,
-          "type": "link",
-          "path": "/Applications"
-        },
-        {
-          "x": 270,
-          "y": 190,
-          "type": "file",
-          "path": "mac/README.txt"
-        }
-      ],
-      "window": {
-        "width": 540,
-        "height": 380
-      }
-    },
-    "win": {
-      "target": [
-        "nsis",
-        "appx"
-      ],
-      "icon": "build/icon.png",
-      "timeStampServer": ""
-    },
-    "appx": {
-      "identityName": "PedroPathingPlus.12978EBCCDE63",
-      "publisher": "CN=D17DA008-76B7-4978-BFAA-9ED056EE08B9",
-      "publisherDisplayName": "Turtle Tracer",
-      "applicationId": "TurtleTracer"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "perMachine": true,
-      "artifactName": "Turtle-Tracer-Setup-${version}.${ext}"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "icon": "build/icon.png",
-      "category": "Development",
-      "maintainer": "Matthew Allen <FTCTurtleTracer@gmail.com>",
-      "executableName": "turtle-tracer",
-      "artifactName": "Turtle-Tracer-${version}-${arch}.${ext}"
-    },
-    "appImage": {
-      "artifactName": "Turtle-Tracer-${version}-${arch}.${ext}"
-    },
-    "fileAssociations": [
-      {
-        "ext": "turt",
-        "name": "Turtle Tracer Project",
-        "description": "Turtle Tracer Project File",
-        "role": "Editor",
-        "rank": "Owner"
-      },
-      {
-        "ext": "pp",
-        "name": "Turtle Tracer Project (Legacy .pp)",
-        "description": "Legacy Turtle Tracer Project File",
-        "role": "Editor",
-        "rank": "Owner"
-      }
-    ],
-    "publish": {
-      "provider": "github",
-      "owner": "Mallen220",
-      "repo": "TurtleTracer"
-    }
+    "upng-js": "2.1.0"
   },
   "overrides": {
     "lodash-es": "4.17.23",

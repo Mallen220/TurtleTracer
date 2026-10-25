@@ -143,6 +143,14 @@ jobs:
           node-version: 20
           cache: npm
 
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
@@ -150,27 +158,24 @@ jobs:
           VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
         run: npm run build
 
+      # Unsigned (no Apple Developer ID), so ad-hoc signed; install.sh clears
+      # the quarantine flag. Assets keep the names install.sh looks for.
       - name: Build (Mac)
-        env:
-          USE_HARD_LINKS: "false"
         run: |
-          echo "Building macOS packages..."
-          rm -rf release/mac*
-
-          # Build each architecture separately to avoid electron-builder hardlink collision
-          npm run electron-builder -- --mac --x64 --publish never -c.mac.identity=null --config.directories.output=release/mac-x64
-          npm run electron-builder -- --mac --arm64 --publish never -c.mac.identity=null --config.directories.output=release/mac-arm64
-
-          echo "Build complete. Checking release directory..."
-          ls -la release/ || echo "release directory not found"
-          find release -name "*.dmg" | head -10
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p release
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            npx tauri build --target "$target" --bundles dmg --config '{"build":{"beforeBuildCommand":""}}'
+          done
+          cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg "release/Turtle-Tracer-${VERSION}-arm64.dmg"
+          cp src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg "release/Turtle-Tracer-${VERSION}-x64.dmg"
+          ls -la release
 
       - name: Upload artifacts (Mac)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Uploading .dmg files:"
-          find release -name "*.dmg" -type f | while read file; do
+          for file in release/*.dmg; do
             echo "Uploading: $file"
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
@@ -188,12 +193,27 @@ jobs:
           node-version: 20
           cache: npm
 
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
           VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
         run: npm run build
+
+      - name: Build installer (Windows)
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          npx tauri build --bundles nsis --config '{"build":{"beforeBuildCommand":""}}'
+          mkdir -p release
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe "release/Turtle-Tracer-Setup-${VERSION}.exe"
+          ls -la release
 
       - name: Decode Signing Certificate
         shell: pwsh
@@ -208,36 +228,29 @@ jobs:
             Write-Host "No certificate found in secrets."
           }
 
-      - name: Import Cert to Store
+      # Tauri doesn't make MSIX packages, so the release build is packed here
+      # with the Store listing's identity (see src-tauri/windows/AppxManifest.xml).
+      - name: Build Store package (MSIX)
         shell: pwsh
         env:
-          PFX_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
-        run: |
-          # Use the environment variable $env:PFX_PASSWORD
-          $pfxPassword = ConvertTo-SecureString -String $env:PFX_PASSWORD -AsPlainText -Force
-          Import-PfxCertificate -FilePath msix-signing.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pfxPassword
-
-      - name: Build (Windows)
-        env:
-          # Note: WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD are intentionally removed.
-          # Electron-builder will find the cert in the Windows User Store via 'certificateSubjectName' in package.json
           MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
           MSIX_PACKAGE_ID: ${{ secrets.MSIX_PACKAGE_ID }}
           MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
+          PFX_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
         run: |
-          echo "Building Windows packages..."
-          npm run electron-builder -- --win --x64 --publish never
-          echo "Build complete. Checking release directory..."
-          ls release/ || echo "release directory not found"
-        shell: bash
+          $version = node -p "require('./package.json').version"
+          if (Test-Path 'msix-signing.pfx') {
+            ./scripts/package-msix.ps1 -Version $version -Pfx msix-signing.pfx -PfxPassword $env:PFX_PASSWORD
+          } else {
+            ./scripts/package-msix.ps1 -Version $version
+          }
 
       - name: Upload artifacts (Windows)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          echo "Uploading .exe, .appx, .appxupload and .msix artifacts:"
-          find release -maxdepth 1 \( -name "*Setup*.exe" -o -name "*.appx" -o -name "*.appxupload" -o -name "*.msix" \) -type f | while read file; do
+          find release -maxdepth 1 \( -name "*Setup*.exe" -o -name "*.msix" \) -type f | while read file; do
             echo "Uploading: $file"
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
@@ -246,7 +259,18 @@ jobs:
     needs: prepare-release
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04's older glibc lets the AppImage run on more distributions.
+          - runner: ubuntu-22.04
+            deb_arch: amd64
+            appimage_arch: x86_64
+          - runner: ubuntu-22.04-arm
+            deb_arch: arm64
+            appimage_arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -255,18 +279,25 @@ jobs:
           node-version: 20
           cache: npm
 
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
-            libcairo2-dev \
-            libpango1.0-dev \
-            libjpeg-dev \
-            libgif-dev \
+            file \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
-            zlib1g-dev \
-            libzstd-dev
+            libssl-dev \
+            libxdo-dev \
+            patchelf
 
       - run: npm ci --ignore-scripts
       - name: Build Web Bundle
@@ -277,18 +308,18 @@ jobs:
 
       - name: Build (Linux)
         run: |
-          echo "Building Linux packages..."
-          npm run electron-builder -- --linux --x64 --arm64 --publish never
-          echo "Build complete. Checking release directory..."
-          ls -la release/ || echo "release directory not found"
-          find release -name "*.AppImage" -o -name "*.deb" | head -10
+          VERSION=$(node -p "require('./package.json').version")
+          npx tauri build --bundles deb,appimage --config '{"build":{"beforeBuildCommand":""}}'
+          mkdir -p release
+          cp src-tauri/target/release/bundle/deb/*.deb "release/Turtle-Tracer-${VERSION}-${{ matrix.deb_arch }}.deb"
+          cp src-tauri/target/release/bundle/appimage/*.AppImage "release/Turtle-Tracer-${VERSION}-${{ matrix.appimage_arch }}.AppImage"
+          ls -la release
 
       - name: Upload artifacts (Linux)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Uploading .AppImage and .deb files:"
-          find release -type f \( -name "*.AppImage" -o -name "*.deb" \) | while read file; do
+          for file in release/*.deb release/*.AppImage; do
             echo "Uploading: $file"
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
@@ -309,7 +340,7 @@ jobs:
           mkdir assets
           gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir assets --clobber \
             --pattern '*.dmg' --pattern '*.exe' --pattern '*.AppImage' --pattern '*.deb' \
-            --pattern '*.appx' --pattern '*.msix'
+            --pattern '*.msix'
           cd assets
           # "<sha256>  <file name>" per line, the format install.sh and install.ps1 read.
           sha256sum -- * > SHA256SUMS

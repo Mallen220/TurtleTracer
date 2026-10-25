@@ -1,7 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import { isUnsaved } from "../../stores";
+  import { currentFilePath, isUnsaved } from "../../stores";
+  import { loadProjectData } from "../projectStore";
   import { handleExternalFileOpen } from "../../utils/fileHandlers";
   import { isSupportedProjectFileName } from "../../utils/fileExtensions";
   import { diskPathOf, getElectronAPI } from "../../utils/platform";
@@ -23,6 +25,19 @@
 
   const carriesFiles = (e: DragEvent) =>
     e.dataTransfer?.types?.includes("Files");
+
+  // Where the desktop app reports file drags itself (with the files' paths),
+  // the page's own drag events never carry files.
+  onMount(() =>
+    getElectronAPI()?.onFileDrag?.(({ type, paths }) => {
+      if (type === "enter") isDraggingFile = true;
+      else if (type === "leave") isDraggingFile = false;
+      else if (type === "drop") {
+        isDraggingFile = false;
+        if (paths[0]) void openDropped(paths[0]);
+      }
+    }),
+  );
 
   function handleDragEnter(e: DragEvent) {
     e.preventDefault();
@@ -70,13 +85,31 @@
     }
 
     const path = diskPathOf(file);
-    if (!path) {
-      alert(
-        "Cannot determine file path. If you are running in a browser, this feature is not supported.",
-      );
+    if (path) {
+      await openDropped(path);
       return;
     }
 
+    // No path (the Windows desktop app): open the contents as a new,
+    // unsaved project, so saving asks where it goes.
+    try {
+      const data = JSON.parse(await file.text());
+      if (!(await resolveUnsavedChanges())) return;
+      currentFilePath.set(null);
+      await loadProjectData(data);
+      isUnsaved.set(true);
+      onOpened();
+    } catch (err) {
+      console.error("Error opening dropped file:", err);
+      alert("Failed to open file: " + err);
+    }
+  }
+
+  async function openDropped(path: string) {
+    if (!isSupportedProjectFileName(path)) {
+      alert("Please drop a .turt or .pp file.");
+      return;
+    }
     try {
       if (!(await resolveUnsavedChanges())) return;
       await handleExternalFileOpen(path);

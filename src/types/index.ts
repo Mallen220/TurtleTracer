@@ -1079,7 +1079,14 @@ export interface ElectronTelemetryAPI {
   onStatus: (callback: (status: any) => void) => (() => void) | void;
 }
 
-/** The parts of Electron's save dialog options the app uses. */
+/** Files from the OS being dragged over the window, or dropped on it. */
+export interface FileDragEvent {
+  type: "enter" | "over" | "drop" | "leave";
+  /** Empty for "over" and "leave". */
+  paths: string[];
+}
+
+/** The save dialog options the app uses (as Electron's showSaveDialog took them). */
 export interface SaveDialogOptions {
   title?: string;
   defaultPath?: string;
@@ -1143,8 +1150,8 @@ export interface ElectronAPI {
   gitShow?: (filePath: string) => Promise<string | null>;
   gitStatus?: (directory: string) => Promise<any>;
 
-  // GitHub (desktop): the token stays in the main process, which makes the
-  // requests. See electron/ipc/githubHandlers.js.
+  // GitHub (desktop): the token stays in the desktop app, which makes the
+  // requests. See src-tauri/src/github.rs.
   githubToken?: {
     status: () => Promise<{
       hasToken: boolean;
@@ -1168,11 +1175,20 @@ export interface ElectronAPI {
     error?: string;
   }>;
 
+  /** Native "Open" dialog for a project file (desktop). */
+  chooseProjectFile?: () => Promise<string | null>;
+
   // Following a Java or Kotlin file (desktop): told each time it's saved in an editor.
   chooseJavaFile?: () => Promise<string | null>;
   followJavaFile?: (filePath: string) => Promise<boolean>;
   unfollowJavaFile?: () => Promise<boolean>;
   onJavaFileChanged?: (callback: (filePath: string) => void) => () => void;
+
+  /**
+   * Files dragged over and dropped on the window, by path (desktop, where the
+   * OS gives paths). The page gets no drag events of its own for these.
+   */
+  onFileDrag?: (callback: (event: FileDragEvent) => void) => () => void;
 
   // Renderer ready signal
   rendererReady?: () => Promise<void>;

@@ -1,140 +1,64 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { test, _electron as electron, expect } from "@playwright/test";
-import * as path from "node:path";
+// Starts the built desktop app with --smoke-test: it exits 0 once the page has
+// loaded and the app has started (the page tells the app it's ready), or 1 if
+// that takes too long. Playwright can't drive the macOS webview, so this is
+// the check that runs on every OS.
+import { test, expect } from "@playwright/test";
+import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
+import * as path from "node:path";
 
-function logReleaseDir(releaseDir: string): void {
-  if (fs.existsSync(releaseDir)) {
-    console.log(`Contents of ${releaseDir}:`, fs.readdirSync(releaseDir));
-    return;
-  }
-  console.log(`${releaseDir} does not exist!`);
-}
+const TARGET = path.resolve(process.cwd(), "src-tauri", "target");
 
-function findFirstExisting(paths: string[]): string {
-  for (const p of paths) {
-    if (fs.existsSync(p)) return p;
-  }
-  return "";
-}
-
-function findAppBundleInDir(dir: string): string {
-  const files = fs.readdirSync(dir);
-  const appFile = files.find((file) => file.endsWith(".app"));
-  return appFile ? path.join(dir, appFile) : "";
-}
-
-function resolveMacExecutable(releaseDir: string): string {
-  const possibleDirs = ["mac", "mac-arm64", "mac-universal"];
-
-  for (const dir of possibleDirs) {
-    const fullDir = path.join(releaseDir, dir);
-    if (!fs.existsSync(fullDir)) {
-      console.log(`Dir not found: ${fullDir}`);
-      continue;
-    }
-
-    console.log(`Found dir: ${fullDir}`);
-    console.log(`Contents:`, fs.readdirSync(fullDir));
-
-    const appPath = findAppBundleInDir(fullDir);
-    if (!appPath) continue;
-
-    const binary = findFirstExisting([
-      path.join(appPath, "Contents", "MacOS", "Turtle Tracer"),
-    ]);
-    if (binary) return binary;
-
-    throw new Error(
-      `Could not find macOS binary inside ${appPath}/Contents/MacOS`,
-    );
-  }
-
-  throw new Error(`Could not find .app in ${releaseDir}`);
-}
-
-function resolveWindowsExecutable(releaseDir: string): string {
-  const fullDir = path.join(releaseDir, "win-unpacked");
-  if (!fs.existsSync(fullDir)) {
-    throw new Error(`Could not find executable in ${releaseDir}/win-unpacked`);
-  }
-
-  const exePath = findFirstExisting([path.join(fullDir, "Turtle Tracer.exe")]);
-
-  if (exePath) return exePath;
-  throw new Error(`Could not find executable in ${releaseDir}/win-unpacked`);
-}
-
-function resolveLinuxExecutable(releaseDir: string): string {
-  const fullDir = path.join(releaseDir, "linux-unpacked");
-  if (!fs.existsSync(fullDir)) {
-    throw new Error(
-      `Could not find executable in ${releaseDir}/linux-unpacked`,
-    );
-  }
-
-  const binaryPath = findFirstExisting([
-    path.join(fullDir, "turtle-tracer"),
-    path.join(fullDir, "Turtle Tracer"),
-  ]);
-
-  if (binaryPath) return binaryPath;
-  throw new Error(`Could not find executable in ${releaseDir}/linux-unpacked`);
-}
-
-function resolveExecutablePath(platform: string, releaseDir: string): string {
-  if (platform === "darwin") return resolveMacExecutable(releaseDir);
-  if (platform === "win32") return resolveWindowsExecutable(releaseDir);
-  if (platform === "linux") return resolveLinuxExecutable(releaseDir);
-  throw new Error(`Unsupported platform: ${platform}`);
-}
-
-function ensureDirExists(dirPath: string): void {
-  if (fs.existsSync(dirPath)) return;
-  fs.mkdirSync(dirPath, { recursive: true });
-}
-
-test("app boots and displays main interface", async () => {
-  const platform = os.platform();
-  const arch = os.arch();
-  const releaseDir = path.resolve(process.cwd(), "release");
-
-  console.log(`Platform: ${platform}, Arch: ${arch}`);
-  console.log(`Release dir: ${releaseDir}`);
-  logReleaseDir(releaseDir);
-
-  const executablePath = resolveExecutablePath(platform, releaseDir);
-
-  console.log(`Executable path: ${executablePath}`);
-
-  // Launch the app
-  const app = await electron.launch({
-    executablePath,
-    args: ["--no-sandbox", "--disable-gpu"], // Sometimes needed for linux environments like Docker
-  });
-
-  // Verify
-  const window = await app.firstWindow();
-  await window.waitForLoadState("domcontentloaded");
-
-  // Check for some element or title
-  const title = await window.title();
-  console.log(`App title: ${title}`);
-
-  // Take screenshot immediately to see what's wrong
-  const screenshotPath = path.join(
-    process.cwd(),
-    "test-results",
-    `boot-${platform}-${arch}.png`,
+/** The built app's executable, from TT_EXE or the newest Tauri build. */
+function findExecutable(): string {
+  if (process.env.TT_EXE) return process.env.TT_EXE;
+  const names: Record<string, string[]> = {
+    darwin: ["bundle/macos/Turtle Tracer.app/Contents/MacOS/Turtle Tracer"],
+    win32: ["Turtle Tracer.exe"],
+    linux: ["turtle-tracer"],
+  };
+  const candidates = (names[os.platform()] ?? []).flatMap((name) =>
+    ["release", "debug"].map((profile) => path.join(TARGET, profile, name)),
   );
-  ensureDirExists(path.dirname(screenshotPath));
-  await window.screenshot({ path: screenshotPath });
-  console.log(`Screenshot saved to ${screenshotPath}`);
+  const found = candidates.find((p) => fs.existsSync(p));
+  if (!found) {
+    throw new Error(
+      `No built app found. Run "npx tauri build" first, or set TT_EXE. Looked in:\n${candidates.join("\n")}`,
+    );
+  }
+  return found;
+}
 
-  // Basic assertion
-  expect(title).toContain("Turtle Tracer");
-  console.log(`Screenshot saved to ${screenshotPath}`);
+function run(exe: string, dataDir: string) {
+  return new Promise<{ code: number | null; output: string }>((resolve) => {
+    const child = spawn(exe, ["--smoke-test"], {
+      env: { ...process.env, TT_DATA_DIR: dataDir },
+    });
+    let output = "";
+    child.stdout.on("data", (d) => (output += d));
+    child.stderr.on("data", (d) => (output += d));
+    child.on("error", (e) => resolve({ code: -1, output: String(e) }));
+    child.on("exit", (code) => resolve({ code, output }));
+  });
+}
 
-  await app.close();
+test("the app starts and its page loads", async () => {
+  test.setTimeout(60_000);
+  const exe = findExecutable();
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "tt-boot-"));
+  console.log(`Starting ${exe}`);
+
+  const { code, output } = await run(exe, dataDir);
+  console.log(output);
+
+  // Exit code 0 means the page started (its output may not reach us from a
+  // Windows GUI app).
+  expect(code).toBe(0);
+  // The bundled plugins were copied into the fresh data folder.
+  expect(fs.readdirSync(path.join(dataDir, "plugins"))).toContain(
+    "turtle.d.ts",
+  );
+  fs.rmSync(dataDir, { recursive: true, force: true });
 });

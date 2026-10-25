@@ -59,7 +59,7 @@ While response times may vary depending on severity and availability:
 
 This policy covers:
 
-- Electron security issues (e.g. IPC misuse, preload exposure)
+- Desktop app security issues (e.g. misuse of the commands the page can call in `src-tauri/`)
 - File system access vulnerabilities
 - Path file parsing (`.pp` files)
 - Plugin system security concerns
@@ -91,10 +91,10 @@ Users and contributors are encouraged to:
 
 If you are contributing code:
 
-- Avoid using `eval`, unsafe IPC patterns, or unrestricted Node APIs in the renderer
+- Avoid using `eval`, and keep file system and network access in the Rust commands, with the checks they already make on what the page sends
 - Validate and sanitize all file inputs
 - Assume `.pp` files may be malformed or hostile
-- Follow Electron security best practices
+- Follow [Tauri security best practices](https://v2.tauri.app/security/)
 
 If unsure, ask before merging potentially risky changes.
 

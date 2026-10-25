@@ -23,7 +23,7 @@ interface Saved {
   savedAt: number;
 }
 
-/** The desktop app's token storage (see electron/ipc/githubHandlers.js). */
+/** The desktop app's token storage (see src-tauri/src/github.rs). */
 interface DesktopTokens {
   set(
     token: string,

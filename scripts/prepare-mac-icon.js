@@ -3,7 +3,7 @@
 /**
  * Generate a macOS-friendly app icon from the source PNG.
  *
- * Problem: macOS/electron-builder can produce a white-ish border around icons
+ * Problem: macOS can show a white-ish border around app icons
  * when the source PNG contains partially-transparent pixels (alpha < 255).
  * This script flattens the icon onto its background color and ensures the
  * output PNG is fully opaque, which prevents macOS icon compositing artifacts.

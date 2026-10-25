@@ -6,3 +6,5 @@ coverage/
 playwright-report/
 test-results/
 plugins/turtle.d.ts
+src-tauri/target/
+src-tauri/gen/

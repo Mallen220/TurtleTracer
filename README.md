@@ -98,7 +98,7 @@
 
 Turtle Tracer is a path planner for FIRST Tech Challenge autonomous routines. You draw a path on the field, simulate how your robot would drive it, and export the result as code for your robot.
 
-It is one app with two ways to run it. Use it in your browser at [live.turtletracer.com](https://live.turtletracer.com/), or install the desktop version, which is built with Electron and Svelte. The desktop version also works offline, reads and writes project files on your disk, and shows Git status for your paths.
+It is one app with two ways to run it. Use it in your browser at [live.turtletracer.com](https://live.turtletracer.com/), or install the desktop version, which is built with Tauri and Svelte. The desktop version also works offline, reads and writes project files on your disk, and shows Git status for your paths.
 
 ## Features
 
@@ -232,7 +232,7 @@ On Windows, set `$env:TT_VERSION = '2.3.0'` before running the command, or use `
 - **"GitHub's rate limit was reached."** GitHub limits anonymous lookups per network. The installer falls back to lookups that aren't limited, and tells you what it couldn't check. You can also name a version with `--version`, or set `GITHUB_TOKEN`.
 - **It can't find a file for your system.** The message lists what the release does contain. Builds exist for 64-bit Intel/AMD and ARM on macOS and Linux (glibc distributions, so not Alpine) and for 64-bit Windows.
 - **Something failed.** The installer saves a log (`~/turtle-tracer-install.log` on macOS and Linux, `%TEMP%\turtle-tracer-install.log` on Windows). Attach it to an [issue](https://github.com/Mallen220/TurtleTracer/issues).
-- **The app won't start on Linux with a sandbox error.** Turtle Tracer turns Chromium's sandbox off by itself when your system can't support it (for example AppImages on Ubuntu 23.10 and newer). If you still see the error, run it with `--no-sandbox`.
+- **The app won't start on Linux.** The desktop app needs WebKitGTK 4.1 (`libwebkit2gtk-4.1-0` on Debian and Ubuntu, which the .deb installs for you). Ubuntu 22.04 and newer, Debian 12 and newer, and Fedora 39 and newer have it.
 
 ## Workflow and file management
 
@@ -278,12 +278,12 @@ A live code preview shows the generated code as you edit, and you can turn on au
 The desktop app and the browser version share one codebase, built with web technologies:
 
 <p>
-  <img src="https://img.shields.io/badge/Electron-191924?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
+  <img src="https://img.shields.io/badge/Tauri-24C8DB?style=for-the-badge&logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte">
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite">
   <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
-  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node">
+  <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
 </p>
 
 ## Troubleshooting
@@ -295,7 +295,7 @@ The desktop app and the browser version share one codebase, built with web techn
 
 ## Contributing
 
-Contributions are welcome. You need Node.js 18 or newer and Git. To start developing locally:
+Contributions are welcome. You need Node.js 18 or newer, Git, and Rust with the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS. To start developing locally:
 
 ```bash
 # Clone the repository
@@ -305,7 +305,7 @@ cd TurtleTracer
 # Install dependencies
 npm install
 
-# Build and launch the desktop app
+# Launch the desktop app (reloads as you edit)
 npm run dev
 
 # Or run the browser version
@@ -316,7 +316,7 @@ npm run preview
 npm test
 ```
 
-To package installers for your platform, run `npm run build` and then `npm run electron-builder`. See the [Contribution Guidelines](CONTRIBUTING.md) for more details.
+To package installers for your platform, run `npm run tauri:build` (they land in `src-tauri/target/release/bundle/`). See the [Contribution Guidelines](CONTRIBUTING.md) for more details.
 
 > AI assistance policy: AI tools are used to prototype and speed up development, but no code is merged without human review and testing.
 

@@ -47,7 +47,7 @@
   let isStore = $state(false);
   let releaseNotesHtml = $state("");
   let isLoadingNotes = $state(false);
-  // Current installed app version (populated from preload in Electron)
+  // Current installed app version (from the desktop app)
   let currentVersion: string | null = $state(null);
 
   onMount(async () => {

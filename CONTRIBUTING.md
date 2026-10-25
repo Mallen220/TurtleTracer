@@ -77,6 +77,7 @@ Keep in mind:
 
 - Node.js 18+
 - Git
+- Rust (stable, from [rustup.rs](https://rustup.rs)) and the [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/) for your OS (on Linux, WebKitGTK 4.1)
 
 ### Local Setup
 
@@ -90,15 +91,17 @@ npm run dev
 ### Building
 
 ```bash
-npm run dist
+npm run tauri:build
 ```
+
+The installers land in `src-tauri/target/release/bundle/`.
 
 ---
 
 ## Project Structure (High-Level)
 
 - `src/` – Svelte UI and core application logic
-- `electron/` – Electron main and preload processes
+- `src-tauri/` – the desktop app (Tauri, in Rust): file access, dialogs, menus, telemetry, GitHub requests and updates. The page reaches it through `src/utils/tauriBridge.ts`
 - `public/` – Static assets
 - `scripts/` – Build and utility scripts
 

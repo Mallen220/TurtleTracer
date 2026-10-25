@@ -56,7 +56,7 @@ module.exports = {
     {
       // Rules that need type information only work on files the TypeScript
       // program (tsconfig.eslint.json) knows about.
-      files: ["**/*.ts", "electron/**/*.js", "public/sw.js"],
+      files: ["**/*.ts", "public/sw.js"],
       parser: "@typescript-eslint/parser",
       parserOptions: {
         project: ["./tsconfig.eslint.json"],

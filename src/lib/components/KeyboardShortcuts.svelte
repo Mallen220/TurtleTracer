@@ -14,7 +14,8 @@
     playingStore,
   } from "../projectStore";
 
-  import { loadFile } from "../../utils/fileHandlers";
+  import { loadFile, openProjectFromDialog } from "../../utils/fileHandlers";
+  import { getElectronAPI } from "../../utils/platform";
   import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import { shouldBlockShortcut } from "./shortcuts/utils";
   import {
@@ -121,7 +122,14 @@
         showCommandPalette = false;
       },
       isCommandPaletteOpen: () => showCommandPalette,
-      openFileInput: () => fileInput?.click(),
+      openFileInput: () => {
+        // A file input only opens from the click itself, so decide now.
+        if (getElectronAPI({ allowVirtual: false })?.chooseProjectFile) {
+          void openProjectFromDialog();
+        } else {
+          fileInput?.click();
+        }
+      },
       fetchFiles: loadFileCommands,
       isPlaying: () => playing,
     }),

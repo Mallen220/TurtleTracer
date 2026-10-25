@@ -1,0 +1,94 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Turtle Tracer",
+  "mainBinaryName": "Turtle Tracer",
+  "version": "../package.json",
+  "identifier": "com.turtletracer.visualizer",
+  "build": {
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "npx vite --strictPort",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis", "deb", "appimage"],
+    "publisher": "Matthew Allen",
+    "copyright": "Copyright 2026 Matthew Allen",
+    "category": "DeveloperTool",
+    "shortDescription": "A better alternative to the Pedro Pathing Visualizer",
+    "licenseFile": "../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../plugins/*.ts": "plugins/"
+    },
+    "fileAssociations": [
+      {
+        "ext": ["turt"],
+        "name": "Turtle Tracer Project",
+        "description": "Turtle Tracer Project File",
+        "role": "Editor",
+        "rank": "Owner",
+        "mimeType": "application/x-turtle-tracer"
+      },
+      {
+        "ext": ["pp"],
+        "name": "Turtle Tracer Project (Legacy .pp)",
+        "description": "Legacy Turtle Tracer Project File",
+        "role": "Editor",
+        "rank": "Owner",
+        "mimeType": "application/x-turtle-tracer-legacy"
+      }
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "signingIdentity": "-",
+      "hardenedRuntime": false,
+      "dmg": {
+        "windowSize": {
+          "width": 540,
+          "height": 380
+        },
+        "appPosition": {
+          "x": 130,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 410,
+          "y": 190
+        }
+      }
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "perMachine",
+        "installerHooks": "windows/nsis-hooks.nsh",
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "linux": {
+      "deb": {
+        "section": "devel",
+        "desktopTemplate": "linux/turtle-tracer.desktop",
+        "files": {
+          "/usr/share/mime/packages/turtle-tracer.xml": "linux/turtle-tracer-mime.xml"
+        }
+      }
+    }
+  }
+}

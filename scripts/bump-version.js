@@ -43,6 +43,20 @@ async function bumpVersion() {
 
   console.log(`Updated version to ${newVersion}`);
 
+  // The desktop app's Rust package carries the version too (in its requests'
+  // User-Agent); keep it, and its lock file entry, the same.
+  for (const file of ["../src-tauri/Cargo.toml", "../src-tauri/Cargo.lock"]) {
+    const cargoPath = path.join(__dirname, file);
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    const text = await fs.readFile(cargoPath, "utf8");
+    const updated = text.replace(
+      /(name = "turtle-tracer"\r?\nversion = ")[^"]*(")/,
+      `$1${newVersion}$2`,
+    );
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    await fs.writeFile(cargoPath, updated);
+  }
+
   // Handle newest.md
   const newestPath = path.join(
     __dirname,

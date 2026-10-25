@@ -41,7 +41,7 @@ function isNewestTemplate(content: string): boolean {
   return content.trim() === DEFAULT_TEMPLATE.trim();
 }
 
-// Load newest.md separately if it exists — only in dev mode (do not show in packaged Electron)
+// Load newest.md separately if it exists — only in dev mode (do not show in the packaged app)
 let newestFeature: FeatureHighlight | null = null;
 if (import.meta.env.DEV) {
   const newestModule = Object.entries(modules).find(([path]) =>

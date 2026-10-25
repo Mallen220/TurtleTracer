@@ -72,14 +72,14 @@ describe("platform", () => {
     expect(isBrowser).toBe(true);
   });
 
-  it("detects electron correctly", async () => {
-    Object.defineProperty(globalThis.navigator, "userAgent", {
-      value: "Electron/12.0.0",
-      writable: true,
-      configurable: true,
-    });
-    const { isBrowser } = await import("./platform");
-    expect(isBrowser).toBe(false);
+  it("detects the desktop app correctly", async () => {
+    (globalThis as { isTauri?: boolean }).isTauri = true;
+    try {
+      const { isBrowser } = await import("./platform");
+      expect(isBrowser).toBe(false);
+    } finally {
+      delete (globalThis as { isTauri?: boolean }).isTauri;
+    }
   });
 
   it("returns process.platform if available", async () => {

@@ -290,7 +290,7 @@ async function writeProjectFile(
 ): Promise<string | null> {
   const electronAPI = getElectronAPI()!;
 
-  // The in-browser file system provides saveFile; Electron provides writeFile.
+  // The in-browser file system provides saveFile; the desktop app provides writeFile.
   if (electronAPI.saveFile) {
     const result = await electronAPI.saveFile(json, path);
     if (result.success) return result.filepath;
@@ -575,6 +575,72 @@ export async function handleExternalFileOpen(filePath: string) {
   }
 }
 
+/** Copies a chosen project next to the open one, then opens the copy. */
+async function openCopyNextTo(
+  currentPath: string,
+  name: string,
+  content: string,
+) {
+  const electronAPI = getElectronAPI();
+  if (!electronAPI) return;
+  let data;
+  try {
+    data = JSON.parse(content);
+  } catch (parseError) {
+    alert("Error parsing file: " + (parseError as Error).message);
+    return;
+  }
+
+  const destPath = joinPath(directoryOf(currentPath), name);
+  if (
+    (await electronAPI.fileExists?.(destPath)) &&
+    !confirm(
+      `File "${name}" already exists in the current directory. Overwrite?`,
+    )
+  ) {
+    await loadProjectData(data);
+    return;
+  }
+  await electronAPI.writeFile(destPath, content);
+  await openProject(data, destPath);
+}
+
+/**
+ * "Open..." in the desktop app, through the native file dialog (which, unlike
+ * a file input, says where the file is). Behaves like the file input.
+ */
+export async function openProjectFromDialog() {
+  const electronAPI = getElectronAPI({ allowVirtual: false });
+  if (!electronAPI?.chooseProjectFile) return;
+  const path = await electronAPI.chooseProjectFile();
+  if (!path) return;
+  await autosaveBeforeLeaving();
+
+  let content;
+  try {
+    content = await electronAPI.readFile(path);
+  } catch (err) {
+    alert("Failed to load file: " + (err as Error).message);
+    return;
+  }
+  const currentPath = get(currentFilePath);
+  if (currentPath) {
+    await openCopyNextTo(currentPath, fileNameOf(path) || path, content);
+    return;
+  }
+  let data;
+  try {
+    data = JSON.parse(content);
+  } catch (parseError) {
+    alert("Error parsing file: " + (parseError as Error).message);
+    return;
+  }
+  addToRecentFiles(path);
+  currentFilePath.set(path);
+  await loadProjectData(data, path);
+  isUnsaved.set(false);
+}
+
 /** Handles the "Open" file picker. */
 export async function loadFile(evt: Event) {
   await autosaveBeforeLeaving();
@@ -593,31 +659,9 @@ export async function loadFile(evt: Event) {
   const currentPath = get(currentFilePath);
 
   if (electronAPI && currentPath) {
-    // Copy the chosen file next to the open project, then open the copy.
     const reader = new FileReader();
-    reader.onload = async (e) => {
-      const content = e.target?.result as string;
-      let data;
-      try {
-        data = JSON.parse(content);
-      } catch (parseError) {
-        alert("Error parsing file: " + (parseError as Error).message);
-        return;
-      }
-
-      const destPath = joinPath(directoryOf(currentPath), file.name);
-      if (
-        (await electronAPI.fileExists?.(destPath)) &&
-        !confirm(
-          `File "${file.name}" already exists in the current directory. Overwrite?`,
-        )
-      ) {
-        await loadProjectData(data);
-        return;
-      }
-      await electronAPI.writeFile(destPath, content);
-      await openProject(data, destPath);
-    };
+    reader.onload = (e) =>
+      openCopyNextTo(currentPath, file.name, e.target?.result as string);
     reader.readAsText(file);
   } else {
     loadTrajectoryFromFile(evt, async (data) => {

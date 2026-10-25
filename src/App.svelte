@@ -96,6 +96,7 @@
     saveFileAs,
     handleExternalFileOpen,
     autoExportAfterChange,
+    openProjectFromDialog,
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
   import {
@@ -526,7 +527,7 @@
         saveFileAs();
         break;
       case "open-file":
-        document.getElementById("file-upload")?.click();
+        void openProjectFromDialog();
         break;
       case "export-gif":
         showExportGif.set(true);

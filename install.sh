@@ -5,6 +5,9 @@ set -euo pipefail
 REPO="Mallen220/TurtleTracer"
 APP_NAME="Turtle Tracer"
 PKG_NAME="turtle-tracer"
+# Releases before this one were Electron apps, which on Linux need Chromium's
+# sandbox set up (or --no-sandbox); later ones are Tauri apps, which don't.
+FIRST_TAURI_VERSION="2.7.0"
 
 # These can be overridden so the installer can be tested against a local fake
 # release server (see tests/install). Normal users never set them.
@@ -291,6 +294,11 @@ version_lt() {
     fi
     first=$(printf '%s\n%s\n' "$a" "$b" | sort -t. -k1,1n -k2,2n -k3,3n | sed -n '1p')
     [ "$first" = "$a" ]
+}
+
+# True when the version being installed is an Electron build (see FIRST_TAURI_VERSION).
+is_electron_build() {
+    version_lt "$VERSION" "$FIRST_TAURI_VERSION"
 }
 
 format_bytes() {
@@ -1174,8 +1182,9 @@ choose_linux_format() {
         fi
         return 0
     fi
-    # Debian-family systems get the system package (it also sets up the Chromium sandbox
-    # helper correctly). Everything else gets the AppImage, which runs anywhere.
+    # Debian-family systems get the system package (apt pulls in the libraries it needs,
+    # and for Electron builds it also sets up the Chromium sandbox helper). Everything
+    # else gets the AppImage, which runs anywhere.
     if has apt-get && has dpkg && can_get_root; then
         FORMAT="deb"
     else
@@ -1184,7 +1193,7 @@ choose_linux_format() {
 }
 
 # Can Chromium's unprivileged user-namespace sandbox work for a normal user here?
-# Electron aborts at startup, before any app code runs, when it has neither this nor a
+# Only Electron builds (before FIRST_TAURI_VERSION) use it. Electron aborts at startup, before any app code runs, when it has neither this nor a
 # setuid helper (the "SUID sandbox helper binary was found, but is not configured correctly"
 # crash), so the only fix is to launch it with --no-sandbox. We add that flag to the
 # launcher we write, and only when this check says the sandbox cannot work.
@@ -1247,9 +1256,9 @@ plan_linux() {
         INSTALLED_VERSION=$(dpkg-query -W -f='${Version}' "$PKG_NAME" 2>/dev/null || true)
     fi
     NO_SANDBOX_FLAG=0
-    # An AppImage can't use the setuid helper (its mount is nosuid), so it needs user
-    # namespaces. The .deb installs the helper setuid, which is checked after installing.
-    if [ "$FORMAT" = "appimage" ] && ! userns_ok; then
+    # An Electron AppImage can't use the setuid helper (its mount is nosuid), so it needs
+    # user namespaces. The .deb installs the helper setuid, which is checked after installing.
+    if [ "$FORMAT" = "appimage" ] && is_electron_build && ! userns_ok; then
         NO_SANDBOX_FLAG=1
     fi
     if [ "$FORMAT" = "deb" ]; then
@@ -1257,7 +1266,11 @@ plan_linux() {
             NEED_ADMIN=1
             ADMIN_REASON="install the package with apt"
         fi
-        INSTALL_TARGET="system package (apt) - files go to /opt/$APP_NAME, with a menu entry"
+        if is_electron_build; then
+            INSTALL_TARGET="system package (apt) - files go to /opt/$APP_NAME, with a menu entry"
+        else
+            INSTALL_TARGET="system package (apt) - /usr/bin/$PKG_NAME, with a menu entry"
+        fi
     else
         FUSE_OK=1
         if ! has_fuse2; then FUSE_OK=0; fi
@@ -1377,7 +1390,7 @@ install_deb() {
     fi
     ok "Installed the $PKG_NAME package"
 
-    # A user-level menu entry from an old AppImage install would hide the system one (same file name).
+    # A user-level menu entry from an old AppImage install would duplicate or hide the system one.
     local user_entry
     user_entry="$(xdg_data_home)/applications/$PKG_NAME.desktop"
     if [ -f "$user_entry" ] && grep -q 'AppImage' "$user_entry" 2>/dev/null; then
@@ -1386,9 +1399,12 @@ install_deb() {
         info "Removed your older AppImage install; the system package replaces it."
     fi
 
-    # The package's post-install step makes chrome-sandbox setuid-root, which is all the sandbox
-    # needs, even where user namespaces are blocked. Only if that didn't happen (or /opt is
-    # mounted nosuid) and namespaces are blocked would the app crash, so patch the launcher then.
+    LAUNCH_HINT="$PKG_NAME"
+    # Electron builds only: the package's post-install step makes chrome-sandbox setuid-root,
+    # which is all the sandbox needs, even where user namespaces are blocked. Only if that
+    # didn't happen (or /opt is mounted nosuid) and namespaces are blocked would the app
+    # crash, so patch the launcher then.
+    is_electron_build || return 0
     local helper="/opt/$APP_NAME/chrome-sandbox" sys_desktop="/usr/share/applications/$PKG_NAME.desktop"
     if sandbox_helper_works "$helper"; then
         ok "Chromium's sandbox helper is set up correctly (setuid root); no sandbox flag needed"
@@ -1401,7 +1417,6 @@ install_deb() {
         warn "The sandbox helper isn't setuid on this system and user namespaces are blocked, so Turtle Tracer would"
         warn "crash on start. I added --no-sandbox to its menu entry."
     fi
-    LAUNCH_HINT="$PKG_NAME"
 }
 
 uninstall_linux() {
