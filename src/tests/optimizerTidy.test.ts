@@ -7,7 +7,7 @@ import { registerCoreUI } from "../lib/coreRegistrations";
 import { normalizeLines } from "../lib/projectStore";
 import { getCurvePoint } from "../utils/math";
 import blueton from "./fixtures/Blueton.turt.json";
-import type { Line, Point, SequenceItem, Settings } from "../types";
+import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 
 beforeAll(() => registerCoreUI());
 afterEach(() => vi.restoreAllMocks());
@@ -30,6 +30,7 @@ const optimize = async (
   sequence: SequenceItem[],
   settings: Settings,
   seed: number,
+  shapes: Shape[] = [],
 ) => {
   vi.spyOn(Math, "random").mockImplementation(seeded(seed));
   const result = await new PathOptimizer(
@@ -37,7 +38,7 @@ const optimize = async (
     lines,
     settings,
     sequence,
-    [],
+    shapes,
   ).optimize(() => {});
   vi.restoreAllMocks();
   return result;
@@ -302,6 +303,25 @@ describe("the optimizer only changes what pays for itself", () => {
     return sum / 10;
   };
   const byName = (name: string) => lines.findIndex((l) => l.name === name);
+  /** How much (radians) path `i` of `ls` turns along its length. */
+  const turning = (ls: Line[], i: number) => {
+    const from = i === 0 ? start : lines[i - 1].endPoint;
+    const curve = [from, ...ls[i].controlPoints, ls[i].endPoint];
+    let total = 0;
+    let prev: number | null = null;
+    for (let j = 1; j <= 40; j++) {
+      const a = getCurvePoint((j - 1) / 40, curve);
+      const b = getCurvePoint(j / 40, curve);
+      const angle = Math.atan2(b.y - a.y, b.x - a.x);
+      if (prev !== null) {
+        total += Math.abs(
+          Math.atan2(Math.sin(angle - prev), Math.cos(angle - prev)),
+        );
+      }
+      prev = angle;
+    }
+    return total;
+  };
 
   it.each([1, 2, 3])(
     "fixes the bend that costs seconds and leaves the rest as it was (seed %i)",
@@ -325,7 +345,7 @@ describe("the optimizer only changes what pays for itself", () => {
       expect(moved(best, flower)).toBeLessThan(10);
       expect(before - bestTime).toBeGreaterThan(1.5);
       // The paths whose change saved next to nothing stay as drawn.
-      for (const name of ["IntakeCorner", "TravelThroughHive", "Park"]) {
+      for (const name of ["IntakeCorner", "Park"]) {
         expect(moved(best, byName(name)), name).toBeLessThan(1);
       }
     },

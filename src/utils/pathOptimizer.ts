@@ -102,12 +102,23 @@ const IMPROVEMENT_EPSILON = 0.15;
  * What moving a path from where it was costs, in seconds per inch it is moved
  * (measured as how far apart the old and new curves are, on average). Without
  * it, a change that saves a hundredth of a second costs nothing to make, and
- * the paths are redrawn for no reason. A change that really fixes something,
- * such as a bend the robot can't follow, saves seconds for a few inches.
+ * the paths are redrawn for no reason. It is kept small: straightening a bend
+ * that isn't needed moves a path several inches and saves a few tenths of a
+ * second, and that is worth doing. What makes a path crazy is how it turns
+ * (see EXTRA_TURN_COST_PER_RADIAN), not how far it moved.
  */
-const DEVIATION_COST_PER_INCH = 0.1;
+const DEVIATION_COST_PER_INCH = 0.02;
 /** How many points along a path its distance from the original is measured at. */
 const DEVIATION_SAMPLES = 10;
+/**
+ * What a path costs, in seconds per radian, for turning more than it did as
+ * drawn (its direction's total change, start to end). Loops and S-bends that
+ * the time model happens to like pay for themselves only if they save a lot;
+ * a path that turns less than it did, or the same, costs nothing.
+ */
+const EXTRA_TURN_COST_PER_RADIAN = 0.5;
+/** How many pieces a path is cut into to measure how much it turns. */
+const TURN_SAMPLES = 40;
 /**
  * When finishing, a path is put back as it was if that costs no more than this
  * many seconds (net of what moving it costs): its change isn't worth it.
@@ -205,6 +216,8 @@ export class PathOptimizer {
   private baselineBoundary = 0;
   /** Points along each original path, to measure how far a candidate has moved it. */
   private readonly originalSamples: BasePoint[][];
+  /** How much (radians) each original path turns. */
+  private readonly originalTurning: number[];
 
   constructor(
     startPoint: Point,
@@ -250,6 +263,9 @@ export class PathOptimizer {
 
     this.originalSamples = this.originalLines.map((line, i) =>
       this.sampleCurve(i, line),
+    );
+    this.originalTurning = this.originalLines.map((line, i) =>
+      this.turning(i, line),
     );
 
     this.generations = settings.optimizationIterations ?? 100;
@@ -496,17 +512,54 @@ export class PathOptimizer {
         controlPoints * CONTROL_POINT_COST +
         result.totalDistance * LENGTH_COST_PER_INCH +
         boundary * BOUNDARY_SAMPLE_COST +
-        this.deviation(lines) * DEVIATION_COST_PER_INCH,
+        this.deviation(lines) * DEVIATION_COST_PER_INCH +
+        this.extraTurning(lines) * EXTRA_TURN_COST_PER_RADIAN,
     };
   }
 
-  /** Points along line `i` of a set of lines, which start where the path before it ends. */
-  private sampleCurve(i: number, line: Line): BasePoint[] {
+  /** The control polygon of line `i` of a set of lines, which starts where the path before it ends. */
+  private curveOf(i: number, line: Line): BasePoint[] {
     const from = i === 0 ? this.startPoint : this.originalLines[i - 1].endPoint;
-    const curve = [from, ...line.controlPoints, line.endPoint];
+    return [from, ...line.controlPoints, line.endPoint];
+  }
+
+  /** Points along line `i` of a set of lines. */
+  private sampleCurve(i: number, line: Line): BasePoint[] {
+    const curve = this.curveOf(i, line);
     return Array.from({ length: DEVIATION_SAMPLES }, (_, j) =>
       getCurvePoint((j + 1) / DEVIATION_SAMPLES, curve),
     );
+  }
+
+  /** How much (radians) line `i`'s direction changes along it, both ways counted. */
+  private turning(i: number, line: Line): number {
+    const curve = this.curveOf(i, line);
+    let total = 0;
+    let prev = getCurvePoint(0, curve);
+    let prevAngle: number | null = null;
+    for (let j = 1; j <= TURN_SAMPLES; j++) {
+      const p = getCurvePoint(j / TURN_SAMPLES, curve);
+      if (Math.hypot(p.x - prev.x, p.y - prev.y) > 1e-6) {
+        const angle = Math.atan2(p.y - prev.y, p.x - prev.x);
+        if (prevAngle !== null) {
+          const d = angle - prevAngle;
+          total += Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
+        }
+        prevAngle = angle;
+      }
+      prev = p;
+    }
+    return total;
+  }
+
+  /** How much more (radians, summed over the paths) `lines` turn than the paths as drawn. */
+  private extraTurning(lines: Line[]): number {
+    let total = 0;
+    lines.forEach((line, i) => {
+      if (line.locked) return;
+      total += Math.max(0, this.turning(i, line) - this.originalTurning[i]);
+    });
+    return total;
   }
 
   /** How far (inches, summed over the paths) `lines` have moved the paths from where they started. */
