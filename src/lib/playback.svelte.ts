@@ -40,8 +40,8 @@ const IDENTITY_SCALE = d3.scaleLinear();
 
 /** The robot's heading before the path starts moving. */
 function startHeading(startPoint: Point) {
-  if (startPoint.heading === "constant") return -startPoint.degrees;
-  if (startPoint.heading === "linear") return -startPoint.startDeg;
+  if (startPoint.heading === "constant") return -(startPoint.degrees ?? 0);
+  if (startPoint.heading === "linear") return -(startPoint.startDeg ?? 0);
   return 0;
 }
 

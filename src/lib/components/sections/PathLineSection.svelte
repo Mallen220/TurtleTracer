@@ -74,6 +74,7 @@
     startPointStore,
     timePredictionStore,
     sequenceStore,
+    resolvedLinesStore,
   } from "../../projectStore";
   import CardControls from "./CardControls.svelte";
   import InsertAfterBar from "./InsertAfterBar.svelte";
@@ -466,8 +467,8 @@
       if (gh !== undefined && gh !== "none") {
         pseudoGlobalEndPoint.heading = gh;
         pseudoGlobalEndPoint.reverse = gr ?? false;
-        pseudoGlobalEndPoint.degrees = gd ?? 0;
-        pseudoGlobalEndPoint.startDeg = gsd ?? 0;
+        pseudoGlobalEndPoint.degrees = gd;
+        pseudoGlobalEndPoint.startDeg = gsd;
         pseudoGlobalEndPoint.endDeg = ged ?? 0;
         pseudoGlobalEndPoint.targetX = gtx ?? 72;
         pseudoGlobalEndPoint.targetY = gty ?? 72;
@@ -482,6 +483,19 @@
         pseudoGlobalEndPoint.segments = nextSegs;
       }
     });
+  });
+
+  let resolvedGlobal = $derived.by((): HeadingFields | undefined => {
+    const rootId = lines[chainRootIndex === -1 ? idx : chainRootIndex]?.id;
+    const root = $resolvedLinesStore.find((l) => l.id === rootId);
+    if (!root?.globalHeading || root.globalHeading === "none") return undefined;
+    return {
+      heading: root.globalHeading,
+      degrees: root.globalDegrees,
+      startDeg: root.globalStartDeg,
+      endDeg: root.globalEndDeg,
+      segments: root.globalSegments,
+    };
   });
 
   function handleGlobalChange() {
@@ -506,10 +520,11 @@
         const h = pseudoGlobalEndPoint.heading;
         if (h === "constant" || h === "linear") {
           s.heading = h;
-          if (h === "constant") s.degrees = pseudoGlobalEndPoint.degrees;
+          if (h === "constant")
+            s.degrees = pseudoGlobalEndPoint.degrees ?? s.degrees;
           else {
-            s.startDeg = pseudoGlobalEndPoint.startDeg;
-            s.endDeg = pseudoGlobalEndPoint.endDeg;
+            s.startDeg = pseudoGlobalEndPoint.startDeg ?? s.startDeg;
+            s.endDeg = pseudoGlobalEndPoint.endDeg ?? s.endDeg;
           }
         } else if (h === "tangential" || h === "facingPoint") {
           s.heading = h;
@@ -781,6 +796,8 @@
             <HeadingControls
               bind:this={headingControls}
               endPoint={line.endPoint}
+              resolved={$resolvedLinesStore.find((l) => l.id === line.id)
+                ?.endPoint}
               locked={line.locked}
               shortfalls={piecewiseShortfalls}
               fixesFor={segmentFixes}
@@ -869,9 +886,11 @@
                       if (h === "constant" || h === "linear") {
                         s.heading = h;
                         if (h === "constant")
-                          s.degrees = targetLine.globalDegrees || 0;
+                          s.degrees =
+                            targetLine.globalDegrees ?? s.degrees ?? 0;
                         else {
-                          s.startDeg = targetLine.globalStartDeg || 0;
+                          s.startDeg =
+                            targetLine.globalStartDeg ?? s.startDeg ?? 0;
                           s.endDeg = targetLine.globalEndDeg || 0;
                         }
                       } else if (h === "tangential" || h === "facingPoint") {
@@ -901,6 +920,7 @@
               <div class="pl-2 mt-2 ml-1 border-l-2 border-emerald-500/30">
                 <HeadingControls
                   endPoint={pseudoGlobalEndPoint}
+                  resolved={resolvedGlobal}
                   locked={line.locked}
                   onchange={handleGlobalChange}
                   oncommit={() => {

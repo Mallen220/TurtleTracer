@@ -278,7 +278,7 @@ function getHeadingAtLineEnd(
 }
 
 function getLinearSegmentHeading(seg: PiecewiseSegment, t: number): number {
-  const startDeg = seg.startDeg ?? 0;
+  const startDeg = seg.startDeg ?? Number.NaN;
   const endDeg = seg.endDeg ?? 0;
   const localT =
     seg.tEnd > seg.tStart ? (t - seg.tStart) / (seg.tEnd - seg.tStart) : 0;
@@ -334,7 +334,10 @@ export function getLineStartHeading(
 
   const { isGlobal, source } = getEffectiveHeadingSource(line, globalOverride);
 
-  if (source.heading === "linear") return source.startDeg as number;
+  // Prev is resolved by materializePrevHeadings; unresolved it has no heading.
+  if (source.heading === "linear") return source.startDeg ?? Number.NaN;
+  if (source.heading === "constant" && source.degrees == null)
+    return Number.NaN;
 
   if (source.heading === "piecewise") {
     const segments = source.segments ?? [];
@@ -358,11 +361,11 @@ export function getLineStartHeading(
  * own, so it's 0, or 180 reversed.
  */
 export function restingHeading(point: Point): number {
-  if (point.heading === "linear") return point.startDeg;
+  if (point.heading === "linear") return point.startDeg ?? 0;
   if (point.heading === "piecewise") {
     const first = point.segments?.[0];
     if (!first) return 0;
-    if (first.heading === "linear") return first.startDeg;
+    if (first.heading === "linear") return first.startDeg ?? 0;
     return getPointHeading(first, point, point);
   }
   return getPointHeading(point, point, point);

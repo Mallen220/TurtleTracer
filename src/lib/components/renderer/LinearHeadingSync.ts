@@ -16,6 +16,8 @@ export function getUpdatedLinearStartHeading(
   const firstLine = first ? lines.find((l) => l.id === first.lineId) : lines[0];
   if (startPoint?.heading === "linear" && firstLine) {
     const derived = getLineStartHeading(firstLine, startPoint, firstLine);
+    // A Prev start has no heading to sync from.
+    if (!Number.isFinite(derived)) return null;
 
     if (
       typeof startPoint.startDeg !== "number" ||

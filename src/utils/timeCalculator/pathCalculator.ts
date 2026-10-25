@@ -15,7 +15,6 @@ import {
   getCurvePoint,
   getEffectiveHeadingSource,
   getLineStartHeading,
-  restingHeading,
 } from "../math";
 import {
   calculateGlobalChainMeta,
@@ -37,6 +36,8 @@ import {
 } from "./chainHandover";
 import { RECOVERY_MIN_TURN_DEGREES } from "./chainRecovery";
 import { analyzePathSegment, unwrapAngle } from "./segmentAnalyzer";
+import { startingHeading, stepsToRun } from "./startingHeading";
+import { materializePrevHeadings } from "../prevHeading";
 import type { PathAnalysis } from "./types";
 import { speedAtAngle, stepSpeedScales } from "./directionalSpeed";
 import { buildHeadingProfile, piecewiseShortfalls } from "./headingProfile";
@@ -46,63 +47,6 @@ import { maxSpeedOf } from "./speedCap";
 import { calculateMotionProfileDetailed } from "./motionProfile";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { MAX_MACRO_DEPTH } from "../../config";
-
-/** The steps that get run: the sequence, or every line in order without one. */
-function stepsToRun(lines: Line[], sequence?: SequenceItem[]): SequenceItem[] {
-  return sequence?.length
-    ? sequence
-    : lines.map((l): SequenceItem => ({ kind: "path", lineId: l.id! }));
-}
-
-/**
- * The first path the robot drives, looking inside macros, and the list of
- * steps it's in (which decides its chain).
- */
-function firstDrivenPath(
-  steps: SequenceItem[],
-  lineById: Map<string, Line>,
-  depth = 0,
-): { line: Line; steps: SequenceItem[] } | null {
-  if (depth > MAX_MACRO_DEPTH) return null;
-  for (const item of steps) {
-    if (item.kind === "path") {
-      const line = lineById.get(item.lineId);
-      if (line?.endPoint) return { line, steps };
-    } else if (item.kind === "macro" && item.sequence?.length) {
-      const found = firstDrivenPath(item.sequence, lineById, depth + 1);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-/**
- * The heading the robot has before it does anything. Once there are paths,
- * it starts facing the way the first one it drives begins; anything before
- * that path (waits, turns) happens from there. With no path, the start
- * point's own heading applies.
- */
-export function startingHeading(
-  startPoint: Point,
-  lines: Line[],
-  sequence?: SequenceItem[],
-): number {
-  const lineById = new Map(lines.map((l) => [l.id!, l]));
-  const first = firstDrivenPath(stepsToRun(lines, sequence), lineById);
-  if (!first) return restingHeading(startPoint);
-
-  const chain = calculateGlobalChainMeta(first.steps, lines, startPoint).get(
-    first.line.id!,
-  );
-  const heading = getLineStartHeading(
-    first.line,
-    startPoint,
-    chain?.rootLine,
-    chain?.chainTotalLength,
-    chain?.distanceBefore,
-  );
-  return Number.isFinite(heading) ? heading : 0;
-}
 
 /**
  * Whether the robot's heading follows the direction the path goes, so that a
@@ -871,9 +815,11 @@ export function calculatePathTime(
 ): TimePrediction {
   return new TimelineBuilder(
     startPoint,
-    lines,
+    materializePrevHeadings(startPoint, lines, sequence),
     settings,
     sequence,
     options,
   ).build();
 }
+
+export { startingHeading } from "./startingHeading";

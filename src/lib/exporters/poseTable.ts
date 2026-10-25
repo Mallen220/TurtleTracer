@@ -2,6 +2,7 @@
 import type { Line, Point, SequenceItem } from "../../types";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { identifierFor } from "./javaFormat";
+import { materializePrevHeadings } from "../../utils/prevHeading";
 
 /** A named point the generated code uses. Control points have no heading. */
 export interface PoseTableEntry {
@@ -44,14 +45,16 @@ export function buildPoseTable(
     },
   ];
 
+  const driven = materializePrevHeadings(startPoint, lines, sequence);
   const seen = new Set(["startPoint"]);
   lines.forEach((line, lineIdx) => {
     const end = line.endPoint;
     if (!end) return;
     const name = poseNameOf(lines, lineIdx);
+    const heading = driven[lineIdx].endPoint;
     let degrees = 0;
-    if (end.heading === "constant") degrees = end.degrees ?? 0;
-    else if (end.heading === "linear") degrees = end.endDeg ?? 0;
+    if (heading.heading === "constant") degrees = heading.degrees ?? 0;
+    else if (heading.heading === "linear") degrees = heading.endDeg ?? 0;
 
     if (!seen.has(name)) {
       seen.add(name);

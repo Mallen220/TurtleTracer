@@ -17,6 +17,7 @@ import {
   getAngularDifference,
 } from "../utils/math";
 import { startingHeading } from "../utils/timeCalculator/pathCalculator";
+import { isPrev, resolveLinePrev } from "../utils/prevHeading";
 import { makeId } from "../utils/nameGenerator";
 import { pathInMessage } from "../utils/messagePaths";
 import { MAX_MACRO_DEPTH } from "../config";
@@ -86,9 +87,9 @@ function transformHeadingSettings(
   pivot: XY,
 ) {
   if (h.heading === "constant") {
-    h.degrees = transformHeading(h.degrees ?? 0, t);
+    if (!isPrev(h.degrees)) h.degrees = transformHeading(h.degrees!, t);
   } else if (h.heading === "linear") {
-    h.startDeg = transformHeading(h.startDeg ?? 0, t);
+    if (!isPrev(h.startDeg)) h.startDeg = transformHeading(h.startDeg!, t);
     h.endDeg = transformHeading(h.endDeg ?? 0, t);
   } else if (h.heading === "facingPoint") {
     const target = { x: h.targetX ?? 0, y: h.targetY ?? 0 };
@@ -173,7 +174,7 @@ function transformMacroData(
 /** The heading after driving `line` from `start`, kept near `heading`. */
 function headingAfter(line: Line, start: Point, heading: number): number {
   const end = line.endPoint;
-  if (end.heading === "constant") return end.degrees;
+  if (end.heading === "constant") return end.degrees ?? heading;
   if (end.heading === "linear") return end.endDeg;
   return unwrapAngle(getLineEndHeading(line, start), heading);
 }
@@ -281,8 +282,10 @@ export function expandMacro(
 
   for (const item of steps) {
     if (item.kind === "path") {
-      const line = linesById.get(item.lineId);
-      if (!line) continue;
+      const stored = linesById.get(item.lineId);
+      if (!stored) continue;
+      // Prev starts where the robot already is, so no turn.
+      const line = resolveLinePrev(stored, heading, point);
       // Turn in place first if the path needs to start facing elsewhere.
       const startHeading = unwrapAngle(
         getLineStartHeading(line, point),
@@ -400,8 +403,9 @@ export function regenerateProjectMacros(
   for (const item of sequence) {
     if (item.kind === "path") {
       newSequence.push(item);
-      const line = linesById.get(item.lineId);
-      if (!line) continue;
+      const stored = linesById.get(item.lineId);
+      if (!stored) continue;
+      const line = resolveLinePrev(stored, heading, point);
       heading = unwrapAngle(getLineStartHeading(line, point), heading);
       heading = headingAfter(line, point, heading);
       point = line.endPoint;
@@ -454,7 +458,12 @@ export function regenerateProjectMacros(
       );
 
       const last = kept.at(-1)!;
-      heading = headingAfter(last, kept.at(-2)?.endPoint ?? point, heading);
+      const before = kept.at(-2)?.endPoint ?? point;
+      heading = headingAfter(
+        resolveLinePrev(last, heading, before),
+        before,
+        heading,
+      );
       point = last.endPoint;
     }
   }

@@ -8,6 +8,7 @@ import type {
 } from "../../types";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
+import { materializePrevHeadings } from "../../utils/prevHeading";
 import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
@@ -22,6 +23,8 @@ import {
   poseCode,
   angleCode,
   headingMethodCode,
+  headingToWrite,
+  robotHeadingHelper,
   chainGlobalHeading,
   groupChains,
   uniqueNames,
@@ -49,9 +52,9 @@ function literalArgs(opts: FormatOptions) {
   return (h: HeadingConfig): string => {
     switch (h.heading) {
       case "constant":
-        return angleCode(h.degrees || 0, opts);
+        return h.fromRobot ? "start" : angleCode(h.degrees || 0, opts);
       case "linear":
-        return `${angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`;
+        return `${h.fromRobot ? "start" : angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`;
       case "facingPoint":
         return poseCode({ x: h.targetX || 0, y: h.targetY || 0 }, opts);
       default:
@@ -69,8 +72,10 @@ function pathConstructionCode(
   lines: Line[],
   names: string[],
   opts: FormatOptions,
+  sequence?: SequenceItem[],
 ): string {
   const speeds = speedCodes(lines);
+  const driven = materializePrevHeadings(startPoint, lines, sequence);
   const segments = lines.map((line, idx) => {
     const start = poseCode(
       idx === 0 ? startPoint : lines[idx - 1].endPoint,
@@ -82,17 +87,23 @@ function pathConstructionCode(
         ? `line(\n          ${start},\n          ${end}\n        )`
         : `curve(\n          ${start},\n          ${line.controlPoints.map((cp) => poseCode(cp, opts)).join(",\n")},\n          ${end}\n        )`;
 
-    const global = chainGlobalHeading(lines, idx);
+    const global = chainGlobalHeading(driven, idx);
+    const blankGlobal = chainGlobalHeading(lines, idx);
+    const own = headingToWrite(
+      line.endPoint,
+      driven[idx].endPoint,
+      !line.isChain,
+    );
     return {
       line,
       name: names[idx],
       call,
       heading: global
         ? ""
-        : headingMethodCode(line.endPoint, literalArgs(opts), opts.language),
+        : headingMethodCode(own, literalArgs(opts), opts.language),
       chainHeading:
         global && !line.isChain
-          ? `\n        ${headingMethodCode(global, literalArgs(opts), opts.language)}`
+          ? `\n        ${headingMethodCode(headingToWrite(blankGlobal!, global, true), literalArgs(opts), opts.language)}`
           : "",
       speed: speeds.own[idx],
       chainSpeed: speeds.chain[idx],
@@ -330,6 +341,7 @@ interface OpModeParts {
   /** Line variable names, with "" for chained lines, which have none. */
   pathFields: string[];
   pathConstruction: string;
+  robotHeading: boolean;
   stateCases: string;
   startPose: string;
   hasEventMarkers: boolean;
@@ -341,7 +353,7 @@ interface OpModeParts {
 /** The OpMode in Kotlin: the Java one's shape, with a companion object for its statics. */
 function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
   const pathsClass = `
-  class Paths {
+  class Paths${o.robotHeading ? "(follower: Follower)" : ""} {
     ${o.pathFields
       .filter(Boolean)
       .map((name) => `val ${name}: Path`)
@@ -353,6 +365,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
 
     companion object {
       private val p = PoseFactory.degrees()
+      ${o.robotHeading ? robotHeadingHelper("kotlin") : ""}
       ${
         o.ftc
           ? `
@@ -395,7 +408,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
         follower.setPose(${o.startPose})
 
         pathTimer = ElapsedTime()
-        paths = Paths() // Build paths
+        paths = Paths(${o.robotHeading ? "follower" : ""}) // Build paths
         ${o.hasEventMarkers ? "\n        tracker = ProgressTracker(follower, telemetry)" : ""}
       }
 
@@ -455,6 +468,15 @@ export async function generateJavaCode(
   ).replaceAll(/["\\]/g, "");
   const opts: FormatOptions = { coordinateSystem, codeUnits, language };
 
+  const pathConstruction = pathConstructionCode(
+    startPoint,
+    lines,
+    pathChainNames,
+    opts,
+    sequence,
+  );
+  const robotHeading = pathConstruction.includes("fromRobotHeading(");
+
   let pathsClass = `
   public static class Paths {
     private static final PoseFactory p = PoseFactory.degrees();
@@ -467,8 +489,9 @@ export async function generateJavaCode(
       .join("\n")}
 
     public Paths(Follower follower) {
-      ${pathConstructionCode(startPoint, lines, pathChainNames, opts)}
+      ${pathConstruction}
     }
+    ${robotHeading ? robotHeadingHelper(language) : ""}
 
     ${
       coordinateSystem === "FTC"
@@ -525,12 +548,8 @@ export async function generateJavaCode(
           pathFields: pathChainNames.map((name, idx) =>
             lines[idx].isChain ? "" : name,
           ),
-          pathConstruction: pathConstructionCode(
-            startPoint,
-            lines,
-            pathChainNames,
-            opts,
-          ),
+          pathConstruction,
+          robotHeading,
           stateCases,
           startPose,
           hasEventMarkers,

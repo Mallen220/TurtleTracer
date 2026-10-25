@@ -64,11 +64,14 @@ function findMotionEventAt(
  */
 function getInterpolatedHeading(endPoint: Point, t: number): number | null {
   if (endPoint.heading === "constant") {
-    return endPoint.reverse ? endPoint.degrees + 180 : endPoint.degrees;
+    const degrees = endPoint.degrees ?? 0;
+    return endPoint.reverse ? degrees + 180 : degrees;
   }
   if (endPoint.heading !== "linear") return null;
 
-  const { startDeg, endDeg } = endPoint;
+  // Timeline lines have Prev filled in; an unresolved one holds its end.
+  const { endDeg } = endPoint;
+  const startDeg = endPoint.startDeg ?? endDeg;
   return startDeg + linearHeadingSweep(startDeg, endDeg, endPoint.reverse) * t;
 }
 

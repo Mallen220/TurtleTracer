@@ -17,6 +17,7 @@ import {
   updateMacroContent,
   refreshMacros,
   ensureSequenceConsistency,
+  resolvedLinesStore,
 } from "../lib/projectStore";
 import { notification, currentFilePath } from "../stores";
 import { hookRegistry } from "../lib/registries";
@@ -234,6 +235,22 @@ describe("loadProjectData", () => {
       y: 72,
       heading: "tangential",
     });
+  });
+
+  it("keeps a blank start heading blank, and shows what it stands for", async () => {
+    const blank = {
+      ...plainLine("b", 50),
+      endPoint: { x: 50, y: 10, heading: "linear", endDeg: 180 },
+    };
+    const first = {
+      ...plainLine("a", 30),
+      endPoint: { x: 30, y: 10, heading: "linear", startDeg: 0, endDeg: 90 },
+    };
+    const saved = JSON.parse(JSON.stringify({ lines: [first, blank] }));
+    await loadProjectData(saved);
+
+    expect(get(linesStore)[1].endPoint.startDeg).toBeUndefined();
+    expect(get(resolvedLinesStore)[1].endPoint.startDeg).toBe(90);
   });
 
   it("lets plugins change the data before it is loaded", async () => {

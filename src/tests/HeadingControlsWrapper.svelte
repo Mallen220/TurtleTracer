@@ -11,6 +11,8 @@
   let {
     project,
     nested = false,
+    noPrev = false,
+    resolved,
     locked = false,
     shortfalls = [],
     fixesFor,
@@ -20,6 +22,8 @@
   }: {
     project: { endPoint: HeadingFields };
     nested?: boolean;
+    noPrev?: boolean;
+    resolved?: HeadingFields;
     locked?: boolean;
     shortfalls?: PiecewiseShortfall[];
     fixesFor?: (i: number) => SegmentFixes;
@@ -42,6 +46,8 @@
   bind:this={controls}
   bind:endPoint
   {nested}
+  {noPrev}
+  {resolved}
   {locked}
   {shortfalls}
   {fixesFor}

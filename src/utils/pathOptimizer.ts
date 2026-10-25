@@ -680,7 +680,7 @@ export class PathOptimizer {
     // index of -1 so it doesn't get the usual allowance near the start.
     const stops: TimelineEvent[] = fixedPoints.map((p, i) => {
       let heading = 0;
-      if (p.heading === "constant") heading = p.degrees;
+      if (p.heading === "constant") heading = p.degrees ?? 0;
       else if (p.heading === "linear") heading = p.endDeg;
       return {
         type: "wait",

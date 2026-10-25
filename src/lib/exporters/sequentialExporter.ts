@@ -14,6 +14,7 @@ import {
 } from "./eventMarkerUtils";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { type CoordinateSystem } from "../../utils/coordinates";
+import { materializePrevHeadings } from "../../utils/prevHeading";
 import {
   DEFAULT_PROJECT_EXTENSION,
   getProjectExtensionFromPath,
@@ -34,6 +35,8 @@ import {
   poseCode,
   angleCode,
   headingMethodCode,
+  headingToWrite,
+  robotHeadingHelper,
   chainGlobalHeading,
   groupChains,
   uniqueNames,
@@ -190,14 +193,17 @@ export async function generateSequentialCommandCode(
     (h: HeadingConfig): string => {
       switch (h.heading) {
         case "constant":
+          if (h.fromRobot) return "start";
           return hardcodeValues || h.degrees !== undefined
             ? angleCode(h.degrees || 0, opts)
             : `${endPose}.heading()`;
-        case "linear":
+        case "linear": {
+          const from = h.fromRobot ? "start" : angleCode(h.startDeg || 0, opts);
           return hardcodeValues ||
             (h.startDeg !== undefined && h.endDeg !== undefined)
-            ? `${angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`
+            ? `${from}, ${angleCode(h.endDeg || 0, opts)}`
             : `${startPose}.heading(), ${endPose}.heading()`;
+        }
         case "facingPoint":
           return poseCode({ x: h.targetX || 0, y: h.targetY || 0 }, opts);
         default:
@@ -206,6 +212,7 @@ export async function generateSequentialCommandCode(
     };
 
   const speeds = speedCodes(lines);
+  const driven = materializePrevHeadings(startPoint, lines, sequence);
   const pathData = lines.map((line, idx) => {
     const startPose = poseName(idx - 1);
     const endPose = poseName(idx);
@@ -218,14 +225,19 @@ export async function generateSequentialCommandCode(
       ? `curve(${startPose}, ${controlPoints.join(", ")}, ${endPose})`
       : `line(${startPose}, ${endPose})`;
 
-    const global = chainGlobalHeading(lines, idx);
+    const global = chainGlobalHeading(driven, idx);
+    const own = headingToWrite(
+      line.endPoint,
+      driven[idx].endPoint,
+      !line.isChain,
+    );
     return {
       name: pathChainVariables[idx],
       call,
-      heading: global ? "" : headingMethodCode(line.endPoint, args, language),
+      heading: global ? "" : headingMethodCode(own, args, language),
       chainHeading:
         global && !line.isChain
-          ? `\n            ${headingMethodCode(global, args, language)}`
+          ? `\n            ${headingMethodCode(headingToWrite(chainGlobalHeading(lines, idx)!, global, true), args, language)}`
           : "",
       speed: speeds.own[idx],
       chainSpeed: speeds.chain[idx],
@@ -326,6 +338,9 @@ export async function generateSequentialCommandCode(
     commands: commands.join(",\n"),
     ftcPoseHelper: coordinateSystem === "FTC" ? ftcPoseHelper(language) : "",
     metricHelper: codeUnits === "metric" ? metricHelper(language) : "",
+    headingHelper: pathBuilders.includes("fromRobotHeading(")
+      ? robotHeadingHelper(language)
+      : "",
   });
 
   return kotlin

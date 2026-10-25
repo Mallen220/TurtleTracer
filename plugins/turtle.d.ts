@@ -24,7 +24,7 @@ type PiecewiseSegment = {
 } & (
   | {
       heading: "linear";
-      startDeg: number;
+      startDeg?: number;
       endDeg: number;
       degrees?: undefined;
       targetX?: undefined;
@@ -32,7 +32,7 @@ type PiecewiseSegment = {
     }
   | {
       heading: "constant";
-      degrees: number;
+      degrees?: number;
       startDeg?: undefined;
       endDeg?: undefined;
       targetX?: undefined;
@@ -62,7 +62,8 @@ type Point = BasePoint &
   (
     | {
         heading: "linear";
-        startDeg: number;
+        /** Left out: Prev, the heading before this path. */
+        startDeg?: number;
         endDeg: number;
         degrees?: undefined;
         targetX?: undefined;
@@ -71,7 +72,8 @@ type Point = BasePoint &
       }
     | {
         heading: "constant";
-        degrees: number;
+        /** Left out: Prev, the heading before this path. */
+        degrees?: number;
         startDeg?: undefined;
         endDeg?: undefined;
         targetX?: undefined;
