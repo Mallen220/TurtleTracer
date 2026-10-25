@@ -9,8 +9,9 @@ import { GRAVITY } from "./timeCalculator/lateralLimit";
 import { bendAdvice } from "./timeCalculator/advice";
 import {
   followsBends,
+  gainFix,
   speedFixes,
-  type SpeedFix,
+  type MotionFix,
 } from "./timeCalculator/fixSearch";
 import { getAngularDifference } from "./math";
 import { MAX_MACRO_DEPTH } from "../config";
@@ -44,7 +45,7 @@ export interface Insight {
   /** Where clicking the insight takes the timeline, if not to `startTime`. */
   seekTime?: number;
   /** Changes that clear it, each of which has been tried in the simulation. */
-  fixes?: SpeedFix[];
+  fixes?: MotionFix[];
   /** What `value` is, with its unit, e.g. "Swing: 7.7 in". */
   valueLabel?: string;
 }
@@ -659,7 +660,8 @@ export function computePathStatistics(
   stats.addDataPoint(0, 0, 0, 0, 0);
   graphSteps(stats, stepsInOrder(sequence), lines, timeline);
 
-  // The chained corners worth a word: each is said once.
+  // The chained corners worth a word: each is said once. Where a stronger
+  // translational P holds the corner, that is offered (tried in the simulation).
   for (const issue of chainCornerIssues(
     timeline,
     startPoint,
@@ -667,6 +669,10 @@ export function computePathStatistics(
     sequence,
     settings,
   )) {
+    const fix = gainFix(
+      { startPoint, lines, sequence, settings },
+      issue.lineIndex,
+    );
     stats.insights.push({
       startTime: issue.startTime,
       endTime: issue.endTime,
@@ -674,6 +680,7 @@ export function computePathStatistics(
       message: issue.message,
       value: issue.value,
       valueLabel: issue.valueLabel,
+      ...(fix ? { fixes: [fix] } : {}),
     });
   }
 

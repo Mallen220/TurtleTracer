@@ -5,7 +5,7 @@
 // haven't changed.
 import { getCurvePoint } from "../math";
 import type { Line, Point, Settings } from "../../types";
-import { brakingDistance } from "./braking";
+import { handoverDistance } from "./braking";
 import { calculateEndHeadingAndRotation, hasGlobalHeading } from "./chainMeta";
 import type { ChainInfo } from "./chainMeta";
 import {
@@ -21,8 +21,9 @@ import type { PathStep } from "./types";
 export const CHAIN_STEPS = 100;
 
 /**
- * The step at which a chained path is handed to the next: once the robot
- * couldn't stop before the end of the path if it braked from here. A turn too
+ * The step at which a chained path is handed to the next: once Pedro thinks
+ * the robot couldn't stop before the end of the path if it braked from here
+ * (`handoverDistance`, which depends on which way the robot faces). A turn too
  * small to matter is driven straight through to the end.
  */
 export function handoverStep(
@@ -31,6 +32,8 @@ export function handoverStep(
   startStep: number,
   settings: Settings,
   turnDegrees: number,
+  /** The robot's heading at each step boundary, in degrees. */
+  headings: readonly number[] = [],
 ): number {
   const end = steps.length;
   // v2 only moves on once the path is (nearly) finished.
@@ -44,7 +47,15 @@ export function handoverStep(
     .slice(startStep)
     .reduce((sum, step) => sum + step.deltaLength, 0);
   for (let i = startStep; i < end; i++) {
-    if (remaining <= brakingDistance(velocities[i], settings)) return i;
+    const direction = steps[i].direction;
+    const heading = headings[i];
+    const travelAngle =
+      direction === undefined || heading === undefined
+        ? 0
+        : direction - heading;
+    if (remaining <= handoverDistance(velocities[i], travelAngle, settings)) {
+      return i;
+    }
     remaining -= steps[i].deltaLength;
   }
   return end;
@@ -85,6 +96,12 @@ function cacheKey(
     settings.translationalP,
     settings.brakingQuadratic,
     settings.brakingLinear,
+    settings.pedroQuadraticBrakeForward,
+    settings.pedroQuadraticBrakeStrafe,
+    settings.pedroLinearBrakeForward,
+    settings.pedroLinearBrakeStrafe,
+    settings.aVelocity,
+    settings.pedroVersion,
     ...path.flatMap((p) => [round(p.x), round(p.y)]),
   ].join(",");
 }
@@ -107,6 +124,8 @@ export function recoverFromHandover(input: {
   nextIsLast: boolean;
   /** The fastest `nextLine` is driven, if below the robot's Max Velocity. */
   nextMaxSpeed?: number;
+  /** The robot's heading at the handover and the headings `nextLine` wants (see `RecoveryInput`). */
+  heading?: { start: number; wanted: readonly number[] };
 }): RecoveryResult | null {
   const {
     line,
@@ -118,6 +137,7 @@ export function recoverFromHandover(input: {
     settings,
     nextIsLast,
     nextMaxSpeed,
+    heading,
   } = input;
   const curve = [prevPoint, ...line.controlPoints, line.endPoint];
   const t = endStep / stepCount;
@@ -144,7 +164,10 @@ export function recoverFromHandover(input: {
     nextCurve,
     settings,
     nextIsLast,
-    `cap${nextMaxSpeed ?? ""}`,
+    `cap${nextMaxSpeed ?? ""}` +
+      (heading
+        ? `/h${round(heading.start)}:${heading.wanted.map((h) => Math.round(h * 10)).join(":")}`
+        : ""),
   );
   const kept = cache.get(key);
   if (kept) return kept;
@@ -158,6 +181,7 @@ export function recoverFromHandover(input: {
     settings,
     brakeAtEnd: nextIsLast,
     maxSpeed: nextMaxSpeed,
+    heading,
   });
   if (cache.size >= CACHE_SIZE) cache.delete(cache.keys().next().value!);
   cache.set(key, result);

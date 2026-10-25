@@ -6,6 +6,7 @@ import { registerGitHandlers } from "./gitHandlers.js";
 import { registerGitHubHandlers } from "./githubHandlers.js";
 import { registerJavaFollowHandlers } from "./javaFollowHandlers.js";
 import { registerPluginHandlers } from "./pluginHandlers.js";
+import { registerProjectHandlers } from "./projectHandlers.js";
 import { registerTelemetryHandlers } from "./telemetryHandlers.js";
 
 export function registerIpcHandlers(state) {
@@ -16,5 +17,6 @@ export function registerIpcHandlers(state) {
   registerGitHubHandlers();
   registerJavaFollowHandlers();
   registerPluginHandlers();
+  registerProjectHandlers();
   registerTelemetryHandlers();
 }

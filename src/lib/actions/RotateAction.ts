@@ -18,6 +18,20 @@ import { makeId } from "../../utils/nameGenerator";
 import { commandsForContext } from "../exporters/commandLibraries";
 import { stateCase } from "../exporters/javaFormat";
 
+/**
+ * How close (radians) the robot has to face the heading for a turn to be done:
+ * SolversLib's TurnToCommand default, about 0.57°.
+ */
+const TURN_TOLERANCE = 0.01;
+
+/**
+ * Whether the robot faces `radians`, in Java (and Kotlin). Pedro's isBusy()
+ * can't tell: in a hold it clears once its timeoutConstraint (100 ms) has
+ * passed, turned or not.
+ */
+const facing = (radians: string) =>
+  `Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), ${radians})) < ${TURN_TOLERANCE}`;
+
 /** A new turn to 0°. */
 export const createRotate = (): SequenceRotateItem => ({
   kind: "rotate",
@@ -95,7 +109,7 @@ export const RotateAction: ActionDefinition = {
       ) +
       stateCase(
         stateStep + 1,
-        `if(!follower.isBusy()) {
+        `if(${facing(radians.toFixed(3))}) {
             setPathState(${stateStep + 2});
           }`,
         language,
@@ -115,11 +129,11 @@ export const RotateAction: ActionDefinition = {
     const degrees = rotateItem.degrees || 0;
     const radians = (degrees * Math.PI) / 180;
     const commands = commandsForContext(context);
-    // hold() doesn't mark the follower busy again, so isBusy() would already
-    // be false and the turn would be skipped. Resetting the algorithm does it.
+    // Resetting the algorithm restarts its hold, so the robot holds the new
+    // heading rather than the end of the last path.
     const holdHeading = `follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
                         follower.algorithm().reset();`;
-    const waitForStop = commands.waitUntil("!follower.isBusy()");
+    const waitForStop = commands.waitUntil(facing(radians.toFixed(3)));
 
     const markers = (rotateItem.eventMarkers ?? []).toSorted(
       (a, b) => (a.position || 0) - (b.position || 0),

@@ -13,6 +13,11 @@ import type {
 import { calculatePathTime } from "./pathCalculator";
 import { fallsShort } from "./advice";
 import { lateralLimit } from "./lateralLimit";
+import {
+  DEFAULT_TRANSLATIONAL_P,
+  MAX_TRANSLATIONAL_P,
+  MIN_TRANSLATIONAL_P,
+} from "./chainRecovery";
 
 /** The slowest speed worth suggesting (in/s): below it the robot crawls. */
 export const MIN_SUGGESTED_SPEED = 5;
@@ -237,4 +242,151 @@ export function speedFixLabel(fix: SpeedFix): string {
   return fix.field === "chainMaxSpeed"
     ? `Limit the whole chain to ${fix.speed} in/s`
     : `Limit this path to ${fix.speed} in/s`;
+}
+
+/** A swing past the next path at most this far (inches) counts as holding the corner. */
+export const HELD_SWING = 1;
+/**
+ * The strongest Translational P suggested, as a multiple of the current one
+ * (and at least `MIN_GAIN_CAP`). The simulation has no wobble from a gain set
+ * too high, so it can't tell how far above that a real robot stays steady.
+ */
+const MAX_GAIN_FACTOR = 3;
+const MIN_GAIN_CAP = 0.3;
+
+/** A stronger Translational P that gets a chained corner under control. */
+export interface GainFix {
+  translationalP: number;
+  /** How far the robot swings past the next path now, and with the fix (inches). */
+  swingBefore: number;
+  swingAfter: number;
+  /** Whether the robot doesn't get back onto the path now. */
+  unsettledBefore: boolean;
+}
+
+/** Any change that clears a problem, ready to apply. */
+export type MotionFix = SpeedFix | GainFix;
+
+export const isGainFix = (fix: MotionFix): fix is GainFix =>
+  "translationalP" in fix;
+
+const roundGain = (gain: number) => Math.round(gain * 100) / 100;
+
+/** The recovery at the chained corner onto the path at `lineIndex`. */
+function recoveryOf(ctx: FixContext, settings: Settings, lineIndex: number) {
+  const { timeline } = calculatePathTime(
+    ctx.startPoint,
+    ctx.lines,
+    settings,
+    ctx.sequence,
+  );
+  return timeline.find(
+    (e) => e.type === "recovery" && e.lineIndex === lineIndex,
+  );
+}
+
+const swingOf = (event: TimelineEvent | undefined) => event?.overshoot ?? 0;
+
+/** A fix that doesn't hold the corner must cut the swing at least this much to be offered. */
+const WORTHWHILE_SWING_CUT = 0.3;
+
+/**
+ * A stronger Translational P (to 0.01, at most `MAX_GAIN_FACTOR` times the
+ * current one) for the chained corner onto the path at `lineIndex`: the
+ * weakest at which the robot gets back onto the path swinging at most
+ * `HELD_SWING` past it; else the one that swings least, if that is clearly
+ * better. A stronger gain doesn't always swing less (at very sharp corners
+ * the robot can turn back too hard), so each is tried. Null if the corner is
+ * fine already or nothing helps.
+ */
+export function gainFix(ctx: FixContext, lineIndex: number): GainFix | null {
+  const now = recoveryOf(ctx, ctx.settings, lineIndex);
+  if (!now) return null;
+  const unsettledBefore = now.settled === false;
+  const swingBefore = swingOf(now);
+  if (!unsettledBefore && swingBefore <= HELD_SWING) return null;
+
+  const gainNow = roundGain(
+    Math.min(
+      MAX_TRANSLATIONAL_P,
+      Math.max(
+        MIN_TRANSLATIONAL_P,
+        ctx.settings.translationalP ?? DEFAULT_TRANSLATIONAL_P,
+      ),
+    ),
+  );
+  const cap = roundGain(
+    Math.min(
+      MAX_TRANSLATIONAL_P,
+      Math.max(MIN_GAIN_CAP, gainNow * MAX_GAIN_FACTOR),
+    ),
+  );
+  const tried = new Map<number, TimelineEvent | undefined>();
+  const at = (gain: number) => {
+    if (!tried.has(gain)) {
+      tried.set(
+        gain,
+        recoveryOf(ctx, { ...ctx.settings, translationalP: gain }, lineIndex),
+      );
+    }
+    return tried.get(gain);
+  };
+  const holds = (gain: number) => {
+    const event = at(gain);
+    return event?.settled !== false && swingOf(event) <= HELD_SWING;
+  };
+
+  // Gains up to the cap, 15% apart.
+  const gains: number[] = [];
+  for (let g = gainNow; g < cap; ) {
+    g = Math.min(cap, roundGain(Math.max(g * 1.15, g + 0.01)));
+    gains.push(g);
+  }
+
+  const fix = (gain: number): GainFix => ({
+    translationalP: gain,
+    swingBefore,
+    swingAfter: swingOf(at(gain)),
+    unsettledBefore,
+  });
+
+  const first = gains.findIndex(holds);
+  if (first >= 0) {
+    // The weakest between it and the one before that still holds.
+    let low = first > 0 ? gains[first - 1] : gainNow;
+    let high = gains[first];
+    for (let i = 0; high - low > 0.011 && i < 8; i++) {
+      const mid = roundGain((low + high) / 2);
+      if (holds(mid)) high = mid;
+      else low = mid;
+    }
+    return fix(high);
+  }
+
+  let best: number | null = null;
+  for (const g of gains) {
+    const event = at(g);
+    if (event?.settled === false) continue;
+    if (best === null || swingOf(event) < swingOf(at(best)) - 0.05) best = g;
+  }
+  if (best === null) return null;
+  const worth =
+    unsettledBefore ||
+    swingOf(at(best)) <= swingBefore * (1 - WORTHWHILE_SWING_CUT);
+  return worth ? fix(best) : null;
+}
+
+/** `settings` with a fix's gain set. */
+export function applyGainFix(settings: Settings, fix: GainFix): Settings {
+  return { ...settings, translationalP: fix.translationalP };
+}
+
+/** What a button that applies any fix says. */
+export function motionFixLabel(fix: MotionFix): string {
+  if (!isGainFix(fix)) return speedFixLabel(fix);
+  const after = `${fix.swingAfter.toFixed(1)} in`;
+  const effect = fix.unsettledBefore
+    ? `gets back on the path, swing ${after}`
+    : `swing ${fix.swingBefore.toFixed(1)} → ${after}`;
+  return `Raise Translational P to ${fix.translationalP} (${effect})`;
 }

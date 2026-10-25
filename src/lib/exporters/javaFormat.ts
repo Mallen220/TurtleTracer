@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { pedroConstants } from "./pedroConstants";
 import type { CodeLanguage, Line, SequenceItem } from "../../types";
 import { validSpeed } from "../../utils/timeCalculator/speedCap";
 import {
@@ -86,9 +87,15 @@ function speedLiteral(speed: number): string {
   return Number.isInteger(speed) ? speed.toFixed(1) : String(speed);
 }
 
-/** The `Constants` class every team has, which the speed limits read `foresightConfig` from. */
-export const CONSTANTS_IMPORT =
-  "import org.firstinspires.ftc.teamcode.pedro.Constants";
+/**
+ * The import line for the team's Pedro constants class (which the speed limits
+ * read `foresightConfig` from), without its semicolon; empty for a class in no
+ * package, which can't be imported.
+ */
+export function constantsImport(): string {
+  const { qualifiedName } = pedroConstants();
+  return qualifiedName.includes(".") ? `import ${qualifiedName}` : "";
+}
 
 /**
  * What to tell the user about the speed limits in the code, in the place they
@@ -110,7 +117,7 @@ export function speedLimitNote(language: CodeLanguage | undefined): string {
 
 /** The Pedro modifier that limits a path or chain to `speed` in/s. */
 const speedModifier = (speed: number) =>
-  `.with(Constants.foresightConfig.maxVelocityConstraint.at(${speedLiteral(speed)}))`;
+  `.with(${pedroConstants().className}.foresightConfig.maxVelocityConstraint.at(${speedLiteral(speed)}))`;
 
 /** The speed limits to write for each line, and whether there are any. */
 export interface SpeedCodes {

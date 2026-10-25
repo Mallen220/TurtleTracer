@@ -403,7 +403,7 @@ describe("generateSequentialCommandCode", () => {
         }),
       );
       expect(code).toContain(
-        "Commands.instant(() -> { follower.hold(follower.pose().withHeading(1.571)); follower.algorithm().reset(); }), Commands.waitUntil(() -> !follower.isBusy())",
+        "Commands.instant(() -> { follower.hold(follower.pose().withHeading(1.571)); follower.algorithm().reset(); }), Commands.waitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01)",
       );
     });
 
@@ -427,10 +427,10 @@ describe("generateSequentialCommandCode", () => {
         }),
       );
       expect(code).toContain(
-        "Groups.race( Commands.waitUntil(() -> !follower.isBusy()), Groups.sequential(",
+        "Groups.race( Commands.waitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01), Groups.sequential(",
       );
       expect(code).toContain(
-        'Commands.waitUntil(() -> tracker.shouldTriggerEvent("raiseArm")), Commands.instant(() -> tracker.executeEvent("raiseArm")), Commands.waitUntil(() -> !follower.isBusy()) ) )',
+        'Commands.waitUntil(() -> tracker.shouldTriggerEvent("raiseArm")), Commands.instant(() -> tracker.executeEvent("raiseArm")), Commands.waitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01) ) )',
       );
     });
   });
@@ -439,9 +439,7 @@ describe("generateSequentialCommandCode", () => {
     const turn = (): SequenceItem =>
       ({ kind: "rotate", id: "r", name: "", degrees: 90 }) as any;
 
-    // Pedro only marks the follower busy in follow() and algorithm().reset().
-    // hold() alone leaves isBusy() false, so the wait for the turn would
-    // pass immediately.
+    // Resetting the algorithm makes the hold start over at the new heading.
     it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
       "%s resets the algorithm after holding the new heading",
       async (library) => {
@@ -457,6 +455,27 @@ describe("generateSequentialCommandCode", () => {
         );
         expect(code).toMatch(
           /follower\.hold\(follower\.pose\(\)\.withHeading\(1\.571\)\); follower\.algorithm\(\)\.reset\(\);/,
+        );
+      },
+    );
+
+    // In a hold, Pedro's isBusy() clears once its 100 ms timeout has passed,
+    // whether or not the robot has turned: a real robot skipped its turn.
+    it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
+      "%s waits until the robot faces the new heading, not for isBusy()",
+      async (library) => {
+        const code = squash(
+          await generate(scoreAndPark(), {
+            library,
+            sequence: [
+              { kind: "path", lineId: "a" },
+              turn(),
+              { kind: "path", lineId: "b" },
+            ],
+          }),
+        );
+        expect(code).toContain(
+          "Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01",
         );
       },
     );

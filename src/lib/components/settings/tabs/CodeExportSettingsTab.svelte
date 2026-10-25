@@ -9,6 +9,10 @@
   import { isBrowser } from "../../../../utils/platform";
   import { COMMAND_LIBRARIES } from "../../../exporters/commandLibraries";
   import { ui } from "../../../ui";
+  import { get } from "svelte/store";
+  import { robotProject, refreshRobotProject } from "../../../robotProject";
+  import { projectSuggestions } from "../../../../utils/robotProject";
+  import { QUICKSTART_CONSTANTS } from "../../../exporters/pedroConstants";
 
   type Props = SettingsTabProps;
 
@@ -18,6 +22,8 @@
     () => settings,
     (next) => (settings = next),
   );
+
+  let suggestions = $derived(projectSuggestions($robotProject, settings));
 
   function getBasePath(): string | null {
     let curFile;
@@ -332,4 +338,109 @@
       {/if}
     </div>
   {/if}
+
+  <h4 class="{ui.heading} mt-8 mb-4 border-b pb-1">Robot project</h4>
+
+  {#if searchQuery === "" || "robot project detected constants".includes(searchQuery.toLowerCase())}
+    <div
+      class="mb-4 text-xs text-neutral-600 dark:text-neutral-400 space-y-2"
+      data-testid="robot-project"
+    >
+      {#if $robotProject}
+        <p>
+          Read from the project at
+          <code class="break-all">{$robotProject.root}</code>, so the code
+          Turtle Tracer writes matches it.
+        </p>
+        <ul class="space-y-1">
+          <li>
+            Pedro constants:
+            {#if $robotProject.constants}
+              <code>{$robotProject.constants.qualifiedName}</code
+              >{#if $robotProject.constants.followerFactory}, follower from
+                <code
+                  >{$robotProject.constants.followerFactory}(hardwareMap)</code
+                >{/if}
+            {:else}
+              not found, so Pedro's quickstart is assumed
+            {/if}
+          </li>
+          <li>
+            Pedro Pathing:
+            {$robotProject.pedroDependency ?? "not found in the build files"}
+          </li>
+          {#if $robotProject.commandLibrary}
+            <li>Command library: {$robotProject.commandLibrary}</li>
+          {/if}
+        </ul>
+        {#each suggestions as suggestion (suggestion.id)}
+          <div
+            class="flex items-center justify-between gap-2 rounded border border-neutral-200 dark:border-neutral-700 p-2"
+          >
+            <span>
+              {suggestion.label}: the project has {suggestion.found}; your
+              setting is {suggestion.current}.
+            </span>
+            <button
+              type="button"
+              class={ui.btnSm.accentSoft}
+              onclick={() => (settings = { ...settings, ...suggestion.patch })}
+            >
+              Use the project's
+            </button>
+          </div>
+        {/each}
+      {:else if isBrowser}
+        <p>The desktop app reads your robot project to match its code.</p>
+      {:else}
+        <p>
+          No robot project found: open a paths folder inside an FTC project (a
+          folder with TeamCode in it).
+        </p>
+      {/if}
+      {#if !isBrowser}
+        <button
+          type="button"
+          class={ui.btnSm.secondary}
+          onclick={() => refreshRobotProject(get(currentDirectoryStore))}
+        >
+          Look again
+        </button>
+      {/if}
+    </div>
+  {/if}
+
+  <SettingsItem
+    label="Pedro Constants Class"
+    {...resettable("pedroConstantsClass")}
+    description="The class exported code imports for the Follower and its settings. Leave empty to use the one found in your robot project."
+    {searchQuery}
+    layout="col"
+  >
+    <input
+      type="text"
+      value={settings.pedroConstantsClass ?? ""}
+      oninput={(e) => set("pedroConstantsClass", e.currentTarget.value)}
+      class="{ui.input} w-full font-mono"
+      placeholder={$robotProject?.constants?.qualifiedName ??
+        QUICKSTART_CONSTANTS.qualifiedName}
+    />
+  </SettingsItem>
+
+  <SettingsItem
+    label="Follower Factory Method"
+    {...resettable("pedroFollowerFactory")}
+    description="The static method on that class that builds the Follower. Leave empty to use the one found."
+    {searchQuery}
+    layout="col"
+  >
+    <input
+      type="text"
+      value={settings.pedroFollowerFactory ?? ""}
+      oninput={(e) => set("pedroFollowerFactory", e.currentTarget.value)}
+      class="{ui.input} w-full font-mono"
+      placeholder={$robotProject?.constants?.followerFactory ??
+        QUICKSTART_CONSTANTS.followerFactory}
+    />
+  </SettingsItem>
 </div>

@@ -39,7 +39,7 @@ import {
   uniqueNames,
   speedCodes,
   speedLimitNote,
-  CONSTANTS_IMPORT,
+  constantsImport,
   type FormatOptions,
   type HeadingConfig,
 } from "./javaFormat";
@@ -309,7 +309,9 @@ export async function generateSequentialCommandCode(
     className,
     imports:
       template.imports +
-      (speeds.any ? `\n${CONSTANTS_IMPORT}${kotlin ? "" : ";"}` : ""),
+      (speeds.any && constantsImport()
+        ? `\n${constantsImport()}${kotlin ? "" : ";"}`
+        : ""),
     ppReaderImport,
     ppReaderInit,
     hasEventMarkers,

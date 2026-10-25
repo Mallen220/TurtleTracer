@@ -71,7 +71,8 @@ describe.each([
     const events = timeline(lines);
     const total = events.at(-1)!.endTime;
     expect(total).toBeGreaterThan(4);
-    expect(total).toBeLessThan(8);
+    // Turning first at the hairpin, as Pedro does, takes it a little longer.
+    expect(total).toBeLessThan(10);
     const recovery = events.find((e) => e.type === "recovery")!;
     expect(recovery.duration).toBeLessThan(4);
     expect(recovery.settled).toBe(true);

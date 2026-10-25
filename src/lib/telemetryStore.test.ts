@@ -11,7 +11,15 @@ import {
   processTelemetryMessage,
   setStatus,
   liveTelemetryData,
+  motionSampleOf,
+  liveTrail,
+  liveRunStarts,
+  clearLiveTrail,
+  recording,
+  recordingSummary,
+  clearRecording,
 } from "./telemetryStore";
+import { calibrationState, resetCalibration } from "./motionCalibration";
 
 describe("telemetryStore", () => {
   beforeEach(() => {
@@ -94,5 +102,142 @@ describe("telemetryStore", () => {
     };
     processTelemetryMessage(JSON.stringify(packetWithSingleOverlay));
     expect(get(fieldOverlay)).toEqual([{ type: "line", x: 2, y: 2 }]);
+  });
+});
+
+describe("measuring the robot from telemetry", () => {
+  beforeEach(() => resetCalibration());
+
+  it("reads the robot clock, Pedro's velocity, busy state and path point", () => {
+    const parsed = {
+      x: 1,
+      y: 2,
+      heading: 0.5,
+      t: 1500,
+      vx: 3,
+      vy: -4,
+      omega: 0.2,
+      busy: true,
+      cx: 1.5,
+      cy: 2.5,
+      tx: 0,
+      ty: 1,
+      pathIndex: 2,
+    };
+    const packet = {
+      timestamp: 99,
+      robotPose: { x: 1, y: 2, heading: 0.5 },
+      data: {},
+    };
+    expect(motionSampleOf(parsed, packet, 99_000)).toEqual({
+      sample: {
+        t: 1.5,
+        x: 1,
+        y: 2,
+        heading: 0.5,
+        vx: 3,
+        vy: -4,
+        omega: 0.2,
+        busy: true,
+        cx: 1.5,
+        cy: 2.5,
+        tx: 0,
+        ty: 1,
+        pathIndex: 2,
+      },
+      timeSource: "robot",
+    });
+  });
+
+  it("falls back to the arrival time and skips packets without a pose", () => {
+    const packet = {
+      timestamp: 5,
+      robotPose: { x: 1, y: 2, heading: 0 },
+      data: {},
+    };
+    const motion = motionSampleOf({ x: 1, y: 2, heading: 0 }, packet, 2000);
+    expect(motion?.timeSource).toBe("arrival");
+    expect(motion?.sample.t).toBe(2);
+    expect(motion?.sample.busy).toBeUndefined();
+    expect(motionSampleOf({}, { timestamp: 5, data: {} }, 2000)).toBeNull();
+  });
+
+  it("takes a Panels timestamp as the robot's clock", () => {
+    const packet = {
+      timestamp: 4000,
+      robotPose: { x: 0, y: 0, heading: 0 },
+      data: {},
+    };
+    expect(motionSampleOf(packet, packet, 9000)?.timeSource).toBe("robot");
+  });
+
+  it("feeds every pose into the measurement", () => {
+    vi.useFakeTimers();
+    try {
+      for (let i = 0; i < 10; i++) {
+        processTelemetryMessage(
+          JSON.stringify({ x: i, y: 0, heading: 0, t: i * 20 }),
+        );
+      }
+      vi.advanceTimersByTime(300);
+      const state = get(calibrationState);
+      expect(state.sampleCount).toBe(10);
+      expect(state.timeSource).toBe("robot");
+      expect(state.trace.length).toBeGreaterThan(0);
+      // 1 inch every 20 ms
+      expect(state.trace[0].speed).toBeCloseTo(50);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("the robot's live run", () => {
+  beforeEach(() => clearLiveTrail());
+
+  const send = (t: number, x: number, busy: boolean) =>
+    processTelemetryMessage(JSON.stringify({ x, y: 0, heading: 0, t, busy }));
+
+  it("counts the robot starting its first path, and draws its route from there", () => {
+    const before = get(liveRunStarts);
+    send(0, 0, false);
+    send(20, 0, false);
+    send(40, 1, true);
+    send(60, 2, true);
+    expect(get(liveRunStarts)).toBe(before + 1);
+    expect(get(liveTrail)).toEqual([
+      [
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+    ]);
+
+    clearLiveTrail();
+    expect(get(liveTrail)).toEqual([]);
+  });
+
+  it("records every message, marking where the run started", () => {
+    clearRecording();
+    send(0, 0, false);
+    send(20, 0, true);
+    processTelemetryMessage("not json");
+    const data = recording.toExport({
+      file: null,
+      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
+      lines: [],
+      sequence: [],
+      shapes: [],
+      settings: {} as any,
+      appVersion: "test",
+    });
+    expect(data.messages.map((m) => m.message)).toEqual([
+      { x: 0, y: 0, heading: 0, t: 0, busy: false },
+      { x: 0, y: 0, heading: 0, t: 20, busy: true },
+    ]);
+    expect(data.runStarts.map((r) => r.index)).toEqual([1]);
+    expect(get(recordingSummary)).toMatchObject({ messages: 2, runs: 1 });
+
+    clearRecording();
+    expect(get(recordingSummary).messages).toBe(0);
   });
 });

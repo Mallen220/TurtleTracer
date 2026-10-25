@@ -1,12 +1,3 @@
-/* eslint-disable */
-// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-/**
- * Type definitions for Turtle Tracer Plugins.
- * These types are automatically available in your .ts plugins.
- *
- * AUTO-GENERATED - DO NOT EDIT MANUALLY
- */
-
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 
@@ -294,6 +285,16 @@ interface Settings {
    * it by the curve parameter and hands over at the end of the path.
    */
   pedroVersion?: "v3" | "v2";
+  /**
+   * Pedro's brake model as written in the robot's code (ForesightConfig
+   * quadraticBrakeCoefficients and linearBrakeCoefficients, forward and strafe).
+   * Pedro uses it to decide when to hand a chained path over to the next one.
+   * All 0: the braking settings above are used instead.
+   */
+  pedroQuadraticBrakeForward?: number;
+  pedroQuadraticBrakeStrafe?: number;
+  pedroLinearBrakeForward?: number;
+  pedroLinearBrakeStrafe?: number;
   /** Seconds the robot holds at the end of a path before the next step starts. */
   pathSettleTime?: number;
   /** Stop to turn in place before a path that starts at a different heading. */
@@ -316,6 +317,12 @@ interface Settings {
   robotFeatures?: RobotFeature[];
   fakeHeadingArrowColor?: string;
   javaPackageName?: string;
+  /**
+   * The team's Pedro constants class (full name) and the method on it that
+   * builds the Follower, for exported code. Empty: found in the robot project.
+   */
+  pedroConstantsClass?: string;
+  pedroFollowerFactory?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
   squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
@@ -366,6 +373,10 @@ interface Settings {
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";
   showTelemetryTab?: boolean;
+  /** Pop up a notice when live telemetry has measured a better motion setting. */
+  telemetrySuggestFixes?: boolean;
+  /** Start the simulation when the live robot starts its first path. */
+  telemetrySyncPlayback?: boolean;
   sidebarItems?: string[];
   customSidebarItems?: CustomSidebarItem[];
   sidebarExpanded?: boolean;
@@ -408,6 +419,10 @@ interface RobotProfile {
   brakingQuadratic?: number;
   brakingLinear?: number;
   pathSettleTime?: number;
+  pedroQuadraticBrakeForward?: number;
+  pedroQuadraticBrakeStrafe?: number;
+  pedroLinearBrakeForward?: number;
+  pedroLinearBrakeStrafe?: number;
   robotImage?: string;
   robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
   showRobotArrows?: boolean;
@@ -1058,8 +1073,9 @@ interface UpdateData {
 interface ElectronTelemetryAPI {
   connect: (ip: string, port: number, protocol: string) => Promise<any>;
   disconnect: () => Promise<any>;
-  onData: (callback: (data: any) => void) => void;
-  onStatus: (callback: (status: any) => void) => void;
+  /** Both return a function that removes the listener. */
+  onData: (callback: (data: any) => void) => (() => void) | void;
+  onStatus: (callback: (status: any) => void) => (() => void) | void;
 }
 
 /** The parts of Electron's save dialog options the app uses. */
@@ -1083,6 +1099,12 @@ interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   fileExists: (filePath: string) => Promise<boolean>;
+  /** Files under `root` whose names end with one of `endings` (desktop only). */
+  findFiles?: (
+    root: string,
+    endings: string[],
+    options?: { maxDepth?: number; maxResults?: number },
+  ) => Promise<string[]>;
   resolvePath?: (base: string, relative: string) => Promise<string>;
   makeRelativePath?: (base: string, target: string) => Promise<string>;
 

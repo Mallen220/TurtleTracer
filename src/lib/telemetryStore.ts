@@ -1,6 +1,14 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable, derived } from "svelte/store";
 import type { TelemetryPacket } from "../types/index";
+import { ingestMotion } from "./motionCalibration";
+import type { RawSample } from "../utils/calibration/samples";
+import type { TimeSource } from "../utils/calibration/estimates";
+import { LiveRun } from "../utils/liveRun";
+import {
+  TelemetryRecording,
+  type RecordingSummary,
+} from "../utils/telemetryRecording";
 
 export interface TelemetryPoint {
   time: number;
@@ -49,6 +57,8 @@ let frameCount = 0;
 // Only start interval if in browser environment
 if (typeof globalThis !== "undefined") {
   const fpsInterval = setInterval(() => {
+    // The last messages of a burst arrive too soon after the previous update to show.
+    publishRecording(true);
     if (frameCount > 0) {
       telemetryState.update((s) => ({ ...s, fps: frameCount }));
       frameCount = 0;
@@ -69,14 +79,64 @@ if (typeof globalThis !== "undefined") {
   }
 }
 
+const numberOr = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+/**
+ * The pose and motion in a message, for measuring the robot. TurtleTracerLib
+ * sends its clock as `t` (ms) and, with a follower, Pedro's velocity and busy
+ * state, and while following a path the closest point on it (`cx`, `cy`),
+ * the path's direction there (`tx`, `ty`) and `pathIndex`. Panels packets
+ * carry a `timestamp`. Without either, the time it arrived is used.
+ */
+export function motionSampleOf(
+  parsed: Record<string, unknown>,
+  packet: TelemetryPacket,
+  arrivedAt: number,
+): { sample: RawSample; timeSource: TimeSource } | null {
+  const pose = packet.robotPose;
+  if (
+    !pose ||
+    !Number.isFinite(pose.x) ||
+    !Number.isFinite(pose.y) ||
+    !Number.isFinite(pose.heading)
+  ) {
+    return null;
+  }
+  const robotMs = numberOr(parsed.t) ?? numberOr(parsed.timestamp);
+  return {
+    sample: {
+      t: (robotMs ?? arrivedAt) / 1000,
+      x: pose.x,
+      y: pose.y,
+      heading: pose.heading,
+      vx: numberOr(parsed.vx),
+      vy: numberOr(parsed.vy),
+      omega: numberOr(parsed.omega),
+      busy: typeof parsed.busy === "boolean" ? parsed.busy : undefined,
+      cx: numberOr(parsed.cx),
+      cy: numberOr(parsed.cy),
+      tx: numberOr(parsed.tx),
+      ty: numberOr(parsed.ty),
+      pathIndex: numberOr(parsed.pathIndex),
+    },
+    timeSource: robotMs === undefined ? "arrival" : "robot",
+  };
+}
+
 export function processTelemetryMessage(raw: string) {
   try {
+    const arrivedAt = Date.now();
     const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) {
+      recording.add(parsed, arrivedAt);
+      publishRecording();
+    }
     let packet: TelemetryPacket;
 
     // Normalize Data
-    // Case 1: TurtleTracerLiveView (flat format: { x, y, heading })
-    // It doesn't have a timestamp, so synthesize it.
+    // Case 1: TurtleTracerLiveView (flat format: { x, y, heading, t? })
+    // Its `t` is the robot clock, so the packet is stamped on arrival.
     if (
       typeof parsed.x === "number" &&
       typeof parsed.y === "number" &&
@@ -84,7 +144,7 @@ export function processTelemetryMessage(raw: string) {
       !parsed.robotPose
     ) {
       packet = {
-        timestamp: Date.now(),
+        timestamp: arrivedAt,
         robotPose: {
           x: parsed.x,
           y: parsed.y,
@@ -99,7 +159,7 @@ export function processTelemetryMessage(raw: string) {
 
     // Basic validation
     if (typeof packet.timestamp !== "number") {
-      packet.timestamp = Date.now();
+      packet.timestamp = arrivedAt;
     }
 
     telemetryState.update((s) => ({
@@ -123,10 +183,60 @@ export function processTelemetryMessage(raw: string) {
       });
     }
 
+    const motion = motionSampleOf(parsed, packet, arrivedAt);
+    if (motion) {
+      ingestMotion(motion.sample, motion.timeSource);
+      trackRun(motion.sample);
+    }
+
     frameCount++;
   } catch (e) {
     console.warn("Failed to parse telemetry message:", e);
   }
+}
+
+const liveRun = new LiveRun();
+let publishedTrail = liveRun.version;
+
+/** The route the robot has driven since its run started, in inches. */
+export const liveTrail = writable<{ x: number; y: number }[][]>([]);
+/** Counts the times the robot has started the first path of an OpMode. */
+export const liveRunStarts = writable(0);
+
+function trackRun(sample: RawSample) {
+  if (liveRun.push(sample)) {
+    liveRunStarts.update((n) => n + 1);
+    recording.markRunStart();
+    publishRecording(true);
+  }
+  if (liveRun.version === publishedTrail) return;
+  publishedTrail = liveRun.version;
+  liveTrail.set([...liveRun.trail]);
+}
+
+export function clearLiveTrail() {
+  liveRun.reset();
+  publishedTrail = liveRun.version;
+  liveTrail.set([]);
+}
+
+/** Everything received while connected, for exporting. */
+export const recording = new TelemetryRecording();
+/** How much has been recorded, updated a few times a second. */
+export const recordingSummary = writable<RecordingSummary>(recording.summary);
+const RECORDING_PUBLISH_MS = 250;
+let recordingPublishedAt = 0;
+
+function publishRecording(now = false) {
+  const time = Date.now();
+  if (!now && time - recordingPublishedAt < RECORDING_PUBLISH_MS) return;
+  recordingPublishedAt = time;
+  recordingSummary.set(recording.summary);
+}
+
+export function clearRecording() {
+  recording.clear();
+  publishRecording(true);
 }
 
 export function setStatus(status: TelemetryState["status"]) {

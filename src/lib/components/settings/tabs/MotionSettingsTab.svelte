@@ -202,7 +202,7 @@
   <SettingsItem
     label="Pedro Pathing Version"
     {...resettable("pedroVersion")}
-    description="v3 measures heading progress by distance along a path and hands chained paths over early. v2 (approximate) uses the curve parameter and hands over at the end."
+    description="v3 measures heading progress by distance along a path, hands chained paths over early, and turns before it drives when it faces more than 11.25° from the heading the path wants. v2 (approximate) uses the curve parameter and hands over at the end."
     {searchQuery}
     layout="col"
     forId="pedro-version"
@@ -218,6 +218,68 @@
       <option value="v2">v2 (deprecated but still widely used)</option>
     </select>
   </SettingsItem>
+
+  {#if searchQuery === "" || "handover brake pedro code coefficients".includes(searchQuery.toLowerCase())}
+    <div class="mb-3 text-xs text-neutral-600 dark:text-neutral-400 space-y-2">
+      <p>
+        <span class="font-semibold">From your robot's code.</span> In a chain, Pedro
+        moves on to the next path once its own brake model says the robot could stop
+        before the corner. Copy the numbers from your Pedro constants:
+      </p>
+      <pre
+        class="overflow-x-auto rounded bg-neutral-100 dark:bg-neutral-900 p-2 font-mono text-[11px] text-neutral-800 dark:text-neutral-200">c.quadraticBrakeCoefficients.set(Matrix.diag(<span
+          class="font-semibold">forward</span
+        >, <span class="font-semibold">strafe</span>));
+c.linearBrakeCoefficients.set(Matrix.diag(<span class="font-semibold"
+          >forward</span
+        >, <span class="font-semibold">strafe</span>));</pre>
+      <p>
+        These only decide where chained paths hand over (Pedro v3). How the
+        robot really stops is the Braking setting below. Left at 0, the Braking
+        setting is used for both.
+      </p>
+    </div>
+  {/if}
+
+  <NumberSetting
+    bind:settings
+    name="pedroQuadraticBrakeForward"
+    label="Handover Brake, Quadratic (forward)"
+    description="From your code: the first number in quadraticBrakeCoefficients (Matrix.diag(forward, strafe)) in your ForesightConfig."
+    {searchQuery}
+    id="pedro-quadratic-brake-forward"
+    step={0.0001}
+  />
+
+  <NumberSetting
+    bind:settings
+    name="pedroQuadraticBrakeStrafe"
+    label="Handover Brake, Quadratic (strafe)"
+    description="From your code: the second number in quadraticBrakeCoefficients. Left at 0, the forward values are used."
+    {searchQuery}
+    id="pedro-quadratic-brake-strafe"
+    step={0.0001}
+  />
+
+  <NumberSetting
+    bind:settings
+    name="pedroLinearBrakeForward"
+    label="Handover Brake, Linear (forward)"
+    description="From your code: the first number in linearBrakeCoefficients."
+    {searchQuery}
+    id="pedro-linear-brake-forward"
+    step={0.001}
+  />
+
+  <NumberSetting
+    bind:settings
+    name="pedroLinearBrakeStrafe"
+    label="Handover Brake, Linear (strafe)"
+    description="From your code: the second number in linearBrakeCoefficients. Left at 0, the forward values are used."
+    {searchQuery}
+    id="pedro-linear-brake-strafe"
+    step={0.001}
+  />
 
   <NumberSetting
     bind:settings
@@ -271,7 +333,7 @@
       bind:settings
       name="brakingQuadratic"
       label="Braking Distance, Quadratic"
-      description="Pedro's braking model: distance to stop = quadratic × speed² + linear × speed. Leave both at 0 to brake at the max deceleration. In a ForesightConfig these come from quadraticBrakeCoefficients and linearBrakeCoefficients; use the forward values."
+      description="How far the robot really takes to stop: distance = quadratic × speed² + linear × speed. The Telemetry tab can measure it from your robot. Leave both at 0 to brake at the max deceleration. Pedro's own estimate, from your code, goes in the Handover Brake settings."
       {searchQuery}
       id="braking-quadratic"
       step={0.0001}

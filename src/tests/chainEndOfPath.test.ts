@@ -37,7 +37,15 @@ const lines: Line[] = [
   {
     id: "b",
     name: "",
-    endPoint: tangential(60.02529857454733, 74.25455085398742),
+    // Facing the way the robot already faces when it is handed over: with a
+    // heading it had to turn to, Pedro would turn first and slow down enough
+    // to get onto the path after all.
+    endPoint: {
+      x: 60.02529857454733,
+      y: 74.25455085398742,
+      heading: "constant",
+      degrees: 54,
+    },
     controlPoints: [{ x: 86.44076511616798, y: 43.723513548221405 }],
     color: "#8C7CAA",
     isChain: true,

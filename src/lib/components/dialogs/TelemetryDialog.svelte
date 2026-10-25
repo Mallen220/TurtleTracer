@@ -9,6 +9,10 @@
     type TelemetryPoint,
   } from "../../telemetryStore";
   import { ui } from "../../ui";
+  import {
+    isTelemetryExport,
+    pointsFromExport,
+  } from "../../../utils/telemetryRecording";
 
   interface Props {
     isOpen?: boolean;
@@ -45,6 +49,16 @@
 
   function parseJSON(content: string) {
     const data = JSON.parse(content);
+    if (isTelemetryExport(data)) {
+      const points = pointsFromExport(data);
+      if (points.length === 0) throw new Error("The recording has no poses");
+      importedTelemetryData.set(points);
+      generateSummary(points);
+      if (data.runStarts.length > 0) {
+        summary += " Starts where the robot started its first path.";
+      }
+      return;
+    }
     // Validate structure. Assume array of objects.
     if (!Array.isArray(data))
       throw new Error("JSON must be an array of points");
@@ -183,7 +197,8 @@
             tabindex="-1"
           />
           <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-            CSV format: time, x, y, heading
+            CSV format: time, x, y, heading. Recordings exported from the
+            Telemetry tab work too.
           </p>
         </div>
 
