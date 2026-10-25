@@ -16,7 +16,8 @@ const EXTENSIONS = {
   ".sh": "HASH",
 };
 
-const IGNORED_FILES = new Set(["vite.config.d.ts"]);
+// turtle.d.ts is generated with its own header by generate-plugin-types.js
+const IGNORED_FILES = new Set(["vite.config.d.ts", "plugins/turtle.d.ts"]);
 
 const _COMMENT_STYLES = {
   LINE: { start: "// ", end: "", prefix: "" },

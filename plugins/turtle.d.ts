@@ -7,7 +7,6 @@
  * AUTO-GENERATED - DO NOT EDIT MANUALLY
  */
 
-// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 
 interface BasePoint {
