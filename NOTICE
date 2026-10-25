@@ -734,3 +734,10 @@ src/tests/pedroHandover.test.ts
 src/utils/robotProfile.ts
 src/utils/timeCalculator/braking.ts
 src/utils/timeCalculator/chainHandover.ts
+electron/ipc/projectHandlers.js
+electron/ipc/projectHandlers.test.js
+src/lib/exporters/pedroConstants.ts
+src/lib/robotProject.ts
+src/tests/pedroConstantsExport.test.ts
+src/tests/robotProject.test.ts
+src/utils/robotProject.ts

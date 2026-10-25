@@ -78,6 +78,8 @@ export const DEFAULT_SETTINGS: Settings = {
   fakeHeadingArrowColor: "#ef4444",
   robotFeatures: [],
   javaPackageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+  pedroConstantsClass: "",
+  pedroFollowerFactory: "",
   theme: "auto",
   programFontSize: 100,
   squaredCorners: false,

@@ -33,7 +33,9 @@ import {
   type HeadingConfig,
   speedCodes,
   speedLimitNote,
+  constantsImport,
 } from "./javaFormat";
+import { pedroConstants } from "./pedroConstants";
 
 /** A variable name for each line, based on its name and made unique. */
 function uniqueVariableNames(lines: Line[], language?: CodeLanguage): string[] {
@@ -296,11 +298,19 @@ const KOTLIN_TELEMETRY_CODE: Record<
 };
 
 /** The imports every OpMode needs, after its package line. */
-const OPMODE_IMPORTS = `
+const opModeImports = () => {
+  const constants = constantsImport();
+  return `
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-    import com.qualcomm.robotcore.util.ElapsedTime;
-    import org.firstinspires.ftc.teamcode.pedro.Constants;`;
+    import com.qualcomm.robotcore.util.ElapsedTime;${constants ? `\n    ${constants};` : ""}`;
+};
+
+/** How the OpMode builds its follower, with the team's constants class. */
+const createFollower = () => {
+  const { className, followerFactory } = pedroConstants();
+  return `${className}.${followerFactory}(hardwareMap)`;
+};
 
 const PEDRO_OPMODE_IMPORTS = `
     import com.pedropathing.api.PoseFactory;
@@ -366,7 +376,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
     package ${o.packageName}
-    ${kotlinImports(`${OPMODE_IMPORTS}\n${markerImports}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}`)}
+    ${kotlinImports(`${opModeImports()}\n${markerImports}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}`)}
 
     @Autonomous(name = "${o.opModeName}", group = "Autonomous")
     ${o.telemetryImpl === "Panels" ? "@Configurable // Panels" : ""}
@@ -381,7 +391,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
       override fun init() {
         ${telemetry.init}
 
-        follower = Constants.create(hardwareMap)
+        follower = ${createFollower()}
         follower.setPose(${o.startPose})
 
         pathTimer = ElapsedTime()
@@ -545,7 +555,7 @@ export async function generateJavaCode(
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
-    package ${packageName};${OPMODE_IMPORTS}
+    package ${packageName};${opModeImports()}
     ${namedCommandsImport}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}
     
     @Autonomous(name = "${opModeName}", group = "Autonomous")
@@ -562,7 +572,7 @@ export async function generateJavaCode(
       public void init() {
         ${telemetry.init}
 
-        follower = Constants.create(hardwareMap);
+        follower = ${createFollower()};
         follower.setPose(${startPose});
 
         pathTimer = new ElapsedTime();

@@ -106,6 +106,12 @@
   } from "./utils/timeCalculator/fixSearch";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
+  import { refreshRobotProject, robotProject } from "./lib/robotProject";
+  import { projectSuggestions } from "./utils/robotProject";
+  import {
+    resolvePedroConstants,
+    setPedroConstants,
+  } from "./lib/exporters/pedroConstants";
   import { trackMicrosoftStoreInstall } from "./utils/msStoreTracking";
   import { isBrowser, getElectronAPI } from "./utils/platform";
   import { isGitHubPath } from "./utils/github/paths";
@@ -360,6 +366,58 @@
         notification.set,
       );
     }
+  });
+
+  // What the team's robot project says: read again when the folder changes,
+  // and when the app comes back into focus, as the team may have changed it.
+  $effect(() => {
+    refreshRobotProject($currentDirectoryStore);
+  });
+  onMount(() => {
+    const onFocus = () => refreshRobotProject(get(currentDirectoryStore));
+    globalThis.addEventListener?.("focus", onFocus);
+    return () => globalThis.removeEventListener?.("focus", onFocus);
+  });
+
+  // Exported code names the team's own Pedro constants class.
+  $effect(() => {
+    setPedroConstants(
+      resolvePedroConstants(
+        {
+          qualifiedName: $settingsStore.pedroConstantsClass,
+          followerFactory: $settingsStore.pedroFollowerFactory,
+        },
+        $robotProject?.constants ?? null,
+      ),
+    );
+  });
+
+  // Settings the robot project disagrees with: offered once each.
+  const offeredProjectSettings = new Set<string>();
+  $effect(() => {
+    const project = $robotProject;
+    const fresh = projectSuggestions(project, $settingsStore).filter(
+      (s) => !offeredProjectSettings.has(`${project!.root}|${s.id}|${s.found}`),
+    );
+    if (fresh.length === 0) return;
+    for (const s of fresh) {
+      offeredProjectSettings.add(`${project!.root}|${s.id}|${s.found}`);
+    }
+    notification.set({
+      message: `Your robot project doesn't match your settings for: ${fresh
+        .map((s) => s.label)
+        .join(", ")}.`,
+      type: "info",
+      timeout: 15000,
+      actionLabel: "Use the project's",
+      action: () => {
+        settingsStore.update((current) => ({
+          ...current,
+          ...Object.assign({}, ...fresh.map((s) => s.patch)),
+        }));
+        recordChange("Use settings from the robot project");
+      },
+    });
   });
 
   // --- Startup ---

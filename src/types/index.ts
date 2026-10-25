@@ -318,6 +318,12 @@ export interface Settings {
   robotFeatures?: RobotFeature[];
   fakeHeadingArrowColor?: string;
   javaPackageName?: string;
+  /**
+   * The team's Pedro constants class (full name) and the method on it that
+   * builds the Follower, for exported code. Empty: found in the robot project.
+   */
+  pedroConstantsClass?: string;
+  pedroFollowerFactory?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
   squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
@@ -1094,6 +1100,12 @@ export interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   fileExists: (filePath: string) => Promise<boolean>;
+  /** Files under `root` whose names end with one of `endings` (desktop only). */
+  findFiles?: (
+    root: string,
+    endings: string[],
+    options?: { maxDepth?: number; maxResults?: number },
+  ) => Promise<string[]>;
   resolvePath?: (base: string, relative: string) => Promise<string>;
   makeRelativePath?: (base: string, target: string) => Promise<string>;
 
