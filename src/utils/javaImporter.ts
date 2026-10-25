@@ -367,16 +367,18 @@ function readTurn(tokens: string[], points: Map<string, Point>): number | null {
 }
 
 /**
- * The paths in a Java file, as a project. Pedro Pathing 3 code (what the app
- * exports now) is read by readPedroJava; older pathBuilder() code by the
- * reader below.
+ * The paths in a Java or Kotlin file, as a project. Pedro Pathing 3 code (what
+ * the app exports now) is read by readPedroJava; older pathBuilder() Java by
+ * the reader below, which doesn't know Kotlin.
  */
 export function importJavaProject(
   javaCode: string,
   options: PedroReadOptions = {},
 ): TurtleData {
   const pedro = readPedroJava(javaCode, options);
-  if (pedro.project.lines.length > 0) return pedro.project;
+  if (pedro.project.lines.length > 0 || options.language === "kotlin") {
+    return pedro.project;
+  }
   return importOlderJava(javaCode);
 }
 

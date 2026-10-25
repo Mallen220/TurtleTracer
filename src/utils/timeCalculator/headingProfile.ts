@@ -1,5 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, Settings, BasePoint, PiecewiseSegment } from "../../types";
+import type {
+  Line,
+  Settings,
+  BasePoint,
+  PiecewiseSegment,
+  PiecewiseShortfall,
+} from "../../types";
 import type { PathAnalysis } from "./types";
 import {
   getCurvePoint,
@@ -254,6 +260,57 @@ export function buildHeadingProfile(input: HeadingProfileInput): number[] {
   return input.ignoreTurnRate
     ? profile
     : limitTurnRate(profile, input.motionProfile, ctx.maxTurnRate);
+}
+
+/**
+ * How each piecewise segment of the line falls short of its heading: the gap
+ * between the heading the segment asks for at its last step and the heading
+ * the robot has there (zero for a segment that gets there, or is too short to
+ * have a step), with the numbers that say why and what would fix it. Undefined
+ * where the line's heading isn't piecewise. `headings` is the finished profile
+ * from `buildHeadingProfile`.
+ */
+export function piecewiseShortfalls(
+  input: HeadingProfileInput,
+  headings: number[],
+): PiecewiseShortfall[] | undefined {
+  const { source } = getEffectiveHeadingSource(input.line, input.rootLine);
+  if (source.heading !== "piecewise") return undefined;
+
+  const ctx = profileContext(input);
+  const times = input.motionProfile;
+  const segments = source.segments ?? [];
+  const first = new Map<PiecewiseSegment, number>();
+  const last = new Map<PiecewiseSegment, number>();
+  for (let i = 1; i <= ctx.samples; i++) {
+    const t = ctx.progress(i);
+    const seg = segments.find((s) => t >= s.tStart && t <= s.tEnd);
+    if (!seg) continue;
+    if (!first.has(seg)) first.set(seg, i);
+    last.set(seg, i);
+  }
+
+  return segments.map((seg): PiecewiseShortfall => {
+    const none = {
+      heading: seg.heading,
+      degrees: 0,
+      turn: 0,
+      seconds: 0,
+      turnRate: ctx.maxTurnRate,
+    };
+    const end = last.get(seg);
+    if (end === undefined || headings[end] === undefined) return none;
+
+    const target = segmentTarget(ctx, seg, end, headings[end]);
+    const before = Math.max(0, first.get(seg)! - 1);
+    return {
+      heading: seg.heading,
+      degrees: Math.abs(target - headings[end]),
+      turn: Math.abs(target - (headings[before] ?? headings[end])),
+      seconds: Math.max(0, (times[end] ?? 0) - (times[before] ?? 0)),
+      turnRate: ctx.maxTurnRate,
+    };
+  });
 }
 
 /**

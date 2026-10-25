@@ -72,7 +72,6 @@ export interface CreatePathFromEventOptions {
   xInvert: (v: number) => number;
   yInvert: (v: number) => number;
   snapToGrid: boolean;
-  showGrid: boolean;
   gridSize: number;
   restrictDraggingToField: boolean;
   fieldW: number;
@@ -105,7 +104,7 @@ export function tryCreatePathFromDoubleClick(
   let inchX = options.xInvert(transformed.x);
   let inchY = options.yInvert(transformed.y);
 
-  if (options.snapToGrid && options.showGrid && options.gridSize > 0) {
+  if (options.snapToGrid && options.gridSize > 0) {
     inchX = Math.round(inchX / options.gridSize) * options.gridSize;
     inchY = Math.round(inchY / options.gridSize) * options.gridSize;
   }

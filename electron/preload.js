@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("file:write", filePath, content),
   deleteFile: (filePath) => ipcRenderer.invoke("file:delete", filePath),
   fileExists: (filePath) => ipcRenderer.invoke("file:exists", filePath),
+  // Files under a folder whose names end with one of `endings`.
+  findFiles: (root, endings, options) =>
+    ipcRenderer.invoke("project:find-files", root, endings, options),
   resolvePath: (base, relative) =>
     ipcRenderer.invoke("file:resolve-path", base, relative),
   makeRelativePath: (base, target) =>
@@ -65,7 +68,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   githubFetch: (url, init) => ipcRenderer.invoke("github:fetch", url, init),
 
-  // Following a Java file: told each time it's saved in an editor.
+  // Following a Java or Kotlin file: told each time it's saved in an editor.
   chooseJavaFile: () => ipcRenderer.invoke("java:choose-file"),
   followJavaFile: (filePath) => ipcRenderer.invoke("java:follow", filePath),
   unfollowJavaFile: () => ipcRenderer.invoke("java:unfollow"),
@@ -113,10 +116,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     connect: (ip, port, protocol) =>
       ipcRenderer.invoke("telemetry:connect", ip, port, protocol),
     disconnect: () => ipcRenderer.invoke("telemetry:disconnect"),
-    onData: (callback) =>
-      ipcRenderer.on("telemetry:data", (_event, data) => callback(data)),
-    onStatus: (callback) =>
-      ipcRenderer.on("telemetry:status", (_event, status) => callback(status)),
+    // Each returns a function that removes the listener again.
+    onData: (callback) => {
+      const listener = (_event, data) => callback(data);
+      ipcRenderer.on("telemetry:data", listener);
+      return () => ipcRenderer.removeListener("telemetry:data", listener);
+    },
+    onStatus: (callback) => {
+      const listener = (_event, status) => callback(status);
+      ipcRenderer.on("telemetry:status", listener);
+      return () => ipcRenderer.removeListener("telemetry:status", listener);
+    },
   },
   // Update
   onUpdateAvailable: (callback) =>

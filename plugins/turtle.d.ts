@@ -1,3 +1,12 @@
+/* eslint-disable */
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+/**
+ * Type definitions for Turtle Tracer Plugins.
+ * These types are automatically available in your .ts plugins.
+ *
+ * AUTO-GENERATED - DO NOT EDIT MANUALLY
+ */
+
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 
@@ -153,6 +162,15 @@ interface Line {
   macroId?: string;
   originalId?: string;
   isChain?: boolean;
+  /**
+   * The fastest this path is driven, in inches per second. Exported as a
+   * Pedro `maxVelocityConstraint` on the path, so it takes the place of the
+   * chain's cap (see `chainMaxSpeed`) rather than being limited by it. The
+   * robot's own Max Velocity setting is the most a path can go either way.
+   */
+  maxSpeed?: number;
+  /** For the first path of a chain: the fastest every path in the chain is driven, in inches per second, unless it has a `maxSpeed` of its own. */
+  chainMaxSpeed?: number;
   globalHeading?: Point["heading"] | "none"; // Used when isChain is true, acts as a global override
   globalDegrees?: number;
   globalStartDeg?: number;
@@ -276,6 +294,16 @@ interface Settings {
    * it by the curve parameter and hands over at the end of the path.
    */
   pedroVersion?: "v3" | "v2";
+  /**
+   * Pedro's brake model as written in the robot's code (ForesightConfig
+   * quadraticBrakeCoefficients and linearBrakeCoefficients, forward and strafe).
+   * Pedro uses it to decide when to hand a chained path over to the next one.
+   * All 0: the braking settings above are used instead.
+   */
+  pedroQuadraticBrakeForward?: number;
+  pedroQuadraticBrakeStrafe?: number;
+  pedroLinearBrakeForward?: number;
+  pedroLinearBrakeStrafe?: number;
   /** Seconds the robot holds at the end of a path before the next step starts. */
   pathSettleTime?: number;
   /** Stop to turn in place before a path that starts at a different heading. */
@@ -298,6 +326,12 @@ interface Settings {
   robotFeatures?: RobotFeature[];
   fakeHeadingArrowColor?: string;
   javaPackageName?: string;
+  /**
+   * The team's Pedro constants class (full name) and the method on it that
+   * builds the Follower, for exported code. Empty: found in the robot project.
+   */
+  pedroConstantsClass?: string;
+  pedroFollowerFactory?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
   squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
@@ -338,6 +372,7 @@ interface Settings {
   autoExportPathMode?: "relative" | "absolute";
   autoExportFormat?: "java" | "sequential" | "points" | "json";
   autoExportTargetLibrary?: CommandLibraryId;
+  codeLanguage?: CodeLanguage;
   autoExportFullClass?: boolean;
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
@@ -347,6 +382,10 @@ interface Settings {
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";
   showTelemetryTab?: boolean;
+  /** Pop up a notice when live telemetry has measured a better motion setting. */
+  telemetrySuggestFixes?: boolean;
+  /** Start the simulation when the live robot starts its first path. */
+  telemetrySyncPlayback?: boolean;
   sidebarItems?: string[];
   customSidebarItems?: CustomSidebarItem[];
   sidebarExpanded?: boolean;
@@ -389,6 +428,10 @@ interface RobotProfile {
   brakingQuadratic?: number;
   brakingLinear?: number;
   pathSettleTime?: number;
+  pedroQuadraticBrakeForward?: number;
+  pedroQuadraticBrakeStrafe?: number;
+  pedroLinearBrakeForward?: number;
+  pedroLinearBrakeStrafe?: number;
   robotImage?: string;
   robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
   showRobotArrows?: boolean;
@@ -427,6 +470,49 @@ interface RecoveryTrace {
   readonly heading: readonly number[];
 }
 
+/** How a piecewise heading segment falls short of its heading. */
+interface PiecewiseShortfall {
+  /** What the segment's heading is. */
+  heading: PiecewiseSegment["heading"];
+  /** Degrees short of the heading the segment asks for, at its end. */
+  degrees: number;
+  /** How far the segment asks the robot to turn, from the way it faces where the segment starts. */
+  turn: number;
+  /** Seconds the robot has between the start and the end of the segment. */
+  seconds: number;
+  /** The robot's top turn rate, in degrees per second. */
+  turnRate: number;
+}
+
+/**
+ * Where a robot goes when it can't follow a bend in its path at the speed
+ * it's going: wide of the path, until it is back on it. Shared: read only.
+ */
+interface Excursion {
+  /** Seconds from the start of the travel event to when the robot leaves the path. */
+  readonly startTime: number;
+  readonly duration: number;
+  /** Where the robot goes, with time from the start of the excursion. */
+  readonly trace: RecoveryTrace;
+  /** The part of the line (0 to 1) the robot leaves, and where it is back on it. */
+  readonly fromT: number;
+  readonly toT: number;
+  /** The furthest the robot gets from the path, in inches. */
+  readonly maxOffset: number;
+  /** The most sideways acceleration the robot would need to stay on the path, in in/s². */
+  readonly demand: number;
+  /** Whether the robot got back onto the path, rather than running out of time. */
+  readonly settled: boolean;
+  /** The tightest part of the bend: its radius (inches), where it is, the speed the path had there and when the robot passes it. */
+  readonly tightest: {
+    readonly radius: number;
+    readonly x: number;
+    readonly y: number;
+    readonly speed: number;
+    readonly time: number;
+  };
+}
+
 interface TimelineEvent {
   type: TimelineEventType;
   duration: number;
@@ -460,6 +546,25 @@ interface TimelineEvent {
   velocityProfile?: number[];
   // Detailed heading profile for travel events: maps step index to unwrapped heading
   headingProfile?: number[];
+  /**
+   * For a travel event with a piecewise heading: how each segment falls short
+   * of its heading, because the robot can't turn fast enough.
+   */
+  piecewiseShortfalls?: PiecewiseShortfall[];
+  /**
+   * For a travel event: where the robot leaves its line at a bend it can't
+   * follow at that speed. The profiles of the event describe the whole trip,
+   * the excursion included; the steps in between get the speed and heading
+   * of the robot where it is closest to them.
+   */
+  excursion?: Excursion;
+  /**
+   * For a travel event: the most sideways acceleration the path asks of the
+   * robot at the speeds it is driven, in in/s². Above what the wheels hold it
+   * is a risk of wheel slip, even where the robot stays close enough to the
+   * path that it isn't shown running wide.
+   */
+  peakDemand?: number;
   isGlobalOverride?: boolean;
   rootLine?: Line;
   globalHeading?: Point["heading"];
@@ -839,6 +944,8 @@ interface FieldRenderContext {
 /** The command-based libraries the sequential exporter can target. */
 type CommandLibraryId = "SolversLib" | "NextFTC" | "Ivy";
 
+type CodeLanguage = "java" | "kotlin";
+
 interface CodeExportContext {
   stateStep?: number; // For state machine generation
   indent?: string;
@@ -846,6 +953,7 @@ interface CodeExportContext {
   /** @deprecated Use targetLibrary. Kept so existing plugins keep working. */
   isNextFTC?: boolean;
   targetLibrary?: CommandLibraryId; // For sequential generation target
+  language?: CodeLanguage;
 }
 
 interface JavaCodeResult {
@@ -931,8 +1039,8 @@ interface ActionDefinition {
   renderField?: (item: SequenceItem, context: FieldRenderContext) => any[];
 
   /**
-   * Generate Java code for the OpMode state machine approach.
-   * Returns code and number of state steps used.
+   * Generate code for the OpMode state machine approach, in the context's
+   * `language`. Returns code and number of state steps used.
    */
   toJavaCode?: (
     item: SequenceItem,
@@ -940,13 +1048,20 @@ interface ActionDefinition {
   ) => JavaCodeResult;
 
   /**
-   * Generate Java code for the SequentialCommandGroup approach.
-   * Returns a string command instantiation.
+   * Generate code for the SequentialCommandGroup approach, in the
+   * context's `language`. Returns a string command instantiation.
    */
   toSequentialCommand?: (
     item: SequenceItem,
     context: CodeExportContext,
   ) => string;
+
+  /**
+   * Whether toJavaCode and toSequentialCommand write Kotlin when the context
+   * asks for it. Kotlin exports leave a TODO comment in place of actions
+   * without it.
+   */
+  supportsKotlin?: boolean;
 
   /**
    * Calculate timeline events and duration for this action.
@@ -967,8 +1082,9 @@ interface UpdateData {
 interface ElectronTelemetryAPI {
   connect: (ip: string, port: number, protocol: string) => Promise<any>;
   disconnect: () => Promise<any>;
-  onData: (callback: (data: any) => void) => void;
-  onStatus: (callback: (status: any) => void) => void;
+  /** Both return a function that removes the listener. */
+  onData: (callback: (data: any) => void) => (() => void) | void;
+  onStatus: (callback: (status: any) => void) => (() => void) | void;
 }
 
 /** The parts of Electron's save dialog options the app uses. */
@@ -992,6 +1108,12 @@ interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   fileExists: (filePath: string) => Promise<boolean>;
+  /** Files under `root` whose names end with one of `endings` (desktop only). */
+  findFiles?: (
+    root: string,
+    endings: string[],
+    options?: { maxDepth?: number; maxResults?: number },
+  ) => Promise<string[]>;
   resolvePath?: (base: string, relative: string) => Promise<string>;
   makeRelativePath?: (base: string, target: string) => Promise<string>;
 
@@ -1054,7 +1176,7 @@ interface ElectronAPI {
     error?: string;
   }>;
 
-  // Following a Java file (desktop): told each time it's saved in an editor.
+  // Following a Java or Kotlin file (desktop): told each time it's saved in an editor.
   chooseJavaFile?: () => Promise<string | null>;
   followJavaFile?: (filePath: string) => Promise<boolean>;
   unfollowJavaFile?: () => Promise<boolean>;

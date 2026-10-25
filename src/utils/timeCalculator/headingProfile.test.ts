@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import { calculatePathTime } from "./index";
+import { PIECEWISE_TOLERANCE_DEGREES } from "./advice";
 import { DEFAULT_SETTINGS } from "../../config/defaults";
 import type { Line, Point, PiecewiseSegment } from "../../types";
 
@@ -376,5 +377,70 @@ describe("turn rate", () => {
         rate * dt + 1e-6,
       );
     }
+  });
+});
+
+describe("piecewise shortfalls", () => {
+  const turnLate = (endDeg: number, over: Partial<typeof DEFAULT_SETTINGS>) => {
+    const line: Line = {
+      id: "a",
+      endPoint: {
+        x: 100,
+        y: 10,
+        heading: "piecewise",
+        segments: [
+          { tStart: 0, tEnd: 0.5, heading: "constant", degrees: 10 },
+          {
+            tStart: 0.5,
+            tEnd: 1,
+            heading: "linear",
+            startDeg: 10,
+            endDeg,
+          },
+        ],
+      },
+      controlPoints: [],
+      color: "red",
+    };
+    const { timeline } = calculatePathTime(start, [line], {
+      ...DEFAULT_SETTINGS,
+      ...over,
+    });
+    return timeline.find((e) => e.type === "travel")!.piecewiseShortfalls;
+  };
+
+  it("says how far a segment the robot can't turn fast enough for ends short, and why", () => {
+    const shortfalls = turnLate(190, { aVelocity: 0.5 });
+    expect(shortfalls![0].degrees).toBeLessThan(PIECEWISE_TOLERANCE_DEGREES);
+    const late = shortfalls![1];
+    expect(late.degrees).toBeGreaterThan(PIECEWISE_TOLERANCE_DEGREES);
+    // The turn it asks for, and the time it has to do it in.
+    expect(late.turn).toBeGreaterThan(150);
+    expect(late.turnRate).toBeCloseTo((0.5 * 180) / Math.PI);
+    expect(late.seconds).toBeGreaterThan(0);
+    // It turned some of the way, no faster than it can turn in the time.
+    const turned = late.turn - late.degrees;
+    expect(turned).toBeGreaterThan(0);
+    expect(turned).toBeLessThanOrEqual(late.turnRate * late.seconds + 1);
+  });
+
+  it("reports no shortfall when the robot has time to turn", () => {
+    const shortfalls = turnLate(40, { aVelocity: 6 })!;
+    expect(Math.max(...shortfalls.map((s) => s.degrees))).toBeLessThan(
+      PIECEWISE_TOLERANCE_DEGREES,
+    );
+  });
+
+  it("is left out for headings that aren't piecewise", () => {
+    const line: Line = {
+      id: "a",
+      endPoint: { x: 100, y: 10, heading: "tangential" },
+      controlPoints: [],
+      color: "red",
+    };
+    const { timeline } = calculatePathTime(start, [line], {
+      ...DEFAULT_SETTINGS,
+    });
+    expect(timeline[0].piecewiseShortfalls).toBeUndefined();
   });
 });

@@ -60,8 +60,12 @@ export function toggleChain(
 
   const newSequence = [...sequence];
   newSequence[index] = { ...item, isChain: chain };
+  // A path that joins a chain is no longer the start of one, so any speed it
+  // had for its own chain would be left where nothing shows or uses it.
   newLines = newLines.map((l) =>
-    l.id === item.lineId ? { ...l, isChain: chain } : l,
+    l.id === item.lineId
+      ? { ...l, isChain: chain, ...(chain ? { chainMaxSpeed: undefined } : {}) }
+      : l,
   );
   return { lines: newLines, sequence: newSequence };
 }

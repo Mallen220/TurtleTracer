@@ -23,7 +23,6 @@ import {
   multiSelectedPointIds,
   selectedLineId,
   selectedPointId,
-  showGrid,
   snapToGrid,
 } from "../../../stores";
 import {
@@ -95,7 +94,6 @@ beforeEach(() => {
   focus.sequenceIndex = null;
   record.mockReset();
   snapToGrid.set(false);
-  showGrid.set(false);
   gridSize.set(6);
   setState();
 });
@@ -329,7 +327,6 @@ describe("movePoint", () => {
   describe("snapping to the grid", () => {
     beforeEach(() => {
       snapToGrid.set(true);
-      showGrid.set(true);
     });
 
     it("steps to the next grid line", () => {

@@ -14,6 +14,7 @@ import type {
 import { calculatePathTime, type TimeOptions } from "./timeCalculator";
 import { FIELD_SIZE } from "../config";
 import { pointInPolygon, polygonsOverlap, getRobotCorners } from "./geometry";
+import { getCurvePoint } from "./math";
 import { robotPoseDuring, type RobotState as Pose } from "./animation";
 
 export interface OptimizerOptions {
@@ -53,6 +54,76 @@ const SWING_COLLISION_PENALTY = 30;
  */
 const MISS_TOLERANCE = 3;
 const MISS_PENALTY_PER_INCH = 3;
+/**
+ * Missing a join by less than the tolerance still costs a little, so the
+ * optimizer doesn't settle right at the edge of it (it would otherwise skip
+ * every join by just under three inches).
+ */
+const MISS_COST_PER_INCH = 0.1;
+/**
+ * Tie-breakers. Cost is time, so a bend or control point that changes nothing
+ * costs nothing, and the search adds them at random and keeps them. These make
+ * a path with no reason to be longer or more complicated rank a little below
+ * the plain one. They are small next to a real gain in time (a tenth of a
+ * second), and never change the time that is shown.
+ */
+const CONTROL_POINT_COST = 0.03;
+const LENGTH_COST_PER_INCH = 0.002;
+/**
+ * When finishing, a control point is dropped if the path ranks no more than
+ * this many seconds worse without it.
+ */
+const SIMPLIFY_TOLERANCE = 0.05;
+/** Every this-many'th candidate of the starting population changes a lot, even if nothing collides. */
+const WILD_EVERY = 4;
+/**
+ * With nothing in the way, a control point stays within this share of its
+ * path's reach (how far its curve spreads) of where it started, and at least
+ * the minimum, in inches. The path being improved is the user's own: it is
+ * refined, not redrawn.
+ */
+const TRUST_FRACTION = 0.3;
+const TRUST_MIN_RADIUS = 20;
+/** Paths that start with fewer than this many control points may gain up to it. */
+const FREE_CONTROL_POINTS = 2;
+/**
+ * A path that already clips the field edge (at a point it can't move, say)
+ * isn't punished for those samples, but each costs this many seconds, so
+ * clipping less is still better.
+ */
+const BOUNDARY_SAMPLE_COST = 1;
+/**
+ * An optimized path must be better than the original by this much (seconds of
+ * cost, after what moving the paths costs) to replace it. A change that saves
+ * a few tenths of a second isn't worth redrawing a path for.
+ */
+const IMPROVEMENT_EPSILON = 0.15;
+/**
+ * What moving a path from where it was costs, in seconds per inch it is moved
+ * (measured as how far apart the old and new curves are, on average). Without
+ * it, a change that saves a hundredth of a second costs nothing to make, and
+ * the paths are redrawn for no reason. It is kept small: straightening a bend
+ * that isn't needed moves a path several inches and saves a few tenths of a
+ * second, and that is worth doing. What makes a path crazy is how it turns
+ * (see EXTRA_TURN_COST_PER_RADIAN), not how far it moved.
+ */
+const DEVIATION_COST_PER_INCH = 0.02;
+/** How many points along a path its distance from the original is measured at. */
+const DEVIATION_SAMPLES = 10;
+/**
+ * What a path costs, in seconds per radian, for turning more than it did as
+ * drawn (its direction's total change, start to end). Loops and S-bends that
+ * the time model happens to like pay for themselves only if they save a lot;
+ * a path that turns less than it did, or the same, costs nothing.
+ */
+const EXTRA_TURN_COST_PER_RADIAN = 0.5;
+/** How many pieces a path is cut into to measure how much it turns. */
+const TURN_SAMPLES = 40;
+/**
+ * When finishing, a path is put back as it was if that costs no more than this
+ * many seconds (net of what moving it costs): its change isn't worth it.
+ */
+const REVERT_TOLERANCE = 0.1;
 /** Fitness of a path that can't be timed at all. */
 const INVALID_PENALTY = 20000;
 /** Control points are kept at least this far (inches) from line ends. */
@@ -93,6 +164,10 @@ const isOutsideField = (p: BasePoint) =>
 const isValidPoint = (p: { x?: number; y?: number } | undefined) =>
   Number.isFinite(p?.x) && Number.isFinite(p?.y);
 
+/** How many of the checks (see CHECK_INTERVAL) a marker covers: at least one. */
+const collisionSamples = (m: CollisionMarker) =>
+  1 + Math.round(((m.endTime ?? m.time) - m.time) / CHECK_INTERVAL);
+
 /** Moves `point` out to `gap` inches from `anchor` if it's closer. */
 function keepAwayFrom(
   point: BasePoint,
@@ -129,6 +204,20 @@ export class PathOptimizer {
   /** Largest distance (inches) a mutation moves a control point. */
   private mutationStrength: number;
   private stopRequested = false;
+  /** With no obstacles or keep-in zones, the search stays close to the path it was given. */
+  private readonly local: boolean;
+  /** For each line: where its control points started, and how far they may move from there. */
+  private readonly anchors: {
+    points: BasePoint[];
+    middle: BasePoint;
+    radius: number;
+  }[];
+  /** Samples of the original path that already leave the field, which aren't held against a candidate. */
+  private baselineBoundary = 0;
+  /** Points along each original path, to measure how far a candidate has moved it. */
+  private readonly originalSamples: BasePoint[][];
+  /** How much (radians) each original path turns. */
+  private readonly originalTurning: number[];
 
   constructor(
     startPoint: Point,
@@ -150,6 +239,34 @@ export class PathOptimizer {
       .map((shape) => ({ shape, box: boundingBox(shape) }));
     this.obstacles = polygons.filter((p) => p.shape.type !== "keep-in");
     this.keepInZones = polygons.filter((p) => p.shape.type === "keep-in");
+
+    this.local = this.obstacles.length + this.keepInZones.length === 0;
+    this.anchors = this.originalLines.map((line, i) => {
+      const from =
+        i === 0 ? this.startPoint : this.originalLines[i - 1].endPoint;
+      const to = line.endPoint;
+      const reach = Math.max(
+        Math.hypot(to.x - from.x, to.y - from.y),
+        ...line.controlPoints.map((c) =>
+          Math.max(
+            Math.hypot(c.x - from.x, c.y - from.y),
+            Math.hypot(c.x - to.x, c.y - to.y),
+          ),
+        ),
+      );
+      return {
+        points: line.controlPoints.map((c) => ({ x: c.x, y: c.y })),
+        middle: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 },
+        radius: Math.max(TRUST_MIN_RADIUS, TRUST_FRACTION * reach),
+      };
+    });
+
+    this.originalSamples = this.originalLines.map((line, i) =>
+      this.sampleCurve(i, line),
+    );
+    this.originalTurning = this.originalLines.map((line, i) =>
+      this.turning(i, line),
+    );
 
     this.generations = settings.optimizationIterations ?? 100;
     this.populationSize = settings.optimizationPopulationSize ?? 50;
@@ -217,22 +334,16 @@ export class PathOptimizer {
       const pose = robotPoseDuring(event, t, lines, this.startPoint);
       if (!pose) continue;
 
+      // Only the field edge is skipped near the start: obstacles and keep-in
+      // zones are checked all the way along.
       const distToStart = Math.hypot(
         pose.x - this.startPoint.x,
         pose.y - this.startPoint.y,
       );
-      if (
-        checkBoundaries &&
-        event.lineIndex === 0 &&
-        distToStart <= startClearance * 1.5
-      ) {
-        continue;
-      }
+      const clearOfStart =
+        distToStart > startClearance * (event.lineIndex === 0 ? 1.5 : 1);
 
-      const type = this.collisionAt(
-        pose,
-        checkBoundaries && distToStart > startClearance,
-      );
+      const type = this.collisionAt(pose, checkBoundaries && clearOfStart);
       if (!type) {
         if (current) markers.push(current);
         current = null;
@@ -244,7 +355,12 @@ export class PathOptimizer {
         event.type === "travel" || event.type === "recovery"
           ? event.lineIndex
           : undefined;
-      const offPath = event.type === "recovery";
+      // Off the path at a corner, or round a bend too fast to follow it.
+      const wide = event.excursion;
+      const sinceWide = wide ? t - event.startTime - wide.startTime : -1;
+      const offPath =
+        event.type === "recovery" ||
+        (wide !== undefined && sinceWide >= 0 && sinceWide <= wide.duration);
       if (
         current?.type === type &&
         current.segmentEndIndex === segment &&
@@ -357,13 +473,17 @@ export class PathOptimizer {
 
     // Count samples in collision: each marker covers at least one.
     let collisions = 0;
+    let boundary = 0;
     let swingCollisions = 0;
     for (const m of this.getCollisions(result.timeline, lines)) {
-      const samples =
-        1 + Math.round(((m.endTime ?? m.time) - m.time) / CHECK_INTERVAL);
+      const samples = collisionSamples(m);
       if (m.offPath) swingCollisions += samples;
+      else if (m.type === "boundary") boundary += samples;
       else collisions += samples;
     }
+    // Leaving the field is only held against a path beyond what the original
+    // already does.
+    if (boundary > this.baselineBoundary) collisions += boundary;
     if (collisions > 0) {
       const penalty = COLLISION_PENALTY + collisions;
       return { time: penalty, cost: penalty };
@@ -371,15 +491,91 @@ export class PathOptimizer {
     const swing =
       swingCollisions > 0 ? SWING_COLLISION_PENALTY + swingCollisions : 0;
     let skipped = 0;
+    let missed = 0;
     for (const ev of result.timeline) {
       if (ev.type === "recovery" && ev.missedBy !== undefined) {
         skipped += Math.max(0, ev.missedBy - MISS_TOLERANCE);
+        missed += ev.missedBy;
       }
     }
+    const controlPoints = lines.reduce(
+      (count, line) => count + line.controlPoints.length,
+      0,
+    );
     return {
       time: result.totalTime,
-      cost: result.totalTime + swing + skipped * MISS_PENALTY_PER_INCH,
+      cost:
+        result.totalTime +
+        swing +
+        skipped * MISS_PENALTY_PER_INCH +
+        missed * MISS_COST_PER_INCH +
+        controlPoints * CONTROL_POINT_COST +
+        result.totalDistance * LENGTH_COST_PER_INCH +
+        boundary * BOUNDARY_SAMPLE_COST +
+        this.deviation(lines) * DEVIATION_COST_PER_INCH +
+        this.extraTurning(lines) * EXTRA_TURN_COST_PER_RADIAN,
     };
+  }
+
+  /** The control polygon of line `i` of a set of lines, which starts where the path before it ends. */
+  private curveOf(i: number, line: Line): BasePoint[] {
+    const from = i === 0 ? this.startPoint : this.originalLines[i - 1].endPoint;
+    return [from, ...line.controlPoints, line.endPoint];
+  }
+
+  /** Points along line `i` of a set of lines. */
+  private sampleCurve(i: number, line: Line): BasePoint[] {
+    const curve = this.curveOf(i, line);
+    return Array.from({ length: DEVIATION_SAMPLES }, (_, j) =>
+      getCurvePoint((j + 1) / DEVIATION_SAMPLES, curve),
+    );
+  }
+
+  /** How much (radians) line `i`'s direction changes along it, both ways counted. */
+  private turning(i: number, line: Line): number {
+    const curve = this.curveOf(i, line);
+    let total = 0;
+    let prev = getCurvePoint(0, curve);
+    let prevAngle: number | null = null;
+    for (let j = 1; j <= TURN_SAMPLES; j++) {
+      const p = getCurvePoint(j / TURN_SAMPLES, curve);
+      if (Math.hypot(p.x - prev.x, p.y - prev.y) > 1e-6) {
+        const angle = Math.atan2(p.y - prev.y, p.x - prev.x);
+        if (prevAngle !== null) {
+          const d = angle - prevAngle;
+          total += Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
+        }
+        prevAngle = angle;
+      }
+      prev = p;
+    }
+    return total;
+  }
+
+  /** How much more (radians, summed over the paths) `lines` turn than the paths as drawn. */
+  private extraTurning(lines: Line[]): number {
+    let total = 0;
+    lines.forEach((line, i) => {
+      if (line.locked) return;
+      total += Math.max(0, this.turning(i, line) - this.originalTurning[i]);
+    });
+    return total;
+  }
+
+  /** How far (inches, summed over the paths) `lines` have moved the paths from where they started. */
+  private deviation(lines: Line[]): number {
+    let total = 0;
+    lines.forEach((line, i) => {
+      if (line.locked) return;
+      const was = this.originalSamples[i];
+      const now = this.sampleCurve(i, line);
+      let sum = 0;
+      for (let j = 0; j < now.length; j++) {
+        sum += Math.hypot(now[j].x - was[j].x, now[j].y - was[j].y);
+      }
+      total += sum / now.length;
+    });
+    return total;
   }
 
   private candidate(lines: Line[]): Candidate {
@@ -399,15 +595,21 @@ export class PathOptimizer {
     const structuralChance = isColliding ? 0.3 : 0.05;
 
     let prevPoint: BasePoint = this.startPoint;
-    for (const line of newLines) {
+    for (const [lineIndex, line] of newLines.entries()) {
       const lineStart = prevPoint;
       prevPoint = line.endPoint;
       if (line.locked) continue;
       const cps = line.controlPoints;
+      const anchor = this.anchors[lineIndex];
+      // With nothing in the way, a path doesn't gain more than a bend or two
+      // on top of what it has.
+      const mostControlPoints = this.local
+        ? Math.max(FREE_CONTROL_POINTS, anchor?.points.length ?? 0)
+        : 3;
 
-      // Occasionally add or remove a control point (at most 3).
+      // Occasionally add or remove a control point.
       if (Math.random() < structuralChance) {
-        if (cps.length < 3 && Math.random() < 0.6) {
+        if (cps.length < mostControlPoints && Math.random() < 0.6) {
           const jitter = strength * (isColliding ? 4 : 2);
           cps.splice(Math.floor(cps.length / 2), 0, {
             x: clampToField(
@@ -424,10 +626,24 @@ export class PathOptimizer {
         }
       }
 
-      for (const cp of cps) {
+      for (const [j, cp] of cps.entries()) {
         if (Math.random() < rate) {
           cp.x = clampToField(cp.x + (Math.random() - 0.5) * strength);
           cp.y = clampToField(cp.y + (Math.random() - 0.5) * strength);
+        }
+        // Stay near where this control point started (or the path's middle,
+        // for a new one).
+        if (this.local && anchor) {
+          const from =
+            anchor.points[Math.min(j, anchor.points.length - 1)] ??
+            anchor.middle;
+          const dx = cp.x - from.x;
+          const dy = cp.y - from.y;
+          const away = Math.hypot(dx, dy);
+          if (away > anchor.radius) {
+            cp.x = from.x + (dx * anchor.radius) / away;
+            cp.y = from.y + (dy * anchor.radius) / away;
+          }
         }
       }
 
@@ -533,6 +749,10 @@ export class PathOptimizer {
   ): Promise<{
     lines: Line[];
     bestTime: number;
+    /** False if nothing was found that is worth changing the path for, which is then what `lines` is. */
+    improved?: boolean;
+    /** How many seconds faster the best path found was (counting what isn't used when it isn't worth it). */
+    gain?: number;
     stopped?: boolean;
     error?: string;
   }> {
@@ -553,15 +773,21 @@ export class PathOptimizer {
       };
     }
 
-    let population: Candidate[] = [this.candidate(this.originalLines)];
+    this.baselineBoundary = this.measureBoundaryBaseline();
+    const original = this.candidate(this.originalLines);
+    let population: Candidate[] = [original];
     if (this.shapes.length > 0) {
       population.push(
         ...this.gridSeeds(),
         ...this.detourSeeds(Math.min(20, this.populationSize)),
       );
     }
+    // A path that works is explored carefully, with some wild candidates for
+    // variety; one that collides needs big changes to get anywhere.
+    const originalCollides = population[0].time >= COLLISION_PENALTY;
     while (population.length < this.populationSize) {
-      population.push(this.candidate(this.mutate(this.originalLines, true)));
+      const wild = originalCollides || population.length % WILD_EVERY === 0;
+      population.push(this.candidate(this.mutate(this.originalLines, wild)));
     }
 
     const byCost = (a: Candidate, b: Candidate) => a.cost - b.cost;
@@ -601,10 +827,97 @@ export class PathOptimizer {
     }
 
     population.sort(byCost);
+    const best = this.revertIdleChanges(this.simplify(population[0]));
+    // A path that is already about as fast as it gets, or that could only be
+    // made a little faster by redrawing it, is left as it is.
+    if (best.cost >= original.cost - IMPROVEMENT_EPSILON) {
+      return {
+        lines: this.originalLines,
+        bestTime: original.time,
+        improved: false,
+        gain: Math.max(0, original.time - best.time),
+        stopped: this.stopRequested,
+      };
+    }
     return {
-      lines: population[0].lines,
-      bestTime: population[0].time,
+      lines: best.lines,
+      bestTime: best.time,
+      improved: true,
+      gain: Math.max(0, original.time - best.time),
       stopped: this.stopRequested,
     };
+  }
+
+  /**
+   * Puts a path back as it was, if the change to it isn't worth what it does to
+   * the path. The search changes every path a little at once, and some of those
+   * changes save next to nothing. The path whose change is worth least goes
+   * back first, until every change left is worth keeping.
+   */
+  private revertIdleChanges(best: Candidate): Candidate {
+    let current = best;
+    for (;;) {
+      let next: Candidate | null = null;
+      for (let l = 0; l < current.lines.length; l++) {
+        const was = this.originalLines[l].controlPoints;
+        const now = current.lines[l].controlPoints;
+        if (
+          current.lines[l].locked ||
+          (now.length === was.length &&
+            now.every((c, j) => c.x === was[j].x && c.y === was[j].y))
+        ) {
+          continue;
+        }
+        const trial = structuredClone(current.lines);
+        trial[l].controlPoints = structuredClone(was);
+        const candidate = this.candidate(trial);
+        if (
+          candidate.time < COLLISION_PENALTY &&
+          candidate.cost <= current.cost + REVERT_TOLERANCE &&
+          (!next || candidate.cost < next.cost)
+        ) {
+          next = candidate;
+        }
+      }
+      if (!next) return current;
+      current = next;
+    }
+  }
+
+  /** How many samples of the original path leave the field (see `baselineBoundary`). */
+  private measureBoundaryBaseline(): number {
+    return this.getCollisions(null, this.originalLines)
+      .filter((m) => m.type === "boundary" && !m.offPath)
+      .reduce((count, m) => count + collisionSamples(m), 0);
+  }
+
+  /**
+   * Drops the control points that aren't earning their place: the search keeps
+   * any it happened to add that did no harm. Each one is tried out, and goes
+   * if the path ranks about as well without it.
+   */
+  private simplify(best: Candidate): Candidate {
+    let current = best;
+    for (let again = true; again; ) {
+      again = false;
+      for (let l = current.lines.length - 1; l >= 0 && !again; l--) {
+        const line = current.lines[l];
+        if (line.locked) continue;
+        for (let c = line.controlPoints.length - 1; c >= 0; c--) {
+          const trial = structuredClone(current.lines);
+          trial[l].controlPoints.splice(c, 1);
+          const next = this.candidate(trial);
+          if (
+            next.time < COLLISION_PENALTY &&
+            next.cost <= current.cost + SIMPLIFY_TOLERANCE
+          ) {
+            current = next;
+            again = true;
+            break;
+          }
+        }
+      }
+    }
+    return current;
   }
 }

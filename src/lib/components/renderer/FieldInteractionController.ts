@@ -12,7 +12,6 @@ import type {
 import {
   gridSize as defaultGridSize,
   snapToGrid as defaultSnapToGrid,
-  showGrid as defaultShowGrid,
   selectedPointId as defaultSelectedPointId,
   multiSelectedPointIds as defaultMultiSelectedPointIds,
   selectedLineId as defaultSelectedLineId,
@@ -66,7 +65,6 @@ import { tryCreatePathFromDoubleClick } from "./FieldPathCreator";
 export interface InteractionStores {
   gridSize?: Writable<number>;
   snapToGrid?: Writable<boolean>;
-  showGrid?: Writable<boolean>;
   selectedPointId?: Writable<string | null>;
   multiSelectedPointIds?: Writable<string[]>;
   selectedLineId?: Writable<string | null>;
@@ -125,7 +123,6 @@ export class FieldInteractionController {
   // Stores
   private gridSize: Writable<number>;
   private snapToGrid: Writable<boolean>;
-  private showGrid: Writable<boolean>;
   private selectedPointId: Writable<string | null>;
   private multiSelectedPointIds: Writable<string[]>;
   private selectedLineId: Writable<string | null>;
@@ -172,7 +169,6 @@ export class FieldInteractionController {
     const s = options.stores || {};
     this.gridSize = s.gridSize || defaultGridSize;
     this.snapToGrid = s.snapToGrid || defaultSnapToGrid;
-    this.showGrid = s.showGrid || defaultShowGrid;
     this.selectedPointId = s.selectedPointId || defaultSelectedPointId;
     this.multiSelectedPointIds =
       s.multiSelectedPointIds || defaultMultiSelectedPointIds;
@@ -252,7 +248,6 @@ export class FieldInteractionController {
   private gridSnapOptions() {
     return {
       snapToGrid: get(this.snapToGrid),
-      showGrid: get(this.showGrid),
       gridSize: get(this.gridSize),
     };
   }
@@ -719,7 +714,6 @@ export class FieldInteractionController {
       xInvert: x.invert,
       yInvert: y.invert,
       snapToGrid: get(this.snapToGrid),
-      showGrid: get(this.showGrid),
       gridSize: get(this.gridSize),
       restrictDraggingToField: settings.restrictDraggingToField !== false,
       fieldW,

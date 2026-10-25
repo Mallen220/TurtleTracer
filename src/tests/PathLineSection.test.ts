@@ -180,7 +180,10 @@ describe("naming", () => {
 
   it("shows no link marker for a name that is unique", () => {
     mount([line("a", { name: "Shoot" }), line("b", { name: "Park" })]);
-    expect(document.querySelector(".cursor-help")).toBeNull();
+    // (The speed limits' info icons are help markers too.)
+    expect(
+      document.querySelector(".cursor-help:not([aria-label^='About'])"),
+    ).toBeNull();
   });
 });
 
@@ -443,5 +446,156 @@ describe("chains", () => {
     await expect(
       fireEvent.click(screen.getByText("Overridden by Global Chain Heading")),
     ).resolves.not.toThrow();
+  });
+});
+
+describe("PathLineSection speed limits", () => {
+  // The speed limits sit under Chain Motion, which starts closed.
+  const chainMotion = () =>
+    screen.getByRole("button", { name: "Chain Motion" });
+  const openChainMotion = async () => {
+    await fireEvent.click(chainMotion());
+  };
+
+  const speedBox = () =>
+    screen.getByLabelText(
+      "Max speed of this path in inches per second",
+    ) as HTMLInputElement;
+  const chainBox = () =>
+    screen.getByLabelText(
+      "Chain max speed in inches per second",
+    ) as HTMLInputElement;
+  const queryChainBox = () =>
+    screen.queryByLabelText("Chain max speed in inches per second");
+
+  it("sets a path's own Max Speed, and records the change", async () => {
+    const t = mount([line("a")], { idx: 0 });
+    await openChainMotion();
+    expect(speedBox().placeholder).toBe(
+      `${DEFAULT_SETTINGS.maxVelocity} (robot max)`,
+    );
+    await type(speedBox(), "25");
+    expect(t.lines()[0].maxSpeed).toBe(25);
+    expect(t.recordChange).toHaveBeenCalledWith("Change Max Speed");
+  });
+
+  it("clears it when emptied, or when it isn't a number above zero", async () => {
+    const t = mount([line("a", { maxSpeed: 25 })], { idx: 0 });
+    await openChainMotion();
+    expect(speedBox().value).toBe("25");
+    await type(speedBox(), "");
+    expect(t.lines()[0].maxSpeed).toBeUndefined();
+    await type(speedBox(), "-4");
+    expect(t.lines()[0].maxSpeed).toBeUndefined();
+    expect(speedBox().value).toBe("");
+  });
+
+  it("only offers a chain speed on a path that starts a chain", async () => {
+    mount([line("a")], { idx: 0 });
+    await openChainMotion();
+    expect(queryChainBox()).toBeNull();
+  });
+
+  it("sets the chain's speed on its first path, from any path in it", async () => {
+    const lines = [line("a"), line("b", { isChain: true })];
+    const t = mount(lines, { idx: 0 });
+    await openChainMotion();
+    await type(chainBox(), "18");
+    expect(t.lines()[0].chainMaxSpeed).toBe(18);
+    expect(t.lines()[1].chainMaxSpeed).toBeUndefined();
+    expect(t.recordChange).toHaveBeenCalledWith("Change Chain Max Speed");
+  });
+
+  it("shows a chained path the chain's speed as the one it uses, and sets only its own", async () => {
+    const lines = [
+      line("a", { chainMaxSpeed: 18 }),
+      line("b", { isChain: true }),
+    ];
+    const t = mount(lines, { idx: 1 });
+    await openChainMotion();
+    expect(queryChainBox()).toBeTruthy();
+    expect(chainBox().value).toBe("18");
+    expect(speedBox().placeholder).toBe("18 (chain)");
+    await type(speedBox(), "30");
+    expect(t.lines()[1].maxSpeed).toBe(30);
+    expect(t.lines()[0].chainMaxSpeed).toBe(18);
+  });
+
+  it("warns that a speed above the robot's Max Velocity is held to it", async () => {
+    mount([line("a", { maxSpeed: 500 })], { idx: 0 });
+    await openChainMotion();
+    expect(
+      screen.getByText(
+        `Held to the robot's Max Velocity (${DEFAULT_SETTINGS.maxVelocity} in/s).`,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("can't be changed while the path is locked", async () => {
+    mount([line("a", { locked: true })], { idx: 0 });
+    await openChainMotion();
+    expect(speedBox()).toBeDisabled();
+  });
+
+  it("explains each field in an info tooltip, including why a build might fail", async () => {
+    mount([line("a"), line("b", { isChain: true })], { idx: 0 });
+    await openChainMotion();
+    const info = screen.getByLabelText("About Chain Max Speed");
+    await fireEvent.mouseEnter(info);
+    const chainTip = screen.getByText(/limits every path in this chain/);
+    const said = chainTip.parentElement!.textContent!.replaceAll(/\s+/g, " ");
+    expect(said).toContain("Constants.foresightConfig");
+    expect(said).toContain('"cannot find symbol foresightConfig" (Java)');
+    expect(said).toContain(`"Unresolved reference 'foresightConfig'" (Kotlin)`);
+    await fireEvent.mouseLeave(info);
+
+    await fireEvent.mouseEnter(screen.getByLabelText("About Max Speed"));
+    const pathTip = screen.getByText(/fastest the robot drives this path/);
+    expect(
+      pathTip.parentElement!.textContent!.replaceAll(/\s+/g, " "),
+    ).toContain("replaces the chain's for this path");
+  });
+
+  it("keeps them out of the way until asked for", async () => {
+    mount([line("a")], { idx: 0 });
+    expect(chainMotion().getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByLabelText(/max speed/i)).toBeNull();
+    await openChainMotion();
+    expect(chainMotion().getAttribute("aria-expanded")).toBe("true");
+    expect(speedBox()).toBeTruthy();
+    await fireEvent.click(chainMotion());
+    expect(screen.queryByLabelText(/max speed/i)).toBeNull();
+  });
+
+  it("shows nothing beside the heading when nothing is set", () => {
+    mount([line("a"), line("b", { isChain: true })], { idx: 0 });
+    expect(screen.queryByText(/in\/s/)).toBeNull();
+  });
+
+  it("shows what is set beside the heading while it is closed", async () => {
+    mount(
+      [
+        line("a", { chainMaxSpeed: 18 }),
+        line("b", { isChain: true, maxSpeed: 30 }),
+      ],
+      { idx: 1 },
+    );
+    expect(screen.getByText("Max 30 in/s")).toBeTruthy();
+    expect(screen.getByText("Chain 18 in/s")).toBeTruthy();
+    // Open, the fields say it instead.
+    await openChainMotion();
+    expect(screen.queryByText("Max 30 in/s")).toBeNull();
+  });
+
+  it("updates the chips as a limit is set and cleared", async () => {
+    mount([line("a")], { idx: 0 });
+    await openChainMotion();
+    await type(speedBox(), "22");
+    await fireEvent.click(chainMotion());
+    expect(screen.getByText("Max 22 in/s")).toBeTruthy();
+    await openChainMotion();
+    await type(speedBox(), "");
+    await fireEvent.click(chainMotion());
+    expect(screen.queryByText(/Max 22/)).toBeNull();
   });
 });

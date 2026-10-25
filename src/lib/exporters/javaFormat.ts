@@ -1,5 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, SequenceItem } from "../../types";
+import { pedroConstants } from "./pedroConstants";
+import type { CodeLanguage, Line, SequenceItem } from "../../types";
+import { validSpeed } from "../../utils/timeCalculator/speedCap";
 import {
   toUser,
   toUserHeading,
@@ -64,7 +66,87 @@ export const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
 export type FormatOptions = {
   coordinateSystem: CoordinateSystem;
   codeUnits: CodeUnits;
+  /** Java when missing. */
+  language?: CodeLanguage;
 };
+
+/**
+ * A number for a `double` parameter. Java widens `90` itself; Kotlin
+ * doesn't, so Kotlin gets `90.0`.
+ */
+export function doubleCode(value: number, language?: CodeLanguage): string {
+  const text = String(value);
+  return language === "kotlin" && /^-?\d+$/.test(text) ? `${text}.0` : text;
+}
+
+/**
+ * A speed as a `double` argument. It has to be written with a decimal point:
+ * Pedro's `at(...)` takes a boxed `Double`, which Java won't make from `30`.
+ */
+function speedLiteral(speed: number): string {
+  return Number.isInteger(speed) ? speed.toFixed(1) : String(speed);
+}
+
+/**
+ * The import line for the team's Pedro constants class (which the speed limits
+ * read `foresightConfig` from), without its semicolon; empty for a class in no
+ * package, which can't be imported.
+ */
+export function constantsImport(): string {
+  const { qualifiedName } = pedroConstants();
+  return qualifiedName.includes(".") ? `import ${qualifiedName}` : "";
+}
+
+/**
+ * What to tell the user about the speed limits in the code, in the place they
+ * start: they only compile if the user's Constants has `foresightConfig`.
+ */
+export function speedLimitNote(language: CodeLanguage | undefined): string {
+  const kotlin = language === "kotlin";
+  return `// Max speeds are set through Constants.foresightConfig (Pedro's "Modifying Constants").
+      // If the build fails with ${
+        kotlin
+          ? `"Unresolved reference 'foresightConfig'"`
+          : `"cannot find symbol ... foresightConfig"`
+      }, your Constants ${kotlin ? "object" : "class"} needs ${
+        kotlin
+          ? "a @JvmField var foresightConfig"
+          : "a public static ForesightConfig foresightConfig"
+      } that your Follower is built from.`;
+}
+
+/** The Pedro modifier that limits a path or chain to `speed` in/s. */
+const speedModifier = (speed: number) =>
+  `.with(${pedroConstants().className}.foresightConfig.maxVelocityConstraint.at(${speedLiteral(speed)}))`;
+
+/** The speed limits to write for each line, and whether there are any. */
+export interface SpeedCodes {
+  /** For the line's own path. */
+  own: string[];
+  /** For the chain that starts at the line; empty for a line that continues one. */
+  chain: string[];
+  any: boolean;
+}
+
+export function speedCodes(lines: Line[]): SpeedCodes {
+  const own = lines.map((line) => {
+    const speed = validSpeed(line.maxSpeed);
+    return speed === undefined ? "" : speedModifier(speed);
+  });
+  const chain = lines.map((line, idx) => {
+    const speed = validSpeed(line.chainMaxSpeed);
+    return idx > 0 && line.isChain === true
+      ? ""
+      : speed === undefined
+        ? ""
+        : speedModifier(speed);
+  });
+  return {
+    own,
+    chain,
+    any: own.some(Boolean) || chain.some(Boolean),
+  };
+}
 
 /** A heading as stored on a point, a piecewise segment or a chain. */
 export type HeadingConfig = {
@@ -101,7 +183,21 @@ export function poseCode(
 export function angleCode(degrees: number, opts: FormatOptions): string {
   return opts.coordinateSystem === "FTC"
     ? `Math.toRadians(${toUserHeading(degrees, "FTC").toFixed(3)})`
-    : `Math.toRadians(${degrees})`;
+    : `Math.toRadians(${doubleCode(degrees, opts.language)})`;
+}
+
+/**
+ * One state of an OpMode's state machine, `body` being its statements: a
+ * `case` in Java, and a `when` branch in Kotlin (which doesn't fall through).
+ */
+export function stateCase(
+  step: number,
+  body: string,
+  language?: CodeLanguage,
+): string {
+  return language === "kotlin"
+    ? `\n        ${step} -> {\n          ${body}\n        }`
+    : `\n        case ${step}:\n          ${body}\n          break;`;
 }
 
 /** Writes the arguments of an interpolator, e.g. the two angles of a linear one. */
@@ -129,12 +225,16 @@ function interpolatorCode(h: HeadingConfig, args: InterpolatorArgs): string {
 export function headingMethodCode(
   h: HeadingConfig,
   args: InterpolatorArgs,
+  language?: CodeLanguage,
 ): string {
   if (h.heading === "piecewise") {
     const segments = h.segments ?? [];
     if (segments.length === 0) return ".tangent()";
     const until = segments
-      .map((seg) => `.until(${seg.tEnd}, ${interpolatorCode(seg, args)})`)
+      .map(
+        (seg) =>
+          `.until(${doubleCode(seg.tEnd as number, language)}, ${interpolatorCode(seg, args)})`,
+      )
       .join("\n          ");
     return h.reverse
       ? `.heading(Interpolator.piecewise()\n          ${until}\n          .reverse())`
@@ -224,6 +324,19 @@ const JAVA_KEYWORDS = new Set(
   ).split(" "),
 );
 
+/** Kotlin's hard keywords that Java doesn't have, which can't name a class or variable. */
+const KOTLIN_KEYWORDS = new Set(
+  "as fun in is object typealias typeof val var when".split(" "),
+);
+
+const isKotlinKeyword = (name: string) =>
+  KOTLIN_KEYWORDS.has(name) || JAVA_KEYWORDS.has(name);
+
+/** A variable name for generated Kotlin, in backticks if it's a keyword there. */
+export function kotlinIdentifier(name: string): string {
+  return isKotlinKeyword(name) ? `\`${name}\`` : name;
+}
+
 /** A project file's name without its folder or extension ("" without one). */
 export function projectBaseName(fileName: string | null | undefined): string {
   const name = (fileName ?? "").split(/[\\/]/).pop() ?? "";
@@ -233,15 +346,19 @@ export function projectBaseName(fileName: string | null | undefined): string {
 /**
  * A valid Java class name for a project file. Java requires a public class
  * to share its file's name, so generated files are named after the project
- * and declare a class with the same name.
+ * and declare a class with the same name. Kotlin doesn't require it, but its
+ * files are named the same way.
  */
 export function javaClassName(
   fileName: string | null | undefined,
   fallback: string,
+  language?: CodeLanguage,
 ): string {
   let name = projectBaseName(fileName).replaceAll(/[^a-zA-Z0-9]/g, "_");
   if (!/[a-zA-Z0-9]/.test(name)) return fallback;
   if (/^\d/.test(name)) name = `Auto${name}`;
-  if (JAVA_KEYWORDS.has(name)) name += "Auto";
+  const reserved =
+    language === "kotlin" ? isKotlinKeyword(name) : JAVA_KEYWORDS.has(name);
+  if (reserved) name += "Auto";
   return name;
 }

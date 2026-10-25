@@ -2,6 +2,8 @@
 <!-- Renders HeadingControls on reactive state, copying each edit into `project.endPoint`. -->
 <script lang="ts">
   import { untrack } from "svelte";
+  import type { PiecewiseShortfall } from "../types";
+  import type { SegmentFixes } from "../utils/timeCalculator/advice";
   import HeadingControls, {
     type HeadingFields,
   } from "../lib/components/HeadingControls.svelte";
@@ -10,6 +12,8 @@
     project,
     nested = false,
     locked = false,
+    shortfalls = [],
+    fixesFor,
     onchange,
     oncommit,
     expose,
@@ -17,6 +21,8 @@
     project: { endPoint: HeadingFields };
     nested?: boolean;
     locked?: boolean;
+    shortfalls?: PiecewiseShortfall[];
+    fixesFor?: (i: number) => SegmentFixes;
     onchange?: () => void;
     oncommit?: () => void;
     expose?: (api: { focus: () => void }) => void;
@@ -37,6 +43,8 @@
   bind:endPoint
   {nested}
   {locked}
+  {shortfalls}
+  {fixesFor}
   onchange={() => {
     project.endPoint = $state.snapshot(endPoint);
     onchange?.();

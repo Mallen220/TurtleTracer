@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { compareVersions } from "./versions";
+import { findProjectRoot } from "./robotProject";
 let latestRelease: Promise<string | null> | null = null;
 
 /**
@@ -43,29 +44,14 @@ export async function checkLibraryVersion(
     ];
 
     let localVersion: string | null = null;
-    let projectRoot = directory;
-
-    // Normalize path to handle both Windows and Unix slashes
-    const normalizedDir = directory.replaceAll("\\", "/");
-    const parts = normalizedDir.split("/");
-    const teamCodeIndex = parts.indexOf("TeamCode");
+    const projectRoot = await findProjectRoot(
+      directory,
+      electronAPI.fileExists,
+    );
+    if (!projectRoot) return; // Not an FTC project, do nothing
 
     const resolve = (dir: string, file: string) =>
       dir + (dir.endsWith("/") ? "" : "/") + file;
-
-    if (teamCodeIndex > 0) {
-      // The user is inside TeamCode or a subdirectory of it
-      // The project root is everything before TeamCode
-      projectRoot = parts.slice(0, teamCodeIndex).join("/");
-    } else {
-      // The user might be directly at the project root. Check if TeamCode exists here.
-      const teamCodeExists = await electronAPI.fileExists(
-        resolve(directory, "TeamCode"),
-      );
-      if (!teamCodeExists) {
-        return; // Not an FTC project, do nothing
-      }
-    }
 
     for (const file of filesToCheck) {
       const filePath = resolve(projectRoot, file);

@@ -65,10 +65,10 @@ describe("following a Java file", () => {
     expect(sender.sent).toEqual([]);
   });
 
-  it("only follows Java files, at full paths", () => {
+  it("only follows Java and Kotlin files, at full paths", () => {
     const sender = windowSender();
     expect(() => follower.follow(sender, "/team/Auto.turt")).toThrow(
-      "Only Java files can be followed.",
+      "Only Java and Kotlin files can be followed.",
     );
     expect(() => follower.follow(sender, "Auto.java")).toThrow(
       "must be absolute",
@@ -88,6 +88,18 @@ describe("following a Java file", () => {
     offerJavaFile("/etc/Secret.java", offered);
     expect(follower.follow(sender, "/etc/Secret.java")).toBe(true);
     expect([...watched.keys()]).toEqual(["/etc/Secret.java"]);
+  });
+
+  it("follows a Kotlin file it offered", () => {
+    const sender = windowSender();
+    offerJavaFile("/team/TeamCode/src/main/kotlin/Auto.kt", offered);
+    offerJavaFile("/team/notes.txt", offered);
+    expect(
+      follower.follow(sender, "/team/TeamCode/src/main/kotlin/Auto.kt"),
+    ).toBe(true);
+    expect(() => follower.follow(sender, "/team/notes.txt")).toThrow(
+      "Only Java and Kotlin files",
+    );
   });
 
   it("follows one file per window, replacing the last", () => {

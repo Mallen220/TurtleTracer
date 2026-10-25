@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// Following a Java file (desktop app): the field shows the paths in a Java
-// file open in the team's editor, read again each time it's saved there.
+// Following a Java or Kotlin file (desktop app): the field shows the paths in
+// a file open in the team's editor, read again each time it's saved there.
 // The file is the source of truth while it's followed: its paths are locked,
 // no project file is changed, and nothing is exported over it. Saving the
 // view as a project, or opening one, ends it.
@@ -22,6 +22,7 @@ import {
   startPointStore,
 } from "./projectStore";
 import { getElectronAPI } from "../utils/platform";
+import { codeLanguageOfFile } from "../utils/fileExtensions";
 import type { ReadNote } from "../utils/javaImporter/pedroReader";
 import type { TurtleData } from "../types";
 
@@ -83,10 +84,22 @@ export function syntaxProblem(message: string, source = ""): ReadNote {
   return { line, message: text };
 }
 
+/** Why a Java save doesn't compile yet, or null if it does. */
+async function javaSyntaxProblem(source: string): Promise<ReadNote | null> {
+  try {
+    const { parse } = await import("java-parser");
+    parse(source);
+    return null;
+  } catch (error) {
+    return syntaxProblem(String((error as Error)?.message ?? error), source);
+  }
+}
+
 /**
- * The project files a `new TurtleTracerReader("Far.turt", ...)` in the code
- * loads its poses from, found where the library looks (the module's
- * src/main/assets/AutoPaths), next to the Java file, or in the app's folder.
+ * The project files a `new TurtleTracerReader("Far.turt", ...)` (Kotlin
+ * leaves out the `new`) in the code loads its poses from, found where the
+ * library looks (the module's src/main/assets/AutoPaths), next to the code
+ * file, or in the app's folder.
  */
 async function projectFilesFor(
   source: string,
@@ -95,9 +108,11 @@ async function projectFilesFor(
   const api = getElectronAPI();
   const found = new Map<string, TurtleData>();
   const names = [
-    ...source.matchAll(/new\s+TurtleTracerReader\s*\(\s*"([^"]+)"/g),
+    ...source.matchAll(/\bTurtleTracerReader\s*\(\s*"([^"]+)"/g),
   ].map((m) => m[1]!);
-  const module = javaPath.split(/[\\/]src[\\/]main[\\/]java[\\/]/)[0]!;
+  const module = javaPath.split(
+    /[\\/]src[\\/]main[\\/](?:java|kotlin)[\\/]/,
+  )[0]!;
   const javaDir = javaPath.slice(
     0,
     Math.max(javaPath.lastIndexOf("/"), javaPath.lastIndexOf("\\")),
@@ -156,13 +171,16 @@ async function readFollowed(path: string): Promise<void> {
   }
 
   // A save that doesn't compile yet keeps the last version on the field.
-  try {
-    const { parse } = await import("java-parser");
-    parse(source);
-  } catch (error) {
-    update({
-      error: syntaxProblem(String((error as Error)?.message ?? error), source),
-    });
+  // There's no Kotlin parser here, so Kotlin only gets a lighter check.
+  const language = codeLanguageOfFile(path);
+  const problem =
+    language === "kotlin"
+      ? (await import("../utils/javaImporter/kotlinCheck")).kotlinSyntaxProblem(
+          source,
+        )
+      : await javaSyntaxProblem(source);
+  if (problem) {
+    update({ error: problem });
     return;
   }
 
@@ -172,6 +190,7 @@ async function readFollowed(path: string): Promise<void> {
   ]);
   const { project, notes } = readPedroJava(source, {
     projectFile: (name) => projects.get(name) ?? null,
+    language,
   });
   if (read !== reads || get(followedJava)?.path !== path) return;
   if (project.lines.length === 0) {
@@ -199,8 +218,8 @@ async function readFollowed(path: string): Promise<void> {
 }
 
 /**
- * Starts following a Java file: `path`, or one the user picks. Returns
- * whether it started.
+ * Starts following a Java or Kotlin file: `path`, or one the user picks.
+ * Returns whether it started.
  */
 export async function followJavaFile(path?: string): Promise<boolean> {
   const api = getElectronAPI();
@@ -276,15 +295,15 @@ export async function saveFollowedAsProject(): Promise<boolean> {
 }
 
 /**
- * Prompts the user if they try to edit the visualizer while following a Java file.
- * Warns that editing will stop following the Java file and create an unsaved project copy.
+ * Prompts the user if they try to edit the visualizer while following a code file.
+ * Warns that editing will stop following the file and create an unsaved project copy.
  * Returns true if editing can proceed (user confirmed or not following), false if cancelled.
  */
 export function confirmFollowedJavaEdit(): boolean {
   const followed = get(followedJava);
   if (!followed) return true;
   const confirmed = confirm(
-    `Editing on the field will stop following ${followed.name} and create an unsaved project copy. Your changes will not be saved back to the Java file. Continue?`,
+    `Editing on the field will stop following ${followed.name} and create an unsaved project copy. Your changes will not be saved back to the file. Continue?`,
   );
   if (confirmed) {
     stopFollowing({ editable: true });

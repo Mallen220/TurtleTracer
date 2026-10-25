@@ -18,6 +18,7 @@ import type {
   EventMarker,
 } from "../types/index";
 import { calculatePathTime } from "../utils";
+import { normalizeStartPoint } from "../utils/ppFormat";
 import { getElectronAPI } from "../utils/platform";
 import isEqual from "lodash/isEqual";
 
@@ -99,12 +100,14 @@ export async function toggleDiff() {
 
       // Normalize data similar to projectStore.loadProjectData
       const normalizedCommitted: ProjectData = {
-        startPoint: parsed.startPoint || {
-          x: 0,
-          y: 0,
-          heading: "tangential",
-          reverse: false,
-        },
+        startPoint: normalizeStartPoint(
+          parsed.startPoint || {
+            x: 0,
+            y: 0,
+            heading: "tangential",
+            reverse: false,
+          },
+        ),
         lines: normalizeLines(parsed.lines || []),
         sequence: parsed.sequence || [],
         shapes: parsed.shapes || [],

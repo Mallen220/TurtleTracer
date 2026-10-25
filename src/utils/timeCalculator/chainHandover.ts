@@ -5,7 +5,7 @@
 // haven't changed.
 import { getCurvePoint } from "../math";
 import type { Line, Point, Settings } from "../../types";
-import { brakingDistance } from "./braking";
+import { handoverDistance } from "./braking";
 import { calculateEndHeadingAndRotation, hasGlobalHeading } from "./chainMeta";
 import type { ChainInfo } from "./chainMeta";
 import {
@@ -21,8 +21,9 @@ import type { PathStep } from "./types";
 export const CHAIN_STEPS = 100;
 
 /**
- * The step at which a chained path is handed to the next: once the robot
- * couldn't stop before the end of the path if it braked from here. A turn too
+ * The step at which a chained path is handed to the next: once Pedro thinks
+ * the robot couldn't stop before the end of the path if it braked from here
+ * (`handoverDistance`, which depends on which way the robot faces). A turn too
  * small to matter is driven straight through to the end.
  */
 export function handoverStep(
@@ -31,6 +32,8 @@ export function handoverStep(
   startStep: number,
   settings: Settings,
   turnDegrees: number,
+  /** The robot's heading at each step boundary, in degrees. */
+  headings: readonly number[] = [],
 ): number {
   const end = steps.length;
   // v2 only moves on once the path is (nearly) finished.
@@ -44,7 +47,15 @@ export function handoverStep(
     .slice(startStep)
     .reduce((sum, step) => sum + step.deltaLength, 0);
   for (let i = startStep; i < end; i++) {
-    if (remaining <= brakingDistance(velocities[i], settings)) return i;
+    const direction = steps[i].direction;
+    const heading = headings[i];
+    const travelAngle =
+      direction === undefined || heading === undefined
+        ? 0
+        : direction - heading;
+    if (remaining <= handoverDistance(velocities[i], travelAngle, settings)) {
+      return i;
+    }
     remaining -= steps[i].deltaLength;
   }
   return end;
@@ -69,9 +80,12 @@ function cacheKey(
   path: { x: number; y: number }[],
   settings: Settings,
   brakeAtEnd: boolean,
+  /** Anything else the answer depends on. */
+  extra = "",
 ): string {
   return [
     brakeAtEnd,
+    extra,
     round(position.x),
     round(position.y),
     round(velocity.x),
@@ -82,6 +96,12 @@ function cacheKey(
     settings.translationalP,
     settings.brakingQuadratic,
     settings.brakingLinear,
+    settings.pedroQuadraticBrakeForward,
+    settings.pedroQuadraticBrakeStrafe,
+    settings.pedroLinearBrakeForward,
+    settings.pedroLinearBrakeStrafe,
+    settings.aVelocity,
+    settings.pedroVersion,
     ...path.flatMap((p) => [round(p.x), round(p.y)]),
   ].join(",");
 }
@@ -102,6 +122,10 @@ export function recoverFromHandover(input: {
   settings: Settings;
   /** Whether no path is chained after `nextLine`, so the robot stops at its end. */
   nextIsLast: boolean;
+  /** The fastest `nextLine` is driven, if below the robot's Max Velocity. */
+  nextMaxSpeed?: number;
+  /** The robot's heading at the handover and the headings `nextLine` wants (see `RecoveryInput`). */
+  heading?: { start: number; wanted: readonly number[] };
 }): RecoveryResult | null {
   const {
     line,
@@ -112,6 +136,8 @@ export function recoverFromHandover(input: {
     speed,
     settings,
     nextIsLast,
+    nextMaxSpeed,
+    heading,
   } = input;
   const curve = [prevPoint, ...line.controlPoints, line.endPoint];
   const t = endStep / stepCount;
@@ -132,7 +158,17 @@ export function recoverFromHandover(input: {
     nextLine.endPoint,
   ];
 
-  const key = cacheKey(position, velocity, nextCurve, settings, nextIsLast);
+  const key = cacheKey(
+    position,
+    velocity,
+    nextCurve,
+    settings,
+    nextIsLast,
+    `cap${nextMaxSpeed ?? ""}` +
+      (heading
+        ? `/h${round(heading.start)}:${heading.wanted.map((h) => Math.round(h * 10)).join(":")}`
+        : ""),
+  );
   const kept = cache.get(key);
   if (kept) return kept;
 
@@ -144,6 +180,86 @@ export function recoverFromHandover(input: {
     ),
     settings,
     brakeAtEnd: nextIsLast,
+    maxSpeed: nextMaxSpeed,
+    heading,
+  });
+  if (cache.size >= CACHE_SIZE) cache.delete(cache.keys().next().value!);
+  cache.set(key, result);
+  return result;
+}
+
+/**
+ * What the robot does from step `fromStep` of `line`, on the path and going
+ * `speed` along it, when it can't follow the bends ahead at that speed: it
+ * goes wide and is steered back, until it is on the path again at or past
+ * step `releaseStep` (the end of the last bend it can't follow). Steps in the
+ * result count from `fromStep`. Null if the line has no direction there.
+ */
+export function runWideFromStep(input: {
+  line: Line;
+  prevPoint: Point;
+  stepCount: number;
+  fromStep: number;
+  releaseStep: number;
+  speed: number;
+  settings: Settings;
+  /** Whether no path is chained after `line`, so the robot stops at its end. */
+  brakeAtEnd: boolean;
+  /** The longest the robot is simulated for, in seconds. */
+  maxTime: number;
+  /** The fastest `line` is driven, if below the robot's Max Velocity. */
+  maxSpeed?: number;
+}): RecoveryResult | null {
+  const {
+    line,
+    prevPoint,
+    stepCount,
+    fromStep,
+    releaseStep,
+    speed,
+    settings,
+    brakeAtEnd,
+    maxTime,
+    maxSpeed,
+  } = input;
+  const curve = [prevPoint, ...line.controlPoints, line.endPoint];
+  const t = fromStep / stepCount;
+  const around = 0.5 / stepCount;
+  const before = getCurvePoint(Math.max(0, t - around), curve);
+  const after = getCurvePoint(Math.min(1, t + around), curve);
+  const length = Math.hypot(after.x - before.x, after.y - before.y);
+  if (length < 1e-9) return null;
+
+  const position = getCurvePoint(t, curve);
+  const velocity = {
+    x: ((after.x - before.x) / length) * speed,
+    y: ((after.y - before.y) / length) * speed,
+  };
+  const path = Array.from({ length: stepCount - fromStep + 1 }, (_, i) =>
+    getCurvePoint((fromStep + i) / stepCount, curve),
+  );
+  const release = releaseStep - fromStep;
+
+  const key = cacheKey(
+    position,
+    velocity,
+    path,
+    settings,
+    brakeAtEnd,
+    `${release}/${Math.round(maxTime)}/cap${maxSpeed ?? ""}`,
+  );
+  const kept = cache.get(key);
+  if (kept) return kept;
+
+  const result = simulateRecovery({
+    position,
+    velocity,
+    path,
+    settings,
+    brakeAtEnd,
+    releaseStep: release,
+    maxTime,
+    maxSpeed,
   });
   if (cache.size >= CACHE_SIZE) cache.delete(cache.keys().next().value!);
   cache.set(key, result);

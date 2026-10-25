@@ -277,3 +277,83 @@ describe("when no valid path is found", () => {
     expect(screen.queryByText("Apply New Path")).toBeNull();
   });
 });
+
+describe("when there is nothing faster to find", () => {
+  const unchanged = (lines: Line[]) => async (cb: (r: any) => void) => {
+    cb({ generation: 7, bestTime: 4.5, bestLines: lines });
+    return { lines, bestTime: 4.5, improved: false };
+  };
+
+  it("says so, and offers to close or try again, not to apply the same path", async () => {
+    optimizer.optimize = unchanged([makeLine("a"), makeLine("b")]);
+    mount();
+    await start();
+    expect(
+      await screen.findByText("No faster path found."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Apply New Path")).toBeNull();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Try Again" }),
+    ).toBeInTheDocument();
+  });
+
+  it("says what the best change would have saved, when it's small but not nothing", async () => {
+    optimizer.optimize = async (cb) => {
+      cb({ generation: 7, bestTime: 4.5, bestLines: [] });
+      return {
+        lines: [makeLine("a"), makeLine("b")],
+        bestTime: 4.5,
+        improved: false,
+        gain: 0.34,
+      };
+    };
+    mount();
+    await start();
+    expect(await screen.findByText(/saves only 0\.3 s/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/isn't worth redrawing your path for/),
+    ).toBeInTheDocument();
+  });
+
+  it("says the path is about as fast as it gets when there was nothing to save", async () => {
+    optimizer.optimize = async (cb) => {
+      cb({ generation: 7, bestTime: 4.5, bestLines: [] });
+      return {
+        lines: [makeLine("a")],
+        bestTime: 4.5,
+        improved: false,
+        gain: 0,
+      };
+    };
+    mount();
+    await start();
+    expect(
+      await screen.findByText(
+        /already about as fast as the optimizer can make it/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/saves only/)).toBeNull();
+  });
+
+  it("runs again when asked", async () => {
+    optimizer.optimize = unchanged([makeLine("a"), makeLine("b")]);
+    mount();
+    await start();
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Try Again" }),
+    );
+    await waitFor(() => expect(optimizer.constructed).toHaveLength(2));
+  });
+
+  it("doesn't say it when a faster path was found", async () => {
+    optimizer.optimize = async (cb) => {
+      cb({ generation: 7, bestTime: 4.5, bestLines: [] });
+      return { lines: [makeLine("a")], bestTime: 3, improved: true };
+    };
+    mount();
+    await start();
+    expect(await screen.findByText("Apply New Path")).toBeInTheDocument();
+    expect(screen.queryByText("No faster path found.")).toBeNull();
+  });
+});

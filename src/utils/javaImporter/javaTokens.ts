@@ -1,7 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// Java source as tokens, and a parser for the expressions path code is made
-// of: numbers, names, field access, method calls, `new`, arithmetic and
-// lambdas. Statements aren't parsed; the reader finds what it needs by name.
+// Java or Kotlin source as tokens, and a parser for the expressions path code
+// is made of: numbers, names, field access, method calls, `new`, arithmetic
+// and lambdas. Statements aren't parsed; the reader finds what it needs by name.
+
+/** The languages the reader understands. */
+export type SourceLanguage = "java" | "kotlin";
 
 export interface Token {
   kind: "name" | "number" | "string" | "symbol";
@@ -38,6 +41,9 @@ const SYMBOLS = [
   ">>",
 ];
 
+/** Kotlin's own operators, checked before the ones it shares with Java. */
+const KOTLIN_SYMBOLS = ["..<", "?.", "?:", "!!", ".."];
+
 const isNameStart = (c: string) => /[A-Za-z_$]/.test(c);
 const isNamePart = (c: string) => /[\w$]/.test(c);
 const isDigit = (c: string) => c >= "0" && c <= "9";
@@ -48,10 +54,44 @@ function endOfLineComment(source: string, i: number): number {
   return i;
 }
 
-/** Index just after the block comment at `i`, or the end of the source if it isn't closed. */
-function endOfBlockComment(source: string, i: number): number {
-  const end = source.indexOf("*/", i + 2);
-  return end === -1 ? source.length : end + 2;
+/**
+ * Index just after the block comment at `i`, or the end of the source if it
+ * isn't closed. Kotlin's block comments nest; Java's don't.
+ */
+function endOfBlockComment(
+  source: string,
+  i: number,
+  language: SourceLanguage,
+): number {
+  if (language === "java") {
+    const end = source.indexOf("*/", i + 2);
+    return end === -1 ? source.length : end + 2;
+  }
+  let depth = 0;
+  for (let j = i; j < source.length - 1; j++) {
+    if (source.startsWith("/*", j)) {
+      depth++;
+      j++;
+    } else if (source.startsWith("*/", j)) {
+      depth--;
+      j++;
+      if (depth === 0) return j + 1;
+    }
+  }
+  return source.length;
+}
+
+/** Kotlin's `"""raw string"""` at `start`, which can span lines. */
+function readRawString(source: string, start: number) {
+  const end = source.indexOf('"""', start + 3);
+  const stop = end === -1 ? source.length : end;
+  const text = source.slice(start + 3, stop);
+  return {
+    text,
+    lines: text.split("\n").length - 1,
+    next: end === -1 ? stop : stop + 3,
+    closed: end !== -1,
+  };
 }
 
 /**
@@ -62,7 +102,7 @@ function endOfBlockComment(source: string, i: number): number {
 function readLiteral(
   source: string,
   start: number,
-): { text: string; next: number } {
+): { text: string; next: number; closed: boolean } {
   const quote = source[start];
   let j = start + 1;
   let text = "";
@@ -71,7 +111,9 @@ function readLiteral(
     text += source[j] ?? "";
     j++;
   }
-  return { text, next: j + 1 };
+  const closed = source[j] === quote;
+  // An unclosed literal leaves the line break to be counted.
+  return { text, next: closed ? j + 1 : j, closed };
 }
 
 /** The number at `i` as written (`1_000`, `3f`), and as its digits alone. */
@@ -88,31 +130,52 @@ interface Scanned {
   token?: { kind: Token["kind"]; text: string };
   lines?: number;
   next: number;
+  /** A string or block comment that's never closed. */
+  unclosed?: boolean;
 }
 
 /** Steps over whitespace and comments, if that's what starts at `i`. */
-function skipOver(source: string, i: number): Scanned | null {
+function skipOver(
+  source: string,
+  i: number,
+  language: SourceLanguage,
+): Scanned | null {
   const c = source[i]!;
   if (c === "\n") return { lines: 1, next: i + 1 };
   if (/\s/.test(c)) return { next: i + 1 };
   if (source.startsWith("//", i)) return { next: endOfLineComment(source, i) };
   if (source.startsWith("/*", i)) {
-    const stop = endOfBlockComment(source, i);
+    const stop = endOfBlockComment(source, i, language);
     let lines = 0;
     for (let j = i; j < stop; j++) if (source[j] === "\n") lines++;
-    return { lines, next: stop };
+    const unclosed = !source.slice(i + 2, stop).endsWith("*/");
+    return { lines, next: stop, unclosed };
   }
   return null;
 }
 
 /** Reads the token that starts at `i`: a literal, number, name or symbol. */
-function readToken(source: string, i: number): Scanned {
+function readToken(
+  source: string,
+  i: number,
+  language: SourceLanguage,
+): Scanned {
   const c = source[i]!;
+  if (language === "kotlin" && source.startsWith('"""', i)) {
+    const raw = readRawString(source, i);
+    return {
+      token: { kind: "string", text: raw.text },
+      lines: raw.lines,
+      next: raw.next,
+      unclosed: !raw.closed,
+    };
+  }
   if (c === '"' || c === "'") {
     const literal = readLiteral(source, i);
     return {
       token: { kind: "string", text: literal.text },
       next: literal.next,
+      unclosed: !literal.closed,
     };
   }
   if (isDigit(c) || (c === "." && isDigit(source[i + 1] ?? ""))) {
@@ -127,26 +190,50 @@ function readToken(source: string, i: number): Scanned {
     while (j < source.length && isNamePart(source[j]!)) j++;
     return { token: { kind: "name", text: source.slice(i, j) }, next: j };
   }
-  const symbol = SYMBOLS.find((s) => source.startsWith(s, i)) ?? c;
+  const symbols =
+    language === "kotlin" ? [...KOTLIN_SYMBOLS, ...SYMBOLS] : SYMBOLS;
+  const symbol = symbols.find((s) => source.startsWith(s, i)) ?? c;
   return { token: { kind: "symbol", text: symbol }, next: i + symbol.length };
 }
 
 /** Reads whatever starts at `i`, which is never past the end of `source`. */
-const scan = (source: string, i: number): Scanned =>
-  skipOver(source, i) ?? readToken(source, i);
+const scan = (source: string, i: number, language: SourceLanguage): Scanned =>
+  skipOver(source, i, language) ?? readToken(source, i, language);
 
-/** Splits Java source into tokens, leaving out whitespace and comments. */
-export function tokenize(source: string): Token[] {
-  const tokens: Token[] = [];
+/** Everything in the source in order, each with the line it starts on. */
+function* scanAll(source: string, language: SourceLanguage) {
   let line = 1;
   let i = 0;
   while (i < source.length) {
-    const scanned = scan(source, i);
-    if (scanned.token) tokens.push({ ...scanned.token, line });
+    const scanned = scan(source, i, language);
+    yield { scanned, line };
     line += scanned.lines ?? 0;
     i = scanned.next;
   }
+}
+
+/** Splits source into tokens, leaving out whitespace and comments. */
+export function tokenize(
+  source: string,
+  language: SourceLanguage = "java",
+): Token[] {
+  const tokens: Token[] = [];
+  for (const { scanned, line } of scanAll(source, language)) {
+    // A token that spans lines (a raw string) is on the line it starts on.
+    if (scanned.token) tokens.push({ ...scanned.token, line });
+  }
   return tokens;
+}
+
+/** The line of the first string or block comment that's never closed, if any. */
+export function unclosedLine(
+  source: string,
+  language: SourceLanguage = "java",
+): number | null {
+  for (const { scanned, line } of scanAll(source, language)) {
+    if (scanned.unclosed) return line;
+  }
+  return null;
 }
 
 export type Expr =
@@ -184,9 +271,28 @@ const PRECEDENCE: Record<string, number> = {
   "%": 6,
 };
 
-/** Reads expressions from `tokens`, starting wherever it's asked to. */
+/** Kotlin's elvis operator, `a ?: b`, binds less tightly than everything above. */
+const KOTLIN_PRECEDENCE: Record<string, number> = { ...PRECEDENCE, "?:": 0.5 };
+
+/** Whether a call on `name` alone constructs a class, as Kotlin writes `new X(...)`. */
+const isClassName = (name: string) => /^[A-Z]/.test(name);
+
+/**
+ * Reads expressions from `tokens`, starting wherever it's asked to.
+ *
+ * Kotlin has no `new` and no semicolons: a call on a class name constructs
+ * it, and a line break ends an expression unless what follows can only
+ * continue it (`.member`, `?:`, `&&`, ...).
+ */
 export class ExpressionParser {
-  constructor(private readonly tokens: Token[]) {}
+  private readonly kotlin: boolean;
+
+  constructor(
+    private readonly tokens: Token[],
+    language: SourceLanguage = "java",
+  ) {
+    this.kotlin = language === "kotlin";
+  }
 
   /** Index of the token that closes the bracket at `open`, or the end. */
   closing(open: number): number {
@@ -217,6 +323,8 @@ export class ExpressionParser {
     const args: Expr[] = [];
     let i = open + 1;
     while (i < close) {
+      // Kotlin's named arguments: `x = 1.0`.
+      if (this.kotlin && this.tokens[i + 1]?.text === "=") i += 2;
       const { expr, end } = this.parse(i);
       args.push(expr);
       i = end;
@@ -231,12 +339,20 @@ export class ExpressionParser {
     return this.tokens[at.i];
   }
 
+  /** Whether the token at `at` starts a new line, which in Kotlin can end an expression. */
+  private onNewLine(at: { i: number }) {
+    const before = this.tokens[at.i - 1];
+    return this.kotlin && !!before && this.tokens[at.i]!.line > before.line;
+  }
+
   private expression(at: { i: number }, minPrecedence: number): Expr {
     let left = this.unary(at);
     for (;;) {
       const t = this.peek(at);
       if (t?.kind !== "symbol") break;
-      if (t.text === "?" && minPrecedence === 0) {
+      // In Kotlin `a` then `-b` on the next line are two statements.
+      if ((t.text === "-" || t.text === "+") && this.onNewLine(at)) break;
+      if (t.text === "?" && minPrecedence === 0 && !this.kotlin) {
         at.i++;
         const whenTrue = this.expression(at, 0);
         if (this.peek(at)?.text === ":") at.i++;
@@ -250,7 +366,7 @@ export class ExpressionParser {
         };
         continue;
       }
-      const precedence = PRECEDENCE[t.text];
+      const precedence = (this.kotlin ? KOTLIN_PRECEDENCE : PRECEDENCE)[t.text];
       if (precedence === undefined || precedence <= minPrecedence) break;
       at.i++;
       const right = this.expression(at, precedence);
@@ -297,6 +413,11 @@ export class ExpressionParser {
       return { kind: "name", name: t.text, line };
     }
     if (t.text === "(") return this.parenthesized(at, line);
+    // A Kotlin lambda, `{ ... }`.
+    if (t.text === "{" && this.kotlin) {
+      at.i = this.closing(at.i) + 1;
+      return { kind: "other", line };
+    }
     at.i++;
     return { kind: "other", line };
   }
@@ -365,23 +486,45 @@ export class ExpressionParser {
     return { kind: "other", line };
   }
 
+  /** A call of `callee` with the brackets at `open`, or in Kotlin a construction. */
+  private callOf(callee: Expr, args: Expr[], line: number): Expr {
+    if (this.kotlin && callee.kind === "name" && isClassName(callee.name)) {
+      return { kind: "new", type: callee.name, args, line };
+    }
+    return { kind: "call", callee, args, line };
+  }
+
   private postfix(at: { i: number }, expr: Expr): Expr {
     for (;;) {
       const t = this.peek(at);
-      if (t?.text === "." && this.tokens[at.i + 1]?.kind === "name") {
+      const member = t?.text === "." || (t?.text === "?." && this.kotlin);
+      if (member && this.tokens[at.i + 1]?.kind === "name") {
         const name = this.tokens[at.i + 1]!.text;
         at.i += 2;
         expr = { kind: "member", object: expr, name, line: t.line };
-      } else if (t?.text === "(") {
+      } else if (t?.text === "(" && !this.onNewLine(at)) {
         const open = at.i;
         at.i = this.closing(open) + 1;
-        expr = {
-          kind: "call",
-          callee: expr,
-          args: this.args(open),
-          line: t.line,
-        };
-      } else if (t?.text === "[") {
+        expr = this.callOf(expr, this.args(open), t.line);
+      } else if (t?.text === "{" && this.kotlin && !this.onNewLine(at)) {
+        // A trailing lambda: `InstantCommand { ... }`, `.setStart { ... }`.
+        at.i = this.closing(at.i) + 1;
+        if (expr.kind !== "call" && expr.kind !== "new") {
+          expr = this.callOf(expr, [], t.line);
+        }
+      } else if (t?.text === "!!" && this.kotlin) {
+        at.i++;
+      } else if (t?.text === "as" && this.kotlin) {
+        // A cast keeps the value: skip `as` / `as?` and the type.
+        at.i++;
+        if (this.peek(at)?.text === "?") at.i++;
+        while (
+          (this.peek(at)?.kind === "name" || this.peek(at)?.text === ".") &&
+          !this.onNewLine(at)
+        ) {
+          at.i++;
+        }
+      } else if (t?.text === "[" && !this.onNewLine(at)) {
         at.i = this.closing(at.i) + 1;
         expr = { kind: "other", line: t.line };
       } else if (t?.text === "::") {

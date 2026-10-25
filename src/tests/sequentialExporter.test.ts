@@ -9,7 +9,14 @@ vi.mock("prettier-plugin-java", () => ({ default: {} }));
 
 import { generateSequentialCommandCode } from "../lib/exporters/sequentialExporter";
 import { registerCoreUI } from "../lib/coreRegistrations";
-import type { CommandLibraryId, Line, Point, SequenceItem } from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import type {
+  CodeLanguage,
+  CommandLibraryId,
+  Line,
+  Point,
+  SequenceItem,
+} from "../types";
 
 beforeAll(() => registerCoreUI());
 
@@ -37,6 +44,7 @@ type Options = {
   system?: "Pedro" | "FTC";
   units?: "imperial" | "metric";
   startPoint?: Point;
+  language?: CodeLanguage;
 };
 
 const generate = (lines: Line[], o: Options = {}) =>
@@ -50,6 +58,7 @@ const generate = (lines: Line[], o: Options = {}) =>
     o.hardcode ?? false,
     o.system ?? "Pedro",
     o.units ?? "imperial",
+    o.language ?? "java",
   );
 
 const squash = (code: string) => code.replaceAll(/\s+/g, " ");
@@ -394,7 +403,7 @@ describe("generateSequentialCommandCode", () => {
         }),
       );
       expect(code).toContain(
-        "Commands.instant(() -> { follower.hold(follower.pose().withHeading(1.571)); follower.algorithm().reset(); }), Commands.waitUntil(() -> !follower.isBusy())",
+        "Commands.instant(() -> { follower.hold(follower.pose().withHeading(1.571)); follower.algorithm().reset(); }), Commands.waitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01)",
       );
     });
 
@@ -406,7 +415,7 @@ describe("generateSequentialCommandCode", () => {
         }),
       );
       expect(code).toContain(
-        'Groups.race( Commands.waitMs(1500), Groups.sequential(Commands.waitMs(750), Commands.instant(() -> { tracker.registerEvent("raiseArm", 0.500); tracker.executeEvent("raiseArm"); }),Commands.waitMs(750)) )',
+        'Groups.race( Commands.waitMs(1500), Groups.sequential( Commands.waitMs(750), Commands.instant(() -> { tracker.registerEvent("raiseArm", 0.500); tracker.executeEvent("raiseArm"); }), Commands.waitMs(750) ) )',
       );
     });
 
@@ -418,10 +427,10 @@ describe("generateSequentialCommandCode", () => {
         }),
       );
       expect(code).toContain(
-        "Groups.race( Commands.waitUntil(() -> !follower.isBusy()), Groups.sequential(",
+        "Groups.race( Commands.waitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01), Groups.sequential(",
       );
       expect(code).toContain(
-        'Commands.waitUntil(() -> tracker.shouldTriggerEvent("raiseArm")), Commands.instant(() -> tracker.executeEvent("raiseArm")), Commands.waitUntil(() -> !follower.isBusy()) ))',
+        'Commands.waitUntil(() -> tracker.shouldTriggerEvent("raiseArm")), Commands.instant(() -> tracker.executeEvent("raiseArm")), Commands.waitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01) ) )',
       );
     });
   });
@@ -430,9 +439,7 @@ describe("generateSequentialCommandCode", () => {
     const turn = (): SequenceItem =>
       ({ kind: "rotate", id: "r", name: "", degrees: 90 }) as any;
 
-    // Pedro only marks the follower busy in follow() and algorithm().reset().
-    // hold() alone leaves isBusy() false, so the wait for the turn would
-    // pass immediately.
+    // Resetting the algorithm makes the hold start over at the new heading.
     it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
       "%s resets the algorithm after holding the new heading",
       async (library) => {
@@ -448,6 +455,27 @@ describe("generateSequentialCommandCode", () => {
         );
         expect(code).toMatch(
           /follower\.hold\(follower\.pose\(\)\.withHeading\(1\.571\)\); follower\.algorithm\(\)\.reset\(\);/,
+        );
+      },
+    );
+
+    // In a hold, Pedro's isBusy() clears once its 100 ms timeout has passed,
+    // whether or not the robot has turned: a real robot skipped its turn.
+    it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
+      "%s waits until the robot faces the new heading, not for isBusy()",
+      async (library) => {
+        const code = squash(
+          await generate(scoreAndPark(), {
+            library,
+            sequence: [
+              { kind: "path", lineId: "a" },
+              turn(),
+              { kind: "path", lineId: "b" },
+            ],
+          }),
+        );
+        expect(code).toContain(
+          "Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01",
         );
       },
     );
@@ -595,5 +623,160 @@ describe("generateSequentialCommandCode", () => {
     it("adds no tracker when nothing has markers", async () => {
       expect(await generate(scoreAndPark())).not.toContain("ProgressTracker");
     });
+  });
+});
+
+describe("generateSequentialCommandCode in Kotlin", () => {
+  const kotlin = (lines: Line[], o: Options = {}) =>
+    generate(lines, { ...o, language: "kotlin" });
+
+  const turnWithMarker: SequenceItem[] = [
+    { kind: "path", lineId: "a" },
+    {
+      kind: "wait",
+      id: "w",
+      name: "",
+      durationMs: 500,
+      eventMarkers: [{ id: "e", name: "Shoot", position: 0.5 }],
+    } as any,
+    { kind: "rotate", id: "r", name: "Rotate", degrees: 90 } as any,
+    { kind: "path", lineId: "b" },
+  ];
+
+  it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
+    "writes %s as Kotlin: no new, no semicolons, Kotlin imports and lambdas",
+    async (library) => {
+      const code = await kotlin(scoreAndPark(), {
+        library,
+        sequence: turnWithMarker,
+      });
+      expect(code).toContain("package org.team.Commands\n");
+      expect(code).toContain("import com.pedropathing.api.Paths.curve\n");
+      expect(code).not.toMatch(/\bnew [A-Z]/);
+      expect(code).not.toMatch(/;\s*$/m);
+      expect(code).not.toContain("->");
+      expect(code).toContain("class Auto(");
+      expect(code).toContain("    private val p = PoseFactory.degrees()");
+      expect(code).toContain("    private val Score: Pose");
+      expect(code).toContain(
+        "    private lateinit var startPointTOScore: Path",
+      );
+      expect(code).toContain(
+        'pp = TurtleTracerReader("Auto.turt", hw.appContext)',
+      );
+      expect(code).toContain("follower.algorithm().reset()");
+    },
+  );
+
+  it("writes each library's commands the way its Kotlin API takes them", async () => {
+    const solvers = await kotlin(scoreAndPark(), { sequence: turnWithMarker });
+    // A Java vararg follows the Runnable, so the lambda stays in brackets.
+    expect(solvers).toContain("InstantCommand({");
+    expect(solvers).toContain("WaitCommand(250)");
+    expect(solvers).toContain(") : SequentialCommandGroup() {");
+
+    const next = await kotlin(scoreAndPark(), {
+      library: "NextFTC",
+      sequence: turnWithMarker,
+    });
+    expect(next).toContain("InstantCommand {");
+    expect(next).toContain("Delay(0.250)");
+    expect(next).toContain(
+      'LambdaCommand("FollowPath").setStart { follower.follow(startPointTOScore) }.setIsDone { !follower.isBusy() }',
+    );
+    expect(next).toContain(
+      "override val isDone: Boolean get() = group?.isDone ?: false",
+    );
+
+    const ivy = await kotlin(scoreAndPark(), {
+      library: "Ivy",
+      sequence: turnWithMarker,
+    });
+    // waitMs takes a double.
+    expect(ivy).toContain("Commands.waitMs(250.0)");
+    expect(ivy).toContain("fun command(): Command {");
+  });
+
+  it("writes whole-number angles and piecewise ends as doubles", async () => {
+    const code = await kotlin(
+      [
+        line("a", "Pieces", {
+          x: 20,
+          y: 20,
+          heading: "piecewise",
+          segments: [
+            { heading: "tangential", tEnd: 0.5 },
+            { heading: "constant", degrees: 90, tEnd: 1 },
+          ],
+        } as any),
+      ],
+      { hardcode: true },
+    );
+    expect(code).toContain(
+      ".until(1.0, Interpolator.constant(Math.toRadians(90.0)))",
+    );
+    // The start faces the first path: 45°, written as a double.
+    expect(code).toContain("startPoint = p.of(10.000, 10.000, 45.0)");
+  });
+
+  it("writes the FTC and metric helpers as Kotlin functions", async () => {
+    const code = await kotlin(scoreAndPark(), {
+      hardcode: true,
+      system: "FTC",
+      units: "metric",
+    });
+    expect(code).toContain(
+      "private fun buildPose(x: Double, y: Double, heading: Double): Pose {",
+    );
+    expect(code).toContain(
+      "private fun cmToInches(cm: Double): Double = cm / 2.54",
+    );
+    expect(code).not.toContain("TurtleTracerReader");
+  });
+
+  it("keeps names Kotlin reserves usable", async () => {
+    const code = await kotlin([line("a", "in", { x: 20, y: 20 })], {
+      fileName: "fun.turt",
+    });
+    expect(code).toContain("class funAuto(");
+    expect(code).toContain("private val `in`: Pose");
+    expect(code).toContain('`in` = pp.get("in")');
+  });
+
+  it("escapes $ in strings so Kotlin doesn't read a template", async () => {
+    const code = await kotlin(
+      [
+        line("a", "Score", { x: 20, y: 20 }, {
+          eventMarkers: [{ id: "e", name: "$cash", position: 0.5 }],
+        } as any),
+      ],
+      { hardcode: true },
+    );
+    expect(code).toContain(String.raw`NamedCommands.getCommand("\$cash")`);
+  });
+
+  it("leaves a TODO where a plugin action can't write Kotlin", async () => {
+    actionRegistry.register({
+      kind: "javaOnly",
+      label: "Java Only",
+      component: null,
+      toSequentialCommand: () => "new JavaOnlyCommand()",
+    });
+    try {
+      const sequence = [
+        { kind: "path", lineId: "a" },
+        { kind: "javaOnly", id: "j" },
+        { kind: "path", lineId: "b" },
+      ] as SequenceItem[];
+      const code = await kotlin(scoreAndPark(), { sequence });
+      expect(code).toContain("// TODO: Java Only has no Kotlin export yet.");
+      expect(code).not.toContain("JavaOnlyCommand");
+      // Java still gets it.
+      expect(await generate(scoreAndPark(), { sequence })).toContain(
+        "new JavaOnlyCommand()",
+      );
+    } finally {
+      actionRegistry.unregister?.("javaOnly");
+    }
   });
 });

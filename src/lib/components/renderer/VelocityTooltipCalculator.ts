@@ -43,9 +43,15 @@ function travelLength(
     .length;
 }
 
+/** How much further the robot goes round a bend it runs wide of than along the part of the line it skips. */
+function wideExtra(event: TimelineEvent, lineLength: number): number {
+  const wide = event.excursion;
+  if (!wide) return 0;
+  return traceLength(wide.trace) - (wide.toT - wide.fromT) * lineLength;
+}
+
 /** How far the robot goes along the route of a swing, in inches. */
-function traceLength(event: TimelineEvent): number {
-  const trace = event.trace;
+function traceLength(trace: TimelineEvent["trace"]): number {
   if (!trace) return 0;
   let length = 0;
   for (let i = 1; i < trace.x.length; i++) {
@@ -97,6 +103,11 @@ export function calculateVelocityTooltip(
   // way along; there is nothing to show where the robot doesn't drive it.
   const range = drivenRange(tlEvent);
   if (t < range.from - 1e-9 || t > range.to + 1e-9) return { visible: false };
+  // Nor where the robot runs wide of a bend it can't follow.
+  const wide = tlEvent.excursion;
+  if (wide && t > wide.fromT + 1e-9 && t < wide.toT - 1e-9) {
+    return { visible: false };
+  }
 
   // The same speed the heatmap colours this point with.
   const travel = travelCurve(tlEvent, lines, startPoint);
@@ -112,12 +123,15 @@ export function calculateVelocityTooltip(
   for (const ev of timeline) {
     if (ev === tlEvent) break;
     if (ev.type === "travel") {
-      distance += drivenLength(ev, travelLength(ev, lines, startPoint));
+      const length = travelLength(ev, lines, startPoint);
+      distance += drivenLength(ev, length) + wideExtra(ev, length);
     } else if (ev.type === "recovery") {
-      distance += traceLength(ev);
+      distance += traceLength(ev.trace);
     }
   }
-  distance += (t - range.from) * travelLength(tlEvent, lines, startPoint);
+  const length = travelLength(tlEvent, lines, startPoint);
+  distance += (t - range.from) * length;
+  if (wide && t >= wide.toT) distance += wideExtra(tlEvent, length);
 
   return {
     visible: true,

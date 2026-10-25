@@ -631,7 +631,7 @@
                 activeClass="text-amber-500 bg-amber-50 dark:bg-amber-900/20"
                 onclick={toggle(protractorLockToRobot)}
               />
-            {:else if item.id === "grid" && $showGrid}
+            {:else if item.id === "grid"}
               <SidebarButton
                 secondary
                 label="Snap to Grid"
@@ -643,32 +643,34 @@
                 activeClass="text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
                 onclick={toggle(snapToGrid)}
               />
-              <div
-                class="flex items-center {sidebarExpanded
-                  ? 'w-[calc(100%-1.1rem)] px-3'
-                  : 'justify-center'}"
-              >
+              {#if $showGrid || $snapToGrid}
                 <div
-                  class="sidebar-icon flex-none flex items-center justify-center"
+                  class="flex items-center {sidebarExpanded
+                    ? 'w-[calc(100%-1.1rem)] px-3'
+                    : 'justify-center'}"
                 >
-                  <select
-                    class="w-10 text-xs bg-transparent text-center text-neutral-700 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
-                    bind:value={$gridSize}
-                    title="Grid Size"
-                    aria-label="Grid Size"
+                  <div
+                    class="sidebar-icon flex-none flex items-center justify-center"
                   >
-                    {#each [0.5, 1, 3, 6, 12, 24] as size}
-                      <option value={size}>{size}"</option>
-                    {/each}
-                  </select>
+                    <select
+                      class="w-10 text-xs bg-transparent text-center text-neutral-700 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
+                      bind:value={$gridSize}
+                      title="Grid Size"
+                      aria-label="Grid Size"
+                    >
+                      {#each [0.5, 1, 3, 6, 12, 24] as size}
+                        <option value={size}>{size}"</option>
+                      {/each}
+                    </select>
+                  </div>
+                  {#if sidebarExpanded}
+                    <span
+                      class="ml-3 text-[10px] text-neutral-500 dark:text-neutral-400 uppercase tracking-tight"
+                      >Grid Size</span
+                    >
+                  {/if}
                 </div>
-                {#if sidebarExpanded}
-                  <span
-                    class="ml-3 text-[10px] text-neutral-500 dark:text-neutral-400 uppercase tracking-tight"
-                    >Grid Size</span
-                  >
-                {/if}
-              </div>
+              {/if}
             {:else if item.id === "onionSkin" && settings.showOnionLayers}
               <SidebarButton
                 secondary

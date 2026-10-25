@@ -7,6 +7,7 @@ import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequencePathItem } from "../types";
+import { DEFAULT_SETTINGS } from "../config/defaults";
 
 const pathKind = (): SequencePathItem["kind"] =>
   (actionRegistry.getAll().find((a: any) => a.isPath)
@@ -366,5 +367,59 @@ describe("PathOptimizer", () => {
     expect(boundaryMarkers.length).toBeGreaterThanOrEqual(2);
     expect(boundaryMarkers[0]?.segmentIndex).toBe(0);
     expect(boundaryMarkers.at(-1)?.segmentIndex).toBe(1);
+  });
+
+  it("still finds obstacles near a start point that's against the wall", () => {
+    startPoint = { x: 85.34, y: 10.67, heading: "constant", degrees: 0 };
+    lines = [
+      {
+        id: "drive",
+        endPoint: {
+          x: 133,
+          y: 30.56,
+          heading: "linear",
+          startDeg: 90,
+          endDeg: 90,
+        },
+        controlPoints: [],
+        color: "red",
+      },
+    ];
+    sequence = [{ kind: pathKind(), lineId: "drive" }];
+    shapes = [
+      {
+        id: "obstacle",
+        vertices: [
+          { x: 110.2, y: 1.26 },
+          { x: 96.89, y: 2.25 },
+          { x: 99.74, y: 10.67 },
+          { x: 105.04, y: 9.49 },
+        ],
+        color: "#dc2626",
+        fillColor: "#fca5a5",
+        type: "obstacle",
+        visible: true,
+      },
+    ];
+    // At the default speeds the robot is past the obstacle within 23" of the start.
+    settings = {
+      ...DEFAULT_SETTINGS,
+      rLength: 18,
+      rWidth: 18,
+      safetyMargin: 2,
+    };
+
+    const optimizer = new PathOptimizer(
+      startPoint,
+      lines,
+      settings,
+      sequence,
+      shapes,
+    );
+    const markers = optimizer.getCollisions();
+
+    expect(markers.some((m) => m.type === "obstacle")).toBe(true);
+    // The robot starts over the edge of the field; that alone isn't flagged.
+    expect(markers.filter((m) => m.type === "boundary")).toHaveLength(0);
   });
 });

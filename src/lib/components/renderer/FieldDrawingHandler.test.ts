@@ -12,13 +12,11 @@ import {
 describe("FieldDrawingHandler", () => {
   const gridOn: DrawingGridConfig = {
     snapToGrid: true,
-    showGrid: true,
     gridSize: 6,
   };
 
   const gridOff: DrawingGridConfig = {
     snapToGrid: false,
-    showGrid: true,
     gridSize: 6,
   };
 

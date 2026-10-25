@@ -5,6 +5,14 @@ import {
   startingHeading,
 } from "./timeCalculator";
 import { chainCornerIssues } from "./timeCalculator/chainIssues";
+import { GRAVITY } from "./timeCalculator/lateralLimit";
+import { bendAdvice } from "./timeCalculator/advice";
+import {
+  followsBends,
+  gainFix,
+  speedFixes,
+  type MotionFix,
+} from "./timeCalculator/fixSearch";
 import { getAngularDifference } from "./math";
 import { MAX_MACRO_DEPTH } from "../config";
 import type {
@@ -13,6 +21,8 @@ import type {
   SequenceItem,
   Settings,
   TimelineEvent,
+  RecoveryTrace,
+  Excursion,
 } from "../types";
 
 export interface SegmentStat {
@@ -32,6 +42,10 @@ export interface Insight {
   type: "warning" | "info" | "error";
   message: string;
   value?: number;
+  /** Where clicking the insight takes the timeline, if not to `startTime`. */
+  seekTime?: number;
+  /** Changes that clear it, each of which has been tried in the simulation. */
+  fixes?: MotionFix[];
   /** What `value` is, with its unit, e.g. "Swing: 7.7 in". */
   valueLabel?: string;
 }
@@ -51,7 +65,6 @@ export interface PathStats {
 
 type DataPoint = { time: number; value: number };
 
-const GRAVITY = 386.22; // in/s^2
 const toRadians = (deg: number) => (deg * Math.PI) / 180;
 
 /**
@@ -145,9 +158,9 @@ class StatsCollector {
   );
 
   constructor(
-    startPoint: Point,
+    private readonly startPoint: Point,
     private readonly lines: Line[],
-    sequence: SequenceItem[],
+    private readonly sequence: SequenceItem[],
     private readonly settings: Settings,
   ) {
     this.maxVel = settings.maxVelocity || 100;
@@ -229,6 +242,26 @@ class StatsCollector {
   graphRecovery(ev: TimelineEvent) {
     const trace = ev.type === "recovery" ? ev.trace : undefined;
     if (!trace || trace.time.length < 2) return;
+    const { distance, topSpeed } = this.graphTrace(trace, ev.startTime);
+    this.segments.push({
+      name: "Chained corner",
+      startTime: ev.startTime,
+      length: distance,
+      time: ev.duration,
+      maxVel: topSpeed,
+      maxAngVel: 0,
+      degrees: 0,
+      color: "#eab308",
+    });
+    this.maxLinear = Math.max(this.maxLinear, topSpeed);
+  }
+
+  /**
+   * Graph points for a stretch where the robot is off its path, from where it
+   * goes. Speeds come from how far the robot moves. With `turning`, its turn
+   * rate is graphed too, from its heading along the way.
+   */
+  private graphTrace(trace: RecoveryTrace, startTime: number, turning = false) {
     const stride = 5;
     let previous: {
       vx: number;
@@ -238,6 +271,8 @@ class StatsCollector {
     } | null = null;
     let distance = 0;
     let topSpeed = 0;
+    let topAngular = 0;
+    let degrees = 0;
     for (let i = 0; i < trace.time.length; i += stride) {
       const j = Math.min(i + stride, trace.time.length - 1);
       const dt = trace.time[j] - trace.time[i];
@@ -247,6 +282,14 @@ class StatsCollector {
       const speed = Math.hypot(vx, vy);
       distance += Math.hypot(trace.x[j] - trace.x[i], trace.y[j] - trace.y[i]);
       topSpeed = Math.max(topSpeed, speed);
+
+      let angular = 0;
+      if (turning) {
+        const turn = turnBetween(trace.heading[i], trace.heading[j]);
+        degrees += turn;
+        angular = toRadians(turn) / dt;
+        topAngular = Math.max(topAngular, angular);
+      }
 
       let acceleration = 0;
       let sideways = 0;
@@ -260,33 +303,23 @@ class StatsCollector {
         );
       }
       this.addDataPoint(
-        ev.startTime + trace.time[i],
+        startTime + trace.time[i],
         speed,
-        0,
+        angular,
         acceleration,
         sideways,
       );
       previous = { vx, vy, speed, time: trace.time[i] };
     }
     const last = trace.time.length - 1;
-    this.segments.push({
-      name: "Chained corner",
-      startTime: ev.startTime,
-      length: distance,
-      time: ev.duration,
-      maxVel: topSpeed,
-      maxAngVel: 0,
-      degrees: 0,
-      color: "#eab308",
-    });
-    this.maxLinear = Math.max(this.maxLinear, topSpeed);
     this.addDataPoint(
-      ev.startTime + trace.time[last],
+      startTime + trace.time[last],
       previous?.speed ?? 0,
       0,
       0,
       0,
     );
+    return { distance, topSpeed, topAngular, degrees };
   }
 
   /** The row for a wait, graphing it if it has a timeline event. */
@@ -393,8 +426,27 @@ class StatsCollector {
     let degreesTurned = 0;
 
     const count = Math.min(profile.length - 1, analysis.steps.length);
+    // The steps the robot skips while it is off the path round a bend are
+    // graphed from where it goes instead: they'd show the sideways
+    // acceleration of a robot that stayed on it.
+    const { excursion } = ev;
+    const wideFrom = excursion ? Math.round(excursion.fromT * count) : count;
+    const wideTo = excursion ? Math.round(excursion.toT * count) : count;
     let end = count;
     for (let i = 0; i < count; i++) {
+      if (excursion && i >= wideFrom && i < wideTo) {
+        if (i === wideFrom) {
+          const wide = this.graphTrace(
+            excursion.trace,
+            ev.startTime + excursion.startTime,
+            true,
+          );
+          degreesTurned += wide.degrees;
+          maxLinear = Math.max(maxLinear, wide.topSpeed);
+          maxAngular = Math.max(maxAngular, wide.topAngular);
+        }
+        continue;
+      }
       if (profile[i + 1] <= 1e-7) continue;
       if (profile[i] >= ev.duration - 1e-9) {
         end = i;
@@ -418,6 +470,39 @@ class StatsCollector {
       velocities && velocities.length > end ? velocities[end] : 0;
     this.addDataPoint(ev.endTime, exitSpeed, 0, 0, 0);
     return { maxLinear, maxAngular, degreesTurned };
+  }
+
+  /** The warning for a path whose bend the robot can't follow at the speed it is going. */
+  private noteExcursion(line: Line, ev: TimelineEvent, excursion: Excursion) {
+    const start = ev.startTime + excursion.startTime;
+    // What to set is found by trying it, so only what works is offered.
+    const fixes = speedFixes(
+      {
+        startPoint: this.startPoint,
+        lines: this.lines,
+        sequence: this.sequence,
+        settings: this.settings,
+      },
+      ev.lineIndex ?? -1,
+      followsBends(this.settings),
+    );
+    this.insights.push({
+      startTime: start,
+      endTime: start + excursion.duration,
+      // Clicking it goes to the tightest part of the bend, where the path is
+      // best split.
+      seekTime: ev.startTime + excursion.tightest.time,
+      type: excursion.settled ? "warning" : "error",
+      message: bendAdvice(
+        line.name || "This path",
+        excursion,
+        this.settings,
+        fixes.find((fix) => fix.field === "maxSpeed")?.speed ?? null,
+      ),
+      value: excursion.maxOffset,
+      valueLabel: `Wide by: ${excursion.maxOffset.toFixed(1)} in`,
+      ...(fixes.length > 0 ? { fixes } : {}),
+    });
   }
 
   /** Samples along one path's motion profile and adds its segment row. */
@@ -446,6 +531,7 @@ class StatsCollector {
         maxAngular: segMaxAngular,
         degreesTurned,
       } = this.graphProfile(ev, profile, analysis));
+      if (ev.excursion) this.noteExcursion(line, ev, ev.excursion);
     } else {
       // No profile: assume constant speed across the segment.
       if (ev.duration > 0) {
@@ -574,7 +660,8 @@ export function computePathStatistics(
   stats.addDataPoint(0, 0, 0, 0, 0);
   graphSteps(stats, stepsInOrder(sequence), lines, timeline);
 
-  // The chained corners worth a word: each is said once.
+  // The chained corners worth a word: each is said once. Where a stronger
+  // translational P holds the corner, that is offered (tried in the simulation).
   for (const issue of chainCornerIssues(
     timeline,
     startPoint,
@@ -582,6 +669,10 @@ export function computePathStatistics(
     sequence,
     settings,
   )) {
+    const fix = gainFix(
+      { startPoint, lines, sequence, settings },
+      issue.lineIndex,
+    );
     stats.insights.push({
       startTime: issue.startTime,
       endTime: issue.endTime,
@@ -589,6 +680,7 @@ export function computePathStatistics(
       message: issue.message,
       value: issue.value,
       valueLabel: issue.valueLabel,
+      ...(fix ? { fixes: [fix] } : {}),
     });
   }
 

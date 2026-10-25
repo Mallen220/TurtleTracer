@@ -5,6 +5,7 @@ import type {
   SequenceItem,
   TurtleData,
   CommandLibraryId,
+  CodeLanguage,
 } from "../../types";
 import {
   chainHasEventMarkers,
@@ -21,10 +22,13 @@ import {
 import { exporterRegistry } from "./index";
 import { getCommandLibrary } from "./commandLibraries";
 import { buildPoseTable, poseNameOf } from "./poseTable";
+import { formatKotlin } from "./kotlinFormat";
 import {
   javaLength,
   javaClassName,
   formatJava,
+  doubleCode,
+  kotlinIdentifier,
   flattenMacros,
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
   poseCode,
@@ -33,6 +37,9 @@ import {
   chainGlobalHeading,
   groupChains,
   uniqueNames,
+  speedCodes,
+  speedLimitNote,
+  constantsImport,
   type FormatOptions,
   type HeadingConfig,
 } from "./javaFormat";
@@ -47,15 +54,24 @@ export async function generateSequentialCommandCode(
   hardcodeValues: boolean = false,
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
+  language: CodeLanguage = "java",
 ): Promise<string> {
-  const className = javaClassName(fileName, "AutoPath");
+  const kotlin = language === "kotlin";
+  const className = javaClassName(fileName, "AutoPath", language);
 
   // Every pose becomes a field. With hardcodeValues it's set from the
   // project's numbers; otherwise it's loaded at runtime with pp.get().
   const poseDeclarations: string[] = [];
   const poseInitializations: string[] = [];
-  const opts: FormatOptions = { coordinateSystem, codeUnits };
-  const poseName = (idx: number) => poseNameOf(lines, idx);
+  const opts: FormatOptions = { coordinateSystem, codeUnits, language };
+  // A pose's name in pp.get(), and as a variable.
+  const variable = (name: string) => (kotlin ? kotlinIdentifier(name) : name);
+  const poseName = (idx: number) => variable(poseNameOf(lines, idx));
+  // Kotlin fields the init block sets are vals; paths are built later.
+  const field = (name: string, type: string, setInInit = true) =>
+    kotlin
+      ? `    private ${setInInit ? "val" : "lateinit var"} ${name}: ${type}`
+      : `    private ${type} ${name};`;
 
   for (const { name, x, y, degrees } of buildPoseTable(
     startPoint,
@@ -70,25 +86,28 @@ export async function generateSequentialCommandCode(
     } else if (coordinateSystem === "FTC") {
       value = poseCode({ x, y }, opts, degrees);
     } else {
-      value = `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${degrees})`;
+      value = `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${doubleCode(degrees, language)})`;
     }
-    poseDeclarations.push(`    private Pose ${name};`);
-    poseInitializations.push(`        ${name} = ${value};`);
+    poseDeclarations.push(field(variable(name), "Pose"));
+    poseInitializations.push(`        ${variable(name)} = ${value};`);
   }
 
   // Paths are named after their start and end poses, e.g. startPointTOShoot.
   const pathChainVariables = uniqueNames(
-    lines.map((_, idx) => `${poseName(idx - 1)}TO${poseName(idx)}`),
+    lines.map(
+      (_, idx) => `${poseNameOf(lines, idx - 1)}TO${poseNameOf(lines, idx)}`,
+    ),
   );
   // A chained line is part of the path before it, so it has no variable.
   const pathChainDeclarations = lines
     .map((line, idx) =>
-      line.isChain ? "" : `    private Path ${pathChainVariables[idx]};`,
+      line.isChain ? "" : field(pathChainVariables[idx], "Path", false),
     )
     .filter(Boolean)
     .join("\n");
 
   const library = getCommandLibrary(targetLibrary);
+  const template = library[language];
 
   // Generate addCommands calls with event handling; iterate sequence if provided
   const commands: string[] = [];
@@ -104,10 +123,16 @@ export async function generateSequentialCommandCode(
     // Registry Check
     const action = actionRegistry.get(item.kind);
     if (action?.toSequentialCommand) {
+      if (kotlin && !action.supportsKotlin) {
+        // Its Java wouldn't compile here; a line comment is a valid argument gap.
+        commands.push(`// TODO: ${action.label} has no Kotlin export yet.`);
+        return;
+      }
       commands.push(
         action.toSequentialCommand(item, {
           targetLibrary: library.id,
           isNextFTC: library.id === "NextFTC",
+          language,
         }),
       );
       return;
@@ -130,7 +155,7 @@ export async function generateSequentialCommandCode(
     // The name of the entire Path is the pathName of the root path
     const pathName = pathChainVariables[lineIdx];
 
-    const followPathInstance = library.commands.followPath(pathName);
+    const followPathInstance = template.commands.followPath(pathName);
 
     if (!chainHasEventMarkers(lines, lineIdx)) {
       commands.push(`                ${followPathInstance}`);
@@ -146,13 +171,13 @@ export async function generateSequentialCommandCode(
       fromReader: !hardcodeValues,
     });
     commands.push(
-      `                ${library.commands.instant(`{
+      `                ${template.commands.instant(`{
                         tracker.clearPathEvents();${registrations}
                         tracker.setCurrentPath(${pathName});
                     }`)}`,
-      `                ${library.commands.race(`
+      `                ${template.commands.race(`
                     ${followPathInstance},
-                    ${library.commands.perpetual("tracker.update()")}
+                    ${template.commands.perpetual("tracker.update()")}
                 `)}`,
     );
   });
@@ -180,6 +205,7 @@ export async function generateSequentialCommandCode(
       }
     };
 
+  const speeds = speedCodes(lines);
   const pathData = lines.map((line, idx) => {
     const startPose = poseName(idx - 1);
     const endPose = poseName(idx);
@@ -196,11 +222,13 @@ export async function generateSequentialCommandCode(
     return {
       name: pathChainVariables[idx],
       call,
-      heading: global ? "" : headingMethodCode(line.endPoint, args),
+      heading: global ? "" : headingMethodCode(line.endPoint, args, language),
       chainHeading:
         global && !line.isChain
-          ? `\n            ${headingMethodCode(global, args)}`
+          ? `\n            ${headingMethodCode(global, args, language)}`
           : "",
+      speed: speeds.own[idx],
+      chainSpeed: speeds.chain[idx],
     };
   });
 
@@ -209,19 +237,29 @@ export async function generateSequentialCommandCode(
       const root = members[0];
       if (members.length === 1) {
         const heading = root.heading ? `\n            ${root.heading}` : "";
-        return `        ${root.name} = ${root.call}${heading};`;
+        // A path on its own takes its own speed, else the one set for its chain.
+        const speed = root.speed || root.chainSpeed;
+        const limit = speed ? `\n            ${speed}` : "";
+        return `        ${root.name} = ${root.call}${heading}${limit};`;
       }
       const calls = members.map((m) => {
         const heading = m.heading ? `\n                ${m.heading}` : "";
-        return `            ${m.call}${heading}`;
+        const limit = m.speed ? `\n                ${m.speed}` : "";
+        return `            ${m.call}${heading}${limit}`;
       });
-      return `        ${root.name} = path(\n${calls.join(",\n")}\n        )${root.chainHeading};`;
+      const chainLimit = root.chainSpeed
+        ? `\n            ${root.chainSpeed}`
+        : "";
+      return `        ${root.name} = path(\n${calls.join(",\n")}\n        )${root.chainHeading}${chainLimit};`;
     })
     .join("\n\n");
+  const pathBuildersWithNote = speeds.any
+    ? `        ${speedLimitNote(language)}\n${pathBuilders}`
+    : pathBuilders;
 
   const ppReaderImport = hardcodeValues
     ? ""
-    : "import com.turtletracerlib.TurtleTracerReader;";
+    : `import com.turtletracerlib.TurtleTracerReader${kotlin ? "" : ";"}`;
   // Paths with markers read them from the file when they start, which for
   // some libraries is outside the constructor, so the reader has to be a field.
   const readerIsField =
@@ -235,7 +273,8 @@ export async function generateSequentialCommandCode(
           stripProjectExtension(rawName || "AutoPath") || "AutoPath";
         const ext =
           getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
-        return `${readerIsField ? "" : "TurtleTracerReader "}pp = new TurtleTracerReader("${baseName}${ext}", hw.appContext);`;
+        const local = kotlin ? "val " : "TurtleTracerReader ";
+        return `${readerIsField ? "" : local}pp = ${kotlin ? "" : "new "}TurtleTracerReader("${baseName}${ext}", hw.appContext);`;
       })();
 
   // Waits and turns can carry markers too, and need the tracker as well.
@@ -261,46 +300,63 @@ export async function generateSequentialCommandCode(
         : "";
     // Each path registers its own markers just before it is followed.
     return `${bindings}
-        tracker = new ProgressTracker(follower, ${library.trackerTelemetry});`;
+        tracker = ${kotlin ? "" : "new "}ProgressTracker(follower, ${library.trackerTelemetry});`;
   };
 
-  const sequentialCommandCode = library.classTemplate({
+  const sequentialCommandCode = template.classTemplate({
     warning: AUTO_GENERATED_FILE_WARNING_MESSAGE,
     packageName,
     className,
-    imports: library.imports,
+    imports:
+      template.imports +
+      (speeds.any && constantsImport()
+        ? `\n${constantsImport()}${kotlin ? "" : ";"}`
+        : ""),
     ppReaderImport,
     ppReaderInit,
     hasEventMarkers,
     trackerField:
-      (readerIsField ? "\n    private TurtleTracerReader pp;" : "") +
-      (hasEventMarkers ? "\n    private ProgressTracker tracker;" : ""),
+      (readerIsField ? `\n${field("pp", "TurtleTracerReader")}` : "") +
+      (hasEventMarkers ? `\n${field("tracker", "ProgressTracker")}` : ""),
     eventBindingCode: getEventBindingCode(),
     poseDeclarations: poseDeclarations.join("\n"),
     poseInitializations: poseInitializations.join("\n"),
     pathChainDeclarations,
-    pathBuilders,
+    pathBuilders: pathBuildersWithNote,
     commands: commands.join(",\n"),
-    ftcPoseHelper:
-      coordinateSystem === "FTC"
-        ? `
+    ftcPoseHelper: coordinateSystem === "FTC" ? ftcPoseHelper(language) : "",
+    metricHelper: codeUnits === "metric" ? metricHelper(language) : "",
+  });
+
+  return kotlin
+    ? formatKotlin(sequentialCommandCode)
+    : formatJava(sequentialCommandCode);
+}
+
+/** Converts FTC coordinates, which the generated code writes, to Pedro's. */
+const ftcPoseHelper = (language: CodeLanguage) =>
+  language === "kotlin"
+    ? `
+    private fun buildPose(x: Double, y: Double, heading: Double): Pose {
+        return p.of(y + 72.0, 72.0 - x, heading)
+    }
+    `
+    : `
     private Pose buildPose(double x, double y, double heading) {
         return p.of(y + 72.0, 72.0 - x, heading);
     }
-    `
-        : "",
-    metricHelper:
-      codeUnits === "metric"
-        ? `
+    `;
+
+const metricHelper = (language: CodeLanguage) =>
+  language === "kotlin"
+    ? `
+    private fun cmToInches(cm: Double): Double = cm / 2.54
+`
+    : `
     private double cmToInches(double cm) {
         return cm / 2.54;
     }
-`
-        : "",
-  });
-
-  return formatJava(sequentialCommandCode);
-}
+`;
 
 exporterRegistry.register({
   id: "sequential",
@@ -318,6 +374,7 @@ exporterRegistry.register({
       settings.hardcodeValues ?? false,
       settings.coordinateSystem ?? "Pedro",
       settings.codeUnits ?? "imperial",
+      settings.codeLanguage ?? "java",
     );
   },
 });

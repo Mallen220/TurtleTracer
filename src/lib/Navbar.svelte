@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { timePredictionStore } from "./projectStore";
-  import type { Settings } from "../types";
+  import { settingsStore, timePredictionStore } from "./projectStore";
+  import type { CodeLanguage, Settings } from "../types";
   import { onMount, onDestroy } from "svelte";
   import {
     currentFilePath,
@@ -105,6 +105,13 @@
   ) {
     exportMenuOpen = false;
     exportDialogState.set({ isOpen: true, format, exporterName });
+  }
+
+  /** The plain OpMode, which needs no command library, in either language. */
+  function exportOpMode(language: CodeLanguage) {
+    settingsStore.update((s) => ({ ...s, codeLanguage: language }));
+    exportMenuOpen = false;
+    exportDialogState.set({ isOpen: true, format: "java" });
   }
 
   $effect(() => {
@@ -440,10 +447,15 @@
           class="{ui.menu} absolute right-0 top-full mt-2 w-56 z-50 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
         >
           <button
-            onclick={() => handleExport("java")}
+            onclick={() => exportOpMode("java")}
             class={ui.menuItem}
             title={`Export Java${getShortcutFromSettings(settings, "export-java")}`}
             >Java Code</button
+          >
+          <button
+            onclick={() => exportOpMode("kotlin")}
+            class={ui.menuItem}
+            title="Export Kotlin">Kotlin Code</button
           >
           <button
             onclick={() => handleExport("points")}

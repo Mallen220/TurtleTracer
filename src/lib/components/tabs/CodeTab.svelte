@@ -25,6 +25,7 @@
   import { diffLines } from "diff";
   import hljs from "highlight.js/lib/core";
   import java from "highlight.js/lib/languages/java";
+  import kotlin from "highlight.js/lib/languages/kotlin";
   import json from "highlight.js/lib/languages/json";
   import plaintext from "highlight.js/lib/languages/plaintext";
   import { slide } from "svelte/transition";
@@ -37,6 +38,7 @@
 
   // Register languages for core highlight.js
   hljs.registerLanguage("java", java);
+  hljs.registerLanguage("kotlin", kotlin);
   hljs.registerLanguage("json", json);
   hljs.registerLanguage("plaintext", plaintext);
 
@@ -85,9 +87,24 @@
   let code = $state("");
   let previousCode = "";
   let isGenerating = $state(false);
-  let format: "java" | "sequential" | "points" | "json" | "custom" =
-    $state("java");
+  let format = $state<"java" | "sequential" | "points" | "json" | "custom">(
+    "java",
+  );
   let targetLibrary: CommandLibraryId = $state("SolversLib");
+  // The OpMode and sequential exports can be written in either language.
+  let kotlinCode = $derived(
+    (format === "java" || format === "sequential") &&
+      settings?.codeLanguage === "kotlin",
+  );
+  let downloadExt = $derived(
+    format === "points" || format === "custom"
+      ? "txt"
+      : format === "json"
+        ? "turt"
+        : kotlinCode
+          ? "kt"
+          : "java",
+  );
 
   // Sync state with settings
   $effect(() => {
@@ -164,7 +181,7 @@
         }
       }
 
-      let codeLanguage = "java";
+      let codeLanguage = kotlinCode ? "kotlin" : "java";
       if (format === "points") codeLanguage = "plaintext";
       if (format === "json") codeLanguage = "json";
       if (format === "custom") codeLanguage = "plaintext";
@@ -312,10 +329,7 @@
     // Prefer the project's file name if available, else try class name, else fallback
     const currentPath = get(currentFilePath);
 
-    let ext = "java";
-    if (format === "points") ext = "txt";
-    if (format === "json") ext = "turt";
-    if (format === "custom") ext = "txt";
+    const ext = downloadExt;
 
     let defaultName = `AutoPath.${ext}`;
     if (currentPath) {
@@ -324,7 +338,7 @@
       defaultName = `${short}.${ext}`;
     } else if (format === "java" || format === "sequential") {
       const match = code.match(/class\s+(\w+)/);
-      if (match) defaultName = `${match[1]}.java`;
+      if (match) defaultName = `${match[1]}.${ext}`;
     }
 
     let dialogTitle = "Save File";
@@ -332,6 +346,9 @@
     if (ext === "java") {
       dialogTitle = "Save Generated Java";
       filterName = "Java File";
+    } else if (ext === "kt") {
+      dialogTitle = "Save Generated Kotlin";
+      filterName = "Kotlin File";
     } else if (ext === "txt") {
       dialogTitle = "Save Points Array";
       filterName = "Text File";
@@ -377,9 +394,9 @@
     <div class="flex flex-col gap-0.5">
       <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
         Previewing: {format === "java"
-          ? "Java Class (Standard)"
+          ? `OpMode (${kotlinCode ? "Kotlin" : "Java"})`
           : format === "sequential"
-            ? `Sequential (${targetLibrary})`
+            ? `Sequential (${targetLibrary}${kotlinCode ? ", Kotlin" : ""})`
             : format === "points"
               ? "Points Array"
               : format === "json"
@@ -409,17 +426,13 @@
     <button
       onclick={handleDownloadJava}
       class={ui.btn.primary}
-      title={`Download as ${format === "points" || format === "custom" ? ".txt" : format === "json" ? ".turt" : ".java"}${getShortcutFromSettings(settings, "download-java")}`}
+      title={`Download as .${downloadExt}${getShortcutFromSettings(settings, "download-java")}`}
       aria-label="Download generated file"
       disabled={!code}
       aria-disabled={!code}
     >
       <DownloadIcon className="size-4" strokeWidth={2} />
-      Download {format === "points" || format === "custom"
-        ? ".txt"
-        : format === "json"
-          ? ".turt"
-          : ".java"}
+      Download .{downloadExt}
     </button>
 
     <button

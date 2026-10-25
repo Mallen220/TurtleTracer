@@ -3,7 +3,7 @@
   import { focusOnRequest } from "../../actions/focusOnRequest";
   import { makeId } from "../../../utils/nameGenerator";
   import { createTriangle } from "../../../utils";
-  import { snapToGrid, showGrid, gridSize } from "../../../stores";
+  import { snapToGrid, gridSize } from "../../../stores";
   import { settingsStore, shapesStore } from "../../projectStore";
   import {
     toUserCoordinate,
@@ -49,7 +49,7 @@
   let showSaveDialog = $state(false);
 
   let snapToGridTitle = $derived(
-    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
+    $snapToGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
   );
 
   function openSaveDialog() {
@@ -159,7 +159,7 @@
       type="number"
       min={system === "FTC" ? -extent / 2 : 0}
       max={system === "FTC" ? extent / 2 : extent}
-      step={$snapToGrid && $showGrid ? $gridSize : 0.1}
+      step={$snapToGrid ? $gridSize : 0.1}
       title={snapToGridTitle}
       class="{ui.inputXs} pl-1.5 w-20 font-mono"
       disabled={shape.locked ?? false}

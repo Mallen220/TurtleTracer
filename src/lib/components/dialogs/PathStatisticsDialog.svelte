@@ -24,6 +24,8 @@
   import { notification } from "../../../stores";
   import { formatDisplayDistance } from "../../../utils/coordinates";
   import SimpleChart from "../tools/SimpleChart.svelte";
+  import SpeedFixButtons from "../sections/SpeedFixButtons.svelte";
+  import type { MotionFix } from "../../../utils/timeCalculator/fixSearch";
   import { ui } from "../../ui";
 
   interface Props {
@@ -34,6 +36,8 @@
     percent?: number;
     totalSeconds?: number;
     onSeek?: (percent: number) => void;
+    /** Applies a fix a warning offers (a speed limit); without it the warning offers none. */
+    onApplyFix?: (fix: MotionFix) => void;
     isOpen?: boolean;
     onClose: () => void;
     // If provided, position/size will match this rect (from the Control Tab container)
@@ -55,6 +59,7 @@
     percent = 0,
     totalSeconds,
     onSeek,
+    onApplyFix,
     isOpen = $bindable(false),
     onClose,
     controlRect = null,
@@ -481,9 +486,14 @@
                 <div
                   role="button"
                   tabindex="0"
-                  title="Go to {formatTime(insight.startTime)}"
-                  onclick={() => seekToTime(insight.startTime)}
-                  onkeydown={activateOnKey(() => seekToTime(insight.startTime))}
+                  title="Go to {formatTime(
+                    insight.seekTime ?? insight.startTime,
+                  )}"
+                  onclick={() =>
+                    seekToTime(insight.seekTime ?? insight.startTime)}
+                  onkeydown={activateOnKey(() =>
+                    seekToTime(insight.seekTime ?? insight.startTime),
+                  )}
                   class="{ui.alert[
                     insight.type === 'error'
                       ? 'danger'
@@ -522,6 +532,14 @@
                         </div>
                       {/if}
                     </div>
+                    {#if onApplyFix && insight.fixes?.length}
+                      <div class="mt-2">
+                        <SpeedFixButtons
+                          fixes={insight.fixes}
+                          onapply={onApplyFix}
+                        />
+                      </div>
+                    {/if}
                   </div>
                 </div>
               {/each}

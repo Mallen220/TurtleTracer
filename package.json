@@ -1,7 +1,7 @@
 {
   "name": "turtle-tracer",
   "private": true,
-  "version": "2.5.1",
+  "version": "2.6.0",
   "main": "electron/main.js",
   "author": "Matthew Allen <FTCTurtleTracer@gmail.com>",
   "email": "FTCTurtleTracer@gmail.com",
@@ -25,6 +25,7 @@
     "dist:publish": "node scripts/publish.js",
     "generate:types": "node scripts/generate-plugin-types.js",
     "generate:icons": "node scripts/generate-windows-icons.cjs",
+    "docs:examples": "vite-node scripts/generate-doc-examples.ts --",
     "check:tiles": "node scripts/check-tile-assets.cjs",
     "copy:icon": "node scripts/prepare-mac-icon.js",
     "fix:headers": "node scripts/add-copyright.js",

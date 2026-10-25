@@ -794,7 +794,7 @@ describe("codeExporter", () => {
       );
     });
 
-    it("should export rotate action using Pedro v3 follower.hold and !isBusy", async () => {
+    it("should export rotate action using Pedro v3 follower.hold, waiting for the heading", async () => {
       const lines = [line1];
       const sequence: SequenceItem[] = [
         { kind: pathKind(), lineId: "line1" },
@@ -812,7 +812,7 @@ describe("codeExporter", () => {
         "follower.hold(follower.pose().withHeading(1.571))",
       );
       expect(solversCode).toContain(
-        "new WaitUntilCommand(() -> !follower.isBusy())",
+        "new WaitUntilCommand(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01)",
       );
       expect(solversCode).toContain(
         "import com.seattlesolvers.solverslib.command.WaitUntilCommand;",
@@ -828,7 +828,9 @@ describe("codeExporter", () => {
       expect(nextFtcCode).toContain(
         "follower.hold(follower.pose().withHeading(1.571))",
       );
-      expect(nextFtcCode).toContain("new WaitUntil(() -> !follower.isBusy())");
+      expect(nextFtcCode).toContain(
+        "new WaitUntil(() -> Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01)",
+      );
       expect(nextFtcCode).toContain(
         "import dev.nextftc.core.commands.delays.WaitUntil;",
       );
@@ -870,7 +872,7 @@ describe("codeExporter", () => {
   });
 
   describe("rotate in generateJavaCode", () => {
-    it("should export rotate action using follower.hold and !follower.isBusy()", async () => {
+    it("should export rotate action using follower.hold, waiting for the heading", async () => {
       const lines = [line1];
       const sequence: SequenceItem[] = [
         { kind: pathKind(), lineId: "line1" },
@@ -881,9 +883,11 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "follower.hold(follower.pose().withHeading(1.571));",
       );
-      // hold() doesn't mark the follower busy, so isBusy() needs the reset.
       expect(code).toContain("follower.algorithm().reset();");
-      expect(code).toContain("if(!follower.isBusy()) {");
+      // isBusy() clears 100 ms into a hold, turned or not.
+      expect(code).toContain(
+        "if(Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), 1.571)) < 0.01) {",
+      );
     });
   });
 

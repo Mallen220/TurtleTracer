@@ -35,9 +35,11 @@ import { githubRepos } from "../utils/github/repos";
 import pkg from "../../package.json";
 import { compareVersions } from "../utils/versions";
 import { pathInMessage } from "../utils/messagePaths";
+import { normalizeLineHeading, normalizeStartPoint } from "../utils/ppFormat";
+import { validSpeed } from "../utils/timeCalculator/speedCap";
 
 export function normalizeLines(input: Line[]): Line[] {
-  return (input || []).map((line) => ({
+  return (input || []).map(normalizeLineHeading).map((line) => ({
     ...line,
     id: line.id || makeId("line"),
     controlPoints: line.controlPoints || [],
@@ -55,6 +57,9 @@ export function normalizeLines(input: Line[]): Line[] {
     ),
     waitBeforeName: line.waitBeforeName ?? line.waitBefore?.name ?? "",
     waitAfterName: line.waitAfterName ?? line.waitAfter?.name ?? "",
+    // A speed that isn't a number above zero is no speed at all.
+    maxSpeed: validSpeed(line.maxSpeed),
+    chainMaxSpeed: validSpeed(line.chainMaxSpeed),
   }));
 }
 
@@ -319,6 +324,7 @@ export async function loadMacro(filePath: string, force = false) {
       if (data.startPoint && data.lines) {
         // Normalize lines in macro
         data.lines = normalizeLines(data.lines);
+        data.startPoint = normalizeStartPoint(data.startPoint);
         macrosStore.update((map) => {
           const newMap = new Map(map);
           newMap.set(filePath, data);
@@ -390,12 +396,14 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
     });
   }
 
-  const sp = data.startPoint || {
-    x: 72,
-    y: 72,
-    heading: "tangential",
-    reverse: false,
-  };
+  const sp = data.startPoint
+    ? normalizeStartPoint(data.startPoint)
+    : {
+        x: 72,
+        y: 72,
+        heading: "tangential",
+        reverse: false,
+      };
   startPointStore.set(sp);
 
   // Helper to strip " (##)" suffix from names to restore linkage

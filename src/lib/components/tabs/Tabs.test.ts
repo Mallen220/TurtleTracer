@@ -65,6 +65,7 @@ vi.mock("../../../lib/projectStore", async () => {
     loadMacro: vi.fn(),
     ensureSequenceConsistency: vi.fn(),
     linesStore: writable([]),
+    timePredictionStore: writable(null),
     settingsStore: writable({ theme: "light", exportType: "java" }), // Use inline object to avoid hoisting error
     projectActions: {
       recordChange: vi.fn(),
@@ -281,5 +282,44 @@ describe("CodeTab Persistence", () => {
     });
 
     expect(screen.getByText(/Previewing:.*/)).toBeInTheDocument();
+  });
+
+  it("previews and downloads Kotlin when a sequential export is set to Kotlin", async () => {
+    render(CodeTab, {
+      startPoint: defaultStartPoint,
+      lines: [],
+      sequence: [],
+      settings: {
+        ...defaultSettings,
+        autoExportFormat: "sequential" as const,
+        codeLanguage: "kotlin" as const,
+      },
+      isActive: true,
+    });
+
+    expect(
+      screen.getByText("Previewing: Sequential (SolversLib, Kotlin)"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download generated file" }),
+    ).toHaveTextContent("Download .kt");
+  });
+
+  it("previews the OpMode in Kotlin too", async () => {
+    render(CodeTab, {
+      startPoint: defaultStartPoint,
+      lines: [],
+      sequence: [],
+      settings: {
+        ...defaultSettings,
+        autoExportFormat: "java" as const,
+        codeLanguage: "kotlin" as const,
+      },
+      isActive: true,
+    });
+    expect(screen.getByText("Previewing: OpMode (Kotlin)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download generated file" }),
+    ).toHaveTextContent("Download .kt");
   });
 });

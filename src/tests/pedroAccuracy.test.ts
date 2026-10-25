@@ -186,18 +186,36 @@ describe("top speed by direction of travel", () => {
 });
 
 describe("curves", () => {
-  it("doesn't slow the robot for grip: friction only drives the slip warning", () => {
+  it("doesn't slow the robot for grip on a bend it can follow", () => {
+    const arc = [
+      line("a", constant(100, 60), [
+        { x: 90, y: 10 },
+        { x: 90, y: 40 },
+      ]),
+    ];
+    const total = (kFriction: number) =>
+      run(constantStart, arc, steps("a"), { kFriction, aVelocity: 100 })
+        .totalTime;
+    expect(total(0)).toBeCloseTo(total(0.4), 9);
+    expect(total(1)).toBeCloseTo(total(0.05), 9);
+  });
+
+  it("doesn't slow the robot for a hairpin either: Pedro has no limit for bends, so it runs wide", () => {
     const hairpin = [
       line("a", constant(50, 12), [
         { x: 90, y: 10 },
         { x: 90, y: 14 },
       ]),
     ];
-    const total = (kFriction: number) =>
-      run(constantStart, hairpin, steps("a"), { kFriction, aVelocity: 100 })
-        .totalTime;
-    expect(total(0)).toBeCloseTo(total(0.4), 9);
-    expect(total(1)).toBeCloseTo(total(0.05), 9);
+    const travel = run(constantStart, hairpin, steps("a"), {
+      kFriction: 0.4,
+      aVelocity: 100,
+    }).timeline.find((e) => e.type === "travel")!;
+    // It reaches the bend at speed, and the tyres can't hold it.
+    expect(Math.max(...travel.velocityProfile!)).toBeGreaterThan(
+      base.maxVelocity * 0.9,
+    );
+    expect(travel.excursion!.maxOffset).toBeGreaterThan(2.5);
   });
 
   it("only turns the robot with a curve when its heading follows the path", () => {

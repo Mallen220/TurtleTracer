@@ -34,8 +34,8 @@ const RECOVERY_DRAW_POINTS = 32;
 const RECOVERY_HEATMAP_POINTS = 100;
 
 /**
- * Where the robot goes when it leaves a path at a sharp chained corner,
- * between the two paths: dashed, or with the velocity heatmap on, coloured
+ * Where the robot goes when it leaves a path: at a sharp chained corner,
+ * between the two paths, or at a bend it can't follow at its speed: dashed, or with the velocity heatmap on, coloured
  * by its speed like the paths it joins. (Macro paths aren't coloured.)
  */
 function buildRecoveryElements(
@@ -44,15 +44,15 @@ function buildRecoveryElements(
   ctx: RenderContext,
 ): PathElement[] {
   return timeline.flatMap((ev, idx) => {
-    if (ev.type !== "recovery" || !ev.trace || ev.trace.time.length < 2) {
-      return [];
-    }
+    // Off the path at a corner, or round a bend too fast to follow it.
+    const trace = ev.type === "recovery" ? ev.trace : ev.excursion?.trace;
+    if (!trace || trace.time.length < 2) return [];
     const coloured =
       ctx.settings.showVelocityHeatmap &&
       lines.some((l) => l.id === ev.line?.id);
     return coloured
-      ? swingHeatmap(ev.trace, idx, ctx)
-      : [dashedSwing(ev.trace, idx, ctx)];
+      ? swingHeatmap(trace, idx, ctx)
+      : [dashedSwing(trace, idx, ctx)];
   });
 }
 

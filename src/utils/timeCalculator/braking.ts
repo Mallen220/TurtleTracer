@@ -14,11 +14,95 @@ function coefficients(settings: Settings) {
 const decelerationOf = (settings: Settings) =>
   settings.maxDeceleration || settings.maxAcceleration || 30;
 
+/**
+ * With no power, the robot slows down on its own (friction and its motors
+ * braking). At its top speed this is this share of its maximum deceleration.
+ */
+export const NATURAL_DECELERATION_SHARE = 0.8;
+
+/** How fast (in/s²) a robot at its top speed slows down with no power. */
+export function naturalDeceleration(settings: Settings): number {
+  return NATURAL_DECELERATION_SHARE * decelerationOf(settings);
+}
+
 /** Distance (inches) to stop from `speed` (in/s) when braking. */
 export function brakingDistance(speed: number, settings: Settings): number {
   const fit = coefficients(settings);
   if (!fit) return (speed * speed) / (2 * decelerationOf(settings));
   return fit.quadratic * speed * speed + fit.linear * speed;
+}
+
+/**
+ * Pedro's own brake model, as written in the robot's code, for each of the
+ * robot's axes: null when it hasn't been given. An axis left at 0 uses the
+ * other's values.
+ */
+function pedroBrakeModel(settings: Settings) {
+  const pair = (quadratic?: number, linear?: number) => ({
+    quadratic: Math.max(0, quadratic ?? 0),
+    linear: Math.max(0, linear ?? 0),
+  });
+  const forward = pair(
+    settings.pedroQuadraticBrakeForward,
+    settings.pedroLinearBrakeForward,
+  );
+  const strafe = pair(
+    settings.pedroQuadraticBrakeStrafe,
+    settings.pedroLinearBrakeStrafe,
+  );
+  const isSet = (axis: typeof forward) => axis.quadratic > 0 || axis.linear > 0;
+  if (!isSet(forward) && !isSet(strafe)) return null;
+  return {
+    forward: isSet(forward) ? forward : strafe,
+    strafe: isSet(strafe) ? strafe : forward,
+  };
+}
+
+/**
+ * How far (inches) Pedro thinks the robot would slide along one of its own
+ * axes from `speed` (in/s, signed) on that axis if it braked: the signed
+ * displacement. Without the coefficients from the robot's code, the robot's
+ * real braking distance stands in.
+ */
+export function pedroAxisStop(
+  speed: number,
+  axis: "forward" | "strafe",
+  settings: Settings,
+): number {
+  const model = pedroBrakeModel(settings);
+  const size = Math.abs(speed);
+  if (!model) return Math.sign(speed) * brakingDistance(size, settings);
+  const { quadratic, linear } = model[axis];
+  return Math.sign(speed) * (quadratic * size * size + linear * size);
+}
+
+/**
+ * How far ahead (inches, along the direction of travel) Pedro thinks the robot
+ * would stop from `speed`, moving `travelAngle` degrees off the way it faces.
+ * Pedro hands a chained path over to the next one once this reaches the end of
+ * the path. It is Pedro's estimate, from the brake coefficients in the robot's
+ * code, which can differ from how far the robot really takes to stop
+ * (`brakingDistance`); without them, that is used instead.
+ */
+export function handoverDistance(
+  speed: number,
+  travelAngle: number,
+  settings: Settings,
+): number {
+  const model = pedroBrakeModel(settings);
+  if (!model) return brakingDistance(speed, settings);
+  // As Pedro's getVelocityToBrakeInTime: each axis brakes on its own, and its
+  // displacement is taken along the direction of travel.
+  const radians = (travelAngle * Math.PI) / 180;
+  const along = Math.abs(Math.cos(radians));
+  const across = Math.abs(Math.sin(radians));
+  const { forward, strafe } = model;
+  return (
+    speed *
+      speed *
+      (forward.quadratic * along ** 3 + strafe.quadratic * across ** 3) +
+    speed * (forward.linear * along ** 2 + strafe.linear * across ** 2)
+  );
 }
 
 /**

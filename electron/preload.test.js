@@ -8,6 +8,7 @@ describe("preload.js", () => {
     const mockIpcRenderer = {
       invoke: vi.fn(),
       on: vi.fn(),
+      removeListener: vi.fn(),
     };
 
     const mockWebUtils = {
@@ -104,9 +105,9 @@ describe("preload.js", () => {
     const cb3 = vi.fn();
     api.onMenuAction(cb3);
     const cb4 = vi.fn();
-    api.telemetry.onData(cb4);
+    const offData = api.telemetry.onData(cb4);
     const cb5 = vi.fn();
-    api.telemetry.onStatus(cb5);
+    const offStatus = api.telemetry.onStatus(cb5);
     const cb6 = vi.fn();
     api.onUpdateAvailable(cb6);
 
@@ -140,6 +141,20 @@ describe("preload.js", () => {
     expect(cb4).toHaveBeenCalledWith("data");
     expect(cb5).toHaveBeenCalledWith("status");
     expect(cb6).toHaveBeenCalledWith("data");
+
+    // Telemetry listeners can be removed again
+    const listenerFor = (channel) =>
+      mockIpcRenderer.on.mock.calls.find((call) => call[0] === channel)[1];
+    offData();
+    offStatus();
+    expect(mockIpcRenderer.removeListener).toHaveBeenCalledWith(
+      "telemetry:data",
+      listenerFor("telemetry:data"),
+    );
+    expect(mockIpcRenderer.removeListener).toHaveBeenCalledWith(
+      "telemetry:status",
+      listenerFor("telemetry:status"),
+    );
 
     // Clean up
     delete globalThis.electronAPI;
