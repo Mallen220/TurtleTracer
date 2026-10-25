@@ -17,6 +17,7 @@ import {
 } from "../utils/timeCalculator/chainHandover";
 import { turnToward } from "../utils/timeCalculator/headingProfile";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, Settings, TimelineEvent } from "../types";
 import type { PathStep } from "../utils/timeCalculator/types";
@@ -29,7 +30,7 @@ import {
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 const start = { x: 10, y: 10, heading: "tangential" } as Point;
 const line = (id: string, x: number, y: number): Line => ({
   id,

@@ -5,9 +5,10 @@ import {
   simulateRecovery,
 } from "../utils/timeCalculator/chainRecovery";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import type { Settings } from "../types";
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 
 /** A straight path sampled into `steps` steps. */
 const straight = (

@@ -20,12 +20,13 @@ import { generateJavaCode } from "../lib/exporters/javaExporter";
 import { generateSequentialCommandCode } from "../lib/exporters/sequentialExporter";
 import { readPedroJava } from "../utils/javaImporter/pedroReader";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 const start: Point = { x: 10, y: 72, heading: "constant", degrees: 0 } as Point;
 
 const line = (

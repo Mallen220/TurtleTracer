@@ -9,6 +9,7 @@ import {
   simulateRecovery,
 } from "../utils/timeCalculator/chainRecovery";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_BRAKING, SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 
@@ -58,7 +59,12 @@ const sequence: SequenceItem[] = lines.map((l, i) => ({
 }));
 
 const withP = (translationalP: number) =>
-  ({ ...DEFAULT_SETTINGS, translationalP }) as Settings;
+  ({
+    ...DEFAULT_SETTINGS,
+    ...SCENARIO_MOTION,
+    ...SCENARIO_BRAKING,
+    translationalP,
+  }) as Settings;
 const run = (p: number) => calculatePathTime(start, lines, withP(p), sequence);
 
 describe("a nine-path chained auto, at different translational P values", () => {
@@ -76,7 +82,7 @@ describe("a nine-path chained auto, at different translational P values", () => 
   });
 
   it("never lets the robot jump or break its top speed, at any value", () => {
-    const limit = DEFAULT_SETTINGS.maxVelocity * 0.02 * 1.6 + 0.3;
+    const limit = SCENARIO_MOTION.maxVelocity * 0.02 * 1.6 + 0.3;
     for (const p of gains) {
       const { timeline, totalTime } = run(p);
       let previous: { x: number; y: number } | null = null;
@@ -92,7 +98,7 @@ describe("a nine-path chained auto, at different translational P values", () => 
       }
       for (const e of timeline) {
         for (const v of e.trace?.speed ?? []) {
-          expect(v).toBeLessThanOrEqual(DEFAULT_SETTINGS.maxVelocity * 1.01);
+          expect(v).toBeLessThanOrEqual(SCENARIO_MOTION.maxVelocity * 1.01);
         }
       }
     }

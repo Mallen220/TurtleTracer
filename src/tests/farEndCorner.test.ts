@@ -9,12 +9,17 @@ import { chainCornerIssues } from "../utils/timeCalculator/chainIssues";
 import { computePathStatistics } from "../utils/pathStatistics";
 import { robotPoseDuring } from "../utils/animation";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_BRAKING, SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = {
+  ...DEFAULT_SETTINGS,
+  ...SCENARIO_MOTION,
+  ...SCENARIO_BRAKING,
+} as Settings;
 
 // Out along y=25, then a path that leaves north and hooks back round to end
 // beside where the first one began, so that its far end is nearer the robot
@@ -134,7 +139,10 @@ describe("a chained path whose far end is nearest when the robot takes it over",
 
   it("is an error when the nearest point is the very end, which Pedro counts as finished", () => {
     // Braking from speed takes longer, so the path is taken over further back.
-    const [issue] = issuesOf([first(), hook()], { maxDeceleration: 20 });
+    const [issue] = issuesOf([first(), hook()], {
+      maxDeceleration: 20,
+      brakingQuadratic: 1 / 40,
+    });
     expect(issue.severity).toBe("error");
     expect(issue.message).toContain("treat it as finished at once");
   });

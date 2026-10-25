@@ -32,6 +32,7 @@ import {
 import { selectedLineId, selectedPointId, focusRequest } from "../stores";
 import { actionRegistry } from "../lib/actionRegistry";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 
@@ -62,7 +63,11 @@ const sequenceOf = (lines: Line[]): SequenceItem[] =>
     ...(l.isChain ? { isChain: true } : {}),
   }));
 
-const settings = { ...DEFAULT_SETTINGS, maxVelocity: 50 } as Settings;
+const settings = {
+  ...DEFAULT_SETTINGS,
+  ...SCENARIO_MOTION,
+  maxVelocity: 50,
+} as Settings;
 
 const ctxOf = (lines: Line[]): FixContext => ({
   startPoint: start,

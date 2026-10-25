@@ -46,16 +46,16 @@ export const SETTINGS_TAB_ORDER = [
 export const DEFAULT_SETTINGS: Settings = {
   fieldWidth: 144,
   fieldHeight: 144,
-  xVelocity: 30,
-  yVelocity: 30,
-  aVelocity: Math.PI / 2, // 90 deg/s
+  xVelocity: 45,
+  yVelocity: 35, // strafing is slower than driving forward
+  aVelocity: (Math.PI * 100) / 180, // 100 deg/s
   kFriction: 0.4,
   rLength: DEFAULT_ROBOT_LENGTH,
   rWidth: DEFAULT_ROBOT_WIDTH,
   safetyMargin: 2,
-  maxVelocity: 40,
-  maxAcceleration: 30,
-  maxDeceleration: 30,
+  maxVelocity: 50,
+  maxAcceleration: 60,
+  maxDeceleration: 70, // robots brake harder than they accelerate
   maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
   pedroVersion: "v3",
   pathSettleTime: 0.05,

@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PathOptimizer } from "../utils/pathOptimizer";
 import { calculatePathTime } from "../utils/timeCalculator";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import { normalizeLines } from "../lib/projectStore";
 import { getCurvePoint } from "../utils/math";
@@ -65,12 +66,14 @@ const pathItem = (l: Line): SequenceItem => ({
 
 const quick: Settings = {
   ...DEFAULT_SETTINGS,
+  ...SCENARIO_MOTION,
   optimizationIterations: 60,
   optimizationPopulationSize: 40,
 } as Settings;
 // The paths with something to find take a little longer.
 const medium: Settings = {
   ...DEFAULT_SETTINGS,
+  ...SCENARIO_MOTION,
   optimizationIterations: 150,
   optimizationPopulationSize: 60,
 } as Settings;

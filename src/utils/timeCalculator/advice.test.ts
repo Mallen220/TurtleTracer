@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import { DEFAULT_SETTINGS } from "../../config/defaults";
+import { SCENARIO_MOTION } from "../../tests/helpers/motion";
 import type { Excursion, PiecewiseShortfall } from "../../types";
 import {
   bendAdvice,
@@ -106,7 +107,12 @@ describe("bendAdvice", () => {
     tightest: { radius: 0.58, x: 99.4, y: 52.1, speed: 38, time: 2 },
   } as Excursion;
   const advise = (speed: number | null = null, over = {}) =>
-    bendAdvice("Hairpin", excursion, { ...DEFAULT_SETTINGS, ...over }, speed);
+    bendAdvice(
+      "Hairpin",
+      excursion,
+      { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION, ...over },
+      speed,
+    );
 
   it("gives the radius needed at the speed, from the wheels' grip", () => {
     const text = advise();
@@ -135,7 +141,7 @@ describe("bendAdvice", () => {
     const text = bendAdvice(
       "Hairpin",
       { ...excursion, settled: false },
-      { ...DEFAULT_SETTINGS },
+      { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION },
     );
     expect(text).toContain("never gets back on it");
   });

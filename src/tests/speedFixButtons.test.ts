@@ -31,12 +31,13 @@ import {
 import { selectedLineId, selectedPointId, focusRequest } from "../stores";
 import { actionRegistry } from "../lib/actionRegistry";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 
 // A bend with a radius under an inch, taken at the robot's full speed.
 const start = { x: 81, y: 11.4, heading: "constant", degrees: 0 } as Point;

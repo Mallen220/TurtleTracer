@@ -10,6 +10,7 @@ import {
   type Estimate,
 } from "../utils/calibration/estimates";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type {
   Line,
@@ -42,6 +43,7 @@ const sequence: SequenceItem[] = lines.map((l) => ({
 
 const robot: Settings = {
   ...DEFAULT_SETTINGS,
+  ...SCENARIO_MOTION,
   maxVelocity: 50,
   xVelocity: 50,
   yVelocity: 50,
@@ -102,7 +104,11 @@ const timeWith = (settings: Settings) =>
   calculatePathTime(start, lines, settings, sequence).totalTime;
 
 describe("measuring the simulation itself", () => {
-  const before = { ...DEFAULT_SETTINGS, pathSettleTime: 0.4 } as Settings;
+  const before = {
+    ...DEFAULT_SETTINGS,
+    ...SCENARIO_MOTION,
+    pathSettleTime: 0.4,
+  } as Settings;
   let est: Record<CalibrationKey, Estimate>;
   beforeAll(() => {
     est = Object.fromEntries(

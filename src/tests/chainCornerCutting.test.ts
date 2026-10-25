@@ -6,6 +6,7 @@ import { computePathStatistics } from "../utils/pathStatistics";
 import { robotPoseDuring } from "../utils/animation";
 import { PathOptimizer } from "../utils/pathOptimizer";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_BRAKING, SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 import { recoveriesIn } from "./helpers/sequences";
@@ -13,7 +14,11 @@ import { recoveriesIn } from "./helpers/sequences";
 beforeAll(() => registerCoreUI());
 afterEach(() => vi.restoreAllMocks());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = {
+  ...DEFAULT_SETTINGS,
+  ...SCENARIO_MOTION,
+  ...SCENARIO_BRAKING,
+} as Settings;
 
 // The path an optimizer returned that skipped the point its two paths join at.
 const start = {
