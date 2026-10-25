@@ -318,22 +318,16 @@ export class PathOptimizer {
       const pose = robotPoseDuring(event, t, lines, this.startPoint);
       if (!pose) continue;
 
+      // Only the field edge is skipped near the start: obstacles and keep-in
+      // zones are checked all the way along.
       const distToStart = Math.hypot(
         pose.x - this.startPoint.x,
         pose.y - this.startPoint.y,
       );
-      if (
-        checkBoundaries &&
-        event.lineIndex === 0 &&
-        distToStart <= startClearance * 1.5
-      ) {
-        continue;
-      }
+      const clearOfStart =
+        distToStart > startClearance * (event.lineIndex === 0 ? 1.5 : 1);
 
-      const type = this.collisionAt(
-        pose,
-        checkBoundaries && distToStart > startClearance,
-      );
+      const type = this.collisionAt(pose, checkBoundaries && clearOfStart);
       if (!type) {
         if (current) markers.push(current);
         current = null;
