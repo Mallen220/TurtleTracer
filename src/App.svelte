@@ -99,10 +99,8 @@
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
   import {
-    applyGainFix,
     applySpeedFix,
-    isGainFix,
-    type MotionFix,
+    type SpeedFix,
   } from "./utils/timeCalculator/fixSearch";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
@@ -601,13 +599,7 @@
   }
 
   /** A speed limit that a warning in Path Statistics offers, set on its path or chain. */
-  function applySpeedFixFromStats(fix: MotionFix) {
-    // A gain is a robot setting, not an edit to the paths.
-    if (isGainFix(fix)) {
-      settingsStore.update((s) => applyGainFix(s, fix));
-      recordChange("Set Translational P");
-      return;
-    }
+  function applySpeedFixFromStats(fix: SpeedFix) {
     if (!confirmFollowedJavaEdit()) return;
     linesStore.set(applySpeedFix(get(linesStore), fix));
     recordChange(

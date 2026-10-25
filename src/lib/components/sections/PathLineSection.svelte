@@ -48,14 +48,14 @@
   import { validSpeed } from "../../../utils/timeCalculator/speedCap";
   import {
     applySpeedFix,
+    cornerSpeedFixes,
     fastestSpeedThatFixes,
-    gainFix,
-    isGainFix,
+    HELD_SWING,
     latestStartThatFixes,
     followsBends,
     speedFixes,
     type FixContext,
-    type MotionFix,
+    type SpeedFix,
   } from "../../../utils/timeCalculator/fixSearch";
   import {
     fallsShort,
@@ -350,13 +350,23 @@
     );
     if (corner && recovery) {
       const unsettled = recovery.settled === false;
+      const swing = recovery.overshoot ?? 0;
+      const cuts = swing <= HELD_SWING && (recovery.missedBy ?? 0) > 0;
+      let chip = "Swings wide";
+      let text = `At the chained corner onto this path, the robot swings ${swing.toFixed(1)} in past it.`;
+      if (unsettled) {
+        chip = "Doesn't rejoin";
+        text =
+          "At the chained corner onto this path, the robot doesn't get back onto it.";
+      } else if (cuts) {
+        chip = "Cuts the corner";
+        text = `At the chained corner onto this path, the robot passes ${(recovery.missedBy ?? 0).toFixed(1)} in from the point the paths join.`;
+      }
       return {
         kind: "corner" as const,
-        chip: unsettled ? "Doesn't rejoin" : "Swings wide",
-        text: unsettled
-          ? "At the chained corner onto this path, the robot doesn't get back onto it."
-          : `At the chained corner onto this path, the robot swings ${(recovery.overshoot ?? 0).toFixed(1)} in past it.`,
-        hint: "Slow the chain down, soften the corner, or unchain the paths.",
+        chip,
+        text,
+        hint: "Soften the corner, or unchain the paths so the robot stops there.",
       };
     }
     return null;
@@ -364,7 +374,7 @@
 
   // The speed limits that clear it, found by trying them in the simulation.
   // That takes a moment, so it waits until editing has settled.
-  let motionFixes: MotionFix[] = $state([]);
+  let motionFixes: SpeedFix[] = $state([]);
   let motionFixesChecked = $state(false);
   $effect(() => {
     const kind = motionProblem?.kind;
@@ -379,9 +389,7 @@
     };
     const handle = setTimeout(() => {
       if (kind === "corner") {
-        // A stronger correction, rather than a speed limit.
-        const fix = gainFix(ctx, idx);
-        motionFixes = fix ? [fix] : [];
+        motionFixes = cornerSpeedFixes(ctx, idx);
       } else {
         motionFixes = speedFixes(ctx, idx, (event) =>
           kind === "wide"
@@ -394,15 +402,7 @@
     return () => clearTimeout(handle);
   });
 
-  function applyMotionFix(fix: MotionFix) {
-    if (isGainFix(fix)) {
-      settingsStore.update((s) => ({
-        ...s,
-        translationalP: fix.translationalP,
-      }));
-      recordChange?.("Set Translational P");
-      return;
-    }
+  function applyMotionFix(fix: SpeedFix) {
     lines = applySpeedFix(lines, fix);
     recordChange?.(
       fix.field === "chainMaxSpeed" ? "Set Chain Max Speed" : "Set Max Speed",
@@ -951,7 +951,7 @@
               {#if motionFixesChecked && motionFixes.length === 0}
                 <span class="opacity-80">
                   {motionProblem.kind === "corner"
-                    ? "A stronger Translational P doesn't fix it."
+                    ? "No speed limit gets it through faster than stopping there."
                     : "No speed limit fixes it."}
                   {motionProblem.hint}
                 </span>

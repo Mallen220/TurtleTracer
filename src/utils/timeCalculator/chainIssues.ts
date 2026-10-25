@@ -22,7 +22,7 @@ import {
 } from "./pedroClosest";
 
 /** Passing this far (inches) from the point two chained paths join is worth a warning. */
-const MISSED_POINT_WARNING = 3;
+export const MISSED_POINT_WARNING = 3;
 /** Below this translational P the messages point out the gain is very low. */
 const LOW_TRANSLATIONAL_P = 0.05;
 /** A swing past the path smaller than this isn't worth mentioning (inches). */
