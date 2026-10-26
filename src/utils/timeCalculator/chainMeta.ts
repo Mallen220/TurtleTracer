@@ -61,7 +61,7 @@ export function calculateGlobalChainMeta(
     const line = lineById.get(item.lineId);
     if (!line?.endPoint) return;
 
-    if (!continuesChain(seq, idx, lineById)) {
+    if (!rootLine || !continuesChain(seq, idx, lineById)) {
       rootLine = line;
       chain = [];
       chainLength = 0;

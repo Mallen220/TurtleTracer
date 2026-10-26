@@ -324,3 +324,19 @@ describe("the first path's start heading", () => {
     expect(firstPathStartsPrev(start, written)).toBe(false);
   });
 });
+
+describe("a sequence that still points at a deleted path", () => {
+  it("doesn't fail on a chained path whose chain root is gone", () => {
+    const lines = [
+      { ...line("b", 50, { heading: "linear", endDeg: 180 }), isChain: true },
+    ];
+    const sequence = [path("gone"), path("b")];
+    expect(() => materializePrevHeadings(start, lines, sequence)).not.toThrow();
+    expect(() =>
+      calculatePathTime(start, lines, DEFAULT_SETTINGS, sequence),
+    ).not.toThrow();
+    expect(
+      materializePrevHeadings(start, lines, sequence)[0].endPoint.startDeg,
+    ).toBe(30);
+  });
+});
