@@ -4,7 +4,7 @@
   interface Props {
     /** "horizontal" sits beside the field and drags sideways; "vertical" sits below it. */
     direction: "horizontal" | "vertical";
-    onstart: () => void;
+    onstart: (pointer?: { clientX: number }) => void;
     onkeydown: (e: KeyboardEvent) => void;
     onreset: () => void;
   }
@@ -18,12 +18,15 @@
   class="group flex justify-center items-center hover:bg-emerald-500/10 active:bg-emerald-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-neutral-300 dark:border-neutral-700 {horizontal
     ? 'w-4 cursor-col-resize border-l border-r'
     : 'h-3 w-full cursor-row-resize border-t border-b touch-none'}"
-  onmousedown={onstart}
+  onmousedown={(e) => {
+    e.preventDefault();
+    onstart(e);
+  }}
   ontouchstart={horizontal
     ? undefined
     : (e) => {
         e.preventDefault();
-        onstart();
+        onstart(e.touches[0]);
       }}
   {onkeydown}
   ondblclick={onreset}

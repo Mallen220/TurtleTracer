@@ -850,7 +850,9 @@
     >
       <div
         id="field-container"
-        class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+        class="flex-none flex justify-center items-center relative transition-all ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+        class:duration-300={!layout.resizeMode}
+        class:duration-0={layout.resizeMode}
         style:width={layout.fieldContainerWidth}
         style:height={layout.fieldContainerHeight}
         style:min-height={layout.fieldContainerMinHeight}
@@ -881,7 +883,7 @@
       {#if layout.isLargeScreen && layout.effectiveShowSidebar && !$isPresentationMode}
         <ResizeHandle
           direction="horizontal"
-          onstart={() => layout.startResize("horizontal")}
+          onstart={(pointer) => layout.startResize("horizontal", pointer)}
           onkeydown={(e) => layout.resizeWithKeyboard(e, "horizontal")}
           onreset={() => layout.resetFieldWidth()}
         />
