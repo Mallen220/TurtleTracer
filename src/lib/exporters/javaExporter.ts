@@ -23,8 +23,6 @@ import {
   poseCode,
   angleCode,
   headingMethodCode,
-  headingToWrite,
-  robotHeadingHelper,
   chainGlobalHeading,
   groupChains,
   uniqueNames,
@@ -52,9 +50,9 @@ function literalArgs(opts: FormatOptions) {
   return (h: HeadingConfig): string => {
     switch (h.heading) {
       case "constant":
-        return h.fromRobot ? "start" : angleCode(h.degrees || 0, opts);
+        return angleCode(h.degrees || 0, opts);
       case "linear":
-        return `${h.fromRobot ? "start" : angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`;
+        return `${angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`;
       case "facingPoint":
         return poseCode({ x: h.targetX || 0, y: h.targetY || 0 }, opts);
       default:
@@ -88,22 +86,20 @@ function pathConstructionCode(
         : `curve(\n          ${start},\n          ${line.controlPoints.map((cp) => poseCode(cp, opts)).join(",\n")},\n          ${end}\n        )`;
 
     const global = chainGlobalHeading(driven, idx);
-    const blankGlobal = chainGlobalHeading(lines, idx);
-    const own = headingToWrite(
-      line.endPoint,
-      driven[idx].endPoint,
-      !line.isChain,
-    );
     return {
       line,
       name: names[idx],
       call,
       heading: global
         ? ""
-        : headingMethodCode(own, literalArgs(opts), opts.language),
+        : headingMethodCode(
+            driven[idx].endPoint,
+            literalArgs(opts),
+            opts.language,
+          ),
       chainHeading:
         global && !line.isChain
-          ? `\n        ${headingMethodCode(headingToWrite(blankGlobal!, global, true), literalArgs(opts), opts.language)}`
+          ? `\n        ${headingMethodCode(global, literalArgs(opts), opts.language)}`
           : "",
       speed: speeds.own[idx],
       chainSpeed: speeds.chain[idx],
@@ -341,7 +337,6 @@ interface OpModeParts {
   /** Line variable names, with "" for chained lines, which have none. */
   pathFields: string[];
   pathConstruction: string;
-  robotHeading: boolean;
   stateCases: string;
   startPose: string;
   hasEventMarkers: boolean;
@@ -353,7 +348,7 @@ interface OpModeParts {
 /** The OpMode in Kotlin: the Java one's shape, with a companion object for its statics. */
 function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
   const pathsClass = `
-  class Paths${o.robotHeading ? "(follower: Follower)" : ""} {
+  class Paths {
     ${o.pathFields
       .filter(Boolean)
       .map((name) => `val ${name}: Path`)
@@ -365,7 +360,6 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
 
     companion object {
       private val p = PoseFactory.degrees()
-      ${o.robotHeading ? robotHeadingHelper("kotlin") : ""}
       ${
         o.ftc
           ? `
@@ -408,7 +402,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
         follower.setPose(${o.startPose})
 
         pathTimer = ElapsedTime()
-        paths = Paths(${o.robotHeading ? "follower" : ""}) // Build paths
+        paths = Paths() // Build paths
         ${o.hasEventMarkers ? "\n        tracker = ProgressTracker(follower, telemetry)" : ""}
       }
 
@@ -468,15 +462,6 @@ export async function generateJavaCode(
   ).replaceAll(/["\\]/g, "");
   const opts: FormatOptions = { coordinateSystem, codeUnits, language };
 
-  const pathConstruction = pathConstructionCode(
-    startPoint,
-    lines,
-    pathChainNames,
-    opts,
-    sequence,
-  );
-  const robotHeading = pathConstruction.includes("fromRobotHeading(");
-
   let pathsClass = `
   public static class Paths {
     private static final PoseFactory p = PoseFactory.degrees();
@@ -489,9 +474,8 @@ export async function generateJavaCode(
       .join("\n")}
 
     public Paths(Follower follower) {
-      ${pathConstruction}
+      ${pathConstructionCode(startPoint, lines, pathChainNames, opts, sequence)}
     }
-    ${robotHeading ? robotHeadingHelper(language) : ""}
 
     ${
       coordinateSystem === "FTC"
@@ -548,8 +532,13 @@ export async function generateJavaCode(
           pathFields: pathChainNames.map((name, idx) =>
             lines[idx].isChain ? "" : name,
           ),
-          pathConstruction,
-          robotHeading,
+          pathConstruction: pathConstructionCode(
+            startPoint,
+            lines,
+            pathChainNames,
+            opts,
+            sequence,
+          ),
           stateCases,
           startPose,
           hasEventMarkers,

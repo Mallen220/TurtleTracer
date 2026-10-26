@@ -48,6 +48,5 @@ export function buildPathsMethod(p: SequentialClassParts): string {
 /** The FTC coordinate and metric unit helpers, empty when the export doesn't use them. */
 export function helperMethods(p: SequentialClassParts): string {
   return `    ${p.ftcPoseHelper}
-    ${p.metricHelper}
-    ${p.headingHelper}`;
+    ${p.metricHelper}`;
 }

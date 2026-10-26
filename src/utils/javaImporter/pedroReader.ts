@@ -21,7 +21,6 @@ import {
   type SourceLanguage,
   type Token,
 } from "./javaTokens";
-import { unwrapRobotHeading } from "./robotHeading";
 
 /** Something the reader couldn't make sense of, for the user. */
 export interface ReadNote {
@@ -46,8 +45,8 @@ export interface PedroReadOptions {
 
 type Heading =
   | { heading: "tangential"; reverse?: boolean }
-  | { heading: "constant"; degrees?: number; reverse?: boolean }
-  | { heading: "linear"; startDeg?: number; endDeg: number; reverse?: boolean }
+  | { heading: "constant"; degrees: number; reverse?: boolean }
+  | { heading: "linear"; startDeg: number; endDeg: number; reverse?: boolean }
   | {
       heading: "facingPoint";
       targetX: number;
@@ -185,7 +184,7 @@ class Reader {
   ) {
     const language = options.language ?? "java";
     this.kotlin = language === "kotlin";
-    this.tokens = tokenize(unwrapRobotHeading(source), language);
+    this.tokens = tokenize(source, language);
     this.parser = new ExpressionParser(this.tokens, language);
   }
 
@@ -200,21 +199,6 @@ class Reader {
   private number(expr: Expr): number | null {
     const v = this.evaluate(expr);
     return v.t === "number" ? v.value : null;
-  }
-
-  private isRobotHeading(expr: Expr | undefined): boolean {
-    const text = (e: Expr): string => {
-      if (e.kind === "name") return e.name;
-      if (e.kind === "member") return `${text(e.object)}.${e.name}`;
-      if (e.kind === "call") return `${text(e.callee)}()`;
-      return "";
-    };
-    return (
-      !!expr &&
-      /^follower\.(pose\(\)\.heading\(\)|getPose\(\)\.getHeading\(\)|getHeading\(\))$/.test(
-        text(expr),
-      )
-    );
   }
 
   /** An angle argument in radians, as Pedro takes them, in degrees. */
@@ -619,18 +603,11 @@ class Reader {
       case "reverseTangent":
         return { heading: "tangential", reverse: true };
       case "constant":
-        return {
-          heading: "constant",
-          degrees: this.isRobotHeading(args[0])
-            ? undefined
-            : this.angle(args[0]),
-        };
+        return { heading: "constant", degrees: this.angle(args[0]) };
       case "linear":
         return {
           heading: "linear",
-          startDeg: this.isRobotHeading(args[0])
-            ? undefined
-            : this.angle(args[0]),
+          startDeg: this.angle(args[0]),
           endDeg: this.angle(args[1]),
         };
       case "facingPoint": {

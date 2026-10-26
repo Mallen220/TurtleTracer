@@ -159,8 +159,6 @@ export type HeadingConfig = {
   reverse?: boolean;
   segments?: HeadingConfig[];
   tEnd?: number;
-  /** A blank (Prev) angle, written as `start` inside the lambda. */
-  fromRobot?: boolean;
 };
 
 /**
@@ -205,27 +203,14 @@ export function stateCase(
 /** Writes the arguments of an interpolator, e.g. the two angles of a linear one. */
 export type InterpolatorArgs = (h: HeadingConfig) => string;
 
-// Paths are built up front, so the robot's heading is read when the path
-// starts, not here.
-function fromRobot(build: string, language?: CodeLanguage): string {
-  return language === "kotlin"
-    ? `fromRobotHeading(follower) { start -> ${build} }`
-    : `fromRobotHeading(follower, start -> ${build})`;
-}
-
 /** e.g. `Interpolator.linear(a, b).reverse()`. */
-function interpolatorCode(
-  h: HeadingConfig,
-  args: InterpolatorArgs,
-  language?: CodeLanguage,
-): string {
+function interpolatorCode(h: HeadingConfig, args: InterpolatorArgs): string {
   let base: string;
   switch (h.heading) {
     case "constant":
     case "linear":
     case "facingPoint":
       base = `Interpolator.${h.heading}(${args(h)})`;
-      if (h.fromRobot) base = fromRobot(base, language);
       break;
     case "tangential":
       base = "Interpolator.tangent";
@@ -248,7 +233,7 @@ export function headingMethodCode(
     const until = segments
       .map(
         (seg) =>
-          `.until(${doubleCode(seg.tEnd as number, language)}, ${interpolatorCode(seg, args, language)})`,
+          `.until(${doubleCode(seg.tEnd as number, language)}, ${interpolatorCode(seg, args)})`,
       )
       .join("\n          ");
     return h.reverse
@@ -256,9 +241,9 @@ export function headingMethodCode(
       : `.heading(Interpolator.piecewise()\n          ${until}\n        )`;
   }
 
-  if (h.reverse || h.fromRobot) {
+  if (h.reverse) {
     if (h.heading === "tangential") return ".reverseTangent()";
-    const code = interpolatorCode(h, args, language);
+    const code = interpolatorCode(h, args);
     return code ? `.heading(${code})` : "";
   }
 
@@ -274,56 +259,6 @@ export function headingMethodCode(
     default:
       return "";
   }
-}
-
-function startsBlank(h: HeadingConfig | undefined): boolean {
-  if (!h) return false;
-  if (h.heading === "linear") return h.startDeg == null;
-  if (h.heading === "constant") return h.degrees == null;
-  return false;
-}
-
-/**
- * A blank angle where a path begins (`live`) is read from the robot; one part
- * way through takes its filled-in value.
- */
-export function headingToWrite(
-  blank: HeadingConfig,
-  filled: HeadingConfig,
-  live: boolean,
-): HeadingConfig {
-  if (!live) return filled;
-  if (filled.heading === "piecewise") {
-    const segments = (filled.segments ?? []).map((seg, i) =>
-      i === 0 && startsBlank(blank.segments?.[0])
-        ? { ...seg, fromRobot: true }
-        : seg,
-    );
-    return { ...filled, segments };
-  }
-  return startsBlank(blank) ? { ...filled, fromRobot: true } : filled;
-}
-
-export function robotHeadingHelper(language?: CodeLanguage): string {
-  return language === "kotlin"
-    ? `
-    private fun fromRobotHeading(follower: Follower, heading: (Double) -> Interpolator): Interpolator {
-        var latched: Interpolator? = null
-        return Interpolator { curve, t ->
-            val interpolator = latched ?: heading(follower.pose().heading()).also { latched = it }
-            interpolator.interpolate(curve, t)
-        }
-    }
-`
-    : `
-    private static Interpolator fromRobotHeading(Follower follower, java.util.function.DoubleFunction<Interpolator> heading) {
-        Interpolator[] latched = new Interpolator[1];
-        return (curve, t) -> {
-            if (latched[0] == null) latched[0] = heading.apply(follower.pose().heading());
-            return latched[0].interpolate(curve, t);
-        };
-    }
-`;
 }
 
 /** The heading a chain's first line sets for the whole chain, if any. */

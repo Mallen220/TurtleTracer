@@ -5,7 +5,7 @@ import {
   findProjectRoot,
   pickConstantsClass,
   projectSuggestions,
-  readBrakeCoefficients,
+  readPastedConstants,
   readBuildFiles,
   readConstantsClass,
 } from "../utils/robotProject";
@@ -98,16 +98,6 @@ describe("reading a constants class", () => {
     expect(pickConstantsClass([quiet, team])).toBe(team);
     expect(pickConstantsClass([])).toBeNull();
   });
-
-  it("reads Pedro's brake coefficients", () => {
-    expect(readBrakeCoefficients(teamConstants)).toEqual({
-      quadraticForward: 0.002017859860966682,
-      quadraticStrafe: 0.0016049569428496324,
-      linearForward: 0.0450653162639568,
-      linearStrafe: 0.04401223598329838,
-    });
-    expect(readBrakeCoefficients(robotConstants)).toBeNull();
-  });
 });
 
 describe("reading the build files", () => {
@@ -195,7 +185,12 @@ describe("finding the project", () => {
         qualifiedName: "org.firstinspires.ftc.teamcode.pedroPathing.Constants",
         followerFactory: "createFollower",
       },
-      brakeCoefficients: { quadraticForward: 0.002017859860966682 },
+      pedroValues: expect.arrayContaining([
+        expect.objectContaining({
+          setting: "pedroQuadraticBrakeForward",
+          value: 0.002017859860966682,
+        }),
+      ]),
     });
   });
 
@@ -216,12 +211,29 @@ describe("what the project says to change", () => {
     pedroVersion: "v2" as const,
     pedroDependency: "com.pedropathing:ftc:2.0.6",
     commandLibrary: "NextFTC" as const,
-    brakeCoefficients: {
-      quadraticForward: 0.002,
-      quadraticStrafe: 0.0016,
-      linearForward: 0.045,
-      linearStrafe: 0.044,
-    },
+    pedroValues: [
+      { setting: "xVelocity" as const, value: 62.6, source: "xVelocity" },
+      {
+        setting: "pedroQuadraticBrakeForward" as const,
+        value: 0.002,
+        source: "quadraticBrakeCoefficients",
+      },
+      {
+        setting: "pedroQuadraticBrakeStrafe" as const,
+        value: 0.0016,
+        source: "quadraticBrakeCoefficients",
+      },
+      {
+        setting: "pedroLinearBrakeForward" as const,
+        value: 0.045,
+        source: "linearBrakeCoefficients",
+      },
+      {
+        setting: "pedroLinearBrakeStrafe" as const,
+        value: 0.044,
+        source: "linearBrakeCoefficients",
+      },
+    ],
   };
   const settings = {
     ...DEFAULT_SETTINGS,
@@ -235,6 +247,7 @@ describe("what the project says to change", () => {
     expect(found.map((s) => s.id)).toEqual([
       "pedroVersion",
       "handoverBrakes",
+      "motionValues",
       "targetLibrary",
     ]);
     expect(found[0].patch).toEqual({ pedroVersion: "v2" });
@@ -244,6 +257,8 @@ describe("what the project says to change", () => {
       pedroLinearBrakeForward: 0.045,
       pedroLinearBrakeStrafe: 0.044,
     });
+    expect(found[2].patch).toEqual({ xVelocity: 62.6 });
+    expect(found[2].found).toBe("Forward velocity 62.6");
   });
 
   it("offers nothing once the settings match", () => {
@@ -262,5 +277,58 @@ describe("what the project says to change", () => {
     expect(
       projectSuggestions(project, stateMachine).map((s) => s.id),
     ).not.toContain("targetLibrary");
+  });
+});
+
+describe("a constants file pasted in whole", () => {
+  const settings = { ...DEFAULT_SETTINGS, pedroVersion: "v2" } as Settings;
+
+  it("changes the numbers, the Pedro version, and the class names", () => {
+    const pasted = readPastedConstants(teamConstants, settings);
+    expect(pasted.recognised).toBe(true);
+    expect(pasted.changes.map((c) => c.setting)).toEqual([
+      "pedroVersion",
+      "pedroQuadraticBrakeForward",
+      "pedroQuadraticBrakeStrafe",
+      "pedroLinearBrakeForward",
+      "pedroLinearBrakeStrafe",
+      "pedroConstantsClass",
+      "pedroFollowerFactory",
+    ]);
+    expect(pasted.patch).toMatchObject({
+      pedroVersion: "v3",
+      pedroLinearBrakeForward: 0.0450653162639568,
+      pedroConstantsClass:
+        "org.firstinspires.ftc.teamcode.pedroPathing.Constants",
+      pedroFollowerFactory: "createFollower",
+    });
+  });
+
+  it("reads a Kotlin object's names", () => {
+    expect(readPastedConstants(kotlinConstants, settings).patch).toMatchObject({
+      pedroConstantsClass: "org.team.pedro.PedroConstants",
+      pedroFollowerFactory: "create",
+    });
+  });
+
+  it("has nothing to change once the settings match", () => {
+    const first = readPastedConstants(teamConstants, settings);
+    const after = readPastedConstants(teamConstants, {
+      ...settings,
+      ...first.patch,
+    });
+    expect(after.recognised).toBe(true);
+    expect(after.changes).toEqual([]);
+  });
+
+  it("doesn't recognise text that has no Pedro in it", () => {
+    expect(readPastedConstants("hello there", settings)).toEqual({
+      recognised: false,
+      changes: [],
+      patch: {},
+    });
+    expect(readPastedConstants(robotConstants, settings).recognised).toBe(
+      false,
+    );
   });
 });

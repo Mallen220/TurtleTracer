@@ -50,7 +50,6 @@ export interface SequentialClassParts {
   /** Helper methods for FTC coordinates / metric units, empty when unused. */
   ftcPoseHelper: string;
   metricHelper: string;
-  headingHelper: string;
 }
 
 /** How a library's code is written in one language. */

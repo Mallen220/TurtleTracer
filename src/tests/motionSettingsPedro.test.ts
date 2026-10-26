@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { render, screen, fireEvent } from "@testing-library/svelte";
+import { render, screen, fireEvent, within } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import MotionSettingsTabWrapper from "./MotionSettingsTabWrapper.svelte";
 import type { Settings } from "../types";
@@ -157,7 +157,9 @@ describe("Pedro Pathing behavior settings", () => {
 
   it("keeps the braking coefficients in an advanced section, closed until searched", () => {
     const { container } = mount();
-    const details = container.querySelector("details")!;
+    const details = [...container.querySelectorAll("details")].find((d) =>
+      d.querySelector("#braking-quadratic"),
+    )!;
     expect(details.textContent).toContain("Advanced braking");
     expect(details.querySelector("#braking-quadratic")).not.toBeNull();
     expect(details.querySelector("#braking-linear")).not.toBeNull();
@@ -215,5 +217,74 @@ describe("Pedro Pathing behavior settings", () => {
   it("leaves the note out while searching", () => {
     mount({ searchQuery: "velocity" });
     expect(screen.queryByTestId("where-to-find-numbers")).toBeNull();
+  });
+});
+
+describe("pasting a constants file", () => {
+  const file = `package org.team.pedroPathing;
+public class Constants {
+  public static ForesightConfig foresightConfig = new ForesightConfig(c -> {
+    c.forwardTranslational.set(Controller.proportional(0.69));
+    c.maxDecelerationConstraint.set(90);
+    c.maxAchievableForwardVelocity.set(62.6);
+    c.maxAchievableStrafeVelocity.set(55.2);
+    c.naturalForwardDeceleration.set(43.2);
+    c.linearBrakeCoefficients.set(Matrix.diag(0.045, 0.044));
+    c.quadraticBrakeCoefficients.set(Matrix.diag(0.002, 0.0016));
+  });
+  public static Follower createFollower(HardwareMap hardwareMap) { return null; }
+}`;
+
+  const paste = (text: string) =>
+    fireEvent.input(screen.getByLabelText("Pedro constants file"), {
+      target: { value: text },
+    });
+
+  it("lists what the file would change, and sets it on request", async () => {
+    const t = mount({ initial: { pedroVersion: "v3" } });
+    const keptP = t.current().translationalP;
+    await paste(file);
+    expect(screen.getAllByTestId("constants-paste-change").length).toBe(10);
+    // The file sets P and a coasting deceleration; neither is offered.
+    const list = within(screen.getByTestId("constants-paste"));
+    expect(list.queryByText("Translational P")).toBeNull();
+    expect(list.getByText("Max deceleration")).toBeTruthy();
+
+    await fireEvent.click(screen.getByRole("button", { name: /Set 10/ }));
+    expect(t.current()).toMatchObject({
+      xVelocity: 62.6,
+      yVelocity: 55.2,
+      maxVelocity: 62.6,
+      maxDeceleration: 90,
+      pedroQuadraticBrakeForward: 0.002,
+      pedroLinearBrakeStrafe: 0.044,
+      pedroConstantsClass: "org.team.pedroPathing.Constants",
+      pedroFollowerFactory: "createFollower",
+    });
+    expect(t.current().translationalP).toBe(keptP);
+    expect(screen.getByTestId("constants-paste-done").textContent).toContain(
+      "Set 10 settings",
+    );
+  });
+
+  it("says when there is nothing Pedro in the text", async () => {
+    const t = mount();
+    const before = t.current();
+    await paste("hello there");
+    expect(screen.getByTestId("constants-paste-none")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Set \d/ })).toBeNull();
+    expect(t.current()).toEqual(before);
+  });
+
+  it("changes nothing until asked", async () => {
+    const t = mount();
+    const before = t.current();
+    await paste(file);
+    expect(t.current()).toEqual(before);
+  });
+
+  it("is found when searching for it", () => {
+    mount({ searchQuery: "paste" });
+    expect(screen.getByTestId("constants-paste")).toBeTruthy();
   });
 });

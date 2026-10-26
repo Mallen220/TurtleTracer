@@ -255,7 +255,7 @@ describe("generateSequentialCommandCode", () => {
   });
 
   describe("headings", () => {
-    it("holds the robot's heading when a constant heading isn't set", async () => {
+    it("holds the heading before it when a constant heading isn't set", async () => {
       const lines = [
         line("a", "Score", {
           x: 20,
@@ -265,9 +265,7 @@ describe("generateSequentialCommandCode", () => {
         }),
       ];
       const code = squash(await generate(lines));
-      expect(code).toContain(
-        ".heading(fromRobotHeading(follower, start -> Interpolator.constant(start)))",
-      );
+      expect(code).toContain(".constant(Math.toRadians(0))");
     });
 
     it("uses the start and end poses' headings for a linear heading that isn't set", async () => {

@@ -3,9 +3,17 @@
 // its paths folder sits in) from the project's own files: where the Pedro
 // constants class is and what its follower factory is called, so the code
 // written for the team compiles as it is; which Pedro and command library it
-// builds with; and numbers the simulation can use, like Pedro's brake model.
+// builds with; and the numbers the simulation can use, like Pedro's speeds and
+// brake model, which pedroConstantsReader reads.
 
 import type { CommandLibraryId, Settings } from "../types";
+import {
+  changedValues,
+  readPedroValues,
+  type PedroValue,
+  type PedroValueKey,
+  type ValueChange,
+} from "./pedroConstantsReader";
 
 export interface PedroConstantsClass {
   /** The class's full name, as the import line needs it. */
@@ -19,14 +27,6 @@ export interface PedroConstantsClass {
   file: string;
 }
 
-/** Pedro's brake model from the constants (ForesightConfig coefficients). */
-export interface BrakeCoefficients {
-  quadraticForward: number;
-  quadraticStrafe: number;
-  linearForward: number;
-  linearStrafe: number;
-}
-
 export interface RobotProject {
   /** The project's folder: the one holding TeamCode. */
   root: string;
@@ -36,7 +36,8 @@ export interface RobotProject {
   /** The Pedro dependency it came from, such as `com.pedropathing:revhub:3.0.2`. */
   pedroDependency: string | null;
   commandLibrary: CommandLibraryId | null;
-  brakeCoefficients: BrakeCoefficients | null;
+  /** What the constants file sets that there is a setting for. */
+  pedroValues: PedroValue[];
 }
 
 /** Build files that list a project's dependencies, from its root. */
@@ -72,8 +73,6 @@ export async function findProjectRoot(
   if (teamCode > 0) return parts.slice(0, teamCode).join("/");
   return (await fileExists(join(directory, "TeamCode"))) ? directory : null;
 }
-
-const NUMBER = String.raw`[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?`;
 
 /**
  * The Pedro constants class in a Java or Kotlin file, or null if the file's
@@ -126,27 +125,6 @@ export function pickConstantsClass(
     (c.hasForesightConfig ? 2 : 0) +
     (/pedro/i.test(c.qualifiedName) ? 1 : 0);
   return found.toSorted((a, b) => score(b) - score(a))[0] ?? null;
-}
-
-/** Pedro's brake coefficients in a constants file, if it sets them. */
-export function readBrakeCoefficients(
-  content: string,
-): BrakeCoefficients | null {
-  const pair = (name: string) => {
-    const match = new RegExp(
-      String.raw`${name}[^;]*?Matrix\.diag\(\s*(${NUMBER})\s*,\s*(${NUMBER})\s*\)`,
-    ).exec(content);
-    return match ? [Number(match[1]), Number(match[2])] : null;
-  };
-  const quadratic = pair("quadraticBrakeCoefficients");
-  const linear = pair("linearBrakeCoefficients");
-  if (!quadratic || !linear) return null;
-  return {
-    quadraticForward: quadratic[0],
-    quadraticStrafe: quadratic[1],
-    linearForward: linear[0],
-    linearStrafe: linear[1],
-  };
 }
 
 /** What a project's build files say about Pedro and its command library. */
@@ -227,9 +205,9 @@ export async function detectRobotProject(
     root,
     constants,
     ...readBuildFiles(builds),
-    brakeCoefficients: constants
-      ? readBrakeCoefficients(contents.get(constants.file) ?? "")
-      : null,
+    pedroValues: constants
+      ? readPedroValues(contents.get(constants.file) ?? "").values
+      : [],
   };
 }
 
@@ -244,8 +222,16 @@ export interface ProjectSuggestion {
   patch: Partial<Settings>;
 }
 
-const sameNumber = (a: number | undefined, b: number) =>
-  Math.abs((a ?? 0) - b) < 1e-9;
+const BRAKE_KEYS: PedroValueKey[] = [
+  "pedroQuadraticBrakeForward",
+  "pedroQuadraticBrakeStrafe",
+  "pedroLinearBrakeForward",
+  "pedroLinearBrakeStrafe",
+];
+
+/** A number for a sentence: Pedro's tuned values run to 16 digits. */
+export const shortNumber = (n: number | string) =>
+  typeof n === "number" ? Number(n.toPrecision(5)) : n;
 
 /** The settings that don't match what the robot project says. */
 export function projectSuggestions(
@@ -268,32 +254,45 @@ export function projectSuggestions(
     });
   }
 
-  const brakes = project.brakeCoefficients;
-  if (
-    brakes &&
-    !(
-      sameNumber(
-        settings.pedroQuadraticBrakeForward,
-        brakes.quadraticForward,
-      ) &&
-      sameNumber(settings.pedroQuadraticBrakeStrafe, brakes.quadraticStrafe) &&
-      sameNumber(settings.pedroLinearBrakeForward, brakes.linearForward) &&
-      sameNumber(settings.pedroLinearBrakeStrafe, brakes.linearStrafe)
-    )
-  ) {
-    const pair = (a: number | undefined, b: number | undefined) =>
-      `${a ?? 0}, ${b ?? 0}`;
+  const changes = changedValues(project.pedroValues, settings);
+  const brakes = changes.filter((c) =>
+    BRAKE_KEYS.includes(c.setting as PedroValueKey),
+  );
+  if (brakes.length > 0) {
+    // All four are set together: they only mean something as a set.
+    const all = project.pedroValues.filter((v) =>
+      BRAKE_KEYS.includes(v.setting),
+    );
+    const pair = (a: PedroValueKey, b: PedroValueKey, from: "now" | "file") => {
+      const at = (key: PedroValueKey) =>
+        from === "now"
+          ? ((settings[key] as number | undefined) ?? 0)
+          : (all.find((v) => v.setting === key)?.value ?? 0);
+      return `${shortNumber(at(a))}, ${shortNumber(at(b))}`;
+    };
+    const describe = (from: "now" | "file") =>
+      `quadratic ${pair("pedroQuadraticBrakeForward", "pedroQuadraticBrakeStrafe", from)}; linear ${pair("pedroLinearBrakeForward", "pedroLinearBrakeStrafe", from)}`;
     suggestions.push({
       id: "handoverBrakes",
       label: "Handover brake coefficients",
-      found: `quadratic ${pair(brakes.quadraticForward, brakes.quadraticStrafe)}; linear ${pair(brakes.linearForward, brakes.linearStrafe)}`,
-      current: `quadratic ${pair(settings.pedroQuadraticBrakeForward, settings.pedroQuadraticBrakeStrafe)}; linear ${pair(settings.pedroLinearBrakeForward, settings.pedroLinearBrakeStrafe)}`,
-      patch: {
-        pedroQuadraticBrakeForward: brakes.quadraticForward,
-        pedroQuadraticBrakeStrafe: brakes.quadraticStrafe,
-        pedroLinearBrakeForward: brakes.linearForward,
-        pedroLinearBrakeStrafe: brakes.linearStrafe,
-      },
+      found: describe("file"),
+      current: describe("now"),
+      patch: Object.fromEntries(all.map((v) => [v.setting, v.value])),
+    });
+  }
+
+  const motion = changes.filter(
+    (c) => !BRAKE_KEYS.includes(c.setting as PedroValueKey),
+  );
+  if (motion.length > 0) {
+    suggestions.push({
+      id: "motionValues",
+      label: "Motion values",
+      found: motion.map((c) => `${c.label} ${shortNumber(c.value)}`).join(", "),
+      current: motion
+        .map((c) => `${c.label} ${shortNumber(c.current)}`)
+        .join(", "),
+      patch: Object.fromEntries(motion.map((c) => [c.setting, c.value])),
     });
   }
 
@@ -312,4 +311,75 @@ export function projectSuggestions(
     });
   }
   return suggestions;
+}
+
+/** What a constants file, pasted in whole, would change in the settings. */
+export interface PastedConstants {
+  /** Whether the text has anything Pedro in it that Turtle Tracer reads. */
+  recognised: boolean;
+  /** Settings it would change, in the order the Motion tab shows them. */
+  changes: ValueChange[];
+  /** What it would change, ready to apply. */
+  patch: Partial<Settings>;
+}
+
+/**
+ * Reads a constants file the user pasted. Beyond the numbers, it says which
+ * Pedro it is written for and what its class and follower factory are called.
+ */
+export function readPastedConstants(
+  text: string,
+  settings: Settings,
+): PastedConstants {
+  const read = readPedroValues(text);
+  const changes = changedValues(read.values, settings);
+  let recognised = read.values.length > 0;
+
+  if (read.version) {
+    recognised = true;
+    const current = settings.pedroVersion ?? "v3";
+    if (read.version !== current) {
+      changes.unshift({
+        setting: "pedroVersion",
+        label: "Pedro Pathing version",
+        value: read.version,
+        current,
+        source: "the code's style",
+      });
+    }
+  }
+
+  const constants = readConstantsClass(
+    /\bfun\s+\w+\s*\(|^[ \t]*object\s+\w+/m.test(text) ? "x.kt" : "x.java",
+    text,
+  );
+  if (constants) {
+    recognised = true;
+    const named = (setting: "pedroConstantsClass" | "pedroFollowerFactory") =>
+      setting === "pedroConstantsClass"
+        ? constants.qualifiedName
+        : constants.followerFactory;
+    const entries = [
+      ["pedroConstantsClass", "Pedro constants class"],
+      ["pedroFollowerFactory", "Follower factory method"],
+    ] as const;
+    for (const [setting, label] of entries) {
+      const value = named(setting);
+      if (value && value !== (settings[setting] ?? "")) {
+        changes.push({
+          setting,
+          label,
+          value,
+          current: settings[setting] || "found in the robot project",
+          source: "the pasted code",
+        });
+      }
+    }
+  }
+
+  return {
+    recognised,
+    changes,
+    patch: Object.fromEntries(changes.map((c) => [c.setting, c.value])),
+  };
 }
