@@ -29,6 +29,12 @@
     lines: Line[];
     collapsedMarkers: boolean;
     timePrediction?: TimePrediction | null;
+    /**
+     * The id of the path, wait or rotate to list markers for, so they can sit
+     * under that step in the path list. Positions and times are then within
+     * the step, and a marker never moves to another one.
+     */
+    ownerId?: string;
   }
 
   let {
@@ -36,7 +42,11 @@
     lines = $bindable(),
     collapsedMarkers = $bindable(),
     timePrediction,
+    ownerId,
   }: Props = $props();
+
+  const scoped = $derived(ownerId !== undefined);
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
   // Waits and rotates both own markers the same way.
   type Step = SequenceItem & { id: string; eventMarkers?: EventMarker[] };
@@ -156,6 +166,7 @@
   function getParametricIndexDisplay(marker: GlobalMarker) {
     if (marker.parentType !== "path") return 0;
     const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
+    if (scoped) return localT;
     const idx = lines.findIndex((l) => l.id === marker.parentId);
     return (idx === -1 ? marker.parentIndex : idx) + localT;
   }
@@ -185,15 +196,17 @@
 
   // Start and end time (ms) of every path, wait and rotate, by id. Rotates
   // appear in the timeline as "wait" events.
+  const eventOwnerId = (ev: TimelineEvent) =>
+    ev.type === "travel"
+      ? ev.line?.id
+      : ev.type === "wait"
+        ? ev.waitId
+        : undefined;
+
   let segmentTimesMap = $derived.by(() => {
     const map = new Map<string, { start: number; end: number }>();
     for (const ev of timePrediction?.timeline ?? []) {
-      const id =
-        ev.type === "travel"
-          ? ev.line?.id
-          : ev.type === "wait"
-            ? ev.waitId
-            : undefined;
+      const id = eventOwnerId(ev);
       if (id)
         map.set(id, { start: ev.startTime * 1000, end: ev.endTime * 1000 });
     }
@@ -267,8 +280,15 @@
   }
 
   function addMarker() {
-    // New markers go on the last step that can have markers.
-    const target = sequence[markerOwnerIndexes(sequence).at(-1) ?? -1];
+    // New markers go on the last step that can have markers, or on the step
+    // this list belongs to.
+    const target = scoped
+      ? sequence.find((item) =>
+          item.kind === "path"
+            ? item.lineId === ownerId
+            : item.kind !== "macro" && item.id === ownerId,
+        )
+      : sequence[markerOwnerIndexes(sequence).at(-1) ?? -1];
     if (!target) return;
     attachToItem(target, {
       id: makeId("event"),
@@ -293,6 +313,11 @@
     value: number,
     clampLocal: boolean,
   ) {
+    if (scoped) {
+      marker.ref.position = clamp01(value);
+      notifyChanged(marker);
+      return;
+    }
     const owners = markerOwnerIndexes(sequence);
     const clamped = Math.max(0, Math.min(owners.length, value));
     let ownerIdx = Math.floor(clamped);
@@ -348,8 +373,18 @@
       return;
     }
 
+    // In a step's own list the marker stays in the step, within its time.
+    const own = scoped
+      ? timeline.find((ev) => eventOwnerId(ev) === marker.parentId)
+      : undefined;
+    if (own) {
+      newTimeMs = Math.max(
+        own.startTime * 1000,
+        Math.min(own.endTime * 1000, newTimeMs),
+      );
+    }
     const seconds = newTimeMs / 1000;
-    const event = findEventForTime(timeline, seconds);
+    const event = own ?? findEventForTime(timeline, seconds);
     if (!event) return;
 
     const targetLine =
@@ -447,6 +482,9 @@
   let allMarkers = $derived(
     getAllMarkers(sequence, lines, draggingMarkerId, segmentTimesMap),
   );
+  let shownMarkers = $derived(
+    scoped ? allMarkers.filter((m) => m.parentId === ownerId) : allMarkers,
+  );
 
   // Event names used here or in other project files, for autocomplete.
   let availableEvents = $derived(
@@ -486,242 +524,284 @@
   </div>
 {/snippet}
 
-<div class="{ui.card} flex flex-col w-full overflow-hidden">
-  <SectionHeader
-    title="Event Markers"
-    bind:collapsed={collapsedMarkers}
-    count={allMarkers.length}
-    onAdd={addMarker}
-  />
+{#if scoped && shownMarkers.length === 0}
+  <!-- With none yet, a sliver peeks out from behind the step's card; hovering or focusing it asks for a first marker. -->
+  <button
+    class="group {ui.card} -mt-2 ml-3 flex h-6 w-[calc(100%-1.5rem)] items-end justify-center overflow-hidden rounded-b-md rounded-t-none border-t-0 text-xs font-medium text-neutral-600 transition-all duration-150 hover:h-10 focus-visible:h-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:text-neutral-300"
+    onclick={addMarker}
+    title="Add an event marker to this step"
+    aria-label="Add event marker"
+  >
+    <!-- The same fill as the section header, over the button's card colour. -->
+    <span
+      class="flex flex-1 items-end justify-center self-stretch bg-neutral-50 transition-colors group-hover:bg-neutral-100 dark:bg-neutral-900/50 dark:group-hover:bg-neutral-800"
+    >
+      <span
+        class="mb-1.5 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+      >
+        <ZapIcon className="size-3" />
+        Add event marker
+      </span>
+    </span>
+  </button>
+{:else}
+  <!-- Under a step, it hangs off the step's card like a drawer. -->
+  <div
+    class="{ui.card} flex flex-col overflow-hidden {scoped
+      ? 'mx-3 w-auto rounded-t-none border-t-0'
+      : 'w-full'}"
+  >
+    <SectionHeader
+      title="Event Markers"
+      bind:collapsed={collapsedMarkers}
+      count={shownMarkers.length}
+      onAdd={addMarker}
+    />
 
-  {#if !collapsedMarkers}
-    <div class="p-2 flex flex-col gap-2">
-      {#if allMarkers.length === 0}
-        <EmptyState
-          title="No event markers"
-          description="Click + to add an event marker at the end of the sequence."
-          compact={true}
-        >
-          {#snippet icon()}
-            <div>
-              <ZapIcon
-                className="size-6 text-neutral-500 dark:text-neutral-400"
-                strokeWidth={1.5}
-              />
-            </div>
-          {/snippet}
-        </EmptyState>
-      {:else}
-        {#each allMarkers as marker (marker.id)}
-          <div
-            role="group"
-            id={`global-marker-${marker.id}`}
-            class="flex flex-col p-2 border border-emerald-200 dark:border-emerald-800 rounded-md bg-emerald-50/50 dark:bg-emerald-900/10 gap-2"
-            onmouseenter={() => hoveredMarkerId.set(marker.id)}
-            onmouseleave={() => hoveredMarkerId.set(null)}
+    {#if !collapsedMarkers && (shownMarkers.length > 0 || !scoped)}
+      <div class="p-2 flex flex-col gap-2">
+        {#if shownMarkers.length === 0}
+          <EmptyState
+            title="No event markers"
+            description="Click + to add an event marker at the end of the sequence."
+            compact={true}
           >
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 flex-1">
-                  <div
-                    class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
-                  ></div>
-                  <SearchableDropdown
-                    value={marker.ref.name}
-                    options={availableEvents}
-                    placeholder="Search or add new..."
-                    onchange={(val) => {
-                      marker.ref.name = val;
+            {#snippet icon()}
+              <div>
+                <ZapIcon
+                  className="size-6 text-neutral-500 dark:text-neutral-400"
+                  strokeWidth={1.5}
+                />
+              </div>
+            {/snippet}
+          </EmptyState>
+        {:else}
+          {#each shownMarkers as marker (marker.id)}
+            <div
+              role="group"
+              id={`${scoped ? "path" : "global"}-marker-${marker.id}`}
+              class="flex flex-col p-2 border border-emerald-200 dark:border-emerald-800 rounded-md bg-emerald-50/50 dark:bg-emerald-900/10 gap-2"
+              onmouseenter={() => hoveredMarkerId.set(marker.id)}
+              onmouseleave={() => hoveredMarkerId.set(null)}
+            >
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 flex-1">
+                    <div
+                      class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
+                    ></div>
+                    <SearchableDropdown
+                      value={marker.ref.name}
+                      options={availableEvents}
+                      placeholder="Search or add new..."
+                      onchange={(val) => {
+                        marker.ref.name = val;
+                        if (marker.parentType === "path") lines = [...lines];
+                        else sequence = [...sequence];
+                      }}
+                    />
+                  </div>
+                  <button
+                    class="text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors"
+                    onclick={() => removeMarker(marker)}
+                    title="Remove Marker"
+                    aria-label="Remove Marker"
+                  >
+                    <TrashIcon className="size-4" />
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >Type:</span
+                  >
+                  <select
+                    class="{ui.inputXs} flex-1"
+                    aria-label="Event marker type"
+                    value={marker.ref.type || "parametric"}
+                    onchange={(e) => {
+                      marker.ref.type = e.currentTarget.value as any;
                       if (marker.parentType === "path") lines = [...lines];
                       else sequence = [...sequence];
                     }}
-                  />
-                </div>
-                <button
-                  class="text-neutral-500 dark:text-neutral-400 hover:text-red-500 transition-colors"
-                  onclick={() => removeMarker(marker)}
-                  title="Remove Marker"
-                  aria-label="Remove Marker"
-                >
-                  <TrashIcon className="size-4" />
-                </button>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-neutral-500 dark:text-neutral-400"
-                  >Type:</span
-                >
-                <select
-                  class="{ui.inputXs} flex-1"
-                  aria-label="Event marker type"
-                  value={marker.ref.type || "parametric"}
-                  onchange={(e) => {
-                    marker.ref.type = e.currentTarget.value as any;
-                    if (marker.parentType === "path") lines = [...lines];
-                    else sequence = [...sequence];
-                  }}
-                >
-                  <option value="parametric">Parametric</option>
-                  <option value="temporal">Temporal</option>
-                  <option value="pose">Pose</option>
-                </select>
-              </div>
-            </div>
-
-            <div
-              class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
-            >
-              <span
-                class="truncate max-w-[100px] font-mono"
-                title={marker.parentName}>{marker.parentName}</span
-              >
-              <DotIcon className="-mx-1 opacity-40 shrink-0" />
-              {#if marker.ref.type === "temporal"}
-                <span>Global Time: {Math.round(marker.globalTime)}ms</span>
-              {:else if marker.ref.type === "pose"}
-                <span
-                  >Global Index: {getParametricIndexDisplay(marker).toFixed(
-                    3,
-                  )}</span
-                >
-              {:else}
-                <span>Global Index: {marker.globalPosition.toFixed(2)}</span>
-              {/if}
-            </div>
-
-            {#if !marker.ref.type || marker.ref.type === "parametric"}
-              <div class="flex items-center gap-2">
-                <input
-                  type="range"
-                  aria-label="Position for {marker.ref.name}"
-                  min="0"
-                  max={nonMacroCount}
-                  step="0.01"
-                  value={marker.globalPosition}
-                  class="flex-1 slider accent-emerald-600"
-                  oninput={(e) =>
-                    handleGlobalPositionInput(
-                      marker,
-                      Number.parseFloat(e.currentTarget.value),
-                    )}
-                  onchange={(e) =>
-                    handleGlobalPositionCommit(
-                      marker,
-                      Number.parseFloat(e.currentTarget.value),
-                    )}
-                />
-                <input
-                  type="number"
-                  aria-label="Position value for {marker.ref.name}"
-                  min="0"
-                  max={nonMacroCount}
-                  step="0.01"
-                  value={Number.parseFloat(marker.globalPosition.toFixed(2))}
-                  class="{ui.inputXs} w-16 text-center"
-                  onchange={(e) =>
-                    handleGlobalPositionCommit(
-                      marker,
-                      Number.parseFloat(e.currentTarget.value),
-                    )}
-                />
-              </div>
-            {:else if marker.ref.type === "temporal"}
-              <div class="flex flex-col gap-1 mt-1">
-                {#if marker.segmentStartTime !== undefined}
-                  <div
-                    class="flex justify-between items-center text-[10px] text-neutral-500 dark:text-neutral-400 px-1"
                   >
+                    <option value="parametric">Parametric</option>
+                    <option value="temporal">Temporal</option>
+                    <option value="pose">Pose</option>
+                  </select>
+                </div>
+              </div>
+
+              {#if !scoped}
+                <div
+                  class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
+                >
+                  <span
+                    class="truncate max-w-[100px] font-mono"
+                    title={marker.parentName}>{marker.parentName}</span
+                  >
+                  <DotIcon className="-mx-1 opacity-40 shrink-0" />
+                  {#if marker.ref.type === "temporal"}
+                    <span>Global Time: {Math.round(marker.globalTime)}ms</span>
+                  {:else if marker.ref.type === "pose"}
                     <span
-                      >Time after Start: {Math.round(
-                        marker.globalTime - marker.segmentStartTime,
-                      )}ms</span
+                      >Global Index: {getParametricIndexDisplay(marker).toFixed(
+                        3,
+                      )}</span
                     >
-                    <span
-                      >Segment End: {Math.round(
-                        marker.segmentEndTime ?? 0,
-                      )}ms</span
+                  {:else}
+                    <span>Global Index: {marker.globalPosition.toFixed(2)}</span
                     >
-                  </div>
-                {/if}
+                  {/if}
+                </div>
+              {/if}
+
+              {#if !marker.ref.type || marker.ref.type === "parametric"}
                 <div class="flex items-center gap-2">
                   <input
                     type="range"
+                    aria-label="Position for {marker.ref.name}"
                     min="0"
-                    max={(timePrediction?.totalTime ?? 10) * 1000}
-                    step="1"
-                    value={marker.ref.endTime ?? marker.ref.time ?? 500}
+                    max={scoped ? 1 : nonMacroCount}
+                    step="0.01"
+                    value={scoped ? marker.ref.position : marker.globalPosition}
                     class="flex-1 slider accent-emerald-600"
                     oninput={(e) =>
-                      handleGlobalTimeInput(
+                      handleGlobalPositionInput(
                         marker,
                         Number.parseFloat(e.currentTarget.value),
                       )}
                     onchange={(e) =>
-                      handleGlobalTimeCommit(
+                      handleGlobalPositionCommit(
                         marker,
                         Number.parseFloat(e.currentTarget.value),
                       )}
                   />
                   <input
                     type="number"
-                    value={marker.ref.endTime ?? marker.ref.time ?? 500}
-                    aria-label="Event time in milliseconds"
+                    aria-label="Position value for {marker.ref.name}"
                     min="0"
-                    step="1"
-                    class="{ui.inputXs} w-20 text-center"
+                    max={scoped ? 1 : nonMacroCount}
+                    step="0.01"
+                    value={Number.parseFloat(
+                      (scoped
+                        ? marker.ref.position
+                        : marker.globalPosition
+                      ).toFixed(2),
+                    )}
+                    class="{ui.inputXs} w-16 text-center"
                     onchange={(e) =>
-                      handleGlobalTimeCommit(
+                      handleGlobalPositionCommit(
                         marker,
                         Number.parseFloat(e.currentTarget.value),
                       )}
                   />
                 </div>
-              </div>
-            {:else if marker.ref.type === "pose"}
-              <div class="grid grid-cols-2 gap-2 mt-1">
-                {@render poseInput(marker, "poseX", "X")}
-                {@render poseInput(marker, "poseY", "Y")}
-                <div class="flex items-center gap-2">
-                  <span
-                    class="text-xs text-neutral-500 dark:text-neutral-400 w-3 shrink-0"
-                    title="Parametric Guess (Local: {(
-                      marker.ref.poseGuess ?? getAutoPoseGuess(marker)
-                    ).toFixed(3)}, Global: {getGlobalPoseGuess(marker).toFixed(
-                      3,
-                    )})"
-                  >
-                    G:
-                  </span>
-                  <input
-                    type="number"
-                    value={marker.ref.poseGuess === undefined
-                      ? ""
-                      : getParametricIndexDisplay(marker).toFixed(3)}
-                    placeholder={getParametricIndexDisplay(marker).toFixed(3)}
-                    min="0"
-                    max={lines.length.toString()}
-                    step="0.001"
-                    class="{ui.inputXs} flex-1"
-                    oninput={(e) => {
-                      const val = e.currentTarget.value;
-                      if (val === "") {
-                        marker.ref.poseGuess = undefined;
-                      } else {
-                        updateMarkerFromParametricIndex(
+              {:else if marker.ref.type === "temporal"}
+                <div class="flex flex-col gap-1 mt-1">
+                  {#if marker.segmentStartTime !== undefined}
+                    <div
+                      class="flex justify-between items-center text-[10px] text-neutral-500 dark:text-neutral-400 px-1"
+                    >
+                      <span
+                        >Time after Start: {Math.round(
+                          marker.globalTime - marker.segmentStartTime,
+                        )}ms</span
+                      >
+                      <span
+                        >Segment End: {Math.round(
+                          marker.segmentEndTime ?? 0,
+                        )}ms</span
+                      >
+                    </div>
+                  {/if}
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={scoped ? (marker.segmentStartTime ?? 0) : 0}
+                      max={scoped
+                        ? (marker.segmentEndTime ??
+                          (timePrediction?.totalTime ?? 10) * 1000)
+                        : (timePrediction?.totalTime ?? 10) * 1000}
+                      step="1"
+                      value={marker.ref.endTime ?? marker.ref.time ?? 500}
+                      class="flex-1 slider accent-emerald-600"
+                      oninput={(e) =>
+                        handleGlobalTimeInput(
                           marker,
-                          Number.parseFloat(val),
-                        );
-                      }
-                      if (marker.parentType === "path") lines = [...lines];
-                      else sequence = [...sequence];
-                    }}
-                  />
+                          Number.parseFloat(e.currentTarget.value),
+                        )}
+                      onchange={(e) =>
+                        handleGlobalTimeCommit(
+                          marker,
+                          Number.parseFloat(e.currentTarget.value),
+                        )}
+                    />
+                    <input
+                      type="number"
+                      value={marker.ref.endTime ?? marker.ref.time ?? 500}
+                      aria-label="Event time in milliseconds"
+                      min="0"
+                      step="1"
+                      class="{ui.inputXs} w-20 text-center"
+                      onchange={(e) =>
+                        handleGlobalTimeCommit(
+                          marker,
+                          Number.parseFloat(e.currentTarget.value),
+                        )}
+                    />
+                  </div>
                 </div>
-              </div>
-            {/if}
-          </div>
-        {/each}
-      {/if}
-    </div>
-  {/if}
-</div>
+              {:else if marker.ref.type === "pose"}
+                <div class="grid grid-cols-2 gap-2 mt-1">
+                  {@render poseInput(marker, "poseX", "X")}
+                  {@render poseInput(marker, "poseY", "Y")}
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-xs text-neutral-500 dark:text-neutral-400 w-3 shrink-0"
+                      title="Parametric Guess (Local: {(
+                        marker.ref.poseGuess ?? getAutoPoseGuess(marker)
+                      ).toFixed(3)}, Global: {getGlobalPoseGuess(
+                        marker,
+                      ).toFixed(3)})"
+                    >
+                      G:
+                    </span>
+                    <input
+                      type="number"
+                      value={marker.ref.poseGuess === undefined
+                        ? ""
+                        : getParametricIndexDisplay(marker).toFixed(3)}
+                      placeholder={getParametricIndexDisplay(marker).toFixed(3)}
+                      min="0"
+                      max={scoped ? "1" : lines.length.toString()}
+                      step="0.001"
+                      class="{ui.inputXs} flex-1"
+                      oninput={(e) => {
+                        const val = e.currentTarget.value;
+                        if (val === "") {
+                          marker.ref.poseGuess = undefined;
+                        } else if (scoped) {
+                          marker.ref.poseGuess = clamp01(
+                            Number.parseFloat(val),
+                          );
+                        } else {
+                          updateMarkerFromParametricIndex(
+                            marker,
+                            Number.parseFloat(val),
+                          );
+                        }
+                        if (marker.parentType === "path") lines = [...lines];
+                        else sequence = [...sequence];
+                      }}
+                    />
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        {/if}
+      </div>
+    {/if}
+  </div>
+{/if}
