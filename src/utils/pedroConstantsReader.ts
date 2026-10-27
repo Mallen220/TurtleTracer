@@ -82,7 +82,8 @@ export function changedValues(
 /** The code with comments blanked out, so commented-out settings don't count. */
 function stripComments(source: string): string {
   let out = "";
-  for (let i = 0; i < source.length; i++) {
+  let i = 0;
+  while (i < source.length) {
     const c = source[i];
     const next = source[i + 1];
     if (c === '"' || c === "'") {
@@ -91,17 +92,20 @@ function stripComments(source: string): string {
         end += source[end] === "\\" ? 2 : 1;
       }
       out += source.slice(i, end + 1);
-      i = end;
+      i = end + 1;
     } else if (c === "/" && next === "/") {
-      while (i < source.length && source[i] !== "\n") i++;
+      let end = i;
+      while (end < source.length && source[end] !== "\n") end++;
       out += "\n";
+      i = end + 1;
     } else if (c === "/" && next === "*") {
       const end = source.indexOf("*/", i + 2);
       const stop = end === -1 ? source.length : end + 2;
       out += source.slice(i, stop).replaceAll(/[^\n]/g, " ");
-      i = stop - 1;
+      i = stop;
     } else {
       out += c;
+      i++;
     }
   }
   return out;

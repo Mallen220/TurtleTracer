@@ -69,7 +69,9 @@ function toHeading(h: LineHeading): Partial<Point> {
     ...(type === "facingPoint" &&
       point && { targetX: point.x, targetY: point.y }),
     ...(type === "piecewise" && {
-      segments: (h.piecewiseHeading?.segments ?? []).map(toSegment),
+      segments: (h.piecewiseHeading?.segments ?? []).map((segment, index) =>
+        toSegment(segment, index),
+      ),
     }),
   } as Partial<Point>;
 }
