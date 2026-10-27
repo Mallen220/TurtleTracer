@@ -14,6 +14,7 @@ import {
 } from "./eventMarkerUtils";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { type CoordinateSystem } from "../../utils/coordinates";
+import { materializePrevHeadings } from "../../utils/prevHeading";
 import {
   DEFAULT_PROJECT_EXTENSION,
   getProjectExtensionFromPath,
@@ -206,6 +207,7 @@ export async function generateSequentialCommandCode(
     };
 
   const speeds = speedCodes(lines);
+  const driven = materializePrevHeadings(startPoint, lines, sequence);
   const pathData = lines.map((line, idx) => {
     const startPose = poseName(idx - 1);
     const endPose = poseName(idx);
@@ -218,11 +220,13 @@ export async function generateSequentialCommandCode(
       ? `curve(${startPose}, ${controlPoints.join(", ")}, ${endPose})`
       : `line(${startPose}, ${endPose})`;
 
-    const global = chainGlobalHeading(lines, idx);
+    const global = chainGlobalHeading(driven, idx);
     return {
       name: pathChainVariables[idx],
       call,
-      heading: global ? "" : headingMethodCode(line.endPoint, args, language),
+      heading: global
+        ? ""
+        : headingMethodCode(driven[idx].endPoint, args, language),
       chainHeading:
         global && !line.isChain
           ? `\n            ${headingMethodCode(global, args, language)}`

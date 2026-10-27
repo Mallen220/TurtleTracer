@@ -86,6 +86,43 @@ describe("Pedro's brake model for handing over", () => {
   });
 });
 
+describe("handing over when the robot gives no brake numbers at all", () => {
+  const untuned = {
+    ...DEFAULT_SETTINGS,
+    brakingQuadratic: 0,
+    brakingLinear: 0,
+  } as Settings;
+
+  it("matches a tuned robot's own fit at the Max Deceleration it came from", () => {
+    const at = { ...untuned, maxDeceleration: 107 } as Settings;
+    const tuned = { ...at, ...pedro } as Settings;
+    for (const v of [20, 40, 60]) {
+      expect(handoverDistance(v, 0, at)).toBeCloseTo(
+        handoverDistance(v, 0, tuned),
+        1,
+      );
+    }
+  });
+
+  it("is not a constant deceleration: it stops sooner, relatively, the faster it goes", () => {
+    const stretch = (v: number) => handoverDistance(v, 0, untuned) / (v * v);
+    expect(stretch(60)).toBeLessThan(stretch(20));
+  });
+
+  it("takes longer to stop for a robot that decelerates less", () => {
+    const soft = { ...untuned, maxDeceleration: 40 } as Settings;
+    expect(handoverDistance(40, 0, soft)).toBeGreaterThan(
+      handoverDistance(40, 0, untuned),
+    );
+  });
+
+  it("uses the measured Braking setting rather than the stand-in", () => {
+    expect(handoverDistance(50, 0, settings)).toBeCloseTo(
+      brakingDistance(50, settings),
+    );
+  });
+});
+
 describe("turning first after a handover", () => {
   // Driving +x at 60 in/s, 10 in before a corner onto a path going +y.
   const path = Array.from({ length: 101 }, (_, i) => ({ x: 100, y: i }));
@@ -133,16 +170,6 @@ describe("turning first after a handover", () => {
   it("swings round without stopping when it already faces the right way", () => {
     const run = simulateRecovery({ ...input, heading: facing(90, 90) });
     expect(Math.min(...run.speed)).toBeGreaterThan(15);
-  });
-
-  it("doesn't turn first for Pedro 2, which isn't known to", () => {
-    const run = simulateRecovery({
-      ...input,
-      settings: { ...input.settings, pedroVersion: "v2" },
-      heading: facing(0, 90),
-    });
-    expect(Math.min(...run.speed)).toBeGreaterThan(15);
-    expect(run.heading!.at(-1)).toBeCloseTo(90, 0);
   });
 
   it("gives no heading when it wasn't given one", () => {

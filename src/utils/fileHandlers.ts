@@ -35,6 +35,7 @@ import type {
 } from "../types";
 import { makeId } from "./nameGenerator";
 import { getLineEndHeading } from "./math";
+import { materializePrevHeadings } from "./prevHeading";
 import { startingHeading } from "./timeCalculator/pathCalculator";
 import {
   DEFAULT_PROJECT_EXTENSION,
@@ -97,13 +98,14 @@ function withPathHeadings(
   const { degrees: _degrees, ...rest } = startPoint as Point & {
     degrees?: number;
   };
+  const driven = materializePrevHeadings(startPoint, lines, sequence);
   return {
     ...rest,
     heading: "linear",
     startDeg: startingHeading(startPoint, lines, sequence),
     endDeg: getLineEndHeading(
-      lines.at(-1),
-      lines.at(-2)?.endPoint ?? startPoint,
+      driven.at(-1),
+      driven.at(-2)?.endPoint ?? startPoint,
     ),
   } as Point;
 }

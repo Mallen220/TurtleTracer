@@ -43,6 +43,7 @@ export class FieldLayout {
   userFieldLimit: number | null = $state(null);
   userFieldHeightLimit: number | null = $state(null);
   resizeMode: ResizeMode | null = $state(null);
+  #grabOffset = 0;
   /**
    * On narrow screens the closed control tab is removed from the layout once
    * its slide-out has finished, so the field can use the space.
@@ -204,8 +205,14 @@ export class FieldLayout {
     return Math.max(MIN_FIELD_HEIGHT, Math.min(height, max));
   }
 
-  startResize(mode: ResizeMode) {
-    if (this.#canResize(mode)) this.resizeMode = mode;
+  startResize(mode: ResizeMode, pointer?: { clientX: number }) {
+    if (!this.#canResize(mode)) return;
+    this.resizeMode = mode;
+    this.#grabOffset = 0;
+    if (mode === "horizontal" && pointer && this.mainContentDiv) {
+      const left = this.mainContentDiv.getBoundingClientRect().left;
+      this.#grabOffset = pointer.clientX - (left + this.leftPaneWidth);
+    }
   }
 
   stopResize = () => {
@@ -215,7 +222,16 @@ export class FieldLayout {
   /** Moves the divider to the pointer at (`clientX`, `clientY`) while dragging. */
   #dragTo(clientX: number, clientY: number) {
     if (this.resizeMode === "horizontal") {
-      this.userFieldLimit = clientX;
+      const left = this.mainContentDiv?.getBoundingClientRect().left ?? 0;
+      // Clamped as it is stored, so dragging past the limit and back responds at once.
+      this.userFieldLimit = clamp(
+        clientX - left - this.#grabOffset,
+        MIN_FIELD_PANE_WIDTH,
+        Math.max(
+          MIN_FIELD_PANE_WIDTH,
+          this.mainContentWidth - MIN_SIDEBAR_WIDTH,
+        ),
+      );
     } else if (this.resizeMode === "vertical" && this.mainContentDiv) {
       const top = this.mainContentDiv.getBoundingClientRect().top;
       this.userFieldHeightLimit = this.#clampFieldHeight(clientY - top);

@@ -4,13 +4,14 @@ import { calculatePathTime } from "../utils/timeCalculator";
 import { simulateRecovery } from "../utils/timeCalculator/chainRecovery";
 import { robotPoseDuring } from "../utils/animation";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { Line, Point, SequenceItem, Settings } from "../types";
 import { tangentialHeading } from "./helpers/sequences";
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 
 // A curve, then a short chained path the robot can't get onto before it ends,
 // then an unchained path from where that one ends.

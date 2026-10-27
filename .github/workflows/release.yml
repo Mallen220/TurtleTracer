@@ -25,7 +25,7 @@ jobs:
       upload_url: ${{ steps.ensure-release.outputs.upload_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -136,11 +136,11 @@ jobs:
       contents: write
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci --ignore-scripts
@@ -175,17 +175,36 @@ jobs:
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
 
+      - name: Record checksums (Mac)
+        shell: bash
+        run: |
+          # Hashed here, from the files just uploaded, so no job has to
+          # download the release's installers (which counts as a download).
+          mkdir -p checksums
+          {
+            find release -name "*.dmg" -type f | while read file; do
+              (cd "$(dirname "$file")" && shasum -a 256 "$(basename "$file")")
+            done
+          } > checksums/mac.txt
+          cat checksums/mac.txt
+
+      - name: Upload checksums (Mac)
+        uses: actions/upload-artifact@v7
+        with:
+          name: checksums-mac
+          path: checksums/mac.txt
+
   release-win:
     needs: prepare-release
     permissions:
       contents: write
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci --ignore-scripts
@@ -242,17 +261,36 @@ jobs:
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
 
+      - name: Record checksums (Windows)
+        shell: bash
+        run: |
+          # Hashed here, from the files just uploaded, so no job has to
+          # download the release's installers (which counts as a download).
+          mkdir -p checksums
+          {
+            find release -maxdepth 1 \( -name "*Setup*.exe" -o -name "*.appx" -o -name "*.msix" \) -type f | while read file; do
+              (cd "$(dirname "$file")" && sha256sum "$(basename "$file")")
+            done
+          } > checksums/windows.txt
+          cat checksums/windows.txt
+
+      - name: Upload checksums (Windows)
+        uses: actions/upload-artifact@v7
+        with:
+          name: checksums-windows
+          path: checksums/windows.txt
+
   release-linux:
     needs: prepare-release
     permissions:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install system dependencies
@@ -293,6 +331,25 @@ jobs:
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
 
+      - name: Record checksums (Linux)
+        shell: bash
+        run: |
+          # Hashed here, from the files just uploaded, so no job has to
+          # download the release's installers (which counts as a download).
+          mkdir -p checksums
+          {
+            find release -type f \( -name "*.AppImage" -o -name "*.deb" \) | while read file; do
+              (cd "$(dirname "$file")" && sha256sum "$(basename "$file")")
+            done
+          } > checksums/linux.txt
+          cat checksums/linux.txt
+
+      - name: Upload checksums (Linux)
+        uses: actions/upload-artifact@v7
+        with:
+          name: checksums-linux
+          path: checksums/linux.txt
+
   release-checksums:
     needs: [prepare-release, release-mac, release-win, release-linux]
     # Still publish checksums for whatever was built if one platform failed.
@@ -301,17 +358,21 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Generate and upload SHA256SUMS
+      - name: Collect checksums
+        uses: actions/download-artifact@v8
+        with:
+          pattern: checksums-*
+          path: checksums
+          merge-multiple: true
+
+      - name: Upload SHA256SUMS
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir assets
-          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir assets --clobber \
-            --pattern '*.dmg' --pattern '*.exe' --pattern '*.AppImage' --pattern '*.deb' \
-            --pattern '*.appx' --pattern '*.msix'
-          cd assets
           # "<sha256>  <file name>" per line, the format install.sh and install.ps1 read.
-          sha256sum -- * > SHA256SUMS
+          # The hashes were taken by the platform jobs; the release's installers
+          # are not downloaded here, so this adds nothing to their download counts.
+          cat checksums/*.txt | sort -k2 > SHA256SUMS
           cat SHA256SUMS
           gh release upload "$TAG_NAME" SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber

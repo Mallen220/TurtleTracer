@@ -13,6 +13,7 @@ import {
   settingsStore,
   robotXYStore,
   robotHeadingStore,
+  robotTStore,
   percentStore,
   hoverPercentStore,
   hoverRobotXYStore,
@@ -40,8 +41,8 @@ const IDENTITY_SCALE = d3.scaleLinear();
 
 /** The robot's heading before the path starts moving. */
 function startHeading(startPoint: Point) {
-  if (startPoint.heading === "constant") return -startPoint.degrees;
-  if (startPoint.heading === "linear") return -startPoint.startDeg;
+  if (startPoint.heading === "constant") return -(startPoint.degrees ?? 0);
+  if (startPoint.heading === "linear") return -(startPoint.startDeg ?? 0);
   return 0;
 }
 
@@ -239,6 +240,7 @@ export class Playback {
         // Nothing to animate: show the robot at the start point.
         robotXYStore.set({ x: startPoint.x, y: startPoint.y });
         robotHeadingStore.set(startHeading(startPoint));
+        robotTStore.set(null);
         this.committedRobotState = null;
         return;
       }
@@ -253,6 +255,7 @@ export class Playback {
       );
       robotXYStore.set({ x: pose.x, y: pose.y });
       robotHeadingStore.set(pose.heading);
+      robotTStore.set(pose.t ?? null);
 
       const committed = this.#committed.current;
       const committedPrediction = this.#committedPrediction;

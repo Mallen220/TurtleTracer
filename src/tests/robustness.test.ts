@@ -94,7 +94,7 @@ describe("a heading that wants to change faster than the robot can turn", () => 
       { x: 0, y: 2, heading: "linear", startDeg: 0, endDeg: 0 } as Point,
       loop,
       steps("a"),
-      { ...base, maxVelocity: 2, pedroVersion: "v2", aVelocity: 0.4 },
+      { ...base, maxVelocity: 2, aVelocity: 0.4 },
     );
     expect(biggest).toBeLessThanOrEqual(((0.4 * 180) / Math.PI) * 0.02 * 3 + 2);
   });

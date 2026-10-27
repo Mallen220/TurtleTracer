@@ -69,11 +69,9 @@ describe("Time Calculator", () => {
     ];
 
     const result = calculatePathTime(startPoint, lines, defaultSettings);
-    // 2.828 was for previous logic. With motion profile (accel=5, vel=10).
-    // Dist 10. Accel Dist = 100 / 10 = 10.
-    // Triangle profile. vPeak = sqrt(2*5*5) = 7.07.
-    // Time = 7.07/5 * 2 = 2.828.
-    // Correct.
+    // Motion profile (accel = decel = 5, top speed 10) over 10 in: a
+    // triangle, peaking at sqrt(2*5*5) = 7.07 in/s at 5 in, 2.828 s to stop.
+    // It's the last path, so the robot holds the end until it gets there.
     expect(result.totalTime).toBeCloseTo(2.828, 2);
   });
 
@@ -130,7 +128,10 @@ describe("Time Calculator", () => {
       defaultSettings,
       sequence,
     );
-    expect(result.totalTime).toBeCloseTo(3.828, 2);
+    // Pedro lets go 0.975 of the way along (9.75 in), with no settle time
+    // set: still going sqrt(50 - 2*5*4.75) = 1.58 in/s, at
+    // 7.07/5 + (7.07 - 1.58)/5 = 2.512 s. Then the 1 s wait.
+    expect(result.totalTime).toBeCloseTo(3.512, 2);
   });
 
   it("calculates rotation time", () => {

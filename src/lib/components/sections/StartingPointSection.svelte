@@ -2,7 +2,8 @@
 <script lang="ts">
   import type { Point, Settings } from "../../../types/index";
   import { selectedPointId, focusRequest } from "../../../stores";
-  import { linesStore } from "../../../lib/projectStore";
+  import { linesStore, sequenceStore } from "../../../lib/projectStore";
+  import { firstPathStartsPrev } from "../../../utils/prevHeading";
   import { getShortcutFromSettings } from "../../../utils";
   import {
     toField,
@@ -89,6 +90,11 @@
   }
 
   let lines = $derived($linesStore);
+  // The first path sets this heading, unless it starts at Prev.
+  let showsHeading = $derived(
+    lines.length === 0 ||
+      firstPathStartsPrev(startPoint, lines, $sequenceStore),
+  );
 
   // Subscribe to focus requests
   $effect(() => {
@@ -202,12 +208,13 @@
     </div>
   </div>
 
-  {#if lines.length === 0}
+  {#if showsHeading}
     <div class="space-y-2">
       <span class="{ui.heading} block"> Initial Heading </span>
       <HeadingControls
         bind:this={headingControls}
         endPoint={startPoint}
+        noPrev
         locked={startPoint.locked}
         onchange={() => (startPoint = { ...startPoint })}
         oncommit={() => (startPoint = { ...startPoint })}

@@ -10,7 +10,7 @@ import type {
 import {
   splitBezier,
   easeInOutQuad,
-  shortestRotation,
+  linearHeadingSweep,
   getDistance,
   interpolateTFromProfile,
 } from "./math";
@@ -82,13 +82,23 @@ export function splitPathAtPercent(
   if (end.heading === "constant") {
     firstEnd = { x, y, heading: "constant", degrees: end.degrees };
   } else if (end.heading === "linear") {
-    const midDeg = shortestRotation(end.startDeg, end.endDeg, t);
+    // The halves keep a Prev start blank; the second starts where the first ends.
+    const driven = activeEvent.line?.endPoint;
+    const startDeg =
+      end.startDeg ??
+      (driven?.heading === "linear" ? driven.startDeg : end.endDeg);
+    const from = startDeg ?? end.endDeg;
+    const sweep = linearHeadingSweep(from, end.endDeg, end.reverse);
+    const midDeg = from + sweep * t;
+    // A half that still turns more than 180° has to go the long way too.
+    const longWay = (part: number) => Math.abs(part) > 180 || undefined;
     firstEnd = {
       x,
       y,
       heading: "linear",
       startDeg: end.startDeg,
       endDeg: midDeg,
+      reverse: longWay(sweep * t),
     };
     secondEnd = {
       x: end.x,
@@ -98,8 +108,9 @@ export function splitPathAtPercent(
       macroId: end.macroId,
       originalId: end.originalId,
       heading: "linear",
-      startDeg: midDeg,
+      startDeg: end.startDeg === undefined ? undefined : midDeg,
       endDeg: end.endDeg,
+      reverse: longWay(sweep * (1 - t)),
     };
   }
 

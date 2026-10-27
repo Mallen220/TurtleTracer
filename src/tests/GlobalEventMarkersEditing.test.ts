@@ -78,3 +78,54 @@ describe("GlobalEventMarkers editing", () => {
     expect(project.lines[1].eventMarkers).toEqual([]);
   });
 });
+
+describe("GlobalEventMarkers listed under one step", () => {
+  let project: { lines: Line[]; sequence: SequenceItem[] };
+
+  beforeEach(() => {
+    project = {
+      lines: [
+        line("a", [{ id: "m0", name: "Other", position: 0.1, lineIndex: 0 }]),
+        line("b", [{ id: "m1", name: "Grab", position: 0.5, lineIndex: 1 }]),
+      ],
+      sequence: [
+        { kind: "path", lineId: "a" },
+        { kind: "path", lineId: "b" },
+      ],
+    };
+    render(GlobalEventMarkersWrapper, { project, ownerId: "b" });
+  });
+
+  it("lists only that step's markers", () => {
+    expect(screen.getByLabelText("Position for Grab")).toBeTruthy();
+    expect(screen.queryByLabelText("Position for Other")).toBeNull();
+  });
+
+  it("keeps the marker on its step, within the step", async () => {
+    await setPosition("Grab", 1.25);
+    expect(project.lines[1].eventMarkers).toEqual([
+      expect.objectContaining({ id: "m1", position: 1 }),
+    ]);
+    expect(project.lines[0].eventMarkers).toHaveLength(1);
+  });
+
+  it("adds a marker to that step", async () => {
+    await fireEvent.click(screen.getByLabelText("Add Item"));
+    expect(project.lines[1].eventMarkers).toHaveLength(2);
+    expect(project.lines[0].eventMarkers).toHaveLength(1);
+  });
+});
+
+describe("GlobalEventMarkers under a step with none", () => {
+  it("offers to add the first marker", async () => {
+    const project = {
+      lines: [line("a")],
+      sequence: [{ kind: "path", lineId: "a" }] as SequenceItem[],
+    };
+    render(GlobalEventMarkersWrapper, { project, ownerId: "a" });
+    expect(screen.queryByLabelText("Add Item")).toBeNull();
+    await fireEvent.click(screen.getByLabelText("Add event marker"));
+    expect(project.lines[0].eventMarkers).toHaveLength(1);
+    expect(screen.getByLabelText("Add Item")).toBeTruthy();
+  });
+});

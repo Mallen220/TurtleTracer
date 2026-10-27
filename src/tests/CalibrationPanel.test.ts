@@ -7,6 +7,7 @@ import { calibrationState } from "../lib/motionCalibration";
 import { settingsStore } from "../lib/projectStore";
 import { notification } from "../stores";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import type { MotionEvent } from "../utils/calibration/events";
 import type { Settings } from "../types";
 
@@ -35,7 +36,7 @@ function measured(events: MotionEvent[]) {
 }
 
 const settings = (over: Partial<Settings> = {}) =>
-  ({ ...DEFAULT_SETTINGS, ...over }) as Settings;
+  ({ ...DEFAULT_SETTINGS, ...SCENARIO_MOTION, ...over }) as Settings;
 
 describe("CalibrationPanel", () => {
   beforeEach(() => {

@@ -8,10 +8,10 @@ import { chainCornerIssues } from "./timeCalculator/chainIssues";
 import { GRAVITY } from "./timeCalculator/lateralLimit";
 import { bendAdvice } from "./timeCalculator/advice";
 import {
+  cornerSpeedFixes,
   followsBends,
-  gainFix,
   speedFixes,
-  type MotionFix,
+  type SpeedFix,
 } from "./timeCalculator/fixSearch";
 import { getAngularDifference } from "./math";
 import { MAX_MACRO_DEPTH } from "../config";
@@ -45,7 +45,7 @@ export interface Insight {
   /** Where clicking the insight takes the timeline, if not to `startTime`. */
   seekTime?: number;
   /** Changes that clear it, each of which has been tried in the simulation. */
-  fixes?: MotionFix[];
+  fixes?: SpeedFix[];
   /** What `value` is, with its unit, e.g. "Swing: 7.7 in". */
   valueLabel?: string;
 }
@@ -660,8 +660,9 @@ export function computePathStatistics(
   stats.addDataPoint(0, 0, 0, 0, 0);
   graphSteps(stats, stepsInOrder(sequence), lines, timeline);
 
-  // The chained corners worth a word: each is said once. Where a stronger
-  // translational P holds the corner, that is offered (tried in the simulation).
+  // The chained corners worth a word: each is said once. Where slowing down
+  // gets the robot through, faster than stopping there, that is offered
+  // (tried in the simulation).
   for (const issue of chainCornerIssues(
     timeline,
     startPoint,
@@ -669,7 +670,7 @@ export function computePathStatistics(
     sequence,
     settings,
   )) {
-    const fix = gainFix(
+    const fixes = cornerSpeedFixes(
       { startPoint, lines, sequence, settings },
       issue.lineIndex,
     );
@@ -680,7 +681,7 @@ export function computePathStatistics(
       message: issue.message,
       value: issue.value,
       valueLabel: issue.valueLabel,
-      ...(fix ? { fixes: [fix] } : {}),
+      ...(fixes.length > 0 ? { fixes } : {}),
     });
   }
 

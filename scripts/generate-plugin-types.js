@@ -24,6 +24,9 @@ async function generate() {
     // Matches "export interface", "export type", "export const" etc.
     content = content.replaceAll(/^export /gm, "");
 
+    // 3. Drop the source file's copyright line; the generated header has its own
+    content = content.replace(/^\/\/ Copyright .*\n/, "");
+
     const finalContent = `/* eslint-disable */
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**

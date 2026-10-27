@@ -226,7 +226,8 @@ describe("Math Utils", () => {
       10, // distanceBefore
     );
 
-    expect(res).toBe(90);
+    // Pedro 3 turns clockwise between opposite angles: 0° to 180° via -90°.
+    expect(res).toBe(-90);
   };
 
   describe("getLineStartHeading", () => {
@@ -439,7 +440,8 @@ describe("Math Utils", () => {
         15, // distanceAtEnd
       );
 
-      expect(res).toBe(135);
+      // Clockwise from 0° to 180°, as Pedro 3 turns.
+      expect(res).toBe(-135);
     });
   });
 

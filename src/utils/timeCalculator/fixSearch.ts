@@ -13,11 +13,7 @@ import type {
 import { calculatePathTime } from "./pathCalculator";
 import { fallsShort } from "./advice";
 import { lateralLimit } from "./lateralLimit";
-import {
-  DEFAULT_TRANSLATIONAL_P,
-  MAX_TRANSLATIONAL_P,
-  MIN_TRANSLATIONAL_P,
-} from "./chainRecovery";
+import { MISSED_POINT_WARNING } from "./chainIssues";
 
 /** The slowest speed worth suggesting (in/s): below it the robot crawls. */
 export const MIN_SUGGESTED_SPEED = 5;
@@ -60,21 +56,35 @@ export function fastestSpeedThatFixes(
   /** Where the speed is set: the path's own (by default), or its chain's (on the chain's first path). */
   target?: { index: number; field: "maxSpeed" | "chainMaxSpeed" },
 ): number | null {
-  const index = target?.index ?? lineIndex;
-  const field = target?.field ?? "maxSpeed";
-  const now = travelOf(ctx, ctx.lines, lineIndex);
-  const top = now?.velocityProfile?.length
-    ? Math.max(...now.velocityProfile)
-    : ctx.settings.maxVelocity || 100;
+  return fastestSpeed(
+    ctx,
+    topSpeedOf(travelOf(ctx, ctx.lines, lineIndex), ctx.settings),
+    target ?? { index: lineIndex, field: "maxSpeed" },
+    (lines) => {
+      const event = travelOf(ctx, lines, lineIndex);
+      return event !== undefined && isFixed(event);
+    },
+  );
+}
 
-  const works = (speed: number) => {
-    const event = travelOf(
-      ctx,
-      replaceLine(ctx.lines, index, { [field]: speed }),
-      lineIndex,
-    );
-    return event !== undefined && isFixed(event);
-  };
+/** The fastest the robot goes on a timed path, or the robot's top speed if that isn't known. */
+const topSpeedOf = (travel: TimelineEvent | undefined, settings: Settings) =>
+  travel?.velocityProfile?.length
+    ? Math.max(...travel.velocityProfile)
+    : settings.maxVelocity || 100;
+
+/**
+ * The fastest whole speed (in/s) below `top`, set as `target`, at which
+ * `works` holds for the changed paths, or null if none worth using does.
+ */
+function fastestSpeed(
+  ctx: FixContext,
+  top: number,
+  target: { index: number; field: "maxSpeed" | "chainMaxSpeed" },
+  works: (lines: Line[]) => boolean,
+): number | null {
+  const worksAt = (speed: number) =>
+    works(replaceLine(ctx.lines, target.index, { [target.field]: speed }));
 
   // Down in steps until it works, then back up between the last two to find
   // the fastest speed that does.
@@ -83,12 +93,12 @@ export function fastestSpeedThatFixes(
   let tooFast = Math.ceil(top);
   let speed = Math.floor(top * 0.85);
   while (speed >= MIN_SUGGESTED_SPEED) {
-    if (works(speed)) {
+    if (worksAt(speed)) {
       let low = speed;
       let high = tooFast;
       for (let tries = 0; high - low > 1 && tries < 16; tries++) {
         const mid = Math.floor((low + high) / 2);
-        if (works(mid)) low = mid;
+        if (worksAt(mid)) low = mid;
         else high = mid;
       }
       return low;
@@ -96,7 +106,7 @@ export function fastestSpeedThatFixes(
     tooFast = speed;
     speed = Math.floor(speed * 0.85);
   }
-  return tooFast > MIN_SUGGESTED_SPEED && works(MIN_SUGGESTED_SPEED)
+  return tooFast > MIN_SUGGESTED_SPEED && worksAt(MIN_SUGGESTED_SPEED)
     ? MIN_SUGGESTED_SPEED
     : null;
 }
@@ -187,6 +197,8 @@ export interface SpeedFix {
   field: "maxSpeed" | "chainMaxSpeed";
   /** In in/s. */
   speed: number;
+  /** The path's name, when it isn't the path the fix is shown on. */
+  pathName?: string;
 }
 
 /** The first path of the chain the path at `lineIndex` is in (itself if it isn't chained). */
@@ -238,45 +250,31 @@ export function applySpeedFix(lines: Line[], fix: SpeedFix): Line[] {
 
 /** What a button that applies a fix says. */
 export function speedFixLabel(fix: SpeedFix): string {
-  return fix.field === "chainMaxSpeed"
-    ? `Limit the whole chain to ${fix.speed} in/s`
-    : `Limit this path to ${fix.speed} in/s`;
+  if (fix.field === "chainMaxSpeed") {
+    return `Limit the whole chain to ${fix.speed} in/s`;
+  }
+  return `Limit ${fix.pathName ?? "this path"} to ${fix.speed} in/s`;
 }
 
 /** A swing past the next path at most this far (inches) counts as holding the corner. */
 export const HELD_SWING = 1;
+
 /**
- * The strongest Translational P suggested, as a multiple of the current one
- * (and at least `MIN_GAIN_CAP`). The simulation has no wobble from a gain set
- * too high, so it can't tell how far above that a real robot stays steady.
+ * Whether the robot holds the chained corner it recovers from in `event`: it
+ * gets back onto the next path, swings at most `HELD_SWING` past it, and
+ * doesn't cut the corner far from the point the paths join at.
  */
-const MAX_GAIN_FACTOR = 3;
-const MIN_GAIN_CAP = 0.3;
+export const holdsCorner = (event: TimelineEvent | undefined): boolean =>
+  event?.settled !== false &&
+  (event?.overshoot ?? 0) <= HELD_SWING &&
+  (event?.missedBy ?? 0) <= MISSED_POINT_WARNING;
 
-/** A stronger Translational P that gets a chained corner under control. */
-export interface GainFix {
-  translationalP: number;
-  /** How far the robot swings past the next path now, and with the fix (inches). */
-  swingBefore: number;
-  swingAfter: number;
-  /** Whether the robot doesn't get back onto the path now. */
-  unsettledBefore: boolean;
-}
-
-/** Any change that clears a problem, ready to apply. */
-export type MotionFix = SpeedFix | GainFix;
-
-export const isGainFix = (fix: MotionFix): fix is GainFix =>
-  "translationalP" in fix;
-
-const roundGain = (gain: number) => Math.round(gain * 100) / 100;
-
-/** The recovery at the chained corner onto the path at `lineIndex`. */
-function recoveryOf(ctx: FixContext, settings: Settings, lineIndex: number) {
+/** The recovery at the chained corner onto the path at `lineIndex`, after timing `lines`. */
+function recoveryOf(ctx: FixContext, lines: Line[], lineIndex: number) {
   const { timeline } = calculatePathTime(
     ctx.startPoint,
-    ctx.lines,
-    settings,
+    lines,
+    ctx.settings,
     ctx.sequence,
   );
   return timeline.find(
@@ -284,108 +282,83 @@ function recoveryOf(ctx: FixContext, settings: Settings, lineIndex: number) {
   );
 }
 
-const swingOf = (event: TimelineEvent | undefined) => event?.overshoot ?? 0;
-
-/** A fix that doesn't hold the corner must cut the swing at least this much to be offered. */
-const WORTHWHILE_SWING_CUT = 0.3;
+/** The path the robot is handed over from at the chained corner onto the path at `lineIndex`. */
+function pathIntoCorner(ctx: FixContext, lineIndex: number): number {
+  const id = ctx.lines[lineIndex]?.id;
+  const paths = (ctx.sequence ?? []).filter((item) => item.kind === "path");
+  const at = paths.findIndex((item) => item.lineId === id);
+  if (at > 0) {
+    const before = ctx.lines.findIndex((l) => l.id === paths[at - 1].lineId);
+    if (before !== -1) return before;
+  }
+  return lineIndex - 1;
+}
 
 /**
- * A stronger Translational P (to 0.01, at most `MAX_GAIN_FACTOR` times the
- * current one) for the chained corner onto the path at `lineIndex`: the
- * weakest at which the robot gets back onto the path swinging at most
- * `HELD_SWING` past it; else the one that swings least, if that is clearly
- * better. A stronger gain doesn't always swing less (at very sharp corners
- * the robot can turn back too hard), so each is tried. Null if the corner is
- * fine already or nothing helps.
+ * The speeds that get the robot through the chained corner onto the path at
+ * `lineIndex` (see `holdsCorner`), each tried in the simulation: a Max Speed
+ * for the path into the corner, which sets how fast the robot arrives, and one
+ * for the whole chain. (The next path's own speed doesn't change the swing.)
+ * A speed is only offered if the run is still faster with it than with the
+ * robot stopping at the corner (the paths unchained), which holds it exactly:
+ * a sharp corner can need a crawl. Empty if the robot holds the corner
+ * already, or no speed is worth it. The robot's tuning (its translational P)
+ * is left alone: it is measured on the robot, not a value to change to get one
+ * corner right.
  */
-export function gainFix(ctx: FixContext, lineIndex: number): GainFix | null {
-  const now = recoveryOf(ctx, ctx.settings, lineIndex);
-  if (!now) return null;
-  const unsettledBefore = now.settled === false;
-  const swingBefore = swingOf(now);
-  if (!unsettledBefore && swingBefore <= HELD_SWING) return null;
+export function cornerSpeedFixes(
+  ctx: FixContext,
+  lineIndex: number,
+): SpeedFix[] {
+  if (holdsCorner(recoveryOf(ctx, ctx.lines, lineIndex))) return [];
+  const into = pathIntoCorner(ctx, lineIndex);
+  if (into < 0) return [];
 
-  const gainNow = roundGain(
-    Math.min(
-      MAX_TRANSLATIONAL_P,
-      Math.max(
-        MIN_TRANSLATIONAL_P,
-        ctx.settings.translationalP ?? DEFAULT_TRANSLATIONAL_P,
-      ),
-    ),
+  const top = topSpeedOf(travelOf(ctx, ctx.lines, into), ctx.settings);
+  const works = (lines: Line[]) =>
+    holdsCorner(recoveryOf(ctx, lines, lineIndex));
+  const stopping = unchainedTime(ctx, lineIndex);
+  const faster = (fix: SpeedFix) =>
+    totalTime(ctx, applySpeedFix(ctx.lines, fix), ctx.sequence) < stopping;
+  const fixes: SpeedFix[] = [];
+  const own = fastestSpeed(ctx, top, { index: into, field: "maxSpeed" }, works);
+  if (own !== null) {
+    fixes.push({
+      lineIndex: into,
+      field: "maxSpeed",
+      speed: own,
+      pathName: ctx.lines[into].name || "the path into the corner",
+    });
+  }
+  const root = chainRootIndex(ctx.lines, lineIndex);
+  const whole = fastestSpeed(
+    ctx,
+    top,
+    { index: root, field: "chainMaxSpeed" },
+    works,
   );
-  const cap = roundGain(
-    Math.min(
-      MAX_TRANSLATIONAL_P,
-      Math.max(MIN_GAIN_CAP, gainNow * MAX_GAIN_FACTOR),
-    ),
-  );
-  const tried = new Map<number, TimelineEvent | undefined>();
-  const at = (gain: number) => {
-    if (!tried.has(gain)) {
-      tried.set(
-        gain,
-        recoveryOf(ctx, { ...ctx.settings, translationalP: gain }, lineIndex),
-      );
-    }
-    return tried.get(gain);
-  };
-  const holds = (gain: number) => {
-    const event = at(gain);
-    return event?.settled !== false && swingOf(event) <= HELD_SWING;
-  };
-
-  // Gains up to the cap, 15% apart.
-  const gains: number[] = [];
-  for (let g = gainNow; g < cap; ) {
-    g = Math.min(cap, roundGain(Math.max(g * 1.15, g + 0.01)));
-    gains.push(g);
+  if (whole !== null) {
+    fixes.push({ lineIndex: root, field: "chainMaxSpeed", speed: whole });
   }
-
-  const fix = (gain: number): GainFix => ({
-    translationalP: gain,
-    swingBefore,
-    swingAfter: swingOf(at(gain)),
-    unsettledBefore,
-  });
-
-  const first = gains.findIndex(holds);
-  if (first >= 0) {
-    // The weakest between it and the one before that still holds.
-    let low = first > 0 ? gains[first - 1] : gainNow;
-    let high = gains[first];
-    for (let i = 0; high - low > 0.011 && i < 8; i++) {
-      const mid = roundGain((low + high) / 2);
-      if (holds(mid)) high = mid;
-      else low = mid;
-    }
-    return fix(high);
-  }
-
-  let best: number | null = null;
-  for (const g of gains) {
-    const event = at(g);
-    if (event?.settled === false) continue;
-    if (best === null || swingOf(event) < swingOf(at(best)) - 0.05) best = g;
-  }
-  if (best === null) return null;
-  const worth =
-    unsettledBefore ||
-    swingOf(at(best)) <= swingBefore * (1 - WORTHWHILE_SWING_CUT);
-  return worth ? fix(best) : null;
+  return fixes.filter(faster);
 }
 
-/** `settings` with a fix's gain set. */
-export function applyGainFix(settings: Settings, fix: GainFix): Settings {
-  return { ...settings, translationalP: fix.translationalP };
-}
+const totalTime = (
+  ctx: FixContext,
+  lines: Line[],
+  sequence: SequenceItem[] | undefined,
+) => calculatePathTime(ctx.startPoint, lines, ctx.settings, sequence).totalTime;
 
-/** What a button that applies any fix says. */
-export function motionFixLabel(fix: MotionFix): string {
-  if (!isGainFix(fix)) return speedFixLabel(fix);
-  const after = `${fix.swingAfter.toFixed(1)} in`;
-  const effect = fix.unsettledBefore
-    ? `gets back on the path, swing ${after}`
-    : `swing ${fix.swingBefore.toFixed(1)} → ${after}`;
-  return `Raise Translational P to ${fix.translationalP} (${effect})`;
+/** How long the run takes with the robot stopping at the corner onto the path at `lineIndex`. */
+function unchainedTime(ctx: FixContext, lineIndex: number): number {
+  const id = ctx.lines[lineIndex].id;
+  return totalTime(
+    ctx,
+    replaceLine(ctx.lines, lineIndex, { isChain: false }),
+    ctx.sequence?.map((item) =>
+      item.kind === "path" && item.lineId === id
+        ? { ...item, isChain: false }
+        : item,
+    ),
+  );
 }

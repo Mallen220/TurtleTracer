@@ -11,6 +11,8 @@ function setup(
   endPoint: HeadingFields,
   options: {
     nested?: boolean;
+    noPrev?: boolean;
+    resolved?: HeadingFields;
     locked?: boolean;
     shortfalls?: PiecewiseShortfall[];
     fixesFor?: (i: number) => SegmentFixes;
@@ -117,7 +119,10 @@ describe("HeadingControls", () => {
   });
 
   it("wraps constant angles and resets a cleared one to 0", async () => {
-    const { project } = setup({ heading: "constant", degrees: -200 });
+    const { project } = setup(
+      { heading: "constant", degrees: -200 },
+      { noPrev: true },
+    );
     await fireEvent.click(screen.getByLabelText(/Angle is out of bounds/));
     expect(project.endPoint.degrees).toBe(160);
 
@@ -128,13 +133,50 @@ describe("HeadingControls", () => {
     expect(input.value).toBe("0");
   });
 
-  it("treats a cleared angle as 0, like the constant box", async () => {
-    const { project } = setup({ heading: "linear", startDeg: 30, endDeg: 0 });
+  it("treats a cleared angle as 0 where nothing comes before it", async () => {
+    const { project } = setup(
+      { heading: "linear", startDeg: 30, endDeg: 0 },
+      { noPrev: true },
+    );
     const start = screen.getByLabelText("Start Heading") as HTMLInputElement;
     start.value = "";
     await fireEvent.blur(start);
     expect(project.endPoint.startDeg).toBe(0);
     expect(start.value).toBe("0");
+  });
+
+  it("leaves a cleared start blank, to start from the heading before", async () => {
+    const { project } = setup({ heading: "linear", startDeg: 30, endDeg: 90 });
+    const start = screen.getByLabelText("Start Heading") as HTMLInputElement;
+    expect(start.placeholder).toBe("Prev");
+    await fireEvent.input(start, { target: { value: "" } });
+    await fireEvent.blur(start);
+    expect(project.endPoint.startDeg).toBeUndefined();
+    expect(start.value).toBe("");
+  });
+
+  it("leaves a cleared constant heading blank", async () => {
+    const { project } = setup({ heading: "constant", degrees: 45 });
+    const input = screen.getByLabelText("Constant Heading") as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: "" } });
+    await fireEvent.blur(input);
+    expect(project.endPoint.degrees).toBeUndefined();
+  });
+
+  it("explains a blank start with the angle it stands for", () => {
+    setup(
+      { heading: "linear", endDeg: 90 },
+      { resolved: { heading: "linear", startDeg: 45, endDeg: 90 } },
+    );
+    const start = screen.getByLabelText("Start Heading") as HTMLInputElement;
+    expect(start.title).toContain("Prev");
+    expect(start.title).toContain("45°");
+  });
+
+  it("doesn't offer a blank start where nothing comes before it", () => {
+    setup({ heading: "linear", startDeg: 0, endDeg: 90 }, { noPrev: true });
+    const start = screen.getByLabelText("Start Heading") as HTMLInputElement;
+    expect(start.placeholder).toBe("");
   });
 
   it("edits the point to face", async () => {

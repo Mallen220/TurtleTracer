@@ -11,6 +11,7 @@ import { validatePath } from "../utils/validation";
 import { robotPoseDuring } from "../utils/animation";
 import { collisionMarkers } from "../stores";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type {
   Line,
@@ -28,7 +29,7 @@ import {
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 const start: Point = {
   x: 10,
   y: 10,

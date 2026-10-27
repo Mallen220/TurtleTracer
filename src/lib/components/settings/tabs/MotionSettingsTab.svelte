@@ -6,6 +6,7 @@
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import { MIN_TRANSLATIONAL_P } from "../../../../utils/timeCalculator/chainRecovery";
   import TranslationalPPreview from "./TranslationalPPreview.svelte";
+  import PedroConstantsPaste from "./PedroConstantsPaste.svelte";
   import { ui } from "../../../ui";
 
   type Props = SettingsTabProps;
@@ -83,9 +84,14 @@
         target="_blank"
         rel="noopener noreferrer"
         class="{ui.link} underline">Tuning Foresight</a
-      >. Each setting below says which value to copy. Otherwise, time your robot
-      over a measured distance, or start with the defaults.
+      >. You can paste your whole constants file below to fill them in, or copy
+      each value yourself: every setting says which one. Otherwise, time your
+      robot over a measured distance, or start with the defaults.
     </p>
+  {/if}
+
+  {#if searchQuery === "" || "paste import constants file pedro".includes(searchQuery.toLowerCase())}
+    <PedroConstantsPaste bind:settings />
   {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -181,7 +187,7 @@
       bind:settings
       name="maxDeceleration"
       label="Max Deceleration (in/s²)"
-      description="Pedro: maxDecelerationConstraint, if set. Otherwise naturalForwardDeceleration is a starting point. If you enter braking coefficients below, those are used instead."
+      description="Pedro: maxDecelerationConstraint, if set. Otherwise measure it: the Telemetry tab does it from your robot's stops. Don't use naturalForwardDeceleration, which is how fast the robot slows with no power, far slower than it brakes. If you enter braking coefficients below, those are used instead."
       {searchQuery}
       id="max-deceleration"
     />
@@ -198,26 +204,6 @@
   />
 
   <h4 class="{ui.heading} mt-8 mb-4 border-b pb-1">Path following</h4>
-
-  <SettingsItem
-    label="Pedro Pathing Version"
-    {...resettable("pedroVersion")}
-    description="v3 measures heading progress by distance along a path, hands chained paths over early, and turns before it drives when it faces more than 11.25° from the heading the path wants. v2 (approximate) uses the curve parameter and hands over at the end."
-    {searchQuery}
-    layout="col"
-    forId="pedro-version"
-  >
-    <select
-      id="pedro-version"
-      value={settings.pedroVersion}
-      onchange={(e) =>
-        set("pedroVersion", e.currentTarget.value as "v3" | "v2")}
-      class="{ui.input} w-full"
-    >
-      <option value="v3">v3 (current)</option>
-      <option value="v2">v2 (deprecated but still widely used)</option>
-    </select>
-  </SettingsItem>
 
   {#if searchQuery === "" || "handover brake pedro code coefficients".includes(searchQuery.toLowerCase())}
     <div class="mb-3 text-xs text-neutral-600 dark:text-neutral-400 space-y-2">
@@ -285,7 +271,7 @@ c.linearBrakeCoefficients.set(Matrix.diag(<span class="font-semibold"
     bind:settings
     name="pathSettleTime"
     label="Path Settle Time (s)"
-    description="Time the robot holds at the end of a path before the next step. Pedro waits until the robot settles or its timeout (timeoutConstraint, 0.1 s by default) passes."
+    description="Pedro counts a path as done 97.5% of the way along it, then holds the end until the robot settles there or this long passes (its timeoutConstraint, 0.1 s by default). The robot can still be moving when the next step starts."
     {searchQuery}
     id="path-settle-time"
     step={0.01}
@@ -295,7 +281,7 @@ c.linearBrakeCoefficients.set(Matrix.diag(<span class="font-semibold"
     bind:settings
     name="translationalP"
     label="Translational P"
-    description="The kP of your Pedro translational PID (power per inch of error); in a ForesightConfig it is the kP in forwardTranslational. It steers the robot back onto the path at chained corners. Minimum 0.01; values above 1 act like 1, since power is already full. Pedro's default is 0.1."
+    description="How hard the simulation pulls the robot back onto the path at chained corners (power per inch of error). It is not your Pedro kP: Pedro has separate forward and strafe gains and caps braking power, so the value that makes the simulation swing like your robot is usually lower. The Telemetry tab can fit it from real corners. Minimum 0.01; values above 1 act like 1, since power is already full. Pedro's default kP is 0.1."
     {searchQuery}
     id="translational-p"
     min={MIN_TRANSLATIONAL_P}

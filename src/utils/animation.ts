@@ -17,6 +17,7 @@ export interface RobotState {
   x: number;
   y: number;
   heading: number;
+  t?: number;
 }
 
 type Scale = ScaleLinear<number, number>;
@@ -64,11 +65,14 @@ function findMotionEventAt(
  */
 function getInterpolatedHeading(endPoint: Point, t: number): number | null {
   if (endPoint.heading === "constant") {
-    return endPoint.reverse ? endPoint.degrees + 180 : endPoint.degrees;
+    const degrees = endPoint.degrees ?? 0;
+    return endPoint.reverse ? degrees + 180 : degrees;
   }
   if (endPoint.heading !== "linear") return null;
 
-  const { startDeg, endDeg } = endPoint;
+  // Timeline lines have Prev filled in; an unresolved one holds its end.
+  const { endDeg } = endPoint;
+  const startDeg = endPoint.startDeg ?? endDeg;
   return startDeg + linearHeadingSweep(startDeg, endDeg, endPoint.reverse) * t;
 }
 
@@ -175,6 +179,23 @@ export function robotPoseDuring(
   lines: Line[],
   startPoint: Point,
 ): RobotState | null {
+  const pose = poseInEvent(event, seconds, lines, startPoint);
+  const { lag } = event;
+  if (!pose || !lag) return pose;
+  // Still finishing the path before, until it reaches its end.
+  const left =
+    lag.until > lag.from
+      ? clamp01(1 - (seconds - lag.from) / (lag.until - lag.from))
+      : 0;
+  return { ...pose, x: pose.x + lag.x * left, y: pose.y + lag.y * left };
+}
+
+function poseInEvent(
+  event: TimelineEvent,
+  seconds: number,
+  lines: Line[],
+  startPoint: Point,
+): RobotState | null {
   const progress =
     event.duration > 0
       ? clamp01((seconds - event.startTime) / event.duration)
@@ -189,7 +210,11 @@ export function robotPoseDuring(
   if (event.type === "travel" && excursion) {
     const into = seconds - event.startTime - excursion.startTime;
     if (into >= 0 && into <= excursion.duration) {
-      return recoveryPose(excursion.trace, into);
+      // Off the curve, but still that far along the path.
+      return {
+        ...recoveryPose(excursion.trace, into),
+        t: progressAlongLine(event, seconds, progress).t,
+      };
     }
   }
 
@@ -211,13 +236,13 @@ export function robotPoseDuring(
   const { t, profileHeading } = progressAlongLine(event, seconds, progress);
   const pos = getCurvePoint(t, curve);
   if (profileHeading !== null && Number.isFinite(profileHeading)) {
-    return { x: pos.x, y: pos.y, heading: profileHeading };
+    return { x: pos.x, y: pos.y, heading: profileHeading, t };
   }
 
   const heading =
     getInterpolatedHeading(line.endPoint, t) ??
     headingFromGeometry(line.endPoint, pos, curve, t, false);
-  return { x: pos.x, y: pos.y, heading };
+  return { x: pos.x, y: pos.y, heading, t };
 }
 
 /**
@@ -247,7 +272,12 @@ export function calculateRobotState(
       heading: -restingHeading(startPoint),
     };
   }
-  return { x: xScale(pose.x), y: yScale(pose.y), heading: -pose.heading };
+  return {
+    x: xScale(pose.x),
+    y: yScale(pose.y),
+    heading: -pose.heading,
+    t: pose.t,
+  };
 }
 
 /**

@@ -48,7 +48,6 @@ describe("TelemetryRecording", () => {
       context({
         maxVelocity: 61,
         translationalP: 0.3,
-        pedroVersion: "v3",
         githubToken: { encrypted: "secret" },
       } as Partial<Settings>),
     );
@@ -60,7 +59,6 @@ describe("TelemetryRecording", () => {
     expect(data.settings).toMatchObject({
       maxVelocity: 61,
       translationalP: 0.3,
-      pedroVersion: "v3",
     });
     expect(data.settings).not.toHaveProperty("githubToken");
     expect(data.settings).not.toHaveProperty("theme");

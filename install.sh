@@ -1276,7 +1276,7 @@ desktop_safe() {
 
 install_icon() {
     local dir icon url
-    dir="$(xdg_data_home)/icons/hicolor/512x512/apps"
+    dir="$(xdg_data_home)/icons/hicolor/1024x1024/apps"
     icon="$dir/$PKG_NAME.png"
     mkdir -p "$dir"
     url="$RAW_URL/$REPO/v$VERSION/build/icon.png"
@@ -1433,7 +1433,7 @@ uninstall_linux() {
     fi
     for f in $appimages; do rm -f "$f"; ok "Removed $f"; done
     if [ -f "$entry" ]; then rm -f "$entry"; fi
-    rm -f "$(xdg_data_home)/icons/hicolor/512x512/apps/$PKG_NAME.png"
+    rm -f "$(xdg_data_home)/icons/hicolor/1024x1024/apps/$PKG_NAME.png" "$(xdg_data_home)/icons/hicolor/512x512/apps/$PKG_NAME.png"
     if has update-desktop-database; then update-desktop-database "$(xdg_data_home)/applications" >/dev/null 2>&1 || true; fi
 }
 

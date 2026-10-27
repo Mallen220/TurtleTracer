@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, ControlPoint, Line, Shape, SequenceItem } from "../types";
+import { materializePrevHeadings } from "./prevHeading";
 
 // Represents a set of data used for path editing operations. Sequence is optional
 // because many helpers only care about the geometric portion.
@@ -10,16 +11,23 @@ export interface PathData {
   sequence?: SequenceItem[];
 }
 
+function mapAngle(
+  angle: number | undefined,
+  fn: (angle: number) => number,
+): number | undefined {
+  return angle === undefined ? undefined : fn(angle);
+}
+
 // Helper to mirror a single point's heading
 export function mirrorPointHeading(point: Point): Point {
   if (point.heading === "linear")
     return {
       ...point,
-      startDeg: 180 - point.startDeg,
+      startDeg: mapAngle(point.startDeg, (deg) => 180 - deg),
       endDeg: 180 - point.endDeg,
     };
   if (point.heading === "constant")
-    return { ...point, degrees: 180 - point.degrees };
+    return { ...point, degrees: mapAngle(point.degrees, (deg) => 180 - deg) };
   // Tangential reverse flag stays same
   return point;
 }
@@ -168,14 +176,17 @@ export function rotatePathData(
     if (point.heading === "linear") {
       return {
         ...point,
-        startDeg: (point.startDeg + degrees + 360) % 360,
+        startDeg: mapAngle(
+          point.startDeg,
+          (deg) => (deg + degrees + 360) % 360,
+        ),
         endDeg: (point.endDeg + degrees + 360) % 360,
       };
     }
     if (point.heading === "constant") {
       return {
         ...point,
-        degrees: (point.degrees + degrees + 360) % 360,
+        degrees: mapAngle(point.degrees, (deg) => (deg + degrees + 360) % 360),
       };
     }
     return point;
@@ -212,19 +223,31 @@ export function flipPathData(
 
     if (newPoint.heading === "linear") {
       if (horizontal) {
-        newPoint.startDeg = (180 - newPoint.startDeg + 360) % 360;
+        newPoint.startDeg = mapAngle(
+          newPoint.startDeg,
+          (deg) => (180 - deg + 360) % 360,
+        );
         newPoint.endDeg = (180 - newPoint.endDeg + 360) % 360;
       }
       if (vertical) {
-        newPoint.startDeg = (-newPoint.startDeg + 360) % 360;
+        newPoint.startDeg = mapAngle(
+          newPoint.startDeg,
+          (deg) => (-deg + 360) % 360,
+        );
         newPoint.endDeg = (-newPoint.endDeg + 360) % 360;
       }
     } else if (newPoint.heading === "constant") {
       if (horizontal) {
-        newPoint.degrees = (180 - newPoint.degrees + 360) % 360;
+        newPoint.degrees = mapAngle(
+          newPoint.degrees,
+          (deg) => (180 - deg + 360) % 360,
+        );
       }
       if (vertical) {
-        newPoint.degrees = (-newPoint.degrees + 360) % 360;
+        newPoint.degrees = mapAngle(
+          newPoint.degrees,
+          (deg) => (-deg + 360) % 360,
+        );
       }
     }
     return newPoint;
@@ -240,9 +263,14 @@ export function reversePathData(data: {
   sequence?: SequenceItem[];
   shapes?: Shape[];
 }) {
+  // Reversed, a Prev start has nothing to follow, so fill it in first.
+  const originalLines: Line[] = materializePrevHeadings(
+    data.startPoint,
+    data.lines || [],
+    data.sequence,
+  );
   // Deep clone to avoid mutating original
-  const r = structuredClone(data);
-  const originalLines: Line[] = data.lines || [];
+  const r = structuredClone({ ...data, lines: originalLines });
 
   const lastLine = originalLines.at(-1);
   if (!lastLine) return r;
@@ -254,7 +282,7 @@ export function reversePathData(data: {
   if (newStartPoint.heading === "linear") {
     const temp = newStartPoint.startDeg;
     newStartPoint.startDeg = newStartPoint.endDeg;
-    newStartPoint.endDeg = temp;
+    newStartPoint.endDeg = temp ?? newStartPoint.endDeg;
   }
 
   // 2. Reverse Lines
@@ -273,7 +301,7 @@ export function reversePathData(data: {
     if (targetEndPoint.heading === "linear") {
       const temp = targetEndPoint.startDeg;
       targetEndPoint.startDeg = targetEndPoint.endDeg;
-      targetEndPoint.endDeg = temp;
+      targetEndPoint.endDeg = temp ?? targetEndPoint.endDeg;
     }
 
     // Control points need to be reversed order

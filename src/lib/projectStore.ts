@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { writable, get } from "svelte/store";
+import { writable, get, derived } from "svelte/store";
 import type {
   TimePrediction,
   Line,
@@ -37,6 +37,7 @@ import { compareVersions } from "../utils/versions";
 import { pathInMessage } from "../utils/messagePaths";
 import { normalizeLineHeading, normalizeStartPoint } from "../utils/ppFormat";
 import { validSpeed } from "../utils/timeCalculator/speedCap";
+import { materializePrevHeadings } from "../utils/prevHeading";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map(normalizeLineHeading).map((line) => ({
@@ -124,6 +125,13 @@ export const sequenceStore = writable<SequenceItem[]>(
     lineId: ln.id!,
   })),
 );
+
+export const resolvedLinesStore = derived(
+  [startPointStore, linesStore, sequenceStore],
+  ([$startPoint, $lines, $sequence]) =>
+    materializePrevHeadings($startPoint, $lines, $sequence),
+);
+
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 export const extraDataStore = writable<Record<string, any>>({});
 export const macrosStore = writable<Map<string, TurtleData>>(new Map());
@@ -150,6 +158,7 @@ export const timePredictionStore = writable<TimePrediction | null>(null);
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });
 export const robotHeadingStore = writable(0);
+export const robotTStore = writable<number | null>(null);
 export const followRobotStore = writable(false);
 
 // Robot Profiles Store

@@ -36,13 +36,7 @@ export function handoverStep(
   headings: readonly number[] = [],
 ): number {
   const end = steps.length;
-  // v2 only moves on once the path is (nearly) finished.
-  if (
-    turnDegrees < RECOVERY_MIN_TURN_DEGREES ||
-    settings.pedroVersion === "v2"
-  ) {
-    return end;
-  }
+  if (turnDegrees < RECOVERY_MIN_TURN_DEGREES) return end;
   let remaining = steps
     .slice(startStep)
     .reduce((sum, step) => sum + step.deltaLength, 0);
@@ -101,7 +95,6 @@ function cacheKey(
     settings.pedroLinearBrakeForward,
     settings.pedroLinearBrakeStrafe,
     settings.aVelocity,
-    settings.pedroVersion,
     ...path.flatMap((p) => [round(p.x), round(p.y)]),
   ].join(",");
 }

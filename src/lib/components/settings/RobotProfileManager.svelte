@@ -30,9 +30,12 @@
 
   let updateConfirming = $state(false);
   let updateTimeout: ReturnType<typeof setTimeout>;
+  let loadConfirming = $state(false);
+  let loadTimeout: ReturnType<typeof setTimeout>;
 
   onDestroy(() => {
     clearTimeout(updateTimeout);
+    clearTimeout(loadTimeout);
   });
 
   function handleCreateProfile() {
@@ -64,14 +67,6 @@
     const profile = profiles.find((p) => p.id === selectedProfileId);
     if (!profile) return;
 
-    if (
-      !confirm(
-        `Apply settings from "${profile.name}"? This will overwrite your current robot configuration.`,
-      )
-    ) {
-      return;
-    }
-
     settings.rLength = profile.rLength;
     settings.rWidth = profile.rWidth;
     settings.maxVelocity = profile.maxVelocity;
@@ -101,6 +96,29 @@
       message: `Profile "${profile.name}" applied`,
       type: "success",
     });
+  }
+
+  // Loading overwrites the robot configuration, so it takes a second click. A
+  // native confirm() isn't used: in Electron it leaves the window's text
+  // inputs unresponsive once it closes.
+  function handleLoadClick() {
+    if (loadConfirming) {
+      loadConfirming = false;
+      clearTimeout(loadTimeout);
+      handleApplyProfile();
+    } else {
+      loadConfirming = true;
+      loadTimeout = setTimeout(() => {
+        loadConfirming = false;
+      }, 3000);
+    }
+  }
+
+  function handleLoadBlur() {
+    setTimeout(() => {
+      loadConfirming = false;
+      clearTimeout(loadTimeout);
+    }, 200);
   }
 
   function handleUpdateProfile() {
@@ -328,6 +346,7 @@
       <div class="flex gap-2">
         <select
           bind:value={selectedProfileId}
+          onchange={() => (loadConfirming = false)}
           class="{ui.inputSm} flex-1"
           aria-label="Select robot profile"
         >
@@ -338,13 +357,14 @@
         </select>
 
         <button
-          onclick={handleApplyProfile}
+          onclick={handleLoadClick}
+          onblur={handleLoadBlur}
           disabled={!selectedProfileId}
           class={ui.btnSm.primary}
-          title="Load settings from selected profile"
+          title="Load settings from selected profile (overwrites your current robot configuration)"
           aria-label="Load settings from selected profile"
         >
-          Load
+          {loadConfirming ? "Confirm" : "Load"}
         </button>
       </div>
 

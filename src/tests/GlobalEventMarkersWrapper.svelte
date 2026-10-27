@@ -8,9 +8,11 @@
   let {
     project,
     timePrediction = undefined,
+    ownerId = undefined,
   }: {
     project: { lines: Line[]; sequence: SequenceItem[] };
     timePrediction?: TimePrediction | null;
+    ownerId?: string;
   } = $props();
   // Only the initial values are wanted; edits flow back through the effect.
   const { lines: initialLines, sequence: initialSequence } = untrack(
@@ -30,4 +32,5 @@
   bind:sequence
   collapsedMarkers={false}
   {timePrediction}
+  {ownerId}
 />

@@ -99,10 +99,8 @@
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
   import {
-    applyGainFix,
     applySpeedFix,
-    isGainFix,
-    type MotionFix,
+    type SpeedFix,
   } from "./utils/timeCalculator/fixSearch";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
@@ -601,13 +599,7 @@
   }
 
   /** A speed limit that a warning in Path Statistics offers, set on its path or chain. */
-  function applySpeedFixFromStats(fix: MotionFix) {
-    // A gain is a robot setting, not an edit to the paths.
-    if (isGainFix(fix)) {
-      settingsStore.update((s) => applyGainFix(s, fix));
-      recordChange("Set Translational P");
-      return;
-    }
+  function applySpeedFixFromStats(fix: SpeedFix) {
     if (!confirmFollowedJavaEdit()) return;
     linesStore.set(applySpeedFix(get(linesStore), fix));
     recordChange(
@@ -858,7 +850,9 @@
     >
       <div
         id="field-container"
-        class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+        class="flex-none flex justify-center items-center relative transition-all ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+        class:duration-300={!layout.resizeMode}
+        class:duration-0={layout.resizeMode}
         style:width={layout.fieldContainerWidth}
         style:height={layout.fieldContainerHeight}
         style:min-height={layout.fieldContainerMinHeight}
@@ -889,7 +883,7 @@
       {#if layout.isLargeScreen && layout.effectiveShowSidebar && !$isPresentationMode}
         <ResizeHandle
           direction="horizontal"
-          onstart={() => layout.startResize("horizontal")}
+          onstart={(pointer) => layout.startResize("horizontal", pointer)}
           onkeydown={(e) => layout.resizeWithKeyboard(e, "horizontal")}
           onreset={() => layout.resetFieldWidth()}
         />

@@ -57,6 +57,10 @@
     tabindex?: number | undefined;
     /** Inside a piecewise segment, where piecewise isn't offered. */
     nested?: boolean;
+    /** No Prev: nothing comes before this. */
+    noPrev?: boolean;
+    /** The heading with blank angles filled in, for the hint. */
+    resolved?: HeadingFields;
     /**
      * For piecewise headings: how each segment falls short of its heading,
      * because the robot can't turn fast enough.
@@ -76,6 +80,8 @@
     locked = false,
     tabindex = undefined,
     nested = false,
+    noPrev = false,
+    resolved,
     shortfalls = [],
     fixesFor,
     onchange,
@@ -88,6 +94,15 @@
   function changed() {
     onchange?.();
     oncommit?.();
+  }
+
+  function prevTitle(what: string, filled: number | undefined) {
+    if (noPrev) return what;
+    const now =
+      filled === undefined
+        ? ""
+        : ` Currently ${Math.round(filled * 100) / 100}°.`;
+    return `${what}\n  Leave it blank (Prev) to start from the heading the robot has when it gets here.${now}`;
   }
 
   export function focus() {
@@ -286,7 +301,9 @@
     class="{ui.inputSm} self-stretch flex items-center justify-center shrink-0 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus-within:ring-2 focus-within:ring-emerald-500/40 focus-within:border-emerald-500 {locked
       ? 'opacity-50 cursor-not-allowed'
       : 'cursor-pointer'} {endPoint.heading === 'piecewise' ? 'hidden' : ''}"
-    title="Reverse the direction of the heading interpolation"
+    title={endPoint.heading === "linear"
+      ? "Turn the long way round (Pedro's longLinear)"
+      : "Face backwards (Pedro's .reverse())"}
   >
     <input
       bind:this={reverseInput}
@@ -313,8 +330,13 @@
         label="Start"
         inset="pl-12"
         ariaLabel="Start Heading"
-        title="The heading the robot starts this line at (in degrees)"
-        indicator={endPoint.startDeg ?? 0}
+        title={prevTitle(
+          "The heading the robot starts this line at (in degrees)",
+          resolved?.startDeg,
+        )}
+        indicator={endPoint.startDeg ?? resolved?.startDeg ?? 0}
+        allowEmpty={!noPrev}
+        placeholder={noPrev ? undefined : "Prev"}
         isAngle
         primary
         disabled={locked}
@@ -344,8 +366,14 @@
         labelClass="text-xs"
         inset="pl-6"
         ariaLabel="Constant Heading"
-        title="The constant heading the robot maintains throughout this line (in degrees)"
-        indicator={(endPoint.degrees || 0) + (endPoint.reverse ? 180 : 0)}
+        title={prevTitle(
+          "The constant heading the robot maintains throughout this line (in degrees)",
+          resolved?.degrees,
+        )}
+        indicator={(endPoint.degrees ?? resolved?.degrees ?? 0) +
+          (endPoint.reverse ? 180 : 0)}
+        allowEmpty={!noPrev}
+        placeholder={noPrev ? undefined : "Prev"}
         isAngle
         primary
         disabled={locked}
@@ -541,6 +569,8 @@
                 bind:endPoint={segments[i]}
                 {locked}
                 nested={true}
+                {noPrev}
+                resolved={resolved?.segments?.[i]}
                 onchange={segmentChanged}
                 oncommit={segmentCommitted}
               />

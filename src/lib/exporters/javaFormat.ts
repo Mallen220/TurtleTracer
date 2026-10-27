@@ -203,8 +203,15 @@ export function stateCase(
 /** Writes the arguments of an interpolator, e.g. the two angles of a linear one. */
 export type InterpolatorArgs = (h: HeadingConfig) => string;
 
-/** e.g. `Interpolator.linear(a, b).reverse()`. */
+/**
+ * e.g. `Interpolator.tangent.reverse()`. Pedro's `.reverse()` adds 180° to
+ * any interpolator, but a reversed linear heading turns the long way round,
+ * which Pedro calls `longLinear`.
+ */
 function interpolatorCode(h: HeadingConfig, args: InterpolatorArgs): string {
+  if (h.heading === "linear" && h.reverse) {
+    return `Interpolator.longLinear(${args(h)})`;
+  }
   let base: string;
   switch (h.heading) {
     case "constant":
@@ -236,9 +243,8 @@ export function headingMethodCode(
           `.until(${doubleCode(seg.tEnd as number, language)}, ${interpolatorCode(seg, args)})`,
       )
       .join("\n          ");
-    return h.reverse
-      ? `.heading(Interpolator.piecewise()\n          ${until}\n          .reverse())`
-      : `.heading(Interpolator.piecewise()\n          ${until}\n        )`;
+    // Reverse is set per segment; a piecewise heading has no toggle of its own.
+    return `.heading(Interpolator.piecewise()\n          ${until}\n        )`;
   }
 
   if (h.reverse) {

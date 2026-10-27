@@ -17,6 +17,7 @@ import {
   updateMacroContent,
   refreshMacros,
   ensureSequenceConsistency,
+  resolvedLinesStore,
 } from "../lib/projectStore";
 import { notification, currentFilePath } from "../stores";
 import { hookRegistry } from "../lib/registries";
@@ -234,6 +235,42 @@ describe("loadProjectData", () => {
       y: 72,
       heading: "tangential",
     });
+  });
+
+  it("keeps a blank start heading blank, and shows what it stands for", async () => {
+    const blank = {
+      ...plainLine("b", 50),
+      endPoint: { x: 50, y: 10, heading: "linear", endDeg: 180 },
+    };
+    const first = {
+      ...plainLine("a", 30),
+      endPoint: { x: 30, y: 10, heading: "linear", startDeg: 0, endDeg: 90 },
+    };
+    const saved = JSON.parse(JSON.stringify({ lines: [first, blank] }));
+    await loadProjectData(saved);
+
+    expect(get(linesStore)[1].endPoint.startDeg).toBeUndefined();
+    expect(get(resolvedLinesStore)[1].endPoint.startDeg).toBe(90);
+  });
+
+  it("survives the first path of a chain being deleted", () => {
+    const a = plainLine("a", 30);
+    const b = {
+      ...plainLine("b", 50),
+      isChain: true,
+      endPoint: { x: 50, y: 10, heading: "linear", endDeg: 180 },
+    } as Line;
+    linesStore.set([a, b]);
+    sequenceStore.set([
+      { kind: "path", lineId: "a" },
+      { kind: "path", lineId: "b" },
+    ]);
+    const seen: unknown[] = [];
+    const stop = resolvedLinesStore.subscribe((l) => seen.push(l));
+    // The lines change before the sequence does.
+    expect(() => linesStore.set([b])).not.toThrow();
+    stop();
+    expect(seen).toHaveLength(2);
   });
 
   it("lets plugins change the data before it is loaded", async () => {

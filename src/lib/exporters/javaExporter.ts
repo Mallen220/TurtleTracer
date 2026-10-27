@@ -8,6 +8,7 @@ import type {
 } from "../../types";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
+import { materializePrevHeadings } from "../../utils/prevHeading";
 import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
@@ -69,8 +70,10 @@ function pathConstructionCode(
   lines: Line[],
   names: string[],
   opts: FormatOptions,
+  sequence?: SequenceItem[],
 ): string {
   const speeds = speedCodes(lines);
+  const driven = materializePrevHeadings(startPoint, lines, sequence);
   const segments = lines.map((line, idx) => {
     const start = poseCode(
       idx === 0 ? startPoint : lines[idx - 1].endPoint,
@@ -82,14 +85,18 @@ function pathConstructionCode(
         ? `line(\n          ${start},\n          ${end}\n        )`
         : `curve(\n          ${start},\n          ${line.controlPoints.map((cp) => poseCode(cp, opts)).join(",\n")},\n          ${end}\n        )`;
 
-    const global = chainGlobalHeading(lines, idx);
+    const global = chainGlobalHeading(driven, idx);
     return {
       line,
       name: names[idx],
       call,
       heading: global
         ? ""
-        : headingMethodCode(line.endPoint, literalArgs(opts), opts.language),
+        : headingMethodCode(
+            driven[idx].endPoint,
+            literalArgs(opts),
+            opts.language,
+          ),
       chainHeading:
         global && !line.isChain
           ? `\n        ${headingMethodCode(global, literalArgs(opts), opts.language)}`
@@ -467,7 +474,7 @@ export async function generateJavaCode(
       .join("\n")}
 
     public Paths(Follower follower) {
-      ${pathConstructionCode(startPoint, lines, pathChainNames, opts)}
+      ${pathConstructionCode(startPoint, lines, pathChainNames, opts, sequence)}
     }
 
     ${
@@ -530,6 +537,7 @@ export async function generateJavaCode(
             lines,
             pathChainNames,
             opts,
+            sequence,
           ),
           stateCases,
           startPose,

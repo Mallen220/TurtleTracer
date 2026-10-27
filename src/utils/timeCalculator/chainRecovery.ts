@@ -253,7 +253,7 @@ class Recovery {
     this.heading = input.heading?.start ?? 0;
     this.wanted = input.heading?.wanted.length ? input.heading.wanted : null;
     this.turnRate = ((settings.aVelocity || Math.PI) * 180) / Math.PI;
-    this.turnsFirst = this.wanted !== null && settings.pedroVersion !== "v2";
+    this.turnsFirst = this.wanted !== null;
     this.headings = [this.heading];
 
     this.track.closest(this.px, this.py, 0, this.here);

@@ -5,6 +5,7 @@ import { simulateRecovery } from "../utils/timeCalculator/chainRecovery";
 import { computePathStatistics } from "../utils/pathStatistics";
 import { robotPoseDuring } from "../utils/animation";
 import { DEFAULT_SETTINGS } from "../config/defaults";
+import { SCENARIO_MOTION } from "./helpers/motion";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type {
   Line,
@@ -16,7 +17,7 @@ import type {
 
 beforeAll(() => registerCoreUI());
 
-const settings = { ...DEFAULT_SETTINGS } as Settings;
+const settings = { ...DEFAULT_SETTINGS, ...SCENARIO_MOTION } as Settings;
 
 // Two chained tangential paths: a curve that ends heading east, then a path
 // that sets off east (or, in the second, south) and ends up going north.

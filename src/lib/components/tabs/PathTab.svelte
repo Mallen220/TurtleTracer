@@ -7,6 +7,7 @@
     SequenceItem,
     SequenceMacroItem,
     Settings,
+    TimePrediction,
   } from "../../../types/index";
   import { tick } from "svelte";
   import random from "lodash/random";
@@ -22,6 +23,7 @@
   import StartingPointSection from "../sections/StartingPointSection.svelte";
   import EmptyState from "../common/EmptyState.svelte";
   import PathLineSection from "../sections/PathLineSection.svelte";
+  import EventMarkers from "../GlobalEventMarkers.svelte";
   import {
     selectedLineId,
     selectedPointId,
@@ -53,6 +55,7 @@
     settings: Settings;
     recordChange: (action?: string) => void;
     isActive?: boolean; // instead of checking activeTab === 'path'
+    timePrediction?: TimePrediction | null;
   }
 
   let {
@@ -62,16 +65,17 @@
     settings,
     recordChange,
     isActive = false,
+    timePrediction,
   }: Props = $props();
 
   // --- Logic from ControlTab ---
-  let collapsedEventMarkers: boolean[] = $state(lines.map(() => false));
 
   // State for collapsed sections
   let collapsedSections = $state({
     lines: lines.map(() => false),
     controlPoints: lines.map(() => true), // Start with control points collapsed
-    // Generic map for all sequence items by ID (waits, rotates, macros, etc.)
+    // Generic map for all sequence items by ID (waits, rotates, macros, etc.),
+    // and for each step's event markers by `markers-` and its ID.
     items: {} as Record<string, boolean>,
   });
 
@@ -197,6 +201,10 @@
     return item.kind === "path" ? item.lineId : undefined;
   }
 
+  /** Where a step's event markers are marked collapsed in `collapsedSections.items`. */
+  const markersKey = (item: Exclude<SequenceItem, { kind: "macro" }>) =>
+    `markers-${item.kind === "path" ? item.lineId : item.id}`;
+
   /**
    * Given the endPoint of the PREVIOUS line (or startPoint), build a new
    * endPoint that:
@@ -246,10 +254,8 @@
 
     collapsedSections.lines.splice(lineIndex, 0, allCollapsed ? true : false);
     collapsedSections.controlPoints.splice(lineIndex, 0, true);
-    collapsedEventMarkers.splice(lineIndex, 0, false);
 
     collapsedSections = { ...collapsedSections };
-    collapsedEventMarkers = [...collapsedEventMarkers];
     recordChange("Add Path");
   }
 
@@ -281,7 +287,6 @@
 
     collapsedSections.lines.splice(idx, 1);
     collapsedSections.controlPoints.splice(idx, 1);
-    collapsedEventMarkers.splice(idx, 1);
     recordChange("Remove Path");
   }
 
@@ -300,31 +305,23 @@
   function collapseAll() {
     collapsedSections.lines = lines.map(() => true);
     collapsedSections.controlPoints = lines.map(() => true);
-    collapsedEventMarkers = lines.map(() => true);
-
-    const newItems = { ...collapsedSections.items };
-    sequence.forEach((s) => {
-      if (s.kind !== "path") newItems[s.id] = true;
-    });
-    collapsedSections.items = newItems;
-
-    collapsedSections = { ...collapsedSections };
-    collapsedEventMarkers = [...collapsedEventMarkers];
+    setItemsCollapsed(true);
   }
 
   function expandAll() {
     collapsedSections.lines = lines.map(() => false);
     collapsedSections.controlPoints = lines.map(() => false);
-    collapsedEventMarkers = lines.map(() => false);
+    setItemsCollapsed(false);
+  }
 
+  /** Collapses or expands every step's card (not paths') and event markers. */
+  function setItemsCollapsed(collapsed: boolean) {
     const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind !== "path") newItems[s.id] = false;
+      if (s.kind !== "path") newItems[s.id] = collapsed;
+      if (s.kind !== "macro") newItems[markersKey(s)] = collapsed;
     });
-    collapsedSections.items = newItems;
-
-    collapsedSections = { ...collapsedSections };
-    collapsedEventMarkers = [...collapsedEventMarkers];
+    collapsedSections = { ...collapsedSections, items: newItems };
   }
 
   function toggleCollapseAll() {
@@ -361,10 +358,6 @@
       true,
       ...collapsedSections.controlPoints,
     ];
-    collapsedEventMarkers = [
-      allCollapsed ? true : false,
-      ...collapsedEventMarkers,
-    ];
     selectedLineId.set(newLine.id!);
     recordChange("Add Path");
   }
@@ -380,7 +373,6 @@
         (i) => collapsedSections.controlPoints[i] ?? true,
       ),
     };
-    collapsedEventMarkers = order.map((i) => collapsedEventMarkers[i] ?? false);
   }
 
   export function moveSequenceItem(seqIndex: number, delta: number) {
@@ -472,7 +464,6 @@
   // Reactive statements to update UI state when lines change
   $effect(() => {
     if (lines.length !== collapsedSections.lines.length) {
-      collapsedEventMarkers = lines.map(() => false);
       const wasAllCollapsed =
         collapsedSections &&
         collapsedSections.lines &&
@@ -495,7 +486,6 @@
     collapsedSections.lines.length > 0 &&
       collapsedSections.lines.every((v) => v) &&
       collapsedSections.controlPoints.every((v) => v) &&
-      collapsedEventMarkers.every((v) => v) &&
       sequence
         .filter((s) => s.kind !== "path")
         .every((s) => collapsedSections.items[s.id]),
@@ -636,51 +626,66 @@
         class:dark:border-blue-400={dragOverIndex === sIdx}
         class:opacity-50={draggingIndex === sIdx}
       >
-        {#if item.kind === "path"}
-          {@const lineIdx = lines.findIndex(
-            (l) => l.id === getPathLineId(item),
-          )}
-          {#if lineIdx !== -1}
-            <PathLineSection
-              line={lines[lineIdx]}
-              idx={lineIdx}
-              bind:lines
-              bind:collapsed={collapsedSections.lines[lineIdx]}
-              bind:collapsedControlPoints={
-                collapsedSections.controlPoints[lineIdx]
-              }
-              onRemove={() => removeLine(lineIdx)}
-              onAddAction={(def) => addActionAfterFor(sIdx, def)}
+        <!-- Positioned, so the event markers tuck in behind it. -->
+        <div class="relative">
+          {#if item.kind === "path"}
+            {@const lineIdx = lines.findIndex(
+              (l) => l.id === getPathLineId(item),
+            )}
+            {#if lineIdx !== -1}
+              <PathLineSection
+                line={lines[lineIdx]}
+                idx={lineIdx}
+                bind:lines
+                bind:collapsed={collapsedSections.lines[lineIdx]}
+                bind:collapsedControlPoints={
+                  collapsedSections.controlPoints[lineIdx]
+                }
+                onRemove={() => removeLine(lineIdx)}
+                onAddAction={(def) => addActionAfterFor(sIdx, def)}
+                {...reorder}
+                {recordChange}
+                onScrollToItem={scrollToItem}
+              />
+            {/if}
+          {:else if def && def.sectionComponent}
+            <def.sectionComponent
+              {...{ [def.kind]: item }}
+              bind:sequence
+              collapsed={collapsedSections.items[sequenceItemKey(item)]}
+              onRemove={() => {
+                const newSeq = [...sequence];
+                newSeq.splice(sIdx, 1);
+                sequence = newSeq;
+                recordChange?.("Remove Item");
+              }}
+              onInsertAfter={() => addActionAfterFor(sIdx, def)}
+              onAddPathAfter={() => insertLineAfter(sIdx)}
+              onAddWaitAfter={() =>
+                addActionAfterFor(sIdx, $actionRegistry["wait"])}
+              onAddRotateAfter={() =>
+                addActionAfterFor(sIdx, $actionRegistry["rotate"])}
+              onAddAction={addActionAfterFor.bind(null, sIdx)}
+              onUnlink={() => {
+                if (item.kind === "macro") {
+                  unlinkMacro(item, sIdx);
+                }
+              }}
               {...reorder}
               {recordChange}
-              onScrollToItem={scrollToItem}
             />
           {/if}
-        {:else if def && def.sectionComponent}
-          <def.sectionComponent
-            {...{ [def.kind]: item }}
+        </div>
+        {#if item.kind !== "macro"}
+          <EventMarkers
             bind:sequence
-            collapsed={collapsedSections.items[sequenceItemKey(item)]}
-            onRemove={() => {
-              const newSeq = [...sequence];
-              newSeq.splice(sIdx, 1);
-              sequence = newSeq;
-              recordChange?.("Remove Item");
-            }}
-            onInsertAfter={() => addActionAfterFor(sIdx, def)}
-            onAddPathAfter={() => insertLineAfter(sIdx)}
-            onAddWaitAfter={() =>
-              addActionAfterFor(sIdx, $actionRegistry["wait"])}
-            onAddRotateAfter={() =>
-              addActionAfterFor(sIdx, $actionRegistry["rotate"])}
-            onAddAction={addActionAfterFor.bind(null, sIdx)}
-            onUnlink={() => {
-              if (item.kind === "macro") {
-                unlinkMacro(item, sIdx);
-              }
-            }}
-            {...reorder}
-            {recordChange}
+            bind:lines
+            bind:collapsedMarkers={
+              () => !!collapsedSections.items[markersKey(item)],
+              (v) => (collapsedSections.items[markersKey(item)] = v)
+            }
+            ownerId={item.kind === "path" ? item.lineId : item.id}
+            {timePrediction}
           />
         {/if}
       </div>

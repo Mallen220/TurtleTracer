@@ -11,7 +11,7 @@ function coefficients(settings: Settings) {
   return quadratic > 0 || linear > 0 ? { quadratic, linear } : null;
 }
 
-const decelerationOf = (settings: Settings) =>
+export const decelerationOf = (settings: Settings) =>
   settings.maxDeceleration || settings.maxAcceleration || 30;
 
 /**
@@ -58,6 +58,25 @@ function pedroBrakeModel(settings: Settings) {
   };
 }
 
+const REFERENCE_BRAKE = { quadratic: 0.002018, linear: 0.04507 };
+const REFERENCE_DECELERATION = 107;
+
+/**
+ * Stand-in for the robot's brake coefficients when it hasn't given any: that
+ * tuned robot's, stretched in proportion to Max Deceleration so a softer robot
+ * takes longer to stop. An estimate. Null when the Braking setting (measured
+ * on the real robot) is set, which is used instead.
+ */
+function genericBrakeModel(settings: Settings) {
+  if (coefficients(settings)) return null;
+  const stretch = REFERENCE_DECELERATION / decelerationOf(settings);
+  const axis = {
+    quadratic: REFERENCE_BRAKE.quadratic * stretch,
+    linear: REFERENCE_BRAKE.linear * stretch,
+  };
+  return { forward: axis, strafe: axis };
+}
+
 /**
  * How far (inches) Pedro thinks the robot would slide along one of its own
  * axes from `speed` (in/s, signed) on that axis if it braked: the signed
@@ -82,14 +101,15 @@ export function pedroAxisStop(
  * Pedro hands a chained path over to the next one once this reaches the end of
  * the path. It is Pedro's estimate, from the brake coefficients in the robot's
  * code, which can differ from how far the robot really takes to stop
- * (`brakingDistance`); without them, that is used instead.
+ * (`brakingDistance`); without them, an estimate from Max Deceleration
+ * (`genericBrakeModel`) stands in, unless the Braking setting is given.
  */
 export function handoverDistance(
   speed: number,
   travelAngle: number,
   settings: Settings,
 ): number {
-  const model = pedroBrakeModel(settings);
+  const model = pedroBrakeModel(settings) ?? genericBrakeModel(settings);
   if (!model) return brakingDistance(speed, settings);
   // As Pedro's getVelocityToBrakeInTime: each axis brakes on its own, and its
   // displacement is taken along the direction of travel.

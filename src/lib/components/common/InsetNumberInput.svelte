@@ -25,6 +25,9 @@
     isAngle?: boolean;
     /** Marks the input HeadingControls focuses first. */
     primary?: boolean;
+    /** A blank box leaves `value` undefined. */
+    allowEmpty?: boolean;
+    placeholder?: string;
     disabled?: boolean;
     tabindex?: number;
     onchange?: () => void;
@@ -42,6 +45,8 @@
     indicator,
     isAngle = false,
     primary = false,
+    allowEmpty = false,
+    placeholder,
     disabled = false,
     tabindex,
     onchange,
@@ -81,14 +86,25 @@
     type="number"
     {step}
     {value}
+    {placeholder}
     oninput={(e) => {
       const parsed = Number.parseFloat(e.currentTarget.value);
       if (!Number.isNaN(parsed)) value = parsed;
+      // A lone "-" reads as empty but is a number being typed, not a blank box.
+      else if (
+        allowEmpty &&
+        e.currentTarget.value === "" &&
+        !e.currentTarget.validity.badInput
+      )
+        value = undefined;
       onchange?.();
     }}
     onblur={(e) => {
-      // A cleared box means zero, so what's shown matches what's saved.
-      if (Number.isNaN(Number.parseFloat(e.currentTarget.value))) {
+      // A cleared box means zero, unless blank is allowed.
+      if (
+        !allowEmpty &&
+        Number.isNaN(Number.parseFloat(e.currentTarget.value))
+      ) {
         value = 0;
         e.currentTarget.value = "0";
         onchange?.();
