@@ -210,11 +210,23 @@ const isWebUrl = (url) => {
   }
 };
 
+// Linux takes the taskbar and window-switcher icon from the window itself, not
+// from the .desktop file, so without this it shows the default icon.
+const getWindowIcon = () => {
+  if (process.platform !== "linux") return undefined;
+  const candidates = [
+    path.join(process.resourcesPath || "", "public", "icon.png"),
+    path.join(__dirname, "..", "public", "icon.png"),
+  ];
+  return candidates.find((p) => fsSync.existsSync(p));
+};
+
 const createWindow = async () => {
   let newWindow = new BrowserWindow({
     width: 1360,
     height: 800,
     title: "Turtle Tracer",
+    icon: getWindowIcon(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
