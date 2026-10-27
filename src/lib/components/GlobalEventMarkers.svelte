@@ -290,18 +290,44 @@
         )
       : sequence[markerOwnerIndexes(sequence).at(-1) ?? -1];
     if (!target) return;
+
+    const targetId =
+      target.kind === "path" ? target.lineId : (target as Step).id;
+    const times = segmentTimesMap.get(targetId);
+    const time = times ? Math.round((times.start + times.end) / 2) : 500;
+    const pose = defaultPosePoint(target);
+
     attachToItem(target, {
       id: makeId("event"),
       name: "",
       type: "parametric",
       position: 0.5,
-      time: 500,
-      endTime: 500,
-      poseX: 72,
-      poseY: 72,
+      time,
+      endTime: time,
+      poseX: roundToHundredth(pose.x),
+      poseY: roundToHundredth(pose.y),
       poseHeading: 0,
       poseGuess: undefined,
     });
+  }
+
+  /**
+   * Where a new pose marker goes: halfway along a path, or where the robot
+   * waits or turns (the end of the path before it, else the starting point).
+   */
+  function defaultPosePoint(target: SequenceItem) {
+    if (target.kind === "path") {
+      const idx = lines.findIndex((l) => l.id === target.lineId);
+      if (idx !== -1) return getCurvePoint(0.5, curveOf(idx));
+    }
+    const at = sequence.indexOf(target);
+    for (let i = at - 1; i >= 0; i--) {
+      const prev = sequence[i];
+      if (prev.kind !== "path") continue;
+      const line = lines.find((l) => l.id === prev.lineId);
+      if (line) return line.endPoint;
+    }
+    return $startPointStore;
   }
 
   /**
