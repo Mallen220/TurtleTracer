@@ -17,6 +17,7 @@ export interface RobotState {
   x: number;
   y: number;
   heading: number;
+  t?: number;
 }
 
 type Scale = ScaleLinear<number, number>;
@@ -209,7 +210,11 @@ function poseInEvent(
   if (event.type === "travel" && excursion) {
     const into = seconds - event.startTime - excursion.startTime;
     if (into >= 0 && into <= excursion.duration) {
-      return recoveryPose(excursion.trace, into);
+      // Off the curve, but still that far along the path.
+      return {
+        ...recoveryPose(excursion.trace, into),
+        t: progressAlongLine(event, seconds, progress).t,
+      };
     }
   }
 
@@ -231,13 +236,13 @@ function poseInEvent(
   const { t, profileHeading } = progressAlongLine(event, seconds, progress);
   const pos = getCurvePoint(t, curve);
   if (profileHeading !== null && Number.isFinite(profileHeading)) {
-    return { x: pos.x, y: pos.y, heading: profileHeading };
+    return { x: pos.x, y: pos.y, heading: profileHeading, t };
   }
 
   const heading =
     getInterpolatedHeading(line.endPoint, t) ??
     headingFromGeometry(line.endPoint, pos, curve, t, false);
-  return { x: pos.x, y: pos.y, heading };
+  return { x: pos.x, y: pos.y, heading, t };
 }
 
 /**
@@ -267,7 +272,12 @@ export function calculateRobotState(
       heading: -restingHeading(startPoint),
     };
   }
-  return { x: xScale(pose.x), y: yScale(pose.y), heading: -pose.heading };
+  return {
+    x: xScale(pose.x),
+    y: yScale(pose.y),
+    heading: -pose.heading,
+    t: pose.t,
+  };
 }
 
 /**

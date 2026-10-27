@@ -756,3 +756,4 @@ src/tests/chainSupport.test.ts
 src/tests/fuzz/timeline.fuzz.test.ts
 src/tests/pedroAccuracy.test.ts
 src/tests/robustness.test.ts
+src/utils/animation.test.ts

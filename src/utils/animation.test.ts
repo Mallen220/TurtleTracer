@@ -448,6 +448,27 @@ describe("robot pose", () => {
       expect(state.heading).toBe(-30);
     });
 
+    it("reports how far along its path the robot is, and nothing while it turns", () => {
+      const timeline: TimelineEvent[] = [
+        {
+          type: "wait",
+          startTime: 0,
+          endTime: 4,
+          duration: 4,
+          startHeading: 0,
+          targetHeading: 0,
+          atPoint: { x: 7, y: 7 },
+        },
+        travel({ startTime: 4, endTime: 14, duration: 10 }),
+      ];
+      const at = (percent: number) =>
+        calculateRobotState(percent, timeline, lines, start, xScale, yScale);
+      expect(at(10).t).toBeUndefined();
+      expect(at(100).t).toBeCloseTo(1);
+      // Halfway through the path is halfway along it, whatever the easing.
+      expect(at((9 / 14) * 100).t).toBeCloseTo(0.5);
+    });
+
     it("finds the right event among several", () => {
       const timeline: TimelineEvent[] = [
         {

@@ -13,6 +13,7 @@ import {
   settingsStore,
   robotXYStore,
   robotHeadingStore,
+  robotTStore,
   percentStore,
   hoverPercentStore,
   hoverRobotXYStore,
@@ -239,6 +240,7 @@ export class Playback {
         // Nothing to animate: show the robot at the start point.
         robotXYStore.set({ x: startPoint.x, y: startPoint.y });
         robotHeadingStore.set(startHeading(startPoint));
+        robotTStore.set(null);
         this.committedRobotState = null;
         return;
       }
@@ -253,6 +255,7 @@ export class Playback {
       );
       robotXYStore.set({ x: pose.x, y: pose.y });
       robotHeadingStore.set(pose.heading);
+      robotTStore.set(pose.t ?? null);
 
       const committed = this.#committed.current;
       const committedPrediction = this.#committedPrediction;

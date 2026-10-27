@@ -158,6 +158,7 @@ export const timePredictionStore = writable<TimePrediction | null>(null);
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });
 export const robotHeadingStore = writable(0);
+export const robotTStore = writable<number | null>(null);
 export const followRobotStore = writable(false);
 
 // Robot Profiles Store
