@@ -172,16 +172,6 @@ describe("turning first after a handover", () => {
     expect(Math.min(...run.speed)).toBeGreaterThan(15);
   });
 
-  it("doesn't turn first for Pedro 2, which isn't known to", () => {
-    const run = simulateRecovery({
-      ...input,
-      settings: { ...input.settings, pedroVersion: "v2" },
-      heading: facing(0, 90),
-    });
-    expect(Math.min(...run.speed)).toBeGreaterThan(15);
-    expect(run.heading!.at(-1)).toBeCloseTo(90, 0);
-  });
-
   it("gives no heading when it wasn't given one", () => {
     expect(simulateRecovery(input).heading).toBeUndefined();
   });

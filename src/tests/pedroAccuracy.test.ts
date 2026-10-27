@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, beforeAll } from "vitest";
 import { calculatePathTime } from "../utils/timeCalculator";
+import { robotPoseDuring } from "../utils/animation";
 import {
   brakingDistance,
   speedToSlowWithin,
@@ -59,46 +60,93 @@ const run = (
 
 const travels = travelsIn;
 
-describe("time to settle at the end of a path", () => {
+describe("letting go at the end of a path", () => {
   const lines = [line("a", constant(90, 10)), line("b", constant(90, 80))];
+  const first = (over: Partial<Settings>, sequence = steps("a", "b")) =>
+    travels(run(constantStart, lines, sequence, over).timeline)[0];
+  /** When the robot is 0.975 of the way along the first path. */
+  const at975 = (over: Partial<Settings>) => {
+    const ev = first(over);
+    const v = ev.velocityProfile!;
+    const t = ev.motionProfile!;
+    const i = Math.floor(0.975 * (t.length - 1));
+    const f = 0.975 * (t.length - 1) - i;
+    const vf = Math.sqrt(v[i] ** 2 + f * (v[i + 1] ** 2 - v[i] ** 2));
+    return t[i] + ((f * (v[i] + v[i + 1])) / (v[i] + vf)) * (t[i + 1] - t[i]);
+  };
 
-  it("adds the settle time to each path that ends in a hold", () => {
-    const none = run(constantStart, lines, steps("a", "b"), {
-      pathSettleTime: 0,
-    });
-    const settled = run(constantStart, lines, steps("a", "b"), {
-      pathSettleTime: 0.1,
-    });
-    expect(settled.totalTime - none.totalTime).toBeCloseTo(0.2, 6);
-    for (const [i, ev] of travels(settled.timeline).entries()) {
-      expect(ev.duration - travels(none.timeline)[i].duration).toBeCloseTo(
-        0.1,
+  it("lets go 0.975 of the way along, plus the settle time", () => {
+    // The robot is still braking then, so the timeout is what ends the hold.
+    for (const pathSettleTime of [0, 0.1]) {
+      expect(first({ pathSettleTime }).duration).toBeCloseTo(
+        at975({ pathSettleTime }) + pathSettleTime,
         6,
       );
     }
   });
 
   it("holds only once at the end of a chain", () => {
-    const none = run(constantStart, lines, chained("a", "b"), {
-      pathSettleTime: 0,
-    });
-    const settled = run(constantStart, lines, chained("a", "b"), {
-      pathSettleTime: 0.1,
-    });
-    expect(settled.totalTime - none.totalTime).toBeCloseTo(0.1, 6);
+    // A wait after it, so the chain isn't the last thing the robot does.
+    const sequence: SequenceItem[] = [
+      ...chained("a", "b"),
+      { kind: "wait", id: "w", name: "", durationMs: 500 },
+    ];
+    const total = (pathSettleTime: number) =>
+      run(constantStart, lines, sequence, { pathSettleTime }).totalTime;
+    expect(total(0.1) - total(0)).toBeCloseTo(0.1, 6);
   });
 
-  it("is a small optimistic default", () => {
-    expect(DEFAULT_SETTINGS.pathSettleTime).toBeGreaterThan(0);
-    expect(DEFAULT_SETTINGS.pathSettleTime).toBeLessThanOrEqual(0.1);
+  it("holds the last path until the robot gets to its end", () => {
+    const [ev] = travels(run(constantStart, [lines[0]], steps("a")).timeline);
+    expect(ev.duration).toBeCloseTo(ev.motionProfile!.at(-1)!, 6);
   });
 
-  it("keeps the robot at the end of the path while it settles", () => {
-    const [ev] = travels(
-      run(constantStart, [lines[0]], steps("a"), { pathSettleTime: 0.5 })
-        .timeline,
+  it("defaults to Pedro's 100 ms timeout", () => {
+    expect(DEFAULT_SETTINGS.pathSettleTime).toBe(0.1);
+  });
+
+  it("lets go as soon as the robot has settled, if that's before the timeout", () => {
+    const ev = first({ pathSettleTime: 5 }, steps("a"));
+    expect(ev.duration).toBeCloseTo(ev.motionProfile!.at(-1)!, 6);
+  });
+
+  it("starts the next step while the robot is still on its way to the end", () => {
+    const events = run(constantStart, lines, steps("a", "b"), {}).timeline;
+    const [out] = travels(events);
+    expect(out.duration).toBeLessThan(out.motionProfile!.at(-1)!);
+    // It is drawn finishing the path as the next step begins, without a jump.
+    const next = events[events.indexOf(out) + 1];
+    expect(next.lag).toBeDefined();
+    const before = robotPoseDuring(
+      out,
+      out.endTime - 1e-6,
+      lines,
+      constantStart,
+    )!;
+    const after = robotPoseDuring(next, next.startTime, lines, constantStart)!;
+    expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeLessThan(
+      0.05,
     );
-    expect(ev.duration).toBeGreaterThan(ev.motionProfile!.at(-1)! + 0.4);
+  });
+
+  it("carries its speed into a path that goes on the same way", () => {
+    const straight = [
+      line("a", constant(60, 10)),
+      line("b", constant(110, 10)),
+    ];
+    const [, second] = travels(
+      run(constantStart, straight, steps("a", "b")).timeline,
+    );
+    expect(second.velocityProfile![0]).toBeGreaterThan(1);
+  });
+
+  it("sheds that speed first when the next path heads back", () => {
+    const back = [line("a", constant(60, 10)), line("b", constant(20, 10))];
+    const [, second] = travels(
+      run(constantStart, back, steps("a", "b")).timeline,
+    );
+    expect(second.velocityProfile![0]).toBe(0);
+    expect(second.motionProfile![0]).toBeGreaterThan(0);
   });
 });
 
@@ -238,7 +286,7 @@ describe("curves", () => {
   });
 });
 
-describe("heading progress along a path by version", () => {
+describe("heading progress along a path", () => {
   // Control points that make the curve parameter uneven along the path.
   const lines = [
     line("a", { x: 130, y: 130, heading: "linear", startDeg: 0, endDeg: 90 }, [
@@ -246,50 +294,30 @@ describe("heading progress along a path by version", () => {
       { x: 20, y: 130 },
     ]),
   ];
-  const headings = (version: "v3" | "v2") =>
+  const headings = () =>
     travels(
-      run(constantStart, lines, steps("a"), {
-        pedroVersion: version,
-        aVelocity: 100,
-      }).timeline,
+      run(constantStart, lines, steps("a"), { aVelocity: 100 }).timeline,
     )[0].headingProfile!;
 
-  it("differs between v2 (curve parameter) and v3 (distance)", () => {
-    const v3 = headings("v3");
-    const v2 = headings("v2");
-    expect(v3.length).toBe(v2.length);
-    const mid = Math.floor(v3.length / 2);
-    expect(Math.abs(v3[mid] - v2[mid])).toBeGreaterThan(2);
+  it("starts and ends at the headings it is given", () => {
+    const profile = headings();
+    expect(profile[0]).toBeCloseTo(0, 3);
+    expect(profile.at(-1)).toBeCloseTo(90, 3);
   });
 
-  it("starts and ends at the same headings either way", () => {
-    for (const version of ["v3", "v2"] as const) {
-      const profile = headings(version);
-      expect(profile[0]).toBeCloseTo(0, 3);
-      expect(profile.at(-1)).toBeCloseTo(90, 3);
+  it("is steady between steps", () => {
+    const profile = headings();
+    for (let i = 1; i < profile.length; i++) {
+      expect(profile[i]).toBeGreaterThanOrEqual(profile[i - 1] - 1e-9);
     }
   });
 
-  it("is steady between steps in both", () => {
-    for (const version of ["v3", "v2"] as const) {
-      const profile = headings(version);
-      for (let i = 1; i < profile.length; i++) {
-        expect(profile[i]).toBeGreaterThanOrEqual(profile[i - 1] - 1e-9);
-      }
-    }
-  });
-
-  it("moves to the next chained path at its end in v2, but early in v3", () => {
+  it("moves to the next chained path before the end of this one", () => {
     const corner = [line("a", constant(80, 10)), line("b", constant(80, 100))];
-    const tail = (version: "v3" | "v2") => {
-      const [first] = travels(
-        run(constantStart, corner, chained("a", "b"), { pedroVersion: version })
-          .timeline,
-      );
-      return first.motionProfile!.at(-1)! - first.duration;
-    };
-    expect(tail("v3")).toBeGreaterThan(0.1);
-    expect(tail("v2")).toBeCloseTo(0, 6);
+    const [first] = travels(
+      run(constantStart, corner, chained("a", "b")).timeline,
+    );
+    expect(first.motionProfile!.at(-1)! - first.duration).toBeGreaterThan(0.1);
   });
 });
 
@@ -303,33 +331,74 @@ describe("turning before an unchained path", () => {
   const turns = (over: Partial<Settings>) =>
     timeline(over).timeline.filter((e) => e.type === "wait");
 
-  it("drives while it turns by default, as Pedro does", () => {
+  it("turns on the spot until it is within 11.25° of the heading, as Pedro does", () => {
+    // Pedro puts turning before driving past its headingDeviationTolerance.
     expect(DEFAULT_SETTINGS.stopToTurn).toBe(false);
-    expect(turns({})).toHaveLength(0);
+    const [turn] = turns({});
+    expect(turns({})).toHaveLength(1);
+    expect(turn.targetHeading! - turn.startHeading!).toBeCloseTo(90 - 11.25, 6);
   });
 
-  it("stops to turn first when told to", () => {
-    expect(turns({ stopToTurn: true })).toHaveLength(1);
+  it("is still turning when it sets off, so the turn doesn't slow to a stop", () => {
+    // From rest at up to 2 rad/s, speeding up at 4 rad/s²: 0.5 s and 0.5 rad
+    // to get to full speed, the rest at full speed, and no slowing down.
+    const [turn] = turns({ aVelocity: 2, maxAngularAcceleration: 4 });
+    const angle = ((90 - 11.25) * Math.PI) / 180;
+    expect(turn.duration).toBeCloseTo(0.5 + (angle - 0.5) / 2, 6);
+  });
+
+  it("matches the robot's turns before three recorded paths", () => {
+    // Oct 24 telemetry: 128°, 179° and 35° off, turned at 210°/s with about
+    // 23 rad/s² to get going, within 11.25° after 0.64, 0.90 and 0.21 s.
+    const settings = {
+      aVelocity: (210 * Math.PI) / 180,
+      maxAngularAcceleration: 23,
+    };
+    // The first path starts facing its own heading, so turn on a second one.
+    const turnFor = (degrees: number) =>
+      run(
+        constantStart,
+        [line("a", constant(80, 10, 0)), line("b", constant(80, 60, degrees))],
+        steps("a", "b"),
+        settings,
+      ).timeline.find((e) => e.type === "wait")!.duration;
+    expect(turnFor(128)).toBeCloseTo(0.64, 1);
+    expect(turnFor(179)).toBeCloseTo(0.9, 1);
+    expect(turnFor(35)).toBeCloseTo(0.21, 1);
+  });
+
+  it("stops to turn all the way first when told to", () => {
+    const [turn] = turns({ stopToTurn: true });
+    expect(turn.targetHeading! - turn.startHeading!).toBeCloseTo(90, 6);
     expect(timeline({ stopToTurn: false }).totalTime).toBeLessThan(
       timeline({ stopToTurn: true }).totalTime,
     );
   });
 
-  it("still ends the path facing the way it should", () => {
-    const [, second] = travels(timeline({ stopToTurn: false }).timeline);
+  it("finishes the turn as it drives and ends facing the way it should", () => {
+    const [, second] = travels(timeline({}).timeline);
+    expect(second.headingProfile![0]).toBeCloseTo(90 - 11.25, 3);
     expect(second.headingProfile!.at(-1)).toBeCloseTo(90, 3);
-    // It started the path still facing the way the first one ended.
-    expect(second.headingProfile![0]).toBeCloseTo(0, 3);
   });
 
-  it("doesn't change a path that starts the way the last one ended", () => {
-    const same = [
+  it("turns clockwise when the path wants it facing exactly the other way", () => {
+    const opposite = [
       line("a", constant(90, 10, 0)),
-      line("b", constant(90, 80, 0)),
+      line("b", constant(10, 10, 180)),
     ];
-    const total = (over: Partial<Settings>) =>
-      run(constantStart, same, steps("a", "b"), over).totalTime;
-    expect(total({ stopToTurn: false })).toBeCloseTo(total({}), 9);
+    const turn = run(constantStart, opposite, steps("a", "b")).timeline.find(
+      (e) => e.type === "wait",
+    )!;
+    expect(turn.targetHeading! - turn.startHeading!).toBeLessThan(0);
+  });
+
+  it("doesn't turn first within 11.25° of the heading", () => {
+    const close = [
+      line("a", constant(90, 10, 0)),
+      line("b", constant(90, 80, 10)),
+    ];
+    const events = run(constantStart, close, steps("a", "b")).timeline;
+    expect(events.filter((e) => e.type === "wait")).toHaveLength(0);
   });
 });
 
@@ -397,32 +466,35 @@ describe("the new settings", () => {
   it("keep their defaults for older saved settings", () => {
     const merged = mergeSettings({ maxVelocity: 50 });
     expect(merged).toMatchObject({
-      pedroVersion: "v3",
       stopToTurn: false,
       brakingQuadratic: 0,
       brakingLinear: 0,
-      pathSettleTime: 0.05,
+      pathSettleTime: 0.1,
       translationalP: 0.1,
     });
   });
 
   it("are kept when saved", () => {
     const merged = mergeSettings({
-      pedroVersion: "v2",
       pathSettleTime: 0.2,
       stopToTurn: false,
       brakingQuadratic: 0.02,
     });
     expect(merged).toMatchObject({
-      pedroVersion: "v2",
       pathSettleTime: 0.2,
       stopToTurn: false,
       brakingQuadratic: 0.02,
     });
   });
 
+  it("drop the Pedro version older settings saved", () => {
+    expect(mergeSettings({ pedroVersion: "v2" })).not.toHaveProperty(
+      "pedroVersion",
+    );
+  });
+
   it("ignore values of the wrong type", () => {
-    expect(mergeSettings({ pathSettleTime: "slow" }).pathSettleTime).toBe(0.05);
+    expect(mergeSettings({ pathSettleTime: "slow" }).pathSettleTime).toBe(0.1);
     expect(mergeSettings({ stopToTurn: "yes" }).stopToTurn).toBe(false);
   });
 

@@ -178,6 +178,23 @@ export function robotPoseDuring(
   lines: Line[],
   startPoint: Point,
 ): RobotState | null {
+  const pose = poseInEvent(event, seconds, lines, startPoint);
+  const { lag } = event;
+  if (!pose || !lag) return pose;
+  // Still finishing the path before, until it reaches its end.
+  const left =
+    lag.until > lag.from
+      ? clamp01(1 - (seconds - lag.from) / (lag.until - lag.from))
+      : 0;
+  return { ...pose, x: pose.x + lag.x * left, y: pose.y + lag.y * left };
+}
+
+function poseInEvent(
+  event: TimelineEvent,
+  seconds: number,
+  lines: Line[],
+  startPoint: Point,
+): RobotState | null {
   const progress =
     event.duration > 0
       ? clamp01((seconds - event.startTime) / event.duration)

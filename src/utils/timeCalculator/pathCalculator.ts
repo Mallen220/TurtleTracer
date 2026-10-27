@@ -14,7 +14,11 @@ import type {
 import {
   getCurvePoint,
   getEffectiveHeadingSource,
+  getLineEndHeading,
   getLineStartHeading,
+  interpolateTFromProfile,
+  radiansToDegrees,
+  transformAngle,
 } from "../math";
 import {
   calculateGlobalChainMeta,
@@ -34,14 +38,19 @@ import {
   recoverFromHandover,
   runWideFromStep,
 } from "./chainHandover";
-import { RECOVERY_MIN_TURN_DEGREES } from "./chainRecovery";
+import { RECOVERY_MIN_TURN_DEGREES, TURN_FIRST_DEGREES } from "./chainRecovery";
 import { analyzePathSegment, unwrapAngle } from "./segmentAnalyzer";
 import { startingHeading, stepsToRun } from "./startingHeading";
 import { materializePrevHeadings } from "../prevHeading";
 import type { PathAnalysis } from "./types";
 import { speedAtAngle, stepSpeedScales } from "./directionalSpeed";
-import { buildHeadingProfile, piecewiseShortfalls } from "./headingProfile";
-import { calculateRotationTime } from "./rotation";
+import {
+  buildHeadingProfile,
+  piecewiseShortfalls,
+  turnToward,
+} from "./headingProfile";
+import { calculateRotationTime, turnFromRestTime } from "./rotation";
+import { decelerationOf } from "./braking";
 import { lateralLimit } from "./lateralLimit";
 import { maxSpeedOf } from "./speedCap";
 import { calculateMotionProfileDetailed } from "./motionProfile";
@@ -85,6 +94,60 @@ interface Motion {
   excursion?: Excursion;
   /** The most sideways acceleration the ideal path asks of the robot, in in/s². */
   peakDemand?: number;
+}
+
+/**
+ * How much of the curve is left when Pedro counts a path as done and holds
+ * its end: its parametricTConstraint.
+ */
+const PARAMETRIC_END = 0.025;
+/** Pedro's headingConstraint (0.007 rad), in degrees: settled at the end. */
+const HEADING_SETTLED_DEGREES = 0.4;
+
+/**
+ * The time the robot is `step` steps along, which may fall between two
+ * boundaries: speeding up or slowing down evenly over the step it's in.
+ */
+function timeAtStep(
+  motion: number[],
+  velocities: number[],
+  step: number,
+): number {
+  const i = Math.max(0, Math.min(Math.floor(step), motion.length - 2));
+  const f = step - i;
+  const dt = motion[i + 1] - motion[i];
+  const v0 = velocities[i];
+  const v1 = velocities[i + 1];
+  // v² changes evenly with distance; time is distance over average speed.
+  const vf = Math.sqrt(Math.max(0, v0 * v0 + f * (v1 * v1 - v0 * v0)));
+  const share = v0 + vf > 1e-9 ? (f * (v0 + v1)) / (v0 + vf) : f;
+  return motion[i] + Math.min(1, share) * dt;
+}
+
+/** `values` (one per step boundary) at `time`, by straight line between the boundaries either side. */
+function valueAt(motion: number[], values: number[], time: number): number {
+  let i = 0;
+  while (i < motion.length - 2 && time > motion[i + 1]) i++;
+  const span = motion[i + 1] - motion[i];
+  const f = span > 0 ? Math.max(0, Math.min(1, (time - motion[i]) / span)) : 1;
+  return values[i] + (values[i + 1] - values[i]) * f;
+}
+
+/** Where a trace has the robot `time` seconds in, by straight line between samples. */
+function pointOnTrace(
+  trace: Excursion["trace"],
+  time: number,
+): { x: number; y: number } {
+  const { x, y } = trace;
+  const after = trace.time.findIndex((t) => t > time);
+  const i = Math.max(
+    0,
+    Math.min(after < 0 ? x.length - 2 : after - 1, x.length - 2),
+  );
+  const span = trace.time[i + 1] - trace.time[i];
+  const f =
+    span > 0 ? Math.max(0, Math.min(1, (time - trace.time[i]) / span)) : 0;
+  return { x: x[i] + (x[i + 1] - x[i]) * f, y: y[i] + (y[i + 1] - y[i]) * f };
 }
 
 /** Options for one timing that aren't part of the robot's settings. */
@@ -131,6 +194,11 @@ interface PathContext {
   /** The step the robot picks the path up at, and its speed there. */
   startStep: number;
   entrySpeed: number;
+  /**
+   * How long the robot spends at the start shedding speed it still had the
+   * other way when the path before it finished.
+   */
+  startDelay: number;
   isGlobalOverride: boolean;
   /** Whether the heading follows the path, so a curve makes the robot rotate. */
   followsTangent: boolean;
@@ -148,6 +216,15 @@ class TimelineBuilder {
   private currentTime = 0;
   private lastPoint: Point;
   private currentHeading: number;
+  /**
+   * How fast, and which way (degrees), the robot is still moving when the path
+   * it finished let it go: Pedro starts the next step before it has stopped.
+   */
+  private carry: { speed: number; direction: number } | null = null;
+  /** Where the robot was still finishing a path when Pedro let go of it. */
+  private readonly lags: NonNullable<TimelineEvent["lag"]>[] = [];
+  /** Turns at the end of a path that Pedro's timeout cut short, and where they were going. */
+  private readonly holdTurns = new Map<TimelineEvent, number>();
 
   /** Where the robot picks up a chained path. Each is used once. */
   private readonly entries = new Map<string, Entry>();
@@ -175,6 +252,17 @@ class TimelineBuilder {
 
   build(): TimePrediction {
     this.processSequence(stepsToRun(this.lines, this.sequence), 0);
+    this.finishLastPath();
+    // Each step takes the latest lag; a newer one carries what's left of it.
+    this.lags.forEach((lag, i) => {
+      const stop = Math.min(lag.until, this.lags[i + 1]?.from ?? Infinity);
+      for (const event of this.timeline) {
+        if (event.type === "macro") continue;
+        if (event.startTime >= lag.from - 1e-9 && event.startTime < stop) {
+          event.lag = lag;
+        }
+      }
+    });
     return {
       totalTime: this.currentTime,
       segmentTimes: this.segmentTimes,
@@ -184,6 +272,49 @@ class TimelineBuilder {
       ),
       timeline: this.timeline,
     };
+  }
+
+  /**
+   * Nothing follows the last path, so the robot holds its end until it is
+   * there: the project takes until the robot has arrived, not until Pedro
+   * would have moved on.
+   */
+  private finishLastPath() {
+    const last = this.timeline.findLast((e) => e.type !== "macro");
+    if (!last) return;
+    let extra = 0;
+    const target = this.holdTurns.get(last);
+    if (target !== undefined) {
+      // Turning in place to the end heading: it finishes the turn.
+      const rate = radiansToDegrees(this.settings.aVelocity);
+      const needs = Math.abs(target - (last.startHeading ?? target)) / rate;
+      extra = needs - last.duration;
+      if (extra > 1e-9) {
+        last.targetHeading = target;
+        this.currentHeading = target;
+      }
+    } else if (last.type === "travel" && last.motionProfile) {
+      const arrives = last.startTime + Math.max(0, last.motionProfile.at(-1)!);
+      extra = arrives - last.endTime;
+    }
+    if (extra <= 1e-9) return;
+    const end = last.endTime;
+    for (const event of this.timeline) {
+      if (
+        event === last ||
+        (event.type === "macro" && event.endTime >= end - 1e-9)
+      ) {
+        event.endTime += extra;
+        event.duration += extra;
+      }
+    }
+    this.segmentTimes[this.segmentTimes.length - 1] += extra;
+    this.currentTime += extra;
+    this.lags.splice(
+      0,
+      this.lags.length,
+      ...this.lags.filter((lag) => lag.from < end - 1e-9),
+    );
   }
 
   private processSequence(seq: SequenceItem[], depth: number) {
@@ -206,6 +337,8 @@ class TimelineBuilder {
         });
         this.timeline.push(...res.events);
         this.currentTime += res.duration;
+        // It comes to a stop during whatever the step is.
+        this.carry = null;
         if (res.endHeading !== undefined) this.currentHeading = res.endHeading;
         if (res.endPoint) this.lastPoint = res.endPoint;
         return;
@@ -273,7 +406,7 @@ class TimelineBuilder {
     // all paths when the robot is set not to stop and turn first.
     const turnsWhileDriving = isChained || settings.stopToTurn === false;
 
-    this.turnInPlace(line, prevPoint, chainMeta, turnsWhileDriving);
+    this.turnInPlace(line, prevPoint, chainMeta, isChained);
 
     const next = seq[idx + 1];
     const nextLine =
@@ -330,6 +463,10 @@ class TimelineBuilder {
     const entry = isChained ? this.entries.get(line.id!) : undefined;
     this.entries.delete(line.id!);
     const startStep = entry && entry.step < stepCount ? entry.step : 0;
+    const { entrySpeed, startDelay } =
+      startStep === entry?.step
+        ? { entrySpeed: entry.speed, startDelay: 0 }
+        : this.carriedSpeed(prevPoint, line);
 
     return {
       seq,
@@ -350,49 +487,86 @@ class TimelineBuilder {
       endHeading,
       rotationTime,
       startStep,
-      entrySpeed: startStep === entry?.step ? entry.speed : 0,
+      entrySpeed,
+      startDelay,
       isGlobalOverride: hasGlobalHeading(rootLine),
       followsTangent: turnsWithPath(line, rootLine),
     };
   }
 
-  /** Turns in place if the path needs to start facing elsewhere. */
+  /**
+   * Turns in place if the path starts facing elsewhere. Pedro puts turning
+   * before driving while the robot faces more than its
+   * headingDeviationTolerance from the heading the path wants, so it turns
+   * on the spot until it is that close and sets off still turning. Set to
+   * stop and turn first, the robot turns all the way before it drives. A
+   * chained path is picked up on the move instead (see `handOver`).
+   */
   private turnInPlace(
     line: Line,
     prevPoint: Point,
     chainMeta: ChainInfo | undefined,
-    turnsWhileDriving: boolean,
+    isChained: boolean,
   ) {
-    const startHeadingRaw = getLineStartHeading(
+    if (isChained) return;
+    const wanted = getLineStartHeading(
       line,
       prevPoint,
       chainMeta?.rootLine,
       chainMeta?.chainTotalLength,
       chainMeta?.distanceBefore,
     );
-    let startHeading = unwrapAngle(startHeadingRaw, this.currentHeading);
-    if (!Number.isFinite(startHeading)) startHeading = this.currentHeading;
-    if (
-      Math.abs(this.currentHeading - startHeading) <= 0.1 ||
-      turnsWhileDriving
-    ) {
-      return;
-    }
-    const turnTime = calculateRotationTime(
-      Math.abs(this.currentHeading - startHeading),
-      this.settings,
-    );
+    if (!Number.isFinite(wanted)) return;
+    // Pedro's heading error: the short way, clockwise when exactly opposite.
+    const error = transformAngle(wanted - this.currentHeading);
+    const stopsToTurn = this.settings.stopToTurn !== false;
+    const turn = Math.abs(error) - (stopsToTurn ? 0 : TURN_FIRST_DEGREES);
+    if (turn <= 0.1) return;
+    const turnTime = stopsToTurn
+      ? calculateRotationTime(turn, this.settings)
+      : turnFromRestTime(turn, this.settings);
+    const targetHeading = this.currentHeading + Math.sign(error) * turn;
     this.timeline.push({
       type: "wait",
       duration: turnTime,
       startTime: this.currentTime,
       endTime: this.currentTime + turnTime,
       startHeading: this.currentHeading,
-      targetHeading: startHeading,
+      targetHeading,
       atPoint: prevPoint,
     });
     this.currentTime += turnTime;
-    this.currentHeading = startHeading;
+    this.currentHeading = targetHeading;
+    // It sheds what speed it had while it turns.
+    this.carry = null;
+  }
+
+  /**
+   * The speed a path that isn't chained starts at, given what the robot still
+   * had when the path before it let go, and how long it first spends getting
+   * rid of the part that doesn't go the new path's way.
+   */
+  private carriedSpeed(
+    prevPoint: Point,
+    line: Line,
+  ): { entrySpeed: number; startDelay: number } {
+    const carry = this.carry;
+    this.carry = null;
+    const direction = travelDirections(prevPoint, line)?.start;
+    if (!carry || direction === undefined) {
+      return { entrySpeed: 0, startDelay: 0 };
+    }
+    const angle = ((direction - carry.direction) * Math.PI) / 180;
+    // It keeps what goes the path's way. The rest (sideways, or back the
+    // way it came) has to go first, at no more than it can brake by.
+    const along = carry.speed * Math.cos(angle);
+    const entrySpeed = along > 1e-6 ? along : 0;
+    const left =
+      entrySpeed > 0 ? Math.abs(carry.speed * Math.sin(angle)) : carry.speed;
+    return {
+      entrySpeed,
+      startDelay: left > 1e-6 ? left / decelerationOf(this.settings) : 0,
+    };
   }
 
   /**
@@ -438,7 +612,11 @@ class TimelineBuilder {
       { length: startStep },
       (_, i) => -(startStep - i) * 1e-9,
     );
-    const motion = [...skipped, ...solved.profile.map((t) => t * scale)];
+    // A robot still going the other way stays put until it has stopped.
+    const motion = [
+      ...skipped,
+      ...solved.profile.map((t) => t * scale + ctx.startDelay),
+    ];
     // Driving the same distance in longer means going slower throughout.
     const velocities = [
       ...skipped.map(() => ctx.entrySpeed),
@@ -447,7 +625,7 @@ class TimelineBuilder {
     const headingInput = this.headingInputFor(ctx, motion);
     const headings = buildHeadingProfile(headingInput);
     return {
-      total,
+      total: total + ctx.startDelay,
       motion,
       velocities,
       headings,
@@ -572,6 +750,7 @@ class TimelineBuilder {
           ...ctx,
           startStep: resume,
           entrySpeed: result.rejoinSpeed,
+          startDelay: 0,
           rotationTime: Math.max(0, ctx.rotationTime - elapsed),
         },
         scales,
@@ -681,10 +860,9 @@ class TimelineBuilder {
             built.headings,
           )
         : stepCount;
-    let travelTime = Math.max(0, built.motion[endStep]);
-    // Pedro holds the end pose until the robot has settled. A path that hands
-    // over to the next one has no hold.
-    if (!nextLine) travelTime += Math.max(0, this.settings.pathSettleTime ?? 0);
+    // A path that hands over to the next one has no hold at its end.
+    const finish = nextLine ? null : this.holdEnd(ctx, built);
+    const travelTime = finish?.travelTime ?? Math.max(0, built.motion[endStep]);
 
     this.segmentTimes.push(travelTime);
     this.timeline.push({
@@ -713,9 +891,153 @@ class TimelineBuilder {
 
     // Carry on from the heading the profile actually got to; with a chain
     // heading it can differ from `endHeading`.
-    this.currentHeading = built.headings[endStep] ?? ctx.endHeading;
+    this.currentHeading =
+      finish?.heading ?? built.headings[endStep] ?? ctx.endHeading;
+    this.carry = finish?.carry ?? null;
+    if (finish?.holdTurn) {
+      // Stopped at the end, turning to the heading the path ends on.
+      const { duration, start, end, target } = finish.holdTurn;
+      const turn: TimelineEvent = {
+        type: "wait",
+        duration,
+        startTime: this.currentTime,
+        endTime: this.currentTime + duration,
+        startHeading: start,
+        targetHeading: end,
+        atPoint: line.endPoint,
+      };
+      this.timeline.push(turn);
+      this.holdTurns.set(turn, target);
+      this.currentTime += duration;
+    }
+    if (finish?.lag) {
+      // Still finishing an earlier path too, if Pedro let go of that one
+      // before the robot got there.
+      const earlier = this.lags.at(-1);
+      const share =
+        earlier && earlier.until > earlier.from
+          ? Math.max(
+              0,
+              Math.min(
+                1,
+                1 -
+                  (this.currentTime - earlier.from) /
+                    (earlier.until - earlier.from),
+              ),
+            )
+          : 0;
+      this.lags.push({
+        x: finish.lag.x + (earlier?.x ?? 0) * share,
+        y: finish.lag.y + (earlier?.y ?? 0) * share,
+        from: this.currentTime,
+        until: this.currentTime + finish.lag.left,
+      });
+    }
     this.lastPoint = line.endPoint;
     return endStep;
+  }
+
+  /**
+   * When Pedro lets go of a path that ends in a hold, and how the robot is
+   * moving then. Pedro counts a path as done once the closest point on it is
+   * past its parametricTConstraint (0.975 of the way along the curve), then
+   * holds the end pose until the robot has settled there (heading within
+   * headingConstraint) or its timeoutConstraint (the path settle time) runs
+   * out, whichever is first. The profile still runs to the end of the path,
+   * which the robot reaches on its way into the next step.
+   */
+  private holdEnd(
+    ctx: PathContext,
+    built: Motion,
+  ): {
+    /** How long the robot drives the path for. */
+    travelTime: number;
+    /** A turn in place at the end, while Pedro holds the end pose. */
+    holdTurn: {
+      duration: number;
+      start: number;
+      end: number;
+      target: number;
+    } | null;
+    heading: number | undefined;
+    carry: { speed: number; direction: number } | null;
+    /** How far from the end the robot still is, and how long it takes to get there. */
+    lag: { x: number; y: number; left: number } | null;
+  } {
+    const { stepCount, chainMeta } = ctx;
+    const { motion, velocities, headings } = built;
+    const headed = headings.length === motion.length;
+    const stopped = Math.max(0, motion[stepCount]);
+    const done = Math.max(
+      0,
+      timeAtStep(motion, velocities, (1 - PARAMETRIC_END) * stepCount),
+    );
+    const timeout = Math.max(0, this.settings.pathSettleTime ?? 0);
+    const endHeading = headed ? headings[stepCount] : ctx.endHeading;
+    // The heading Pedro holds: the one the path asks for at its end.
+    const wantedRaw = getLineEndHeading(
+      ctx.line,
+      ctx.prevPoint,
+      ctx.rootLine,
+      chainMeta?.chainTotalLength,
+      (chainMeta?.distanceBefore ?? 0) + ctx.analysis.length,
+    );
+    const target = Number.isFinite(wantedRaw)
+      ? unwrapAngle(wantedRaw, endHeading)
+      : endHeading;
+    const settled = Math.abs(endHeading - target) <= HEADING_SETTLED_DEGREES;
+    // A robot running wide passes close to the end of the path while it is
+    // still well off it. Pedro would let go then, but the robot would have to
+    // come back before the next step could start where it is timed from, so
+    // the hold is timed from when it is back at the end instead.
+    const wide = built.excursion;
+    const offPath =
+      !!wide &&
+      done >= wide.startTime &&
+      done <= wide.startTime + wide.duration;
+    const from = offPath ? stopped : done;
+    const time = settled ? Math.min(stopped, from + timeout) : from + timeout;
+
+    let heading = headed ? valueAt(motion, headings, time) : undefined;
+    let holdTurn = null;
+    if (time > stopped && heading !== undefined) {
+      // Stopped at the end, still turning to the end heading as it holds:
+      // done once it gets there, or when the timeout runs out.
+      const start = heading;
+      const rate = radiansToDegrees(this.settings.aVelocity);
+      const duration = Math.min(
+        time - stopped,
+        Math.abs(target - start) / rate,
+      );
+      heading = turnToward(start, target, rate * duration);
+      holdTurn = { duration, start, end: heading, target };
+    }
+    const speed = time < stopped ? valueAt(motion, velocities, time) : 0;
+    const direction = travelDirections(ctx.prevPoint, ctx.line)?.end;
+    const end = ctx.line.endPoint;
+    // Where the robot is: off the path if it is still running wide there.
+    const into = wide ? time - wide.startTime : -1;
+    const at =
+      time >= stopped
+        ? end
+        : wide && into >= 0 && into <= wide.duration
+          ? pointOnTrace(wide.trace, into)
+          : getCurvePoint(interpolateTFromProfile(time, motion), [
+              ctx.prevPoint,
+              ...ctx.line.controlPoints,
+              end,
+            ]);
+    return {
+      travelTime: holdTurn || time > stopped ? stopped : time,
+      holdTurn,
+      heading,
+      lag:
+        time < stopped
+          ? { x: at.x - end.x, y: at.y - end.y, left: stopped - time }
+          : null,
+      carry:
+        speed > 1e-6 && direction !== undefined ? { speed, direction } : null,
+    };
   }
 
   /**

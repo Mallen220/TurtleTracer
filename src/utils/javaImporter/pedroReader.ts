@@ -14,6 +14,7 @@ import type {
   TurtleData,
 } from "../../types";
 import { buildPoseTable, poseNameOf } from "../../lib/exporters/poseTable";
+import { oppositeAngle } from "../math";
 import {
   ExpressionParser,
   tokenize,
@@ -166,6 +167,31 @@ const isInterpolatorClass = (name: string) =>
 
 function withReverse(h: Heading, reverse: boolean): Heading {
   return { ...h, reverse: reverse || undefined } as Heading;
+}
+
+/**
+ * Pedro's `.reverse()`: 180° added to the heading all the way along. On a
+ * linear heading that turns its angles round, since reverse there means the
+ * long way round (`longLinear`).
+ */
+function reversed(h: Heading): Heading {
+  switch (h.heading) {
+    case "linear":
+      return {
+        ...h,
+        startDeg: oppositeAngle(h.startDeg),
+        endDeg: oppositeAngle(h.endDeg),
+      };
+    case "piecewise":
+      return {
+        ...h,
+        segments: h.segments.map(
+          (seg) => reversed(seg as unknown as Heading) as PiecewiseSegment,
+        ),
+      };
+    default:
+      return withReverse(h, !h.reverse);
+  }
 }
 
 class Reader {
@@ -604,11 +630,24 @@ class Reader {
         return { heading: "tangential", reverse: true };
       case "constant":
         return { heading: "constant", degrees: this.angle(args[0]) };
-      case "linear":
+      case "linear": {
+        const linear: Heading = {
+          heading: "linear",
+          startDeg: this.angle(args[0]),
+          endDeg: this.angle(args[1]),
+        };
+        // Pedro 2's setLinearHeadingInterpolation(start, end, endTime, reversed).
+        const reverse = args[3]?.kind === "name" && args[3].name === "true";
+        return reverse ? reversed(linear) : linear;
+      }
+      // The long way round: longLinear in Pedro 3, reversedLinear in Pedro 2.
+      case "longLinear":
+      case "reversedLinear":
         return {
           heading: "linear",
           startDeg: this.angle(args[0]),
           endDeg: this.angle(args[1]),
+          reverse: true,
         };
       case "facingPoint": {
         const target = this.pose(args[0]);
@@ -663,9 +702,15 @@ class Reader {
     args: Expr[],
   ): Segment | null {
     if (method === "setReversed") {
-      const on = !(args[0]?.kind === "name" && args[0].name === "false");
       const heading = segment.heading ?? { heading: "tangential" as const };
-      return { ...segment, heading: withReverse(heading, on) };
+      // Pedro 2's setReversed() reverses the heading; Pedro 1's
+      // setReversed(on) switches to a tangent heading, backwards or not.
+      if (args.length === 0) return { ...segment, heading: reversed(heading) };
+      const on = !(args[0]?.kind === "name" && args[0].name === "false");
+      return {
+        ...segment,
+        heading: withReverse({ heading: "tangential" }, on),
+      };
     }
     const heading = this.headingMethod(method, args);
     return heading ? { ...segment, heading } : null;
@@ -693,7 +738,7 @@ class Reader {
     args: Expr[],
   ): Value | null {
     if (method === "reverse") {
-      return { t: "interpolator", heading: withReverse(heading, true) };
+      return { t: "interpolator", heading: reversed(heading) };
     }
     if (method === "until" && heading.heading === "piecewise") {
       const tEnd = args[0] ? this.number(args[0]) : null;
@@ -702,14 +747,19 @@ class Reader {
       const inner = part.heading;
       if (inner.heading === "piecewise") return null;
       const tStart = heading.segments.at(-1)?.tEnd ?? 0;
-      const { reverse: _reverse, ...rest } = inner;
+      const { reverse, ...rest } = inner;
       return {
         t: "interpolator",
         heading: {
           ...heading,
           segments: [
             ...heading.segments,
-            { ...rest, tStart, tEnd } as PiecewiseSegment,
+            {
+              ...rest,
+              ...(reverse ? { reverse } : {}),
+              tStart,
+              tEnd,
+            } as PiecewiseSegment,
           ],
         },
       };

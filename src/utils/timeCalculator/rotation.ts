@@ -1,6 +1,15 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Settings } from "../../types";
 
+/** How fast the robot can speed up its turning, in rad/s². */
+function angularAcceleration(settings: Settings): number {
+  const set = settings.maxAngularAcceleration;
+  if (set && set > 0) return set;
+  const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
+  const maxAccel = settings.maxAcceleration || 30;
+  return maxAccel / leverArm;
+}
+
 export function calculateRotationTime(
   angleDiffDegrees: number,
   settings: Settings,
@@ -9,14 +18,7 @@ export function calculateRotationTime(
 
   const diffRad = angleDiffDegrees * (Math.PI / 180);
   const maxVel = Math.max(settings.aVelocity, 0.001);
-
-  let maxAngAccel = settings.maxAngularAcceleration;
-
-  if (!maxAngAccel || maxAngAccel <= 0) {
-    const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
-    const maxAccel = settings.maxAcceleration || 30;
-    maxAngAccel = maxAccel / leverArm;
-  }
+  const maxAngAccel = angularAcceleration(settings);
 
   // Motion profile:
   // t_accel = v_max / a_max
@@ -38,4 +40,22 @@ export function calculateRotationTime(
     // v_peak = sqrt(dist * a)
     return 2 * Math.sqrt(diffRad / maxAngAccel);
   }
+}
+
+/**
+ * How long turning `angleDiffDegrees` takes from rest when the robot doesn't
+ * slow down at the end, as when Pedro turns before it drives: it speeds up to
+ * its top turn rate and is still turning when it sets off along the path.
+ */
+export function turnFromRestTime(
+  angleDiffDegrees: number,
+  settings: Settings,
+): number {
+  if (angleDiffDegrees <= 0.001) return 0;
+  const diffRad = angleDiffDegrees * (Math.PI / 180);
+  const maxVel = Math.max(settings.aVelocity, 0.001);
+  const maxAngAccel = angularAcceleration(settings);
+  const accDist = (maxVel * maxVel) / (2 * maxAngAccel);
+  if (diffRad <= accDist) return Math.sqrt((2 * diffRad) / maxAngAccel);
+  return maxVel / maxAngAccel + (diffRad - accDist) / maxVel;
 }

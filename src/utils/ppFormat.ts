@@ -7,6 +7,11 @@ import type { Line, PiecewiseSegment, Point } from "../types";
  * keep it on the line, as `heading: { type, ... }`, and give the start point
  * a `headingDeg`. These helpers convert the line-level layout to the
  * end-point one; files already in it pass through unchanged.
+ *
+ * The line-level layout is read the way the Pedro Visualizer reads it: a
+ * reverse flag counts only where it does there (a tangent heading, and
+ * piecewise segments other than constant), and a segment that continues from
+ * the previous one starts where that one ends (a blank Prev angle here).
  */
 
 type LineHeadingSegment = {
@@ -14,6 +19,7 @@ type LineHeadingSegment = {
   endProgress: number;
   interpolationType: string;
   reversed?: boolean;
+  continueFromPrevious?: boolean;
   parameters?: {
     startDeg?: number;
     endDeg?: number;
@@ -34,15 +40,20 @@ type LineHeading = {
 
 const kind = (type: string) => (type === "facing-point" ? "facingPoint" : type);
 
-function toSegment(s: LineHeadingSegment): PiecewiseSegment {
+function toSegment(s: LineHeadingSegment, index: number): PiecewiseSegment {
   const p = s.parameters ?? {};
+  const type = kind(s.interpolationType);
+  const linked = s.continueFromPrevious && index > 0;
   return {
     tStart: s.startProgress,
     tEnd: s.endProgress,
-    heading: kind(s.interpolationType),
-    ...(s.reversed ? { reverse: true } : {}),
-    ...(p.startDeg !== undefined && { startDeg: p.startDeg, endDeg: p.endDeg }),
-    ...(p.degrees !== undefined && { degrees: p.degrees }),
+    heading: type,
+    ...(s.reversed && type !== "constant" ? { reverse: true } : {}),
+    ...(p.startDeg !== undefined && {
+      startDeg: linked ? undefined : p.startDeg,
+      endDeg: p.endDeg,
+    }),
+    ...(p.degrees !== undefined && { degrees: linked ? undefined : p.degrees }),
     ...(p.point && { targetX: p.point.x, targetY: p.point.y }),
   } as PiecewiseSegment;
 }
@@ -52,7 +63,7 @@ function toHeading(h: LineHeading): Partial<Point> {
   const { startDeg, endDeg, degrees, point } = h;
   return {
     heading: type,
-    ...(h.reverse ? { reverse: true } : {}),
+    ...(h.reverse && type === "tangential" ? { reverse: true } : {}),
     ...(type === "linear" && { startDeg, endDeg }),
     ...(type === "constant" && { degrees }),
     ...(type === "facingPoint" &&
@@ -66,9 +77,11 @@ function toHeading(h: LineHeading): Partial<Point> {
 export function normalizeLineHeading<T extends Line>(line: T): T {
   const { heading, ...rest } = line as T & { heading?: LineHeading };
   if (!heading || typeof heading !== "object") return line;
+  // The end point's own reverse is an older copy; the line's heading decides.
+  const { reverse: _stale, ...endPoint } = line.endPoint ?? {};
   return {
     ...rest,
-    endPoint: { ...line.endPoint, ...toHeading(heading) },
+    endPoint: { ...endPoint, ...toHeading(heading) },
   } as T;
 }
 

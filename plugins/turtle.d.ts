@@ -290,12 +290,6 @@ interface Settings {
   maxDeceleration?: number; // inches/sec²
   maxAngularAcceleration?: number; // rad/sec²
   /**
-   * Which Pedro Pathing behaviour to simulate. v3 measures heading progress
-   * along a path by distance and hands chained paths over early; v2 measures
-   * it by the curve parameter and hands over at the end of the path.
-   */
-  pedroVersion?: "v3" | "v2";
-  /**
    * Pedro's brake model as written in the robot's code (ForesightConfig
    * quadraticBrakeCoefficients and linearBrakeCoefficients, forward and strafe).
    * Pedro uses it to decide when to hand a chained path over to the next one.
@@ -582,6 +576,13 @@ interface TimelineEvent {
   startOffset?: number;
   /** For a "recovery" event: how far the robot swings past the next path, in inches. */
   overshoot?: number;
+  /**
+   * Pedro let go of the path before this event while the robot was still on
+   * its way to the end: how far (inches) the robot is from where this event
+   * puts it, which shrinks to nothing between `from` and `until` (seconds on
+   * the timeline) as it gets there.
+   */
+  lag?: { x: number; y: number; from: number; until: number };
 }
 
 interface TimePrediction {

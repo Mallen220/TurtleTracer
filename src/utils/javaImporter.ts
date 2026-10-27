@@ -9,6 +9,7 @@
 import { parse } from "java-parser";
 import { getRandomColor } from "./draw";
 import { makeId } from "./nameGenerator";
+import { oppositeAngle } from "./math";
 import { walkAST, extractTokens } from "./javaImporter/visitor";
 import {
   readPedroJava,
@@ -219,6 +220,19 @@ function findHeadingCall(
   return -1;
 }
 
+/**
+ * Pedro's setReversed() adds 180° to the heading. On a linear heading that
+ * turns its angles round, since reverse there means the long way round.
+ */
+function reverseHeading(endPoint: Point) {
+  if (endPoint.heading === "linear") {
+    endPoint.startDeg = oppositeAngle(endPoint.startDeg ?? 0);
+    endPoint.endDeg = oppositeAngle(endPoint.endDeg);
+  } else {
+    endPoint.reverse = true;
+  }
+}
+
 /** Works out the heading mode of a path from its builder calls. */
 function readHeading(
   pathTokens: string[],
@@ -226,6 +240,22 @@ function readHeading(
   points: Map<string, Point>,
 ): Point {
   const base = { ...endPoint };
+
+  // Pedro 2's long way round; a reversed linear heading here.
+  const longAt = pathTokens.indexOf("reversedLinear");
+  if (longAt !== -1) {
+    const [startDeg = 0, endDeg = 0] = readAngles(
+      argsAfter(pathTokens, longAt),
+      points,
+    );
+    return {
+      ...base,
+      heading: "linear",
+      startDeg,
+      endDeg,
+      reverse: true,
+    } as Point;
+  }
 
   const linearAt = findHeadingCall(
     pathTokens,
@@ -321,7 +351,7 @@ function readPathChain(
       (args.length > 1 ? nameIn(args.at(-1)!) : undefined) ?? defaultName;
 
     const endPoint = readHeading(pathTokens, { ...pathPoints.at(-1)! }, points);
-    endPoint.reverse = pathTokens.includes("setReversed");
+    if (pathTokens.includes("setReversed")) reverseHeading(endPoint);
 
     lines.push({
       id: makeId(),

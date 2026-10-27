@@ -109,7 +109,6 @@ describe("reading the build files", () => {
          implementation 'com.pedropathing:tuning:1.0.1'`,
       ]),
     ).toEqual({
-      pedroVersion: "v3",
       pedroDependency: "com.pedropathing:revhub:3.0.2",
       commandLibrary: "SolversLib",
     });
@@ -123,7 +122,6 @@ describe("reading the build files", () => {
          implementation "dev.nextftc:ftc:1.0.0"`,
       ]),
     ).toEqual({
-      pedroVersion: "v2",
       pedroDependency: "com.pedropathing:ftc:2.0.6",
       commandLibrary: "NextFTC",
     });
@@ -131,7 +129,6 @@ describe("reading the build files", () => {
 
   it("finds nothing in a project without Pedro", () => {
     expect(readBuildFiles(["implementation 'x:y:1.0'"])).toEqual({
-      pedroVersion: null,
       pedroDependency: null,
       commandLibrary: null,
     });
@@ -179,7 +176,7 @@ describe("finding the project", () => {
     });
     expect(project).toMatchObject({
       root: "/robot",
-      pedroVersion: "v3",
+      pedroDependency: "com.pedropathing:revhub:3.0.2",
       commandLibrary: "SolversLib",
       constants: {
         qualifiedName: "org.firstinspires.ftc.teamcode.pedroPathing.Constants",
@@ -208,7 +205,6 @@ describe("what the project says to change", () => {
   const project = {
     root: "/robot",
     constants: null,
-    pedroVersion: "v2" as const,
     pedroDependency: "com.pedropathing:ftc:2.0.6",
     commandLibrary: "NextFTC" as const,
     pedroValues: [
@@ -237,7 +233,6 @@ describe("what the project says to change", () => {
   };
   const settings = {
     ...DEFAULT_SETTINGS,
-    pedroVersion: "v3",
     autoExportFormat: "sequential",
     autoExportTargetLibrary: "SolversLib",
   } as Settings;
@@ -245,20 +240,18 @@ describe("what the project says to change", () => {
   it("offers each setting the project disagrees with", () => {
     const found = projectSuggestions(project, settings);
     expect(found.map((s) => s.id)).toEqual([
-      "pedroVersion",
       "handoverBrakes",
       "motionValues",
       "targetLibrary",
     ]);
-    expect(found[0].patch).toEqual({ pedroVersion: "v2" });
-    expect(found[1].patch).toEqual({
+    expect(found[0].patch).toEqual({
       pedroQuadraticBrakeForward: 0.002,
       pedroQuadraticBrakeStrafe: 0.0016,
       pedroLinearBrakeForward: 0.045,
       pedroLinearBrakeStrafe: 0.044,
     });
-    expect(found[2].patch).toEqual({ xVelocity: 62.6 });
-    expect(found[2].found).toBe("Forward velocity 62.6");
+    expect(found[1].patch).toEqual({ xVelocity: 62.6 });
+    expect(found[1].found).toBe("Forward velocity 62.6");
   });
 
   it("offers nothing once the settings match", () => {
@@ -281,13 +274,12 @@ describe("what the project says to change", () => {
 });
 
 describe("a constants file pasted in whole", () => {
-  const settings = { ...DEFAULT_SETTINGS, pedroVersion: "v2" } as Settings;
+  const settings = { ...DEFAULT_SETTINGS } as Settings;
 
-  it("changes the numbers, the Pedro version, and the class names", () => {
+  it("changes the numbers and the class names", () => {
     const pasted = readPastedConstants(teamConstants, settings);
     expect(pasted.recognised).toBe(true);
     expect(pasted.changes.map((c) => c.setting)).toEqual([
-      "pedroVersion",
       "pedroQuadraticBrakeForward",
       "pedroQuadraticBrakeStrafe",
       "pedroLinearBrakeForward",
@@ -296,7 +288,6 @@ describe("a constants file pasted in whole", () => {
       "pedroFollowerFactory",
     ]);
     expect(pasted.patch).toMatchObject({
-      pedroVersion: "v3",
       pedroLinearBrakeForward: 0.0450653162639568,
       pedroConstantsClass:
         "org.firstinspires.ftc.teamcode.pedroPathing.Constants",

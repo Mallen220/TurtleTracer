@@ -742,3 +742,17 @@ src/tests/pedroConstantsExport.test.ts
 src/tests/robotProject.test.ts
 src/utils/robotProject.ts
 src/tests/optimizerTidy.test.ts
+src/tests/linearReverse.test.ts
+src/tests/piecewiseTurning.test.ts
+src/tests/ppFormat.test.ts
+src/utils/ppFormat.ts
+src/__tmp_probe/bl.test.ts
+src/__tmp_probe/jump.test.ts
+src/__tmp_probe/opt.test.ts
+src/__tmp_probe/shoot.test.ts
+src/__tmp_probe/simdump.test.ts
+src/__tmp_probe/simple.test.ts
+src/tests/chainSupport.test.ts
+src/tests/fuzz/timeline.fuzz.test.ts
+src/tests/pedroAccuracy.test.ts
+src/tests/robustness.test.ts

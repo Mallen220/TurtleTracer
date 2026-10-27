@@ -92,8 +92,14 @@ public class Everythingtest extends SequentialCommandGroup {
     expect((data.lines[0].endPoint as any).endDeg).toBe(180);
     expect((data.lines[0].endPoint as any).reverse).toBe(false);
 
+    // Pedro 2's setReversed() turns a linear heading round by 180°.
     expect(data.lines[1].name).toBe("b");
-    expect((data.lines[1].endPoint as any).reverse).toBe(true);
+    expect(data.lines[1].endPoint).toMatchObject({
+      heading: "linear",
+      startDeg: 180,
+      endDeg: 180,
+    });
+    expect((data.lines[1].endPoint as any).reverse).toBeFalsy();
 
     expect(data.lines[2].name).toBe("c");
     expect(data.lines[2].endPoint.heading).toBe("constant");
@@ -169,9 +175,10 @@ public class TurtleTracerAutonomous extends OpMode {
 
     expect(data.lines[1].name).toBe("b");
     expect(data.lines[1].endPoint.heading).toBe("linear");
-    expect((data.lines[1].endPoint as any).startDeg).toBe(0);
-    expect((data.lines[1].endPoint as any).endDeg).toBe(0);
-    expect((data.lines[1].endPoint as any).reverse).toBe(true);
+    // Pedro 2's setReversed() turns a linear heading round by 180°.
+    expect((data.lines[1].endPoint as any).startDeg).toBe(180);
+    expect((data.lines[1].endPoint as any).endDeg).toBe(180);
+    expect((data.lines[1].endPoint as any).reverse).toBeFalsy();
 
     expect(data.lines[3].name).toBe("d");
     expect(data.lines[3].endPoint.heading).toBe("constant");
@@ -253,7 +260,11 @@ public class reference extends Command {
     expect(data.lines[0].endPoint.heading).toBe("linear");
 
     expect(data.lines[1].name).toBe("b");
-    expect((data.lines[1].endPoint as any).reverse).toBe(true);
+    expect(data.lines[1].endPoint).toMatchObject({
+      heading: "linear",
+      startDeg: 180,
+      endDeg: 180,
+    });
 
     expect((data.sequence[2] as any).durationMs).toBe(110);
     expect((data.sequence[3] as any).degrees).toBe(120);

@@ -26,7 +26,6 @@ export const SIMULATION_SETTINGS = [
   "maxAngularAcceleration",
   "translationalP",
   "kFriction",
-  "pedroVersion",
   "pedroQuadraticBrakeForward",
   "pedroQuadraticBrakeStrafe",
   "pedroLinearBrakeForward",

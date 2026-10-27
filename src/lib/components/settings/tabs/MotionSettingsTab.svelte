@@ -205,26 +205,6 @@
 
   <h4 class="{ui.heading} mt-8 mb-4 border-b pb-1">Path following</h4>
 
-  <SettingsItem
-    label="Pedro Pathing Version"
-    {...resettable("pedroVersion")}
-    description="v3 measures heading progress by distance along a path, hands chained paths over early, and turns before it drives when it faces more than 11.25° from the heading the path wants. v2 (approximate) uses the curve parameter and hands over at the end."
-    {searchQuery}
-    layout="col"
-    forId="pedro-version"
-  >
-    <select
-      id="pedro-version"
-      value={settings.pedroVersion}
-      onchange={(e) =>
-        set("pedroVersion", e.currentTarget.value as "v3" | "v2")}
-      class="{ui.input} w-full"
-    >
-      <option value="v3">v3 (current)</option>
-      <option value="v2">v2 (deprecated but still widely used)</option>
-    </select>
-  </SettingsItem>
-
   {#if searchQuery === "" || "handover brake pedro code coefficients".includes(searchQuery.toLowerCase())}
     <div class="mb-3 text-xs text-neutral-600 dark:text-neutral-400 space-y-2">
       <p>
@@ -291,7 +271,7 @@ c.linearBrakeCoefficients.set(Matrix.diag(<span class="font-semibold"
     bind:settings
     name="pathSettleTime"
     label="Path Settle Time (s)"
-    description="Time the robot holds at the end of a path before the next step. Pedro waits until the robot settles or its timeout (timeoutConstraint, 0.1 s by default) passes."
+    description="Pedro counts a path as done 97.5% of the way along it, then holds the end until the robot settles there or this long passes (its timeoutConstraint, 0.1 s by default). The robot can still be moving when the next step starts."
     {searchQuery}
     id="path-settle-time"
     step={0.01}

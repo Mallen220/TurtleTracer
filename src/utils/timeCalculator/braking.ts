@@ -11,7 +11,7 @@ function coefficients(settings: Settings) {
   return quadratic > 0 || linear > 0 ? { quadratic, linear } : null;
 }
 
-const decelerationOf = (settings: Settings) =>
+export const decelerationOf = (settings: Settings) =>
   settings.maxDeceleration || settings.maxAcceleration || 30;
 
 /**

@@ -350,7 +350,6 @@ function cachedGain(corner: CornerEvent, settings: Settings) {
     settings.brakingQuadratic,
     settings.brakingLinear,
     settings.kFriction,
-    settings.pedroVersion,
   ]);
   const hit = gainCache.get(corner);
   if (hit?.key === key) return hit.gain;

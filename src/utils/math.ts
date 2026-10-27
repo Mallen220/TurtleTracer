@@ -86,6 +86,11 @@ export function transformAngle(angle: number) {
   return normalizeAngle(angle + 180) - 180;
 }
 
+/** The angle facing the other way, in the range (-180, 180]. */
+export function oppositeAngle(angle: number) {
+  return 180 - normalizeAngle(-angle);
+}
+
 /** Signed difference from `start` to `end`, taking the short way around. */
 export function getAngularDifference(start: number, end: number): number {
   let diff = normalizeAngle(end) - normalizeAngle(start);
@@ -98,14 +103,19 @@ export function getAngularDifference(start: number, end: number): number {
 
 /**
  * How many degrees a linear heading turns going from `startDeg` to
- * `endDeg`: the short way, or the long way round when `reverse` is set.
+ * `endDeg`: the short way (Pedro's `linear`), or the long way round when
+ * `reverse` is set (`longLinear`). Both turn clockwise when the angles are
+ * exactly opposite, as Pedro 3 does.
  */
 export function linearHeadingSweep(
   startDeg: number,
   endDeg: number,
   reverse?: boolean,
 ): number {
-  if (!reverse) return getAngularDifference(startDeg, endDeg);
+  if (!reverse) {
+    const diff = getAngularDifference(startDeg, endDeg);
+    return diff === 180 ? -180 : diff;
+  }
   const clockwise = (((endDeg - startDeg) % 360) + 360) % 360;
   return clockwise <= 180 ? clockwise - 360 : clockwise;
 }

@@ -22,16 +22,12 @@ describe("Pedro Pathing behavior settings", () => {
   it("shows each setting at its current value", () => {
     mount({
       initial: {
-        pedroVersion: "v2",
         pathSettleTime: 0.2,
         stopToTurn: false,
         brakingQuadratic: 0.03,
         brakingLinear: 0.4,
       },
     });
-    expect((field("Pedro Pathing Version") as HTMLSelectElement).value).toBe(
-      "v2",
-    );
     expect((field("Path Settle Time (s)") as HTMLInputElement).value).toBe(
       "0.2",
     );
@@ -44,21 +40,14 @@ describe("Pedro Pathing behavior settings", () => {
     );
   });
 
-  it("starts at Pedro v3, turning while it drives like Pedro does", () => {
+  it("starts turning while it drives, like Pedro does", () => {
     mount();
-    expect((field("Pedro Pathing Version") as HTMLSelectElement).value).toBe(
-      "v3",
-    );
+    expect(screen.queryByLabelText("Pedro Pathing Version")).toBeNull();
     expect((field("Stop to Turn") as HTMLInputElement).checked).toBe(false);
   });
 
   it("saves changes", async () => {
     const t = mount();
-    await fireEvent.change(field("Pedro Pathing Version"), {
-      target: { value: "v2" },
-    });
-    expect(t.current().pedroVersion).toBe("v2");
-
     await fireEvent.click(field("Stop to Turn"));
     expect(t.current().stopToTurn).toBe(true);
 
@@ -241,7 +230,7 @@ public class Constants {
     });
 
   it("lists what the file would change, and sets it on request", async () => {
-    const t = mount({ initial: { pedroVersion: "v3" } });
+    const t = mount();
     const keptP = t.current().translationalP;
     await paste(file);
     expect(screen.getAllByTestId("constants-paste-change").length).toBe(10);

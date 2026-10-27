@@ -60,6 +60,11 @@ describe("javaImporter advanced", () => {
     // it sets linear heading interpolation
     expect(data.lines[1].endPoint.heading).toBe("linear");
 
-    expect((data.lines[1].endPoint as any).reverse).toBe(true);
+    // setReversed() adds 180°, which turns a linear heading's angles round.
+    expect(data.lines[1].endPoint).toMatchObject({
+      startDeg: -175,
+      endDeg: -157,
+    });
+    expect((data.lines[1].endPoint as any).reverse).toBeFalsy();
   });
 });

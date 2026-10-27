@@ -57,8 +57,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxAcceleration: 60,
   maxDeceleration: 70, // robots brake harder than they accelerate
   maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
-  pedroVersion: "v3",
-  pathSettleTime: 0.05,
+  pathSettleTime: 0.1, // Pedro's timeoutConstraint, 100 ms by default
   stopToTurn: false,
   translationalP: 0.1,
   brakingQuadratic: 0,

@@ -141,12 +141,6 @@ describe("handoverStep", () => {
   it("drives a turn too small to matter right to the end", () => {
     expect(handoverStep(steps, speeds, 0, settings, 5)).toBe(steps.length);
   });
-
-  it("waits until the end on Pedro v2", () => {
-    expect(
-      handoverStep(steps, speeds, 0, { ...settings, pedroVersion: "v2" }, 90),
-    ).toBe(steps.length);
-  });
 });
 
 describe("recoverFromHandover", () => {

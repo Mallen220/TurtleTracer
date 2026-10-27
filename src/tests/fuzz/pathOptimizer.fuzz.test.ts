@@ -97,7 +97,7 @@ describe("PathOptimizer Fuzzing", () => {
           }
         },
       ),
-      { numRuns: 20, timeout: 5000 }, // Limit runs and timeout
+      { numRuns: 20, timeout: 5000, endOnFailure: true }, // Limit runs and timeout
     );
   });
 
@@ -134,7 +134,7 @@ describe("PathOptimizer Fuzzing", () => {
           expect(result.bestTime).toBeGreaterThanOrEqual(0);
         },
       ),
-      { numRuns: 5, timeout: 10000 }, // Very few runs as optimization is slow
+      { numRuns: 5, timeout: 10000, endOnFailure: true }, // Very few runs as optimization is slow
     );
   });
 });

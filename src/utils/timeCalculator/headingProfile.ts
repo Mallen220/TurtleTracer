@@ -14,7 +14,6 @@ import {
   radiansToDegrees,
   type HeadingSource,
 } from "../math";
-import { calculateRotationTime } from "./rotation";
 import { unwrapAngle } from "./segmentAnalyzer";
 
 export interface HeadingProfileInput {
@@ -97,8 +96,8 @@ interface ProfileContext {
   /** The fastest the robot turns, in degrees per second. */
   maxTurnRate: number;
   /**
-   * How far along the line step i is. Pedro v3 measures this by distance
-   * travelled; v2 by the curve parameter, which is even across the steps.
+   * How far along the line step i is, by distance travelled, as Pedro 3
+   * measures it.
    */
   along: (i: number) => number;
   /**
@@ -123,7 +122,7 @@ function profileContext(input: HeadingProfileInput): ProfileContext {
     ignoreTurnRate,
   } = input;
   const samples = analysis.steps.length;
-  const arc = progressByDistance(analysis, settings);
+  const arc = progressByDistance(analysis);
   const along = (i: number) => (arc ? arc[i] : i / samples);
 
   const chainLength = chainMeta?.chainTotalLength ?? length;
@@ -332,12 +331,8 @@ function limitTurnRate(
   return limited;
 }
 
-/** Fraction of the line's length covered by each step boundary, or null for v2. */
-function progressByDistance(
-  analysis: PathAnalysis,
-  settings: Settings,
-): number[] | null {
-  if (settings.pedroVersion === "v2") return null;
+/** Fraction of the line's length covered by each step boundary, or null for a line with no length. */
+function progressByDistance(analysis: PathAnalysis): number[] | null {
   const total = analysis.steps.reduce((sum, step) => sum + step.deltaLength, 0);
   if (!(total > 0)) return null;
   const progress = [0];
@@ -383,7 +378,7 @@ function segmentTarget(
 /**
  * Headings for a piecewise heading: each segment covers part of the path
  * (by t), and the robot turns towards each segment's heading as fast as it
- * physically can.
+ * physically can, as it does for a heading that isn't piecewise.
  */
 function piecewiseProfile(
   ctx: ProfileContext,
@@ -401,20 +396,7 @@ function piecewiseProfile(
     }
 
     const target = segmentTarget(ctx, seg, i, h);
-    const dt = ctx.stepDuration(i);
-    if (seg.heading === "tangential") {
-      h = turnToward(h, target, ctx.maxTurnRate * dt);
-    } else {
-      // Close as much of the gap as the robot can in this step.
-      const turnTime = calculateRotationTime(
-        Math.abs(target - h),
-        ctx.input.settings,
-      );
-      h =
-        turnTime > 0 && dt < turnTime
-          ? h + (target - h) * Math.min(1, dt / turnTime)
-          : target;
-    }
+    h = turnToward(h, target, ctx.maxTurnRate * ctx.stepDuration(i));
     headings.push(h);
   }
   return headings;

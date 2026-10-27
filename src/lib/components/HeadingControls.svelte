@@ -301,7 +301,9 @@
     class="{ui.inputSm} self-stretch flex items-center justify-center shrink-0 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus-within:ring-2 focus-within:ring-emerald-500/40 focus-within:border-emerald-500 {locked
       ? 'opacity-50 cursor-not-allowed'
       : 'cursor-pointer'} {endPoint.heading === 'piecewise' ? 'hidden' : ''}"
-    title="Reverse the direction of the heading interpolation"
+    title={endPoint.heading === "linear"
+      ? "Turn the long way round (Pedro's longLinear)"
+      : "Face backwards (Pedro's .reverse())"}
   >
     <input
       bind:this={reverseInput}

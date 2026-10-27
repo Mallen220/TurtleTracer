@@ -63,9 +63,10 @@ describe("Heading Extractor - New Formats", () => {
     expect((data.lines[0].endPoint as any).endDeg).toBe(20);
 
     expect(data.lines[1].endPoint.heading).toBe("linear");
-    expect((data.lines[1].endPoint as any).startDeg).toBe(30);
-    expect((data.lines[1].endPoint as any).endDeg).toBe(40);
-    expect((data.lines[1].endPoint as any).reverse).toBe(true);
+    // setReversed() adds 180°, which turns a linear heading's angles round.
+    expect((data.lines[1].endPoint as any).startDeg).toBe(-150);
+    expect((data.lines[1].endPoint as any).endDeg).toBe(-140);
+    expect((data.lines[1].endPoint as any).reverse).toBeFalsy();
 
     expect(data.lines[2].endPoint.heading).toBe("constant");
     expect((data.lines[2].endPoint as any).degrees).toBe(50);

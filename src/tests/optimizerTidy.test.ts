@@ -161,10 +161,17 @@ describe("the optimizer doesn't skip the point two chained paths join at", () =>
 });
 
 // The project that showed it: its waypoints put the robot partly over the
-// field edge while it turns, which no change to a control point can undo.
+// field edge while it turns, which no change to a control point can undo. The
+// file is read as the Pedro Visualizer reads it now, which squares the robot
+// up at the edge, so the flower runs turn the long way round here and the park
+// path faces backwards, as they did when it showed up.
 describe("a path that already clips the field edge where it can't move", () => {
   const start = blueton.startPoint as unknown as Point;
-  const lines = normalizeLines(blueton.lines as unknown as Line[]);
+  const lines = normalizeLines(blueton.lines as unknown as Line[]).map((l) =>
+    ["RunToFlower", "ReturnFromFlower", "Park"].includes(l.name ?? "")
+      ? { ...l, endPoint: { ...l.endPoint, reverse: true } }
+      : l,
+  );
   const sequence = blueton.sequence as unknown as SequenceItem[];
   const timeOf = (ls: Line[]) =>
     calculatePathTime(start, ls, medium, sequence).totalTime;
@@ -286,8 +293,9 @@ describe("an optimizer that can't beat the path gives it back", () => {
 });
 
 // What it costs to move a path, and what is worth it (the project's
-// hairpin to the flower is worth a couple of seconds for five inches; moving
-// the long path to the hive or the park path saved next to nothing).
+// hairpins to the flower and back, with the long path to the hive, are worth
+// about three seconds for a few inches each; moving the first path or the
+// park path saves next to nothing).
 describe("the optimizer only changes what pays for itself", () => {
   const start = blueton.startPoint as unknown as Point;
   const lines = normalizeLines(blueton.lines as unknown as Line[]);
@@ -342,11 +350,11 @@ describe("the optimizer only changes what pays for itself", () => {
         medium,
         seed,
       );
-      // The hairpin to the flower: a few inches, and most of the gain.
+      // The hairpin to the flower: a few inches, and much of the gain.
       const flower = byName("RunToFlower");
       expect(moved(best, flower)).toBeGreaterThan(1);
       expect(moved(best, flower)).toBeLessThan(10);
-      expect(before - bestTime).toBeGreaterThan(1.5);
+      expect(before - bestTime).toBeGreaterThan(2.5);
       // The paths whose change saved next to nothing stay as drawn.
       for (const name of ["IntakeCorner", "Park"]) {
         expect(moved(best, byName(name)), name).toBeLessThan(1);

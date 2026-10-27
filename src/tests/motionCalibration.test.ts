@@ -36,10 +36,11 @@ const line = (id: string, x: number): Line => ({
 const lines = Array.from({ length: 8 }, (_, i) =>
   line(`l${i}`, i % 2 ? 10 : 110),
 );
-const sequence: SequenceItem[] = lines.map((l) => ({
-  kind: "path",
-  lineId: l.id!,
-}));
+// A pause after each path, long enough to read as a stop.
+const sequence: SequenceItem[] = lines.flatMap((l, i) => [
+  { kind: "path", lineId: l.id! },
+  { kind: "wait", id: `w${i}`, name: "", durationMs: 400 },
+]);
 
 const robot: Settings = {
   ...DEFAULT_SETTINGS,
@@ -49,8 +50,6 @@ const robot: Settings = {
   yVelocity: 50,
   maxAcceleration: 40,
   maxDeceleration: 55,
-  // Settled long enough to read as a stop between paths.
-  pathSettleTime: 0.4,
 } as Settings;
 
 /**
@@ -83,10 +82,15 @@ function simulatedTelemetry(settings: Settings) {
   const travels = timeline.filter((e) => e.type === "travel");
   const recorder = new MotionRecorder("robot");
   for (let t = 0; t <= totalTime; t += 0.02) {
-    const index = travels.findIndex((e) => t >= e.startTime && t < e.endTime);
-    const event = travels[index] ?? travels.at(-1)!;
+    // The path being driven, or the last one: the robot finishes it (Pedro
+    // can let go a little before the end) and waits there.
+    let index = 0;
+    travels.forEach((e, i) => {
+      if (e.startTime <= t) index = i;
+    });
+    const event = travels[index];
     const from = index > 0 ? lines[index - 1].endPoint.x : start.x;
-    const to = lines[Math.max(index, 0)].endPoint.x;
+    const to = lines[index].endPoint.x;
     const along = distanceAt(event, t - event.startTime);
     recorder.push({
       t,
@@ -107,7 +111,6 @@ describe("measuring the simulation itself", () => {
   const before = {
     ...DEFAULT_SETTINGS,
     ...SCENARIO_MOTION,
-    pathSettleTime: 0.4,
   } as Settings;
   let est: Record<CalibrationKey, Estimate>;
   beforeAll(() => {

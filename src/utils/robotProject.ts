@@ -31,8 +31,6 @@ export interface RobotProject {
   /** The project's folder: the one holding TeamCode. */
   root: string;
   constants: PedroConstantsClass | null;
-  /** Pedro's major version, from the build files. */
-  pedroVersion: "v2" | "v3" | null;
   /** The Pedro dependency it came from, such as `com.pedropathing:revhub:3.0.2`. */
   pedroDependency: string | null;
   commandLibrary: CommandLibraryId | null;
@@ -129,7 +127,6 @@ export function pickConstantsClass(
 
 /** What a project's build files say about Pedro and its command library. */
 export function readBuildFiles(contents: string[]): {
-  pedroVersion: "v2" | "v3" | null;
   pedroDependency: string | null;
   commandLibrary: CommandLibraryId | null;
 } {
@@ -140,7 +137,6 @@ export function readBuildFiles(contents: string[]): {
     /com\.pedropathing:(?!ivy\b|telemetry\b|tuning\b)([\w-]+):(\d+)[\w.+-]*/.exec(
       text,
     );
-  const major = pedro ? Number(pedro[2]) : null;
   const commandLibrary: CommandLibraryId | null = /org\.solverslib:/.test(text)
     ? "SolversLib"
     : /dev\.nextftc[.:]/.test(text)
@@ -149,7 +145,6 @@ export function readBuildFiles(contents: string[]): {
         ? "Ivy"
         : null;
   return {
-    pedroVersion: major === null ? null : major >= 3 ? "v3" : "v2",
     pedroDependency: pedro?.[0] ?? null,
     commandLibrary,
   };
@@ -241,19 +236,6 @@ export function projectSuggestions(
   if (!project) return [];
   const suggestions: ProjectSuggestion[] = [];
 
-  if (
-    project.pedroVersion &&
-    project.pedroVersion !== (settings.pedroVersion ?? "v3")
-  ) {
-    suggestions.push({
-      id: "pedroVersion",
-      label: "Pedro Pathing version",
-      found: `${project.pedroVersion} (${project.pedroDependency})`,
-      current: settings.pedroVersion ?? "v3",
-      patch: { pedroVersion: project.pedroVersion },
-    });
-  }
-
   const changes = changedValues(project.pedroValues, settings);
   const brakes = changes.filter((c) =>
     BRAKE_KEYS.includes(c.setting as PedroValueKey),
@@ -335,19 +317,7 @@ export function readPastedConstants(
   const changes = changedValues(read.values, settings);
   let recognised = read.values.length > 0;
 
-  if (read.version) {
-    recognised = true;
-    const current = settings.pedroVersion ?? "v3";
-    if (read.version !== current) {
-      changes.unshift({
-        setting: "pedroVersion",
-        label: "Pedro Pathing version",
-        value: read.version,
-        current,
-        source: "the code's style",
-      });
-    }
-  }
+  if (read.version) recognised = true;
 
   const constants = readConstantsClass(
     /\bfun\s+\w+\s*\(|^[ \t]*object\s+\w+/m.test(text) ? "x.kt" : "x.java",
