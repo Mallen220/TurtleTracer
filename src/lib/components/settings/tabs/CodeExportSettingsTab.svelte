@@ -13,6 +13,10 @@
   import { robotProject, refreshRobotProject } from "../../../robotProject";
   import { projectSuggestions } from "../../../../utils/robotProject";
   import { QUICKSTART_CONSTANTS } from "../../../exporters/pedroConstants";
+  import {
+    commandRegistrarMethod,
+    commandRegistrarSummary,
+  } from "../../../exporters/eventMarkerUtils";
 
   type Props = SettingsTabProps;
 
@@ -24,6 +28,14 @@
   );
 
   let suggestions = $derived(projectSuggestions($robotProject, settings));
+  let registrarSummary = $derived(
+    settings.autoExportFormat === "java"
+      ? commandRegistrarSummary(
+          settings.commandRegistrar,
+          settings.codeLanguage ?? "java",
+        )
+      : null,
+  );
 
   function getBasePath(): string | null {
     let curFile;
@@ -334,6 +346,39 @@
               placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
             />
           </SettingsItem>
+
+          {#if settings.autoExportFormat === "java"}
+            <SettingsItem
+              label="Command Registrar"
+              {...resettable("commandRegistrar")}
+              description="Optional. A method of yours that registers your named commands. Exported code that uses event markers calls it with hardwareMap, so the commands exist before the path runs. Leave empty to register them yourself."
+              {searchQuery}
+              layout="col"
+            >
+              <input
+                type="text"
+                value={settings.commandRegistrar ?? ""}
+                oninput={(e) => set("commandRegistrar", e.currentTarget.value)}
+                class="{ui.input} w-full font-mono"
+                placeholder="org.firstinspires.ftc.teamcode.RobotCommands.register"
+              />
+              {#if settings.commandRegistrar?.trim() && !commandRegistrarMethod(settings.commandRegistrar)}
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+                  Use a class and method, like RobotCommands.register. Nothing
+                  is written until it is.
+                </p>
+              {:else if registrarSummary}
+                <p
+                  class="mt-1 text-xs text-neutral-600 dark:text-neutral-400"
+                  data-testid="registrar-summary"
+                  title="{registrarSummary.call} is written with its full class name, so it needs no import."
+                >
+                  Adds <code class="font-mono">{registrarSummary.short}</code>
+                  to {registrarSummary.where} when the path has event markers.
+                </p>
+              {/if}
+            </SettingsItem>
+          {/if}
         </div>
       {/if}
     </div>

@@ -320,6 +320,12 @@ export interface Settings {
    */
   pedroConstantsClass?: string;
   pedroFollowerFactory?: string;
+  /**
+   * The team's method (full class and method name) that registers their named
+   * commands. Exported code calls it with the hardware map before the first
+   * command is looked up. Empty: the exported code registers nothing.
+   */
+  commandRegistrar?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
   squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones

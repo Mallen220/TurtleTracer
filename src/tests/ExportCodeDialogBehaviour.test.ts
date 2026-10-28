@@ -42,6 +42,10 @@ function mount() {
   return { state, open };
 }
 
+/** The set-once export options start folded away. */
+const showOptions = () =>
+  fireEvent.click(screen.getByRole("button", { name: /Options/ }));
+
 const javaExporter = () =>
   vi.fn(
     async (_data: unknown, settings: any) =>
@@ -101,7 +105,7 @@ describe("generating code", () => {
       exportFullCode: true,
       packageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
       telemetryImpl: "Panels",
-      hardcodeValues: false,
+      hardcodeValues: true,
       targetLibrary: "SolversLib",
     });
   });
@@ -114,7 +118,7 @@ describe("generating code", () => {
           autoExportFullClass: false,
           javaPackageName: "org.team.auto",
           telemetryImplementation: "Dashboard",
-          autoExportEmbedPoseData: true,
+          autoExportEmbedPoseData: false,
           autoExportTargetLibrary: "NextFTC",
         }) as any,
     );
@@ -130,7 +134,7 @@ describe("generating code", () => {
       exportFullCode: false,
       packageName: "org.team.auto",
       telemetryImpl: "Dashboard",
-      hardcodeValues: true,
+      hardcodeValues: false,
       targetLibrary: "NextFTC",
     });
   });
@@ -303,6 +307,7 @@ describe("the sequential command class name", () => {
     settingsStore.update((s) => ({ ...s, javaPackageName: "  " }) as any);
     const { open } = mount();
     await open("sequential");
+    await showOptions();
     const pkg = screen.getByLabelText("Package Name");
     await fireEvent.keyDown(pkg, { key: "Enter" });
     await waitFor(() =>
@@ -317,10 +322,231 @@ describe("the sequential command class name", () => {
     settingsStore.update((s) => ({ ...s, javaPackageName: "org.team" }) as any);
     const { open } = mount();
     await open("sequential");
+    await showOptions();
     const pkg = screen.getByLabelText("Package Name");
     await fireEvent.keyDown(pkg, { key: "Enter" });
     await fireEvent.keyDown(pkg, { key: "a" });
     expect(get(settingsStore).javaPackageName).toBe("org.team");
+  });
+});
+
+describe("the export options", () => {
+  const sequential = () =>
+    exporterRegistry.register({
+      id: "sequential",
+      name: "Sequential",
+      exportCode: javaExporter(),
+    });
+
+  it("keeps the everyday controls in view and the set-once ones folded away", async () => {
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("java");
+    expect(screen.getByRole("tab", { name: "Kotlin" })).toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: /Options/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Package Name")).toBeNull();
+    expect(screen.queryByLabelText(/Command Registrar/)).toBeNull();
+    expect(screen.queryByText("Imperial (Inches)")).toBeNull();
+  });
+
+  it("unfolds to package, registrar, units and the full-class switch, which is on by default", async () => {
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("java");
+    await showOptions();
+    expect(screen.getByRole("button", { name: /Options/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByLabelText("Package Name")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Command Registrar/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", { name: "Imperial (Inches)" }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("radio", { name: "Metric (cm)" }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Export full Java class with imports",
+      }),
+    ).toBeChecked();
+    expect(
+      screen.queryByLabelText("Embed pose data directly in the code"),
+    ).toBeNull();
+  });
+
+  it("offers embedding poses, on by default, instead of the full-class switch for sequential code", async () => {
+    sequential();
+    const { open } = mount();
+    await open("sequential");
+    expect(screen.getByLabelText("Class Name")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "NextFTC" })).toBeInTheDocument();
+    await showOptions();
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Embed pose data directly in the code",
+      }),
+    ).toBeChecked();
+    expect(
+      screen.queryByLabelText("Export full Java class with imports"),
+    ).toBeNull();
+  });
+
+  it("opens itself when metric code needs the poses embedded, so the fix is in reach", async () => {
+    sequential();
+    settingsStore.update(
+      (s) =>
+        ({
+          ...s,
+          codeUnits: "metric",
+          autoExportEmbedPoseData: false,
+        }) as any,
+    );
+    const { open } = mount();
+    await open("sequential");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Metric code generation requires embedding poses",
+    );
+    await fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Embed pose data directly in the code",
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+});
+
+describe("the command registrar", () => {
+  const sequential = () =>
+    exporterRegistry.register({
+      id: "sequential",
+      name: "Sequential",
+      exportCode: javaExporter(),
+    });
+
+  it("is offered for Java code only, not for command groups or points", async () => {
+    sequential();
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    exporterRegistry.register({
+      id: "points",
+      name: "Points",
+      exportCode: vi.fn(async () => "points"),
+    });
+    const { open } = mount();
+    await open("java");
+    await showOptions();
+    expect(screen.getByLabelText(/Command Registrar/)).toBeInTheDocument();
+    await open("sequential");
+    expect(screen.getByLabelText("Package Name")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Command Registrar/)).toBeNull();
+    expect(screen.queryByTestId("registrar-summary")).toBeNull();
+    await open("points");
+    expect(screen.queryByLabelText(/Command Registrar/)).toBeNull();
+  });
+
+  it("is saved with the settings and sent to the exporter", async () => {
+    const exporter = javaExporter();
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: exporter,
+    });
+    const { open } = mount();
+    await open("java");
+    await showOptions();
+    const input = screen.getByLabelText(/Command Registrar/);
+    await fireEvent.input(input, {
+      target: { value: "org.team.RobotCommands.register" },
+    });
+    expect(get(settingsStore).commandRegistrar).toBe(
+      "org.team.RobotCommands.register",
+    );
+    await waitFor(() =>
+      expect(exporter).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          commandRegistrar: "org.team.RobotCommands.register",
+        }),
+      ),
+    );
+  });
+
+  it("says what it will write, in the language being exported", async () => {
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("java");
+    await showOptions();
+    expect(screen.queryByTestId("registrar-summary")).toBeNull();
+    await fireEvent.input(screen.getByLabelText(/Command Registrar/), {
+      target: { value: "org.team.RobotCommands.register" },
+    });
+    const summary = screen.getByTestId("registrar-summary");
+    expect(summary).toHaveTextContent(
+      "Adds register(hardwareMap); to init() when the path has event markers.",
+    );
+    // The full statement, and why it needs no import, are on hover.
+    expect(summary).toHaveAttribute(
+      "title",
+      expect.stringContaining("org.team.RobotCommands.register(hardwareMap);"),
+    );
+
+    await fireEvent.click(screen.getByRole("tab", { name: "Kotlin" }));
+    expect(screen.getByTestId("registrar-summary")).toHaveTextContent(
+      "Adds register(hardwareMap) to init() when the path has event markers.",
+    );
+  });
+
+  it("shows the warning, not the summary, for a name that won't be written", async () => {
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("java");
+    await showOptions();
+    await fireEvent.input(screen.getByLabelText(/Command Registrar/), {
+      target: { value: "register" },
+    });
+    expect(screen.queryByTestId("registrar-summary")).toBeNull();
+    expect(screen.getByText(/Use a class and method/)).toBeInTheDocument();
+  });
+
+  it("warns about a name that isn't a class and a method, and not about an empty one", async () => {
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("java");
+    await showOptions();
+    const input = screen.getByLabelText(/Command Registrar/);
+    expect(screen.queryByText(/Use a class and method/)).toBeNull();
+    await fireEvent.input(input, { target: { value: "register" } });
+    expect(screen.getByText(/Use a class and method/)).toBeInTheDocument();
+    await fireEvent.input(input, {
+      target: { value: "org.team.RobotCommands.register" },
+    });
+    expect(screen.queryByText(/Use a class and method/)).toBeNull();
   });
 });
 

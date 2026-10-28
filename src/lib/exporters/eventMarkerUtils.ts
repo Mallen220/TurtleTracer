@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line } from "../../types/index";
+import type { CodeLanguage, Line } from "../../types/index";
 import {
   toUser,
   toUserHeading,
@@ -89,6 +89,71 @@ export function chainMarkerRegistrationCode(
     });
   });
   return code;
+}
+
+const REGISTRAR_METHOD = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)+$/;
+
+/**
+ * The method a team wrote to register their named commands, as they typed it
+ * (`org.team.RobotCommands.register`), tidied up: the `(hardwareMap)` or `;`
+ * they may have added is dropped. null when it isn't a class and a method,
+ * so nothing but a name ever reaches the generated code.
+ */
+export function commandRegistrarMethod(
+  typed: string | undefined,
+): string | null {
+  const method = (typed ?? "")
+    .trim()
+    .replace(/;$/, "")
+    .replace(/\([^()]*\)$/, "")
+    .trim();
+  return REGISTRAR_METHOD.test(method) ? method : null;
+}
+
+/**
+ * Where the OpMode export calls the registrar, and what the OpMode calls the
+ * hardware map there. The command group exports don't use a registrar.
+ */
+export const REGISTRAR_PLACEMENT = {
+  hardwareMap: "hardwareMap",
+  where: "init()",
+} as const;
+
+/**
+ * The statement that calls the team's command registrar with the hardware
+ * map, or "" when they haven't set one. It has to run before the first
+ * `NamedCommands.getCommand`, which looks a command up once and keeps
+ * whatever it finds, and a no-op when nothing is registered yet.
+ */
+export function commandRegistrarCall(
+  typed: string | undefined,
+  hardwareMap: string,
+  language: CodeLanguage = "java",
+): string {
+  const method = commandRegistrarMethod(typed);
+  if (!method) return "";
+  return `${method}(${hardwareMap})${language === "kotlin" ? "" : ";"}`;
+}
+
+/**
+ * What the registrar will do in the export, for the settings to say: the
+ * exact statement written (`call`, and `short` without its class, as the
+ * class is already in the field) and where. null when nothing would be
+ * written. Built from commandRegistrarCall, so it can't say anything the
+ * code doesn't.
+ */
+export function commandRegistrarSummary(
+  typed: string | undefined,
+  language: CodeLanguage = "java",
+): { call: string; short: string; where: string } | null {
+  const { hardwareMap, where } = REGISTRAR_PLACEMENT;
+  const call = commandRegistrarCall(typed, hardwareMap, language);
+  if (!call) return null;
+  return {
+    call,
+    short: call.slice(call.lastIndexOf(".", call.indexOf("(")) + 1),
+    where,
+  };
 }
 
 export function getUniqueEventMarkerNames(lines: Line[]): string[] {

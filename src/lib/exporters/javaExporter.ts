@@ -9,7 +9,11 @@ import type {
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { materializePrevHeadings } from "../../utils/prevHeading";
-import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
+import {
+  chainMarkerRegistrationCode,
+  commandRegistrarCall,
+  REGISTRAR_PLACEMENT,
+} from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
@@ -340,6 +344,8 @@ interface OpModeParts {
   stateCases: string;
   startPose: string;
   hasEventMarkers: boolean;
+  /** The statement that registers the team's named commands, "" for none. */
+  registerCommands: string;
   telemetryImpl: TelemetryImpl;
   ftc: boolean;
   metric: boolean;
@@ -400,7 +406,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
 
         follower = ${createFollower()}
         follower.setPose(${o.startPose})
-
+        ${o.registerCommands ? `\n        ${o.registerCommands} // Team's named commands\n` : ""}
         pathTimer = ElapsedTime()
         paths = Paths() // Build paths
         ${o.hasEventMarkers ? "\n        tracker = ProgressTracker(follower, telemetry)" : ""}
@@ -454,6 +460,8 @@ export async function generateJavaCode(
   /** The project file; the class and OpMode are named after it. */
   fileName: string | null = null,
   language: CodeLanguage = "java",
+  /** The team's method that registers their named commands, e.g. `org.team.RobotCommands.register`. */
+  commandRegistrar?: string,
 ): Promise<string> {
   const pathChainNames = uniqueVariableNames(lines, language);
   const className = javaClassName(fileName, "TurtleTracerAutonomous", language);
@@ -499,6 +507,13 @@ export async function generateJavaCode(
   `;
 
   const hasEventMarkers = lines.some((line) => line.eventMarkers?.length);
+  const registerCommands = hasEventMarkers
+    ? commandRegistrarCall(
+        commandRegistrar,
+        REGISTRAR_PLACEMENT.hardwareMap,
+        language,
+      )
+    : "";
   const sequenceToExport = flattenMacros(
     sequence?.length
       ? sequence
@@ -542,6 +557,7 @@ export async function generateJavaCode(
           stateCases,
           startPose,
           hasEventMarkers,
+          registerCommands,
           telemetryImpl,
           ftc: coordinateSystem === "FTC",
           metric: codeUnits === "metric",
@@ -582,7 +598,7 @@ export async function generateJavaCode(
 
         follower = ${createFollower()};
         follower.setPose(${startPose});
-
+        ${registerCommands ? `\n        ${registerCommands} // Team's named commands\n` : ""}
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
         ${
@@ -659,6 +675,7 @@ exporterRegistry.register({
       settings.codeUnits ?? "imperial",
       settings.fileName ?? null,
       settings.codeLanguage ?? "java",
+      settings.commandRegistrar,
     );
   },
 });
