@@ -21,6 +21,7 @@ export const isUnsaved = writable(false);
 export const snapToGrid = writable(false);
 export const fieldZoom = writable(1);
 export const fieldPan = writable({ x: 0, y: 0 });
+export const fieldPointer = writable<{ x: number; y: number } | null>(null);
 export const showShortcuts = writable(false);
 export const showSettings = writable(false);
 export const settingsActiveTab = writable("general");

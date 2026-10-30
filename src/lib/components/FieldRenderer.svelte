@@ -16,6 +16,7 @@
     forceShowValidation,
     fieldZoom,
     fieldPan,
+    fieldPointer,
     hoveredMarkerId,
     fieldViewStore,
     pluginRedrawTrigger,
@@ -249,6 +250,9 @@
         isMouseOverField = state.isOver;
         currentMouseX = state.mouseX;
         currentMouseY = state.mouseY;
+        fieldPointer.set(
+          state.isOver ? { x: state.mouseX, y: state.mouseY } : null,
+        );
         isObstructingHUD = state.isObstructingHUD;
       },
       onTooltipChange: (t) => {
@@ -337,6 +341,7 @@
 
   onDestroy(() => {
     interactionController?.destroy();
+    fieldPointer.set(null);
   });
   // D3 Scales
   let zoom = $derived($fieldZoom);

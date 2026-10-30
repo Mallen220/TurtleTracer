@@ -1,7 +1,13 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
 import { linesStore, sequenceStore, startPointStore } from "../../projectStore";
-import { selectedLineId, selectedPointId } from "../../../stores";
+import {
+  fieldPointer,
+  gridSize,
+  selectedLineId,
+  selectedPointId,
+  snapToGrid,
+} from "../../../stores";
 import type { EventMarker, InsertionContext } from "../../../types/index";
 import { insertPath } from "../../actions/PathAction";
 import { WaitAction } from "../../actions/WaitAction";
@@ -45,12 +51,30 @@ function insertStep(
   recordChange(`Add ${label}`);
 }
 
-/** P: a new path to a random spot near the middle of the field. */
+/** Where the pointer is on the field (grid-snapped if snapping is on), if it is. */
+function pointerFieldPosition(): { x: number; y: number } | null {
+  const pointer = get(fieldPointer);
+  if (!pointer) return null;
+  const grid = get(gridSize);
+  if (get(snapToGrid) && grid > 0) {
+    return {
+      x: Math.round(pointer.x / grid) * grid,
+      y: Math.round(pointer.y / grid) * grid,
+    };
+  }
+  return pointer;
+}
+
+/** P: a new path where the pointer is, else a random spot near the middle. */
 export const addNewLine = (recordChange: (action?: string) => void) =>
   insertStep(
     "Path",
     (ctx) =>
-      insertPath(ctx, () => ({ x: random(36, 108), y: random(36, 108) })),
+      insertPath(
+        ctx,
+        () =>
+          pointerFieldPosition() ?? { x: random(36, 108), y: random(36, 108) },
+      ),
     recordChange,
   );
 export const addWait = (recordChange: (action?: string) => void) =>
@@ -96,6 +120,7 @@ export function addEventMarker(recordChange: (action?: string) => void) {
   recordChange("Add Event Marker");
 }
 
+/** Adds a control point where the pointer is, else somewhere near the middle. */
 export function addControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   const targetLine =
@@ -103,7 +128,7 @@ export function addControlPoint(recordChange: (action?: string) => void) {
   if (targetLine) {
     if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
-    const newCp = {
+    const newCp = pointerFieldPosition() ?? {
       x: random(36, 108),
       y: random(36, 108),
     };
