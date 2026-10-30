@@ -38,6 +38,8 @@ const LANGUAGES: { id: CodeLanguage; extension: string }[] = [
 
 const PACKAGE_NAME = "org.firstinspires.ftc.teamcode";
 const SEQUENTIAL_PACKAGE_NAME = `${PACKAGE_NAME}.Commands.AutoCommands`;
+/** The team class the "-registrar" OpMode example calls from init(). */
+const COMMAND_REGISTRAR = `${PACKAGE_NAME}.RobotCommands.register`;
 
 interface SampleProject {
   /** Start of every file name written for this project. */
@@ -49,6 +51,8 @@ interface SampleProject {
   fileName: string;
   /** Whether the command-library examples are written too. */
   commandLibraries: boolean;
+  /** Whether an OpMode that calls the team's command registrar is written too. */
+  registrarExample?: boolean;
 }
 
 const marker = (id: string, name: string, position: number): EventMarker => ({
@@ -134,6 +138,7 @@ const routine: SampleProject = {
   ],
   fileName: "AutoPath.turt",
   commandLibraries: true,
+  registrarExample: true,
 };
 
 const PROJECTS = [simple, routine];
@@ -170,6 +175,27 @@ async function generateExamples(): Promise<Map<string, string>> {
           ),
         ),
       );
+
+      if (project.registrarExample) {
+        files.set(
+          `${project.name}-opmode-registrar.${extension}`,
+          withoutBanner(
+            await generateJavaCode(
+              project.startPoint,
+              project.lines,
+              true,
+              project.sequence,
+              PACKAGE_NAME,
+              "Panels",
+              "Pedro",
+              "imperial",
+              null,
+              language,
+              COMMAND_REGISTRAR,
+            ),
+          ),
+        );
+      }
 
       if (!project.commandLibraries) continue;
       for (const library of COMMAND_LIBRARIES) {
