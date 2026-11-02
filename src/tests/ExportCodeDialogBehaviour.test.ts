@@ -19,7 +19,7 @@ vi.mock("../utils/platform", () => ({ getElectronAPI: () => files.api }));
 import ExportCodeDialogWrapper from "./ExportCodeDialogWrapper.svelte";
 import { exporterRegistry } from "../lib/exporters";
 import { customExportersStore } from "../lib/pluginsStore";
-import { settingsStore } from "../lib/projectStore";
+import { extraDataStore, settingsStore } from "../lib/projectStore";
 import { currentFilePath, notification } from "../stores";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 
@@ -820,5 +820,63 @@ describe("closing", () => {
     await open("points");
     await fireEvent.click(screen.getByLabelText("Close export dialog"));
     expect(state.isOpen).toBe(false);
+  });
+});
+
+describe("alliance mirroring", () => {
+  // Set per project in the Field tab; the dialog shows it and exports with it.
+  beforeEach(() => {
+    extraDataStore.set({});
+  });
+
+  it("shows that the project doesn't mirror", async () => {
+    exporterRegistry.register({
+      id: "sequential",
+      name: "Seq",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("sequential");
+    expect(screen.getByTestId("mirroring-status")).toHaveTextContent(
+      "None, not mirrored",
+    );
+  });
+
+  it("shows a project with no alliance", async () => {
+    extraDataStore.set({
+      allianceMirroring: { drawnFor: "NONE", mirror: false },
+    });
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: javaExporter(),
+    });
+    const { open } = mount();
+    await open("java");
+    expect(screen.getByTestId("mirroring-status")).toHaveTextContent(
+      "None, not mirrored",
+    );
+  });
+
+  it("shows the project's side and exports with it", async () => {
+    extraDataStore.set({
+      allianceMirroring: { drawnFor: "BLUE", mirror: true },
+    });
+    const exporter = javaExporter();
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      exportCode: exporter,
+    });
+    const { open } = mount();
+    await open("java");
+    expect(screen.getByTestId("mirroring-status")).toHaveTextContent(
+      "Blue, mirrored to Red",
+    );
+    const [data] = exporter.mock.calls[0] as any[];
+    expect(data.extraData.allianceMirroring).toEqual({
+      drawnFor: "BLUE",
+      mirror: true,
+    });
   });
 });

@@ -26,6 +26,10 @@
     ClipboardIcon,
   } from "../icons/index";
   import { currentFilePath, notification } from "../../../stores";
+  import {
+    otherAlliance,
+    projectAlliance,
+  } from "../../exporters/allianceMirroring";
   import { exporterRegistry } from "../../exporters";
   import {
     commandRegistrarMethod,
@@ -45,7 +49,7 @@
   } from "../../../utils/fileHandlers";
   import { triggerDownload } from "../../../utils/file";
   import { getElectronAPI } from "../../../utils/platform";
-  import { settingsStore } from "../../projectStore";
+  import { extraDataStore, settingsStore } from "../../projectStore";
   import { ui } from "../../ui";
 
   interface Props {
@@ -86,6 +90,22 @@
         )
       : null,
   );
+  // Whether this project's code mirrors, and the alliance it's drawn for.
+  // It's saved in the project and set in the Field tab's TurtleTracerLib section.
+  let projectSide = $derived(projectAlliance($extraDataStore));
+  const allianceName = (a: string) =>
+    a === "RED" ? "Red" : a === "BLUE" ? "Blue" : "None";
+  /** What the dialog says about the project's alliance and mirroring. */
+  let allianceStatus = $derived(
+    projectSide.drawnFor === "NONE"
+      ? "None, not mirrored"
+      : `${allianceName(projectSide.drawnFor)}${
+          projectSide.mirror
+            ? `, mirrored to ${allianceName(otherAlliance(projectSide.drawnFor))}`
+            : ", never mirrored"
+        }`,
+  );
+
   let writesKotlin = $derived(
     hasLanguage && $settingsStore.codeLanguage === "kotlin",
   );
@@ -168,7 +188,13 @@
       return [await projectFileJson($currentFilePath ?? undefined), json];
     }
 
-    const data = { startPoint, lines, shapes, sequence };
+    const data = {
+      startPoint,
+      lines,
+      shapes,
+      sequence,
+      extraData: $extraDataStore,
+    };
     const exporter = get(exporterRegistry)[exportFormat];
     if (exporter) {
       const code = await exporter.exportCode(data, {
@@ -602,6 +628,20 @@
                 />
               </div>
             {/if}
+
+            <!-- Set in the Field tab; shown here so the code below makes sense. -->
+            <div class="flex flex-col gap-1.5" data-testid="mirroring-status">
+              <span class={ui.heading}> Alliance </span>
+              <span
+                class="text-sm text-neutral-700 dark:text-neutral-300 py-1.5"
+                title="Set per project in the Field tab, under Alliance Selection & Path Mirroring."
+              >
+                {allianceStatus}
+                <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                  >(Field tab)</span
+                >
+              </span>
+            </div>
 
             <!-- Options disclosure -->
             <div class="ml-auto flex items-center">

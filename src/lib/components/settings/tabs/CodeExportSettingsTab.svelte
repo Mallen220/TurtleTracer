@@ -332,6 +332,25 @@
           </SettingsItem>
 
           <SettingsItem
+            label="Field Mirror"
+            {...resettable("exportMirrorAxes")}
+            description="How this season's field maps one alliance's half onto the other's, for projects that mirror to the other alliance: used by exported OpModes and the mirror preview. Each project's alliance is set in the Field tab."
+            {searchQuery}
+            layout="col"
+          >
+            <select
+              value={settings.exportMirrorAxes ?? "BOTH"}
+              onchange={(e) =>
+                set("exportMirrorAxes", e.currentTarget.value as any)}
+              class="{ui.input} w-full"
+            >
+              <option value="BOTH">Turn the field 180°</option>
+              <option value="X">Flip left and right (X)</option>
+              <option value="Y">Flip top and bottom (Y)</option>
+            </select>
+          </SettingsItem>
+
+          <SettingsItem
             label="Package Name"
             {...resettable("javaPackageName")}
             description="Java package for the generated class"

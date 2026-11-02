@@ -714,6 +714,7 @@ export async function handleAutoExport(
               lines,
               shapes: projectData.shapes ?? shapes,
               sequence,
+              extraData: projectData.extraData,
             },
             settings,
             baseName,

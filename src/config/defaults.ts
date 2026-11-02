@@ -243,6 +243,7 @@ export const DEFAULT_SETTINGS: Settings = {
   codeLanguage: "java",
   autoExportFullClass: true,
   autoExportEmbedPoseData: true,
+  exportMirrorAxes: "BOTH",
   telemetryImplementation: "Panels",
   followRobot: false,
   coordinateSystem: "Pedro",

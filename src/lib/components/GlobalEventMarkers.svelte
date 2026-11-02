@@ -579,6 +579,7 @@
   >
     <SectionHeader
       title="Event Markers"
+      usesTurtleTracerLib="https://www.turtletracer.com/turtle-tracer-lib/named-commands/"
       bind:collapsed={collapsedMarkers}
       count={shownMarkers.length}
       onAdd={addMarker}

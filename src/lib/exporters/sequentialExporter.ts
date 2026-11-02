@@ -22,17 +22,24 @@ import {
 } from "../../utils/fileExtensions";
 import { exporterRegistry } from "./index";
 import { getCommandLibrary } from "./commandLibraries";
+import {
+  projectExportAlliance,
+  type ExportAlliance,
+} from "./allianceMirroring";
 import { buildPoseTable, poseNameOf } from "./poseTable";
 import { formatKotlin } from "./kotlinFormat";
 import {
   javaLength,
   javaClassName,
+  projectBaseName,
+  annotationMirrorArgs,
   formatJava,
   doubleCode,
   kotlinIdentifier,
   flattenMacros,
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
   poseCode,
+  mirroredPose,
   angleCode,
   headingMethodCode,
   chainGlobalHeading,
@@ -56,15 +63,25 @@ export async function generateSequentialCommandCode(
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
   language: CodeLanguage = "java",
+  /**
+   * The project's alliance. Mirrored: the code takes TurtleTracerLib's
+   * AutoContext and mirrors for the other alliance. Not mirrored: it only
+   * records its alliance. Undefined: no TurtleTracerLib alliance code at all.
+   */
+  alliance?: ExportAlliance,
 ): Promise<string> {
   const kotlin = language === "kotlin";
+  const mirror = alliance?.mirror === true;
+  const drawnFor = mirror ? alliance!.drawnFor : undefined;
+  const recordAlliance =
+    alliance && !alliance.mirror ? alliance.drawnFor : undefined;
   const className = javaClassName(fileName, "AutoPath", language);
 
   // Every pose becomes a field. With hardcodeValues it's set from the
   // project's numbers; otherwise it's loaded at runtime with pp.get().
   const poseDeclarations: string[] = [];
   const poseInitializations: string[] = [];
-  const opts: FormatOptions = { coordinateSystem, codeUnits, language };
+  const opts: FormatOptions = { coordinateSystem, codeUnits, language, mirror };
   // A pose's name in pp.get(), and as a variable.
   const variable = (name: string) => (kotlin ? kotlinIdentifier(name) : name);
   const poseName = (idx: number) => variable(poseNameOf(lines, idx));
@@ -83,11 +100,17 @@ export async function generateSequentialCommandCode(
     if (!hardcodeValues) {
       value = `pp.get("${name}")`;
     } else if (degrees === undefined) {
-      value = `p.of(${x.toFixed(3)}, ${y.toFixed(3)}, 0.0)`;
+      value = mirroredPose(
+        `p.of(${x.toFixed(3)}, ${y.toFixed(3)}, 0.0)`,
+        mirror,
+      );
     } else if (coordinateSystem === "FTC") {
       value = poseCode({ x, y }, opts, degrees);
     } else {
-      value = `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${doubleCode(degrees, language)})`;
+      value = mirroredPose(
+        `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${doubleCode(degrees, language)})`,
+        mirror,
+      );
     }
     poseDeclarations.push(field(variable(name), "Pose"));
     poseInitializations.push(`        ${variable(name)} = ${value};`);
@@ -134,6 +157,7 @@ export async function generateSequentialCommandCode(
           targetLibrary: library.id,
           isNextFTC: library.id === "NextFTC",
           language,
+          allianceMirroring: mirror,
         }),
       );
       return;
@@ -170,6 +194,7 @@ export async function generateSequentialCommandCode(
       coordinateSystem,
       codeUnits,
       fromReader: !hardcodeValues,
+      mirror,
     });
     commands.push(
       `                ${template.commands.instant(`{
@@ -213,8 +238,12 @@ export async function generateSequentialCommandCode(
     const endPose = poseName(idx);
     const args = interpolatorArgsFor(startPose, endPose);
 
-    const controlPoints = line.controlPoints.map(
-      (cp) => `p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`,
+    // Mirrored code uses the control point fields, which are already
+    // mirrored (read from the mirrored file, or wrapped in ctx.pose).
+    const controlPoints = line.controlPoints.map((cp, i) =>
+      mirror
+        ? variable(`${poseNameOf(lines, idx)}_line${idx}_control${i + 1}`)
+        : `p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`,
     );
     const call = controlPoints.length
       ? `curve(${startPose}, ${controlPoints.join(", ")}, ${endPose})`
@@ -278,7 +307,8 @@ export async function generateSequentialCommandCode(
         const ext =
           getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
         const local = kotlin ? "val " : "TurtleTracerReader ";
-        return `${readerIsField ? "" : local}pp = ${kotlin ? "" : "new "}TurtleTracerReader("${baseName}${ext}", hw.appContext);`;
+        const mirrored = mirror ? ".mirrored(ctx.mirror())" : "";
+        return `${readerIsField ? "" : local}pp = ${kotlin ? "" : "new "}TurtleTracerReader("${baseName}${ext}", hw.appContext)${mirrored};`;
       })();
 
   // Waits and turns can carry markers too, and need the tracker as well.
@@ -307,6 +337,26 @@ export async function generateSequentialCommandCode(
         tracker = ${kotlin ? "" : "new "}ProgressTracker(follower, ${library.trackerTelemetry});`;
   };
 
+  /**
+   * `@TurtleAuto(...)` so TurtleTracerLib's AutoRegistry.scan can offer the
+   * class. Only for a class that already uses TurtleTracerLib (markers, the
+   * project file or an alliance): an annotation's class has to be there when
+   * the code is compiled, so adding it to anything else would break teams
+   * that don't use the library.
+   */
+  const autoAnnotationFor = () => {
+    const usesLibrary = hasEventMarkers || !hardcodeValues || !!alliance;
+    if (!usesLibrary || !library.scannable) return "";
+    // The menu name: the project's, as typed, with nothing that ends a string.
+    const name = (projectBaseName(fileName) || className)
+      .replaceAll(/["\\]/g, "")
+      .replaceAll("$", kotlin ? String.raw`\$` : "$");
+    const drawnForArg = alliance
+      ? `, drawnFor = Alliance.${alliance.drawnFor}${annotationMirrorArgs(alliance.mirror)}`
+      : "";
+    return `@TurtleAuto(name = "${name}"${drawnForArg})\n`;
+  };
+
   const sequentialCommandCode = template.classTemplate({
     warning: AUTO_GENERATED_FILE_WARNING_MESSAGE,
     packageName,
@@ -319,6 +369,9 @@ export async function generateSequentialCommandCode(
     ppReaderImport,
     ppReaderInit,
     hasEventMarkers,
+    drawnFor,
+    recordAlliance,
+    autoAnnotation: autoAnnotationFor(),
     trackerField:
       (readerIsField ? `\n${field("pp", "TurtleTracerReader")}` : "") +
       (hasEventMarkers ? `\n${field("tracker", "ProgressTracker")}` : ""),
@@ -379,6 +432,7 @@ exporterRegistry.register({
       settings.coordinateSystem ?? "Pedro",
       settings.codeUnits ?? "imperial",
       settings.codeLanguage ?? "java",
+      projectExportAlliance(data.extraData),
     );
   },
 });

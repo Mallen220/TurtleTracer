@@ -3,6 +3,7 @@ import type { CommandLibrary } from "./types";
 import {
   buildPathsMethod,
   constructorSetup,
+  contextParam,
   fields,
   fileHeader,
   helperMethods,
@@ -19,9 +20,11 @@ import com.seattlesolvers.solverslib.command.RunCommand;
 import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 `;
 
+// TurtleTracerLib is optional: its event classes are only imported by paths
+// that have event markers.
 const markerImports = (p: { hasEventMarkers: boolean }) =>
   p.hasEventMarkers
-    ? "import com.turtletracerlib.pathing.ProgressTracker;\n"
+    ? "import com.turtletracerlib.pathing.ProgressTracker;\nimport com.turtletracerlib.pathing.NamedCommands;\n"
     : "";
 
 export const solversLib: CommandLibrary = {
@@ -29,6 +32,7 @@ export const solversLib: CommandLibrary = {
   label: "SolversLib",
   description: "Command-based sequence for SolversLib.",
   trackerTelemetry: "telemetry",
+  scannable: true,
   java: {
     imports,
     commands: {
@@ -45,14 +49,13 @@ export const solversLib: CommandLibrary = {
 ${fileHeader(p)}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 ${p.ppReaderImport}
-${markerImports(p)}import com.turtletracerlib.pathing.NamedCommands;
-import java.io.IOException;
+${markerImports(p)}import java.io.IOException;
 
-public class ${p.className} extends SequentialCommandGroup {
+${p.autoAnnotation}public class ${p.className} extends SequentialCommandGroup {
 
 ${fields(p)}
 
-    public ${p.className}(final Follower follower, HardwareMap hw, Telemetry telemetry) throws IOException {
+    public ${p.className}(final Follower follower, HardwareMap hw, Telemetry telemetry${contextParam(p)}) throws IOException {
 ${constructorSetup(p)}
 
         buildPaths();
@@ -87,13 +90,12 @@ ${helperMethods(p)}
 ${kt.fileHeader(p)}
 import org.firstinspires.ftc.robotcore.external.Telemetry
 ${p.ppReaderImport}
-${markerImports(p)}import com.turtletracerlib.pathing.NamedCommands
-
-class ${p.className}(
+${markerImports(p)}
+${p.autoAnnotation}class ${p.className}(
     private val follower: Follower,
     hw: HardwareMap,
     telemetry: Telemetry,
-) : SequentialCommandGroup() {
+${kt.contextParam(p)}) : SequentialCommandGroup() {
 
 ${kt.fields(p)}
 

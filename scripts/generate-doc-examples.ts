@@ -53,6 +53,11 @@ interface SampleProject {
   commandLibraries: boolean;
   /** Whether an OpMode that calls the team's command registrar is written too. */
   registrarExample?: boolean;
+  /**
+   * Whether alliance-mirrored versions (for TurtleTracerLib's auto selector)
+   * of the OpMode and the SolversLib command group are written too.
+   */
+  mirroredExamples?: boolean;
 }
 
 const marker = (id: string, name: string, position: number): EventMarker => ({
@@ -139,6 +144,7 @@ const routine: SampleProject = {
   fileName: "AutoPath.turt",
   commandLibraries: true,
   registrarExample: true,
+  mirroredExamples: true,
 };
 
 const PROJECTS = [simple, routine];
@@ -192,6 +198,46 @@ async function generateExamples(): Promise<Map<string, string>> {
               null,
               language,
               COMMAND_REGISTRAR,
+            ),
+          ),
+        );
+      }
+
+      if (project.mirroredExamples) {
+        files.set(
+          `${project.name}-opmode-mirrored.${extension}`,
+          withoutBanner(
+            await generateJavaCode(
+              project.startPoint,
+              project.lines,
+              true,
+              project.sequence,
+              PACKAGE_NAME,
+              "Panels",
+              "Pedro",
+              "imperial",
+              null,
+              language,
+              undefined,
+              { drawnFor: "RED", axes: "BOTH" },
+            ),
+          ),
+        );
+        files.set(
+          `${project.name}-solverslib-mirrored.${extension}`,
+          withoutBanner(
+            await generateSequentialCommandCode(
+              project.startPoint,
+              project.lines,
+              project.fileName,
+              project.sequence,
+              "SolversLib",
+              SEQUENTIAL_PACKAGE_NAME,
+              false,
+              "Pedro",
+              "imperial",
+              language,
+              { drawnFor: "RED", mirror: true },
             ),
           ),
         );

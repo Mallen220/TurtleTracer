@@ -43,7 +43,22 @@
     followRobotStore,
     playingStore,
     isDraggingStore,
+    extraDataStore,
+    mirrorPreviewStore,
   } from "../projectStore";
+  import {
+    otherAlliance,
+    projectAlliance,
+  } from "../exporters/allianceMirroring";
+  import {
+    mirrorLine,
+    mirrorPoint,
+    mirrorRobotHeading,
+    mirrorTimePrediction,
+    mirrorX,
+    mirrorY,
+    type FieldMirror,
+  } from "../../utils/allianceMirror";
   import {
     diffMode,
     toggleDiff,
@@ -241,7 +256,7 @@
       domElement: two!.renderer.domElement,
       getWrapperDiv: () => wrapperDiv,
       getTwo: () => two,
-      getScales: () => ({ x, y, uiLength }),
+      getScales: () => ({ x: editX, y: editY, uiLength }),
       getSettings: () => settings,
       getFieldDimensions: () => ({ fieldW, fieldH }),
       getTimePrediction: () => effectiveTimePrediction,
@@ -307,8 +322,8 @@
       event: e,
       containerRect: twoElement!.getBoundingClientRect(),
       fieldRotation: settings.fieldRotation || 0,
-      xInvert: x.invert,
-      yInvert: y.invert,
+      xInvert: editX.invert,
+      yInvert: editY.invert,
       currentElem: interactionController?.getCurrentElem() || null,
       multiSelectedPointIds: $multiSelectedPointIds,
       startPoint,
@@ -393,8 +408,8 @@
   // Keep the robot centred while following it, whether it moves by
   // playback, scrubbing or stepping.
   $effect(() => {
-    if ($followRobotStore && robotXY) {
-      panToField(robotXY.x, robotXY.y);
+    if ($followRobotStore && shownRobotXY) {
+      panToField(shownRobotXY.x, shownRobotXY.y);
     }
   });
   // Resume Follow on Play Logic
@@ -409,6 +424,73 @@
   let uiLength = $derived((inches: number) => inches * ppI);
   let shapes = $derived($shapesStore);
   let robotHeading = $derived($robotHeadingStore);
+
+  // --- Mirror preview ---
+  // The project's path and robot drawn on the other alliance's half of the
+  // field, as TurtleTracerLib will run them there. The path can be edited
+  // there just like on its own side: the mouse is read through mirrored
+  // scales, so a drag lands on the matching spot of the project's own path.
+  let projectSide = $derived(projectAlliance($extraDataStore));
+  let previewMirror = $derived<FieldMirror | null>(
+    $mirrorPreviewStore &&
+      projectSide.mirror &&
+      projectSide.drawnFor !== "NONE" &&
+      !$diffMode
+      ? {
+          axes: settings.exportMirrorAxes ?? "BOTH",
+          width: fieldW,
+          height: fieldH,
+        }
+      : null,
+  );
+  // Only shown while previewing, which needs an alliance to mirror from.
+  let previewAlliance = $derived(
+    projectSide.drawnFor === "NONE"
+      ? null
+      : otherAlliance(projectSide.drawnFor),
+  );
+  let shownLines = $derived(
+    previewMirror ? lines.map((l) => mirrorLine(l, previewMirror!)) : lines,
+  );
+  let shownStartPoint = $derived(
+    previewMirror ? mirrorPoint(startPoint, previewMirror) : startPoint,
+  );
+  // Drawn from the timeline when there is one, so it is mirrored too.
+  let shownTimePrediction = $derived(
+    previewMirror
+      ? mirrorTimePrediction(effectiveTimePrediction, previewMirror)
+      : effectiveTimePrediction,
+  );
+  let shownSequencedLines = $derived(
+    previewMirror
+      ? sequencedLines.map((l) => mirrorLine(l, previewMirror!))
+      : sequencedLines,
+  );
+  const mirrorXY = (
+    p: { x: number; y: number } | null | undefined,
+    m: FieldMirror | null,
+  ) => (p && m ? { ...p, x: mirrorX(p.x, m), y: mirrorY(p.y, m) } : p);
+  /** A scale whose field side is mirrored: x(mirrored inches) is where `scale` puts the original. */
+  const mirroredScale = (
+    scale: typeof x,
+    flip: (v: number, m: FieldMirror) => number,
+    m: FieldMirror | null,
+  ) => (m ? scale.copy().domain(scale.domain().map((d) => flip(d, m))) : scale);
+  /** The scales edits are read through: mirrored while previewing. */
+  let editX = $derived(mirroredScale(x, mirrorX, previewMirror));
+  let editY = $derived(mirroredScale(y, mirrorY, previewMirror));
+  let shownRobotXY = $derived(mirrorXY(robotXY, previewMirror));
+  let shownHoverRobotXY = $derived(mirrorXY(hoverRobotXY, previewMirror));
+  let shownHoverRobotHeading = $derived(
+    previewMirror && typeof hoverRobotHeading === "number"
+      ? mirrorRobotHeading(hoverRobotHeading, previewMirror)
+      : hoverRobotHeading,
+  );
+  let shownRobotHeading = $derived(
+    previewMirror
+      ? mirrorRobotHeading(robotHeading, previewMirror)
+      : robotHeading,
+  );
   let sequence = $derived($sequenceStore); // Needed for wait markers
   let markers = $derived(
     $settingsStore?.continuousValidation || $forceShowValidation
@@ -472,7 +554,8 @@
     y,
     uiLength,
     settings,
-    timePrediction: effectiveTimePrediction,
+    // Mirrored in the mirror preview, so everything drawn from it is too.
+    timePrediction: shownTimePrediction,
     dimmedIds,
     multiSelectedPointIds: $multiSelectedPointIds,
   });
@@ -489,10 +572,10 @@
   let shapeElements = $derived(generateShapeElements(shapes, ctx));
   let lineElements = $derived([
     ...buildStandardPathElements({
-      effectiveTimePrediction,
-      lines,
-      sequencedLines,
-      startPoint,
+      effectiveTimePrediction: shownTimePrediction,
+      lines: shownLines,
+      sequencedLines: shownSequencedLines,
+      startPoint: shownStartPoint,
       isDiffMode,
       selectedLineId: $selectedLineId,
       ctx,
@@ -510,7 +593,7 @@
   ]);
   let eventElements = $derived(
     showEditingAids
-      ? generateEventMarkerElements(lines, startPoint, sequence, {
+      ? generateEventMarkerElements(shownLines, shownStartPoint, sequence, {
           ...ctx,
           hoveredMarkerId: $hoveredMarkerId,
           selectedLineId: $selectedLineId,
@@ -528,9 +611,10 @@
   let pointElements = $derived(
     showEditingAids
       ? generatePointElements(
-          startPoint,
-          lines,
-          shapes,
+          shownStartPoint,
+          shownLines,
+          // Obstacles stay where they are, so their handles aren't offered in the preview.
+          previewMirror ? [] : shapes,
           sequence,
           ctx,
           pointCache,
@@ -538,7 +622,7 @@
       : [],
   );
   let collisionElements = $derived(
-    showEditingAids
+    showEditingAids && !previewMirror
       ? generateCollisionElements(
           markers,
           lines,
@@ -560,15 +644,20 @@
       : undefined,
   );
   let onionLayerElements = $derived(
-    generateOnionLayerElements(lines, startPoint, settings, onionLineIndex),
+    generateOnionLayerElements(
+      shownLines,
+      shownStartPoint,
+      settings,
+      onionLineIndex,
+    ),
   );
   let facingLineElements = $derived(
-    generateFacingLineElements(lines, {
+    generateFacingLineElements(shownLines, {
       x,
       y,
-      timePrediction: effectiveTimePrediction,
+      timePrediction: shownTimePrediction,
       percent: $percentStore,
-      robotXY,
+      robotXY: shownRobotXY,
     }),
   );
 
@@ -645,19 +734,21 @@
       {facingLineElements}
       isDrawingMode={$isDrawingMode}
       {isDrawing}
-      {drawPoints}
+      drawPoints={previewMirror
+        ? drawPoints.map((p) => mirrorXY(p, previewMirror)!)
+        : drawPoints}
     />
     <FieldImageLayer {settings} {fieldW} {fieldH} {x} {y} />
 
-    <MathTools {x} {y} {twoElement} {robotXY} />
+    <MathTools {x} {y} {twoElement} robotXY={shownRobotXY ?? undefined} />
     <RobotOverlay
       {x}
       {y}
-      {robotXY}
-      {robotHeading}
-      {hoverRobotXY}
-      {hoverRobotHeading}
-      {ghostRobotState}
+      robotXY={shownRobotXY}
+      robotHeading={shownRobotHeading}
+      hoverRobotXY={shownHoverRobotXY}
+      hoverRobotHeading={shownHoverRobotHeading}
+      ghostRobotState={previewMirror ? null : ghostRobotState}
       {committedRobotState}
       {isDiffMode}
       showRobot={$showRobot}
@@ -666,6 +757,27 @@
       isPlaying={$playingStore}
     />
   </div>
+
+  {#if previewMirror}
+    <div
+      class="absolute top-2 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-3 py-1.5 rounded-md shadow-md text-sm font-medium text-white {previewAlliance ===
+      'BLUE'
+        ? 'bg-blue-600'
+        : 'bg-red-600'}"
+      role="status"
+    >
+      <span
+        >Previewing on {previewAlliance === "BLUE" ? "Blue" : "Red"} (mirrored)</span
+      >
+      <button
+        type="button"
+        class="rounded px-2 py-0.5 bg-white/20 hover:bg-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        onclick={() => mirrorPreviewStore.set(false)}
+      >
+        Stop
+      </button>
+    </div>
+  {/if}
 
   {#if showContextMenu}
     <ContextMenu
@@ -689,8 +801,8 @@
 
   {#if !$isPresentationMode}
     <FieldCoordinates
-      x={currentMouseX}
-      y={currentMouseY}
+      x={previewMirror ? mirrorX(currentMouseX, previewMirror) : currentMouseX}
+      y={previewMirror ? mirrorY(currentMouseY, previewMirror) : currentMouseY}
       visible={isMouseOverField}
       isObstructed={isObstructingHUD}
     />
@@ -705,7 +817,7 @@
         followRobotStore.set(false);
         const newZoom = calculateNextZoom(zoom, 1);
         const focus = isMouseOverField
-          ? { x: x(currentMouseX), y: y(currentMouseY) }
+          ? { x: editX(currentMouseX), y: editY(currentMouseY) }
           : { x: width / 2, y: height / 2 };
         zoomTo(newZoom, focus);
       }}
@@ -713,7 +825,7 @@
         followRobotStore.set(false);
         const newZoom = calculateNextZoom(zoom, -1);
         const focus = isMouseOverField
-          ? { x: x(currentMouseX), y: y(currentMouseY) }
+          ? { x: editX(currentMouseX), y: editY(currentMouseY) }
           : { x: width / 2, y: height / 2 };
         zoomTo(newZoom, focus);
       }}

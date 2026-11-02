@@ -5,7 +5,7 @@ import {
   toUserHeading,
   type CoordinateSystem,
 } from "../../utils/coordinates";
-import { javaLength } from "./javaFormat";
+import { javaLength, mirroredPose } from "./javaFormat";
 
 /** The line at `rootIdx` and the lines chained after it, in follow order. */
 function chainOf(lines: Line[], rootIdx: number): Line[] {
@@ -27,6 +27,8 @@ export type MarkerCodeOptions = {
   codeUnits?: "imperial" | "metric";
   /** Read the markers from the project file at runtime instead of writing them out. */
   fromReader?: boolean;
+  /** Mirror written-out marker poses through `ctx` (alliance mirroring). */
+  mirror?: boolean;
 };
 
 /**
@@ -47,6 +49,7 @@ export function chainMarkerRegistrationCode(
     coordinateSystem = "Pedro",
     codeUnits = "imperial",
     fromReader = false,
+    mirror = false,
   }: MarkerCodeOptions = {},
 ): string {
   let code = "";
@@ -84,7 +87,7 @@ export function chainMarkerRegistrationCode(
         const radius = (event as any).radius ?? 2;
         const radiusStr =
           typeof radius === "number" ? radius.toFixed(1) : radius;
-        code += `\n${indent}tracker.onSpatial(${poseArg}, ${radiusStr}, ${action});`;
+        code += `\n${indent}tracker.onSpatial(${mirroredPose(poseArg, mirror)}, ${radiusStr}, ${action});`;
       }
     });
   });

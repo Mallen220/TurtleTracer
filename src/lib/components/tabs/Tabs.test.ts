@@ -67,6 +67,7 @@ vi.mock("../../../lib/projectStore", async () => {
     linesStore: writable([]),
     timePredictionStore: writable(null),
     settingsStore: writable({ theme: "light", exportType: "java" }), // Use inline object to avoid hoisting error
+    extraDataStore: writable({}),
     projectActions: {
       recordChange: vi.fn(),
     },

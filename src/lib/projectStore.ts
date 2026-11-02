@@ -134,6 +134,12 @@ export const resolvedLinesStore = derived(
 
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 export const extraDataStore = writable<Record<string, any>>({});
+/**
+ * Whether the field shows the project mirrored onto the other alliance, as a
+ * preview. It changes nothing in the project, and turns off when another
+ * project is opened.
+ */
+export const mirrorPreviewStore = writable(false);
 export const macrosStore = writable<Map<string, TurtleData>>(new Map());
 
 // Track currently loading macros to prevent infinite recursion
@@ -241,6 +247,7 @@ export function resetProject() {
     })),
   );
   extraDataStore.set({});
+  mirrorPreviewStore.set(false);
   macrosStore.set(new Map());
   selectedPointId?.set?.(null);
   selectedLineId?.set?.(null);
@@ -458,6 +465,7 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   linesStore.set(renamedLines);
   shapesStore.set(data.shapes || []);
   extraDataStore.set(data.extraData || {});
+  mirrorPreviewStore.set(false);
 
   // Load referenced macros
   const api = getElectronAPI();

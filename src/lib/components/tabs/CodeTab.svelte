@@ -21,6 +21,7 @@
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { get } from "svelte/store";
   import { currentFilePath } from "../../../stores";
+  import { extraDataStore } from "../../projectStore";
   import { getShortcutFromSettings } from "../../../utils";
   import { diffLines } from "diff";
   import hljs from "highlight.js/lib/core";
@@ -167,7 +168,7 @@
             targetLibrary: targetLibrary,
           };
           newCode = await exporter.exportCode(
-            { startPoint, lines, shapes, sequence },
+            { startPoint, lines, shapes, sequence, extraData: $extraDataStore },
             settingsObj,
           );
         } else if (format === "custom") {
@@ -278,6 +279,8 @@
     $state.snapshot(lines);
     $state.snapshot(sequence);
     $state.snapshot(settings);
+    // The project's alliance mirroring is kept in its extraData.
+    $extraDataStore;
     format;
     targetLibrary;
 
