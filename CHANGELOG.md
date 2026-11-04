@@ -1,3 +1,7 @@
+## 2.7.0 (2026-11-04)
+
+- Add alliance mirroring support (Requires TurtleTracerLib 3.1.x+). This lets users remember alliance from Auto->TeleOp and use one OpMode for all their autos with an AutoChooser. Teams that already have a solution their happy with don't need to use this, it's totally optional but they should still upgrade. Add configurable command registrar export for OP Modes. Add control points and paths where the mouse is. Added the T value to the field page. Bump the node versions. 
+
 ## 2.6.1 (2026-10-27)
 
 - Add event markers in the paths tab. Change robot defaults to be more realistic for most teams. Added "Previous" heading support, delete the start heading in a constant or linear path to check it out. Import Pedro constants into settings. Fix a bunch of old v2 simulation logic regarding the heading. Fixed optimizer over penalizing. Stop suggesting changing P when the robot can't change p. Possible fixed leaking paths that invalidated some session. Fix Linux window and app icons. Fixed bug on some OS's where toggle profiles led to stale states. Security Updates.
