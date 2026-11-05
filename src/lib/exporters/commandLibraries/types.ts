@@ -37,6 +37,22 @@ export interface SequentialClassParts {
   /** `new TurtleTracerReader(...)` statement, empty when poses are embedded. */
   ppReaderInit: string;
   hasEventMarkers: boolean;
+  /**
+   * Alliance mirroring: the alliance the project's paths are drawn for, or
+   * undefined when the class doesn't mirror. A mirroring class takes an
+   * AutoContext and every pose and heading goes through it.
+   */
+  drawnFor?: "RED" | "BLUE";
+  /**
+   * The alliance a class that doesn't mirror is drawn for, which it records
+   * with TurtleTracerLib; undefined when it has none (or mirrors).
+   */
+  recordAlliance?: "RED" | "BLUE";
+  /**
+   * `@TurtleAuto(...)`, so TurtleTracerLib's AutoRegistry.scan can find the
+   * class; empty unless the class already uses TurtleTracerLib.
+   */
+  autoAnnotation: string;
   /** Field holding the ProgressTracker the commands use, empty without markers. */
   trackerField: string;
   /** Code that wires event markers to a ProgressTracker, empty without markers. */
@@ -70,6 +86,12 @@ export interface CommandLibrary extends Record<CodeLanguage, LanguageTemplate> {
   description: string;
   /** Show an "experimental" warning next to this library in the UI. */
   experimental?: boolean;
+  /**
+   * Whether the generated class is itself the library's Command, so
+   * TurtleTracerLib's AutoRegistry.scan can offer it (Ivy's hands one back
+   * from command() instead, so it isn't).
+   */
+  scannable?: boolean;
   /**
    * What the generated code passes to ProgressTracker as telemetry. Libraries
    * whose generated class has no Telemetry to hand pass `null`.

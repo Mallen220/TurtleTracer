@@ -3,6 +3,7 @@ import type { CommandLibrary } from "./types";
 import {
   buildPathsMethod,
   constructorSetup,
+  contextParam,
   fields,
   fileHeader,
   helperMethods,
@@ -30,6 +31,7 @@ export const nextFtc: CommandLibrary = {
   description: "Command-based sequence for NextFTC.",
   experimental: true,
   trackerTelemetry: "null",
+  scannable: true,
   java: {
     imports,
     commands: {
@@ -52,11 +54,11 @@ ${fileHeader(p)}
 ${markerImports(p)}${p.ppReaderImport}
 import java.io.IOException;
 
-public class ${p.className} extends Command {
+${p.autoAnnotation}public class ${p.className} extends Command {
 
 ${fields(p, "\n    private Command group;")}
 
-    public ${p.className}(final Follower follower, HardwareMap hw) throws IOException {
+    public ${p.className}(final Follower follower, HardwareMap hw${contextParam(p)}) throws IOException {
 ${constructorSetup(p)}
     }
 
@@ -109,10 +111,10 @@ ${helperMethods(p)}
 ${kt.fileHeader(p)}
 ${markerImports(p)}${p.ppReaderImport}
 
-class ${p.className}(
+${p.autoAnnotation}class ${p.className}(
     private val follower: Follower,
     hw: HardwareMap,
-) : Command() {
+${kt.contextParam(p)}) : Command() {
 
 ${kt.fields(p, "\n    private var group: Command? = null")}
 

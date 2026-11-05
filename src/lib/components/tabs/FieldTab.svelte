@@ -13,6 +13,7 @@
   import OptimizationDialog from "../dialogs/OptimizationDialog.svelte";
   import GlobalEventMarkers from "../GlobalEventMarkers.svelte";
   import ObstaclesSection from "../sections/ObstaclesSection.svelte";
+  import AllianceMirroringSection from "../sections/AllianceMirroringSection.svelte";
   import { linesStore, robotTStore } from "../../projectStore";
 
   interface Props {
@@ -56,6 +57,7 @@
     obstaclesSection: false,
     globalMarkers: false,
     optimizerSection: false,
+    allianceMirroring: false,
   });
 
   $effect(() => {
@@ -94,7 +96,8 @@
   let allCollapsed = $derived(
     collapsedSections.obstacles.every((v) => v) &&
       collapsedSections.globalMarkers &&
-      collapsedSections.optimizerSection,
+      collapsedSections.optimizerSection &&
+      collapsedSections.allianceMirroring,
   );
 
   function toggleCollapseAll() {
@@ -103,11 +106,13 @@
       collapsedSections.obstaclesSection = false;
       collapsedSections.globalMarkers = false;
       collapsedSections.optimizerSection = false;
+      collapsedSections.allianceMirroring = false;
     } else {
       collapsedSections.obstacles = shapes.map(() => true);
       collapsedSections.obstaclesSection = true;
       collapsedSections.globalMarkers = true;
       collapsedSections.optimizerSection = true;
+      collapsedSections.allianceMirroring = true;
     }
     collapsedSections = { ...collapsedSections };
   }
@@ -224,6 +229,11 @@
     bind:lines
     bind:collapsedMarkers={collapsedSections.globalMarkers}
     {timePrediction}
+  />
+
+  <AllianceMirroringSection
+    bind:collapsed={collapsedSections.allianceMirroring}
+    {recordChange}
   />
 
   <ObstaclesSection

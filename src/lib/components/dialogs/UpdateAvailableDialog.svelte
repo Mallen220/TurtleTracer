@@ -171,14 +171,6 @@
       aria-modal="true"
       aria-labelledby="update-title"
     >
-      <!-- Background decorative blobs -->
-      <div
-        class="absolute top-0 right-0 w-64 h-64 rounded-full bg-[radial-gradient(closest-side,rgba(168,85,247,0.1),transparent)] -translate-y-1/2 translate-x-1/3 pointer-events-none"
-      ></div>
-      <div
-        class="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-[radial-gradient(closest-side,rgba(99,102,241,0.1),transparent)] translate-y-1/2 -translate-x-1/3 pointer-events-none"
-      ></div>
-
       <!-- Close Button -->
       <button
         title="Close"
@@ -193,7 +185,7 @@
         <!-- Top Section -->
         <div class="text-center space-y-2">
           <div
-            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-indigo-100 dark:from-emerald-900/30 dark:to-indigo-900/30 text-emerald-600 dark:text-emerald-400 mb-2 shadow-sm ring-1 ring-emerald-100 dark:ring-emerald-900/50"
+            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mb-2 shadow-sm ring-1 ring-emerald-100 dark:ring-emerald-900/50"
           >
             <RocketIcon className="w-8 h-8" />
           </div>

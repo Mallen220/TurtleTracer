@@ -9,7 +9,11 @@ import type {
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { materializePrevHeadings } from "../../utils/prevHeading";
-import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
+import {
+  chainMarkerRegistrationCode,
+  commandRegistrarCall,
+  REGISTRAR_PLACEMENT,
+} from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
@@ -35,8 +39,28 @@ import {
   speedCodes,
   speedLimitNote,
   constantsImport,
+  RECORD_ALLIANCE_IMPORTS,
+  recordAllianceCode,
 } from "./javaFormat";
 import { pedroConstants } from "./pedroConstants";
+import { projectExportAlliance, type DrawnFor } from "./allianceMirroring";
+
+/**
+ * The OpMode's alliance code for a project. Mirrored: an alliance menu, with
+ * the field's mirror axes from the settings. Not mirrored: the alliance it
+ * records. Neither when the project has no alliance, so the OpMode doesn't
+ * use TurtleTracerLib for it.
+ */
+export function opModeAlliance(
+  extraData: Record<string, any> | null | undefined,
+  axes: OpModeMirroring["axes"] | undefined,
+): { mirroring?: OpModeMirroring; recordAlliance?: DrawnFor } {
+  const alliance = projectExportAlliance(extraData);
+  if (!alliance) return {};
+  return alliance.mirror
+    ? { mirroring: { drawnFor: alliance.drawnFor, axes: axes ?? "BOTH" } }
+    : { recordAlliance: alliance.drawnFor };
+}
 
 /** A variable name for each line, based on its name and made unique. */
 function uniqueVariableNames(lines: Line[], language?: CodeLanguage): string[] {
@@ -157,7 +181,11 @@ function stateMachineCode(
       continue;
     }
     if (action?.toJavaCode) {
-      const res = action.toJavaCode(item, { stateStep: state, language });
+      const res = action.toJavaCode(item, {
+        stateStep: state,
+        language,
+        allianceMirroring: opts.mirror,
+      });
       code += res.code;
       state += res.stepsUsed;
       continue;
@@ -340,15 +368,60 @@ interface OpModeParts {
   stateCases: string;
   startPose: string;
   hasEventMarkers: boolean;
+  /** The statement that registers the team's named commands, "" for none. */
+  registerCommands: string;
   telemetryImpl: TelemetryImpl;
   ftc: boolean;
   metric: boolean;
+  /** Alliance mirroring, or undefined for an OpMode that always runs as drawn. */
+  mirroring?: OpModeMirroring;
+  /** The alliance an OpMode that isn't mirrored records, if the project has one. */
+  recordAlliance?: DrawnFor;
 }
+
+/** How an OpMode export mirrors for the alliance the driver picks during init. */
+export interface OpModeMirroring {
+  /** The alliance the project's paths are drawn for. */
+  drawnFor: DrawnFor;
+  /** Which field axes are flipped (a setting: it depends on the season's field). */
+  axes: "BOTH" | "X" | "Y";
+}
+
+/** The TurtleTracerLib classes an OpMode with an alliance menu imports (Java form). */
+const MIRRORING_IMPORTS = `
+    import com.turtletracerlib.auto.Alliance;
+    import com.turtletracerlib.auto.AutoConfig;
+    import com.turtletracerlib.auto.AutoContext;
+    import com.turtletracerlib.auto.AutoRegistry;
+    import com.turtletracerlib.auto.AutoSelector;
+    import com.turtletracerlib.auto.MirrorAxes;
+    import com.turtletracerlib.auto.MirrorPolicy;`;
+
+/** The TurtleTracerLib classes an OpMode that only records its alliance imports (Java form). */
+const RECORD_IMPORTS = RECORD_ALLIANCE_IMPORTS.map(
+  (line) => `\n    ${line};`,
+).join("");
+
+/** The TurtleTracerLib alliance imports an OpMode needs, if any (Java form). */
+const allianceImportsFor = (
+  mirroring: OpModeMirroring | undefined,
+  recordAlliance: DrawnFor | undefined,
+) => (mirroring ? MIRRORING_IMPORTS : recordAlliance ? RECORD_IMPORTS : "");
+
+/**
+ * The AutoConfig the OpMode's alliance menu uses, as a Java (and Kotlin)
+ * expression.
+ */
+const selectorConfig = (m: OpModeMirroring) => `AutoConfig.builder()
+            .baseAlliance(Alliance.${m.drawnFor}) // The side these paths are drawn for
+            .mirrorPolicy(MirrorPolicy.FOLLOW_ALLIANCE) // Mirrored when the driver picks the other one
+            .mirrorAxes(MirrorAxes.${m.axes})
+            .build()`;
 
 /** The OpMode in Kotlin: the Java one's shape, with a companion object for its statics. */
 function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
   const pathsClass = `
-  class Paths {
+  class Paths${o.mirroring ? "(ctx: AutoContext)" : ""} {
     ${o.pathFields
       .filter(Boolean)
       .map((name) => `val ${name}: Path`)
@@ -383,7 +456,7 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
     package ${o.packageName}
-    ${kotlinImports(`${opModeImports()}\n${markerImports}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}`)}
+    ${kotlinImports(`${opModeImports()}\n${markerImports}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}${allianceImportsFor(o.mirroring, o.recordAlliance)}`)}
 
     @Autonomous(name = "${o.opModeName}", group = "Autonomous")
     ${o.telemetryImpl === "Panels" ? "@Configurable // Panels" : ""}
@@ -394,18 +467,50 @@ function kotlinOpMode(o: OpModeParts, exportFullCode: boolean): string {
       ${o.hasEventMarkers ? "private lateinit var tracker: ProgressTracker // Progress tracker instance for event markers\n      " : ""}private var pathState = 0 // Current autonomous path state (state machine)
       private lateinit var pathTimer: ElapsedTime // Timer for path state machine
       private lateinit var paths: Paths // Paths defined in the Paths class
+      ${
+        o.mirroring
+          ? `private lateinit var selector: AutoSelector<AutoContext> // Alliance menu shown during init
+      private lateinit var ctx: AutoContext // The alliance picked, to mirror the paths for`
+          : ""
+      }
 
       override fun init() {
         ${telemetry.init}
 
         follower = ${createFollower()}
-        follower.setPose(${o.startPose})
-
+        ${o.mirroring ? "" : `follower.setPose(${o.startPose})`}${
+          o.recordAlliance
+            ? `\n        ${recordAllianceCode(o.recordAlliance, true)}`
+            : ""
+        }
+        ${o.registerCommands ? `\n        ${o.registerCommands} // Team's named commands\n` : ""}
         pathTimer = ElapsedTime()
-        paths = Paths() // Build paths
+        ${
+          o.mirroring
+            ? `// Alliance menu: D-pad left/right picks the alliance before Start.
+        selector = AutoSelector(
+          AutoRegistry<AutoContext>().add("${o.opModeName}") { it },
+          ${selectorConfig(o.mirroring)},
+        )`
+            : "paths = Paths() // Build paths"
+        }
         ${o.hasEventMarkers ? "\n        tracker = ProgressTracker(follower, telemetry)" : ""}
       }
+      ${
+        o.mirroring
+          ? `
+      override fun init_loop() {
+        selector.update(gamepad1, telemetry) // Draw the alliance menu
+      }
 
+      override fun start() {
+        ctx = selector.buildSelected() // The alliance picked, and whether to mirror
+        follower.setPose(${o.startPose})
+        paths = Paths(ctx) // Build paths for that alliance
+      }
+`
+          : ""
+      }
       override fun loop() {
         follower.update() // Update follower
         ${o.hasEventMarkers ? "tracker.update() // Update tracker\n        " : ""}pathState = autonomousPathUpdate() // Update autonomous state machine
@@ -454,13 +559,24 @@ export async function generateJavaCode(
   /** The project file; the class and OpMode are named after it. */
   fileName: string | null = null,
   language: CodeLanguage = "java",
+  /** The team's method that registers their named commands, e.g. `org.team.RobotCommands.register`. */
+  commandRegistrar?: string,
+  /** Add an alliance menu and mirror the paths for the alliance picked. Undefined: no menu. */
+  mirroring?: OpModeMirroring,
+  /** The alliance a project that isn't mirrored is drawn for, which the OpMode records. */
+  recordAlliance?: DrawnFor,
 ): Promise<string> {
   const pathChainNames = uniqueVariableNames(lines, language);
   const className = javaClassName(fileName, "TurtleTracerAutonomous", language);
   const opModeName = (
     projectBaseName(fileName) || "Turtle Tracer Autonomous"
   ).replaceAll(/["\\]/g, "");
-  const opts: FormatOptions = { coordinateSystem, codeUnits, language };
+  const opts: FormatOptions = {
+    coordinateSystem,
+    codeUnits,
+    language,
+    mirror: mirroring !== undefined,
+  };
 
   let pathsClass = `
   public static class Paths {
@@ -473,7 +589,7 @@ export async function generateJavaCode(
       .filter(Boolean)
       .join("\n")}
 
-    public Paths(Follower follower) {
+    public Paths(Follower follower${mirroring ? ", AutoContext ctx" : ""}) {
       ${pathConstructionCode(startPoint, lines, pathChainNames, opts, sequence)}
     }
 
@@ -499,6 +615,13 @@ export async function generateJavaCode(
   `;
 
   const hasEventMarkers = lines.some((line) => line.eventMarkers?.length);
+  const registerCommands = hasEventMarkers
+    ? commandRegistrarCall(
+        commandRegistrar,
+        REGISTRAR_PLACEMENT.hardwareMap,
+        language,
+      )
+    : "";
   const sequenceToExport = flattenMacros(
     sequence?.length
       ? sequence
@@ -542,9 +665,12 @@ export async function generateJavaCode(
           stateCases,
           startPose,
           hasEventMarkers,
+          registerCommands,
           telemetryImpl,
           ftc: coordinateSystem === "FTC",
           metric: codeUnits === "metric",
+          mirroring,
+          recordAlliance: mirroring ? undefined : recordAlliance,
         },
         exportFullCode,
       ),
@@ -564,7 +690,7 @@ export async function generateJavaCode(
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
     package ${packageName};${opModeImports()}
-    ${namedCommandsImport}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}
+    ${namedCommandsImport}${telemetry.imports}${PEDRO_OPMODE_IMPORTS}${allianceImportsFor(mirroring, mirroring ? undefined : recordAlliance)}
     
     @Autonomous(name = "${opModeName}", group = "Autonomous")
     ${classAnnotations}
@@ -575,23 +701,56 @@ export async function generateJavaCode(
       ${hasEventMarkers ? "private ProgressTracker tracker; // Progress tracker instance for event markers\n      " : ""}private int pathState; // Current autonomous path state (state machine)
       private ElapsedTime pathTimer; // Timer for path state machine
       private Paths paths; // Paths defined in the Paths class
+      ${
+        mirroring
+          ? `private AutoSelector<AutoContext> selector; // Alliance menu shown during init
+      private AutoContext ctx; // The alliance picked, to mirror the paths for`
+          : ""
+      }
       
       @Override
       public void init() {
         ${telemetry.init}
 
         follower = ${createFollower()};
-        follower.setPose(${startPose});
-
+        ${mirroring ? "" : `follower.setPose(${startPose});`}${
+          !mirroring && recordAlliance
+            ? `\n        ${recordAllianceCode(recordAlliance, false)}`
+            : ""
+        }
+        ${registerCommands ? `\n        ${registerCommands} // Team's named commands\n` : ""}
         pathTimer = new ElapsedTime();
-        paths = new Paths(follower); // Build paths
+        ${
+          mirroring
+            ? `// Alliance menu: D-pad left/right picks the alliance before Start.
+        selector = new AutoSelector<>(
+          new AutoRegistry<AutoContext>().add("${opModeName}", c -> c),
+          ${selectorConfig(mirroring)});`
+            : "paths = new Paths(follower); // Build paths"
+        }
         ${
           hasEventMarkers
             ? `\n        tracker = new ProgressTracker(follower, telemetry);`
             : ""
         }
       }
-      
+      ${
+        mirroring
+          ? `
+      @Override
+      public void init_loop() {
+        selector.update(gamepad1, telemetry); // Draw the alliance menu
+      }
+
+      @Override
+      public void start() {
+        ctx = selector.buildSelected(); // The alliance picked, and whether to mirror
+        follower.setPose(${startPose});
+        paths = new Paths(follower, ctx); // Build paths for that alliance
+      }
+`
+          : ""
+      }      
       @Override
       public void loop() {
         follower.update(); // Update follower
@@ -647,6 +806,10 @@ exporterRegistry.register({
   description:
     "Export the path as a standard Pedro Pathing OpMode, in Java or Kotlin.",
   exportCode: async (data: TurtleData, settings: any) => {
+    const { mirroring, recordAlliance } = opModeAlliance(
+      data.extraData,
+      settings.exportMirrorAxes,
+    );
     return await generateJavaCode(
       data.startPoint,
       data.lines,
@@ -659,6 +822,9 @@ exporterRegistry.register({
       settings.codeUnits ?? "imperial",
       settings.fileName ?? null,
       settings.codeLanguage ?? "java",
+      settings.commandRegistrar,
+      mirroring,
+      recordAlliance,
     );
   },
 });

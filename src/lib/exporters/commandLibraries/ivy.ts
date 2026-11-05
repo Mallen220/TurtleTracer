@@ -2,7 +2,9 @@
 import type { CommandLibrary } from "./types";
 import {
   buildPathsMethod,
+  constructorArgs,
   constructorSetup,
+  contextParam,
   fields,
   fileHeader,
   helperMethods,
@@ -51,14 +53,14 @@ import java.io.IOException;
 
 /**
  * Call {@code Scheduler.reset();} in init(), start it with
- * {@code new ${p.className}(follower, hardwareMap).command().schedule();}, and call
+ * {@code new ${p.className}${constructorArgs(p, "follower, hardwareMap")}.command().schedule();}, and call
  * {@code follower.update();} and {@code Scheduler.execute();} every loop.
  */
 public class ${p.className} {
 
 ${fields(p)}
 
-    public ${p.className}(final Follower follower, HardwareMap hw) throws IOException {
+    public ${p.className}(final Follower follower, HardwareMap hw${contextParam(p)}) throws IOException {
 ${constructorSetup(p)}
     }
 
@@ -95,13 +97,13 @@ ${markerImports(p)}${p.ppReaderImport}
 
 /**
  * Call \`Scheduler.reset()\` in init(), start it with
- * \`${p.className}(follower, hardwareMap).command().schedule()\`, and call
+ * \`${p.className}${constructorArgs(p, "follower, hardwareMap")}.command().schedule()\`, and call
  * \`follower.update()\` and \`Scheduler.execute()\` every loop.
  */
 class ${p.className}(
     private val follower: Follower,
     hw: HardwareMap,
-) {
+${kt.contextParam(p)}) {
 
 ${kt.fields(p)}
 

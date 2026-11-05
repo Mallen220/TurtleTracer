@@ -26,7 +26,15 @@
     ClipboardIcon,
   } from "../icons/index";
   import { currentFilePath, notification } from "../../../stores";
+  import {
+    otherAlliance,
+    projectAlliance,
+  } from "../../exporters/allianceMirroring";
   import { exporterRegistry } from "../../exporters";
+  import {
+    commandRegistrarMethod,
+    commandRegistrarSummary,
+  } from "../../exporters/eventMarkerUtils";
   import {
     COMMAND_LIBRARIES,
     getCommandLibrary,
@@ -41,7 +49,7 @@
   } from "../../../utils/fileHandlers";
   import { triggerDownload } from "../../../utils/file";
   import { getElectronAPI } from "../../../utils/platform";
-  import { settingsStore } from "../../projectStore";
+  import { extraDataStore, settingsStore } from "../../projectStore";
   import { ui } from "../../ui";
 
   interface Props {
@@ -65,6 +73,8 @@
   >("java");
   let customExporterName: string | null = $state(null);
   let sequentialClassName = $state("AutoPath");
+  // The set-once options (package, registrar, units) stay folded away.
+  let optionsOpen = $state(false);
   let selectedLibrary = $derived(
     getCommandLibrary($settingsStore.autoExportTargetLibrary),
   );
@@ -72,6 +82,30 @@
   let hasLanguage = $derived(
     exportFormat === "java" || exportFormat === "sequential",
   );
+  let registrarSummary = $derived(
+    exportFormat === "java"
+      ? commandRegistrarSummary(
+          $settingsStore.commandRegistrar,
+          $settingsStore.codeLanguage ?? "java",
+        )
+      : null,
+  );
+  // Whether this project's code mirrors, and the alliance it's drawn for.
+  // It's saved in the project and set in the Field tab's TurtleTracerLib section.
+  let projectSide = $derived(projectAlliance($extraDataStore));
+  const allianceName = (a: string) =>
+    a === "RED" ? "Red" : a === "BLUE" ? "Blue" : "None";
+  /** What the dialog says about the project's alliance and mirroring. */
+  let allianceStatus = $derived(
+    projectSide.drawnFor === "NONE"
+      ? "None, not mirrored"
+      : `${allianceName(projectSide.drawnFor)}${
+          projectSide.mirror
+            ? `, mirrored to ${allianceName(otherAlliance(projectSide.drawnFor))}`
+            : ", never mirrored"
+        }`,
+  );
+
   let writesKotlin = $derived(
     hasLanguage && $settingsStore.codeLanguage === "kotlin",
   );
@@ -154,7 +188,13 @@
       return [await projectFileJson($currentFilePath ?? undefined), json];
     }
 
-    const data = { startPoint, lines, shapes, sequence };
+    const data = {
+      startPoint,
+      lines,
+      shapes,
+      sequence,
+      extraData: $extraDataStore,
+    };
     const exporter = get(exporterRegistry)[exportFormat];
     if (exporter) {
       const code = await exporter.exportCode(data, {
@@ -506,201 +546,287 @@
         </div>
       </div>
 
-      <!-- Settings Toolbar -->
+      <!-- Settings Toolbar: what changes per export stays on one row, the
+           rest (set once per team) folds away under Options. -->
       {#if exportFormat === "sequential" || exportFormat === "java"}
-        <div class="{ui.bar} px-6 py-3 flex flex-wrap gap-6 items-end shrink-0">
-          <!-- Package Name Input -->
-          <div class="flex flex-col gap-1.5 grow max-w-xl">
-            <label for="package-name-input" class={ui.heading}>
-              Package Name
-            </label>
-            <input
-              id="package-name-input"
-              type="text"
-              bind:value={$settingsStore.javaPackageName}
-              onkeydown={handlePackageKeydown}
-              oninput={refreshCode}
-              class="{ui.inputSm} w-full font-mono"
-              placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
-            />
-          </div>
-
-          {#if hasLanguage}
-            <!-- Language Selector -->
-            <div class="flex flex-col gap-1.5">
-              <span class={ui.heading}> Language </span>
-              <div
-                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-md self-start"
-                role="tablist"
-              >
-                {#each LANGUAGES as language (language.id)}
-                  {@const selected =
-                    ($settingsStore.codeLanguage ?? "java") === language.id}
-                  <button
-                    role="tab"
-                    aria-selected={selected}
-                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {selected
-                      ? 'bg-white dark:bg-neutral-700 shadow-sm text-purple-600 dark:text-purple-300'
-                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                    onclick={() => {
-                      $settingsStore.codeLanguage = language.id;
-                      refreshCode();
-                    }}
-                  >
-                    {language.label}
-                  </button>
-                {/each}
-              </div>
-            </div>
-            {#if writesKotlin && exportedCode.includes("has no Kotlin export yet")}
-              <div
-                class="{ui.alert.warning} flex items-center gap-2"
-                role="alert"
-              >
-                <TriangleWarningIcon className="size-4 shrink-0" />
-                <span
-                  >Some steps come from plugins that can't write Kotlin yet;
-                  they're left as TODO comments.</span
+        {@const metricNeedsPoses =
+          $settingsStore.codeUnits === "metric" &&
+          !$settingsStore.autoExportEmbedPoseData &&
+          exportFormat === "sequential"}
+        {@const optionsShown = optionsOpen || metricNeedsPoses}
+        <div class="{ui.bar} px-6 py-3 flex flex-col gap-3 shrink-0">
+          <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+            {#if hasLanguage}
+              <!-- Language Selector -->
+              <div class="flex flex-col gap-1.5">
+                <span class={ui.heading}> Language </span>
+                <div
+                  class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-md self-start"
+                  role="tablist"
                 >
-              </div>
-            {/if}
-          {/if}
-
-          <!-- Sequential Controls -->
-          {#if exportFormat === "sequential"}
-            <!-- Target Library Selector -->
-            <div class="flex flex-col gap-1.5">
-              <span class={ui.heading}> Target Library </span>
-              <div
-                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-md self-start"
-                role="tablist"
-              >
-                {#each COMMAND_LIBRARIES as library (library.id)}
-                  {@const accent = LIBRARY_COLORS[library.id]}
-                  {@const selected = selectedLibrary.id === library.id}
-                  <button
-                    role="tab"
-                    aria-selected={selected}
-                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 {accent.ring} {selected
-                      ? `bg-white dark:bg-neutral-700 shadow-sm ${accent.active}`
-                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                    onclick={() => {
-                      $settingsStore.autoExportTargetLibrary = library.id;
-                      refreshCode();
-                    }}
-                  >
-                    {library.label}
-                  </button>
-                {/each}
-              </div>
-            </div>
-
-            <!-- Class Name Input -->
-            <div class="flex flex-col gap-1.5">
-              <label for="class-name-input" class={ui.heading}>
-                Class Name
-              </label>
-              <input
-                id="class-name-input"
-                type="text"
-                bind:value={sequentialClassName}
-                oninput={refreshCode}
-                class="{ui.inputSm} min-w-[150px]"
-                placeholder="AutoPath"
-              />
-            </div>
-
-            <!-- Embed Pose Data -->
-            <div class="flex flex-col gap-1.5">
-              <span class="{ui.heading} opacity-0"> Embed Poses </span>
-              <label
-                class={ui.checkLabel}
-                aria-label="Embed pose data directly in the code"
-              >
-                <div class="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    bind:checked={$settingsStore.autoExportEmbedPoseData}
-                    onchange={refreshCode}
-                    class="{ui.checkbox} peer"
-                  />
+                  {#each LANGUAGES as language (language.id)}
+                    {@const selected =
+                      ($settingsStore.codeLanguage ?? "java") === language.id}
+                    <button
+                      role="tab"
+                      aria-selected={selected}
+                      class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {selected
+                        ? 'bg-white dark:bg-neutral-700 shadow-sm text-purple-600 dark:text-purple-300'
+                        : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                      onclick={() => {
+                        $settingsStore.codeLanguage = language.id;
+                        refreshCode();
+                      }}
+                    >
+                      {language.label}
+                    </button>
+                  {/each}
                 </div>
-                <span>Embed Pose Data in Code</span>
-              </label>
-            </div>
-
-            <!-- Experimental Library Warning -->
-            {#if selectedLibrary.experimental}
-              <div
-                class="{ui.alert.warning} flex items-center gap-2"
-                role="alert"
-              >
-                <TriangleWarningIcon className="size-4 shrink-0" />
-                <span
-                  >{selectedLibrary.label} output is
-                  <strong>experimental</strong>.</span
-                >
               </div>
             {/if}
-            {#if $settingsStore.codeUnits === "metric" && !$settingsStore.autoExportEmbedPoseData && exportFormat === "sequential"}
-              <div
-                class="{ui.alert.warning} flex items-center gap-2"
-                role="alert"
-              >
-                <TriangleWarningIcon className="size-4 shrink-0" />
-                <span
-                  >Metric code generation requires embedding poses. Please
-                  enable 'Embed Pose Data'.</span
-                >
-              </div>
-            {/if}
-          {/if}
 
-          <!-- Java Controls -->
-          {#if exportFormat === "java"}
-            <label
-              class={ui.checkLabel}
-              aria-label="Export full Java class with imports"
-            >
-              <div class="relative flex items-center">
+            {#if exportFormat === "sequential"}
+              <!-- Target Library Selector -->
+              <div class="flex flex-col gap-1.5">
+                <span class={ui.heading}> Target Library </span>
+                <div
+                  class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-md self-start"
+                  role="tablist"
+                >
+                  {#each COMMAND_LIBRARIES as library (library.id)}
+                    {@const accent = LIBRARY_COLORS[library.id]}
+                    {@const selected = selectedLibrary.id === library.id}
+                    <button
+                      role="tab"
+                      aria-selected={selected}
+                      class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 {accent.ring} {selected
+                        ? `bg-white dark:bg-neutral-700 shadow-sm ${accent.active}`
+                        : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                      onclick={() => {
+                        $settingsStore.autoExportTargetLibrary = library.id;
+                        refreshCode();
+                      }}
+                    >
+                      {library.label}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+
+              <!-- Class Name Input -->
+              <div class="flex flex-col gap-1.5">
+                <label for="class-name-input" class={ui.heading}>
+                  Class Name
+                </label>
                 <input
-                  type="checkbox"
-                  bind:checked={$settingsStore.autoExportFullClass}
-                  onchange={refreshCode}
-                  class="{ui.checkbox} peer"
+                  id="class-name-input"
+                  type="text"
+                  bind:value={sequentialClassName}
+                  oninput={refreshCode}
+                  class="{ui.inputSm} min-w-[150px]"
+                  placeholder="AutoPath"
                 />
               </div>
-              <span>Generate Full Class</span>
-            </label>
+            {/if}
+
+            <!-- Set in the Field tab; shown here so the code below makes sense. -->
+            <div class="flex flex-col gap-1.5" data-testid="mirroring-status">
+              <span class={ui.heading}> Alliance </span>
+              <span
+                class="text-sm text-neutral-700 dark:text-neutral-300 py-1.5"
+                title="Set per project in the Field tab, under Alliance Selection & Path Mirroring."
+              >
+                {allianceStatus}
+                <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                  >(Field tab)</span
+                >
+              </span>
+            </div>
+
+            <!-- Options disclosure -->
+            <div class="ml-auto flex items-center">
+              <button
+                type="button"
+                onclick={() => (optionsOpen = !optionsOpen)}
+                class="{ui.btnSm.ghost} shrink-0"
+                title="{optionsShown ? 'Hide' : 'Show'} export options"
+                aria-expanded={optionsShown}
+                aria-controls="export-options"
+              >
+                <ChevronDownIcon
+                  className="size-3 transition-transform duration-200 {optionsShown
+                    ? 'rotate-0'
+                    : '-rotate-90'}"
+                  strokeWidth={2.5}
+                />
+                <span class={ui.heading}>Options</span>
+              </button>
+            </div>
+          </div>
+
+          {#if optionsShown}
+            <div
+              id="export-options"
+              class="grid gap-x-6 gap-y-5 sm:grid-cols-2"
+              transition:fade={{ duration: 150 }}
+            >
+              <!-- Package Name Input -->
+              <div class="flex flex-col gap-1.5">
+                <label for="package-name-input" class={ui.heading}>
+                  Package Name
+                </label>
+                <input
+                  id="package-name-input"
+                  type="text"
+                  bind:value={$settingsStore.javaPackageName}
+                  onkeydown={handlePackageKeydown}
+                  oninput={refreshCode}
+                  class="{ui.inputSm} w-full font-mono"
+                  placeholder={DEFAULT_PACKAGE}
+                />
+              </div>
+
+              {#if exportFormat === "java"}
+                <!-- Command Registrar Input -->
+                <div class="relative flex flex-col gap-1.5">
+                  <label for="command-registrar-input" class={ui.heading}>
+                    Command Registrar (optional)
+                  </label>
+                  <input
+                    id="command-registrar-input"
+                    type="text"
+                    bind:value={$settingsStore.commandRegistrar}
+                    oninput={refreshCode}
+                    class="{ui.inputSm} w-full font-mono"
+                    placeholder="org.firstinspires.ftc.teamcode.RobotCommands.register"
+                    title="A method of yours that registers your named commands. The code calls it with hardwareMap when the path uses event markers."
+                  />
+                  <!-- One line in the row gap, so showing it moves nothing. -->
+                  {#if $settingsStore.commandRegistrar?.trim() && !commandRegistrarMethod($settingsStore.commandRegistrar)}
+                    <p
+                      class="absolute left-0 right-0 top-full truncate pt-1 text-xs leading-4 text-red-600 dark:text-red-400"
+                    >
+                      Use a class and method, like RobotCommands.register
+                    </p>
+                  {:else if registrarSummary}
+                    <p
+                      class="absolute left-0 right-0 top-full truncate pt-1 text-xs leading-4 text-neutral-600 dark:text-neutral-400"
+                      data-testid="registrar-summary"
+                      title="{registrarSummary.call} is written with its full class name, so it needs no import."
+                    >
+                      Adds <code class="font-mono"
+                        >{registrarSummary.short}</code
+                      >
+                      to {registrarSummary.where} when the path has event markers.
+                    </p>
+                  {/if}
+                </div>
+              {/if}
+
+              <!-- Code Units -->
+              <div class="flex flex-col gap-1.5">
+                <span class={ui.heading}> Code Units </span>
+                <div class="flex gap-4" role="radiogroup">
+                  <label class={ui.checkLabel}>
+                    <input
+                      type="radio"
+                      name="codeUnits"
+                      value="imperial"
+                      bind:group={$settingsStore.codeUnits}
+                      onchange={refreshCode}
+                      class={ui.checkbox}
+                    />
+                    <span>Imperial (Inches)</span>
+                  </label>
+                  <label class={ui.checkLabel}>
+                    <input
+                      type="radio"
+                      name="codeUnits"
+                      value="metric"
+                      bind:group={$settingsStore.codeUnits}
+                      onchange={refreshCode}
+                      class={ui.checkbox}
+                    />
+                    <span>Metric (cm)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Checkboxes -->
+              <div class="flex flex-col gap-2 sm:justify-end">
+                {#if exportFormat === "java"}
+                  <label
+                    class={ui.checkLabel}
+                    aria-label="Export full Java class with imports"
+                  >
+                    <div class="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        bind:checked={$settingsStore.autoExportFullClass}
+                        onchange={refreshCode}
+                        class="{ui.checkbox} peer"
+                      />
+                    </div>
+                    <span>Generate Full Class</span>
+                  </label>
+                {:else}
+                  <label
+                    class={ui.checkLabel}
+                    aria-label="Embed pose data directly in the code"
+                  >
+                    <div class="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        bind:checked={$settingsStore.autoExportEmbedPoseData}
+                        onchange={refreshCode}
+                        class="{ui.checkbox} peer"
+                      />
+                    </div>
+                    <span>Embed Pose Data in Code</span>
+                  </label>
+                {/if}
+              </div>
+            </div>
           {/if}
 
-          {#if exportFormat === "java" || exportFormat === "sequential" || exportFormat === "points"}
-            <div class="flex flex-col gap-1.5 mt-2">
-              <span class={ui.heading}> Code Units </span>
-              <div class="flex gap-2" role="radiogroup">
-                <label class={ui.checkLabel}>
-                  <input
-                    type="radio"
-                    name="codeUnits"
-                    value="imperial"
-                    bind:group={$settingsStore.codeUnits}
-                    onchange={refreshCode}
-                    class={ui.checkbox}
-                  />
-                  <span>Imperial (Inches)</span>
-                </label>
-                <label class={ui.checkLabel}>
-                  <input
-                    type="radio"
-                    name="codeUnits"
-                    value="metric"
-                    bind:group={$settingsStore.codeUnits}
-                    onchange={refreshCode}
-                    class={ui.checkbox}
-                  />
-                  <span>Metric (cm)</span>
-                </label>
-              </div>
+          {#if (writesKotlin && exportedCode.includes("has no Kotlin export yet")) || (exportFormat === "sequential" && selectedLibrary.experimental) || metricNeedsPoses}
+            <div class="flex flex-wrap gap-3">
+              {#if writesKotlin && exportedCode.includes("has no Kotlin export yet")}
+                <div
+                  class="{ui.alert.warning} flex items-center gap-2"
+                  role="alert"
+                >
+                  <TriangleWarningIcon className="size-4 shrink-0" />
+                  <span
+                    >Some steps come from plugins that can't write Kotlin yet;
+                    they're left as TODO comments.</span
+                  >
+                </div>
+              {/if}
+              {#if exportFormat === "sequential" && selectedLibrary.experimental}
+                <div
+                  class="{ui.alert.warning} flex items-center gap-2"
+                  role="alert"
+                >
+                  <TriangleWarningIcon className="size-4 shrink-0" />
+                  <span
+                    >{selectedLibrary.label} output is
+                    <strong>experimental</strong>.</span
+                  >
+                </div>
+              {/if}
+              {#if metricNeedsPoses}
+                <div
+                  class="{ui.alert.warning} flex items-center gap-2"
+                  role="alert"
+                >
+                  <TriangleWarningIcon className="size-4 shrink-0" />
+                  <span
+                    >Metric code generation requires embedding poses. Please
+                    enable 'Embed Pose Data'.</span
+                  >
+                </div>
+              {/if}
             </div>
           {/if}
         </div>

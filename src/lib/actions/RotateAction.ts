@@ -16,7 +16,7 @@ import { stationaryMarkerElements } from "./stationaryMarkers";
 import { calculateRotationTime, unwrapAngle } from "../../utils/timeCalculator";
 import { makeId } from "../../utils/nameGenerator";
 import { commandsForContext } from "../exporters/commandLibraries";
-import { stateCase } from "../exporters/javaFormat";
+import { mirroredHeading, stateCase } from "../exporters/javaFormat";
 
 /**
  * How close (radians) the robot has to face the heading for a turn to be done:
@@ -31,6 +31,15 @@ const TURN_TOLERANCE = 0.01;
  */
 const facing = (radians: string) =>
   `Math.abs(com.pedropathing.utils.Angle.error(follower.pose().heading(), ${radians})) < ${TURN_TOLERANCE}`;
+
+/** The turn's heading in radians, mirrored through `ctx` when the export mirrors. */
+function targetHeading(item: SequenceItem, context: CodeExportContext): string {
+  const degrees = (item as SequenceRotateItem).degrees || 0;
+  return mirroredHeading(
+    ((degrees * Math.PI) / 180).toFixed(3),
+    context.allianceMirroring,
+  );
+}
 
 /** A new turn to 0°. */
 export const createRotate = (): SequenceRotateItem => ({
@@ -93,23 +102,21 @@ export const RotateAction: ActionDefinition = {
     item: SequenceItem,
     context: CodeExportContext,
   ): JavaCodeResult => {
-    const rotateItem = item as SequenceRotateItem;
-    const degrees = rotateItem.degrees || 0;
-    const radians = (degrees * Math.PI) / 180;
+    const radians = targetHeading(item, context);
     const stateStep = context.stateStep || 0;
     const { language } = context;
 
     const code =
       stateCase(
         stateStep,
-        `follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
+        `follower.hold(follower.pose().withHeading(${radians}));
           follower.algorithm().reset();
           setPathState(${stateStep + 1});`,
         language,
       ) +
       stateCase(
         stateStep + 1,
-        `if(${facing(radians.toFixed(3))}) {
+        `if(${facing(radians)}) {
             setPathState(${stateStep + 2});
           }`,
         language,
@@ -126,14 +133,13 @@ export const RotateAction: ActionDefinition = {
     context: CodeExportContext,
   ): string => {
     const rotateItem = item as SequenceRotateItem;
-    const degrees = rotateItem.degrees || 0;
-    const radians = (degrees * Math.PI) / 180;
+    const radians = targetHeading(item, context);
     const commands = commandsForContext(context);
     // Resetting the algorithm restarts its hold, so the robot holds the new
     // heading rather than the end of the last path.
-    const holdHeading = `follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
+    const holdHeading = `follower.hold(follower.pose().withHeading(${radians}));
                         follower.algorithm().reset();`;
-    const waitForStop = commands.waitUntil(facing(radians.toFixed(3)));
+    const waitForStop = commands.waitUntil(facing(radians));
 
     const markers = (rotateItem.eventMarkers ?? []).toSorted(
       (a, b) => (a.position || 0) - (b.position || 0),
@@ -149,7 +155,7 @@ export const RotateAction: ActionDefinition = {
     const firstMarker = markers[0];
     let turnBody = `{
                         ${holdHeading}
-                        tracker.turn(${radians.toFixed(3)}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
+                        tracker.turn(${radians}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
 
     // Register remaining markers
     for (let i = 1; i < markers.length; i++) {

@@ -327,6 +327,12 @@ interface Settings {
    */
   pedroConstantsClass?: string;
   pedroFollowerFactory?: string;
+  /**
+   * The team's method (full class and method name) that registers their named
+   * commands. Exported code calls it with the hardware map before the first
+   * command is looked up. Empty: the exported code registers nothing.
+   */
+  commandRegistrar?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
   squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
@@ -370,6 +376,12 @@ interface Settings {
   codeLanguage?: CodeLanguage;
   autoExportFullClass?: boolean;
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
+  /**
+   * How this season's field maps one alliance's half onto the other's, for
+   * exports that mirror. Whether a path mirrors, and which alliance it is
+   * drawn for, is saved with each project (see exporters/allianceMirroring).
+   */
+  exportMirrorAxes?: "BOTH" | "X" | "Y";
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   lockFieldView?: boolean;
@@ -956,6 +968,12 @@ interface CodeExportContext {
   isNextFTC?: boolean;
   targetLibrary?: CommandLibraryId; // For sequential generation target
   language?: CodeLanguage;
+  /**
+   * The export mirrors for the alliance (TurtleTracerLib's auto selector): a
+   * `ctx` AutoContext is in scope, and any pose or heading an action writes
+   * should go through `ctx.pose(...)` or `ctx.heading(...)`.
+   */
+  allianceMirroring?: boolean;
 }
 
 interface JavaCodeResult {

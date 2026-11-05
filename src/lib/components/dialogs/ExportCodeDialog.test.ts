@@ -8,6 +8,7 @@ vi.mock("../../../stores", async () => {
   return {
     notification: { show: vi.fn() },
     currentFilePath: svelteStore.writable(null),
+    isUnsaved: svelteStore.writable(false),
   };
 });
 
@@ -16,6 +17,7 @@ vi.mock("../../projectStore", async () => {
   const defaults = await import("../../../config/defaults");
   return {
     settingsStore: svelteStore.writable(defaults.DEFAULT_SETTINGS),
+    extraDataStore: svelteStore.writable({}),
   };
 });
 

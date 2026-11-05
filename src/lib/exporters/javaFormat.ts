@@ -68,7 +68,85 @@ export type FormatOptions = {
   codeUnits: CodeUnits;
   /** Java when missing. */
   language?: CodeLanguage;
+  /**
+   * Alliance mirroring: every pose and heading written into the code goes
+   * through the `ctx` AutoContext variable, so it is mirrored when the driver
+   * picks the other alliance.
+   */
+  mirror?: boolean;
 };
+
+/**
+ * The TurtleTracerLib classes mirrored code uses (Java form, without
+ * semicolons): the alliance enum, the AutoContext that carries the driver's
+ * choices, the mirror policy it sets on it, and AutoSelection, which it
+ * records the result in.
+ */
+export const MIRRORING_IMPORTS = [
+  "import com.turtletracerlib.auto.Alliance",
+  "import com.turtletracerlib.auto.AutoContext",
+  "import com.turtletracerlib.auto.AutoSelection",
+  "import com.turtletracerlib.auto.MirrorPolicy",
+];
+
+/**
+ * The TurtleTracerLib classes an auto that only records its alliance uses
+ * (Java form, without semicolons): one drawn for an alliance, not mirrored.
+ */
+export const RECORD_ALLIANCE_IMPORTS = [
+  "import com.turtletracerlib.auto.Alliance",
+  "import com.turtletracerlib.auto.AutoSelection",
+];
+
+/** "red" or "blue", for comments. */
+const allianceWord = (drawnFor: string) =>
+  drawnFor === "BLUE" ? "blue" : "red";
+
+/**
+ * The statement that tells TurtleTracerLib an auto that isn't mirrored runs
+ * for its own alliance and never mirrors, so TeleOp can read both from
+ * AutoSelection.
+ */
+export function recordAllianceCode(drawnFor: string, kotlin: boolean): string {
+  return `// Drawn for the ${allianceWord(drawnFor)} alliance and never mirrored. TeleOp can read both from AutoSelection.
+        AutoSelection.record(Alliance.${drawnFor}, false)${kotlin ? "" : ";"}`;
+}
+
+/**
+ * The statement a mirrored auto records what its context decided with: the
+ * alliance it runs for and whether it is mirrored, for TeleOp.
+ */
+export function recordContextCode(kotlin: boolean): string {
+  return `AutoSelection.record(ctx)${kotlin ? "" : ";"} // The alliance it runs for, and whether it's mirrored, for TeleOp`;
+}
+
+/**
+ * The mirror policy a class says it has in its @TurtleAuto, so the auto
+ * selector's menu shows what the code will do: following the alliance when
+ * it mirrors, never otherwise.
+ */
+export function annotationMirrorArgs(mirror: boolean): string {
+  return `, mirror = MirrorPolicy.${mirror ? "FOLLOW_ALLIANCE" : "NEVER"}, overrideMirror = true`;
+}
+
+/**
+ * The `ctx` a mirrored class works with: the driver's choices, for paths
+ * drawn for `drawnFor`. Each project says which alliance it is drawn for, so
+ * each decides for itself whether it is mirrored.
+ */
+export function contextForDrawnFor(drawnFor: string): string {
+  return `autoContext.drawnFor(Alliance.${drawnFor}).mirroring(MirrorPolicy.FOLLOW_ALLIANCE)`;
+}
+
+/** A Pose expression, mirrored through `ctx` when the export mirrors. */
+export function mirroredPose(code: string, mirror?: boolean): string {
+  return mirror ? `ctx.pose(${code})` : code;
+}
+
+/** A heading expression in radians, mirrored through `ctx` when the export mirrors. */
+export function mirroredHeading(code: string, mirror?: boolean): string {
+  return mirror ? `ctx.heading(${code})` : code;
+}
 
 /**
  * A number for a `double` parameter. Java widens `90` itself; Kotlin
@@ -174,16 +252,25 @@ export function poseCode(
   if (opts.coordinateSystem === "FTC") {
     const u = toUser(pt, "FTC");
     const heading = toUserHeading(degrees ?? 0, "FTC").toFixed(3);
-    return `buildPose(${javaLength(u.x, codeUnits)}, ${javaLength(u.y, codeUnits)}, ${heading})`;
+    return mirroredPose(
+      `buildPose(${javaLength(u.x, codeUnits)}, ${javaLength(u.y, codeUnits)}, ${heading})`,
+      opts.mirror,
+    );
   }
   const heading = degrees === undefined ? "0.0" : degrees.toFixed(3);
-  return `p.of(${javaLength(pt.x, codeUnits)}, ${javaLength(pt.y, codeUnits)}, ${heading})`;
+  return mirroredPose(
+    `p.of(${javaLength(pt.x, codeUnits)}, ${javaLength(pt.y, codeUnits)}, ${heading})`,
+    opts.mirror,
+  );
 }
 
 export function angleCode(degrees: number, opts: FormatOptions): string {
-  return opts.coordinateSystem === "FTC"
-    ? `Math.toRadians(${toUserHeading(degrees, "FTC").toFixed(3)})`
-    : `Math.toRadians(${doubleCode(degrees, opts.language)})`;
+  return mirroredHeading(
+    opts.coordinateSystem === "FTC"
+      ? `Math.toRadians(${toUserHeading(degrees, "FTC").toFixed(3)})`
+      : `Math.toRadians(${doubleCode(degrees, opts.language)})`,
+    opts.mirror,
+  );
 }
 
 /**

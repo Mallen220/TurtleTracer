@@ -331,8 +331,15 @@ export class PathOptimizer {
         eventIdx++;
       }
       const event = events[eventIdx];
-      const pose = robotPoseDuring(event, t, lines, this.startPoint);
+      let pose = robotPoseDuring(event, t, lines, this.startPoint);
       if (!pose) continue;
+
+      // Round a bend too fast to follow it, the robot runs wide of the path.
+      const wide = event.excursion;
+      const sinceWide = wide ? t - event.startTime - wide.startTime : -1;
+      const offPath =
+        event.type === "recovery" ||
+        (wide !== undefined && sinceWide >= 0 && sinceWide <= wide.duration);
 
       // Only the field edge is skipped near the start: obstacles and keep-in
       // zones are checked all the way along.
@@ -343,7 +350,25 @@ export class PathOptimizer {
       const clearOfStart =
         distToStart > startClearance * (event.lineIndex === 0 ? 1.5 : 1);
 
-      const type = this.collisionAt(pose, checkBoundaries && clearOfStart);
+      let type = this.collisionAt(pose, checkBoundaries && clearOfStart);
+      // Where the robot swings off the path it may clear what the path itself
+      // runs through. The path is what is drawn, so it must not hit anything
+      // either: that is a collision for certain, not an estimate of one.
+      let swing = offPath;
+      if (event.type === "travel" && offPath) {
+        const drawn = robotPoseDuring(
+          { ...event, excursion: undefined },
+          t,
+          lines,
+          this.startPoint,
+        );
+        const drawnType = drawn && this.collisionAt(drawn, false);
+        if (drawn && drawnType) {
+          type = drawnType;
+          pose = drawn;
+          swing = false;
+        }
+      }
       if (!type) {
         if (current) markers.push(current);
         current = null;
@@ -355,16 +380,10 @@ export class PathOptimizer {
         event.type === "travel" || event.type === "recovery"
           ? event.lineIndex
           : undefined;
-      // Off the path at a corner, or round a bend too fast to follow it.
-      const wide = event.excursion;
-      const sinceWide = wide ? t - event.startTime - wide.startTime : -1;
-      const offPath =
-        event.type === "recovery" ||
-        (wide !== undefined && sinceWide >= 0 && sinceWide <= wide.duration);
       if (
         current?.type === type &&
         current.segmentEndIndex === segment &&
-        !!current.offPath === offPath
+        !!current.offPath === swing
       ) {
         current.endTime = t;
         current.endX = pose.x;
@@ -377,7 +396,7 @@ export class PathOptimizer {
           time: t,
           segmentIndex: segment,
           type,
-          ...(offPath ? { offPath } : {}),
+          ...(swing ? { offPath: true } : {}),
           endTime: t,
           endX: pose.x,
           endY: pose.y,
