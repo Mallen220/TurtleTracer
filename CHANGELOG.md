@@ -1,6 +1,6 @@
 ## 2.7.0 (2026-11-04)
 
-- Add alliance mirroring support (Requires TurtleTracerLib 3.1.x+). This lets users remember alliance from Auto->TeleOp and use one OpMode for all their autos with an AutoChooser. Teams that already have a solution their happy with don't need to use this, it's totally optional but they should still upgrade. Add configurable command registrar export for OP Modes. Add control points and paths where the mouse is. Added the T value to the field page. Bump the node versions. 
+- Add alliance mirroring support (Requires TurtleTracerLib 3.1.x+). This lets users remember alliance from Auto->TeleOp and use one OpMode for all their autos with an AutoChooser. Teams that already have a solution their happy with don't need to use this, it's totally optional but they should still upgrade. Add configurable command registrar export for OP Modes. Add control points and paths where the mouse is. Added the T value to the field page. Bump the node versions.
 
 ## 2.6.1 (2026-10-27)
 
