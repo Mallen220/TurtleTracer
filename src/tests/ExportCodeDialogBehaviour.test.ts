@@ -266,6 +266,24 @@ describe("the sequential command class name", () => {
     await waitFor(() => expect(classInput().value).toBe("MyAuto"));
   });
 
+  it("names the plain Java export after the current project, not an earlier one", async () => {
+    const exporter = javaExporter();
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      description: "",
+      exportCode: exporter,
+    });
+    const { open } = mount();
+    currentFilePath.set("/p/first.turt");
+    await open("java");
+    expect((exporter.mock.calls.at(-1) as any[])[1].fileName).toBe("first");
+
+    currentFilePath.set("/p/second.turt");
+    await open("java");
+    expect((exporter.mock.calls.at(-1) as any[])[1].fileName).toBe("second");
+  });
+
   it("switches library and regenerates", async () => {
     const exporter = sequential();
     const { open } = mount();

@@ -159,16 +159,14 @@
       .replaceAll(/[^a-zA-Z0-9]/g, "_");
   }
 
-  // Follow the file name, unless the user has typed their own class name.
+  // Follow the open project's file name, unless the user has typed their own
+  // class name. (Following only while the name was still the default left the
+  // previous project's name in place after switching projects.)
+  let classNameTyped = false;
   $effect(() => {
-    if (!$currentFilePath) return;
+    if (classNameTyped || !$currentFilePath) return;
     const baseName = classNameFor($currentFilePath);
-    if (
-      baseName &&
-      (sequentialClassName === "AutoPath" || sequentialClassName === baseName)
-    ) {
-      sequentialClassName = baseName;
-    }
+    if (baseName) sequentialClassName = baseName;
   });
 
   async function handlePackageKeydown(event: KeyboardEvent) {
@@ -250,7 +248,10 @@
     searchMatches = [];
     currentMatchIndex = -1;
 
-    if (format === "sequential" && $currentFilePath) {
+    // Every format names its class after the project, so start from it each
+    // time the dialog opens.
+    classNameTyped = false;
+    if ($currentFilePath) {
       sequentialClassName =
         classNameFor($currentFilePath) || sequentialClassName;
     }
@@ -622,7 +623,10 @@
                   id="class-name-input"
                   type="text"
                   bind:value={sequentialClassName}
-                  oninput={refreshCode}
+                  oninput={() => {
+                    classNameTyped = true;
+                    refreshCode();
+                  }}
                   class="{ui.inputSm} min-w-[150px]"
                   placeholder="AutoPath"
                 />
