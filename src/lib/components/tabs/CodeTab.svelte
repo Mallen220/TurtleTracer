@@ -160,7 +160,7 @@
         if (exporter) {
           const settingsObj = {
             ...settings,
-            fileName: null,
+            fileName: get(currentFilePath),
             exportFullCode: settings.autoExportFullClass ?? true,
             packageName: settings.javaPackageName,
             telemetryImpl: settings.telemetryImplementation,
@@ -281,6 +281,7 @@
     $state.snapshot(settings);
     // The project's alliance mirroring is kept in its extraData.
     $extraDataStore;
+    $currentFilePath;
     format;
     targetLibrary;
 
