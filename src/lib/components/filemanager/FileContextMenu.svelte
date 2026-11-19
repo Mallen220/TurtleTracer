@@ -13,10 +13,12 @@
     ArrowCircleIcon,
     TrashIcon,
     ChevronRightIcon,
+    FolderIcon,
   } from "../icons";
   import { ui } from "../../ui";
   import { customExportersStore } from "../../pluginsStore";
   import { isSupportedProjectFileName } from "../../../utils/fileExtensions";
+  import { isMac } from "../../../utils/platform";
 
   interface Props {
     x: number;
@@ -25,6 +27,8 @@
     isDirectory?: boolean;
     /** False hides Rename and Delete, for folders that can't be changed. */
     canChange?: boolean;
+    /** True when the file is on this device, so it can be shown in the system file manager. */
+    canReveal?: boolean;
     /** Above 1: the menu acts on that many files, with Open, Rename and Save Current on the primary. */
     selectionCount?: number;
     primaryName?: string;
@@ -38,6 +42,7 @@
         | "mirror"
         | "reverse"
         | "save-to"
+        | "reveal"
         | `export:${string}`,
     ) => void;
   }
@@ -48,6 +53,7 @@
     fileName,
     isDirectory = false,
     canChange = true,
+    canReveal = false,
     selectionCount = 1,
     primaryName = "",
     onclose,
@@ -70,6 +76,12 @@
     ],
     $customExportersStore.map((e) => [`custom:${e.name}`, e.name]),
   ]);
+
+  const fileManagerName = isMac
+    ? "Finder"
+    : /Win/.test(navigator.platform)
+      ? "File Explorer"
+      : "File Manager";
 
   const many = $derived(selectionCount > 1);
   const all = $derived(many ? " All" : "");
@@ -129,6 +141,17 @@
         >{primaryName}</span
       >{/if}
   </button>
+
+  {#if canReveal}
+    <button onclick={() => onaction?.("reveal")} class={ui.menuItem}>
+      <FolderIcon className="size-4" />
+      Show in {fileManagerName}
+      {#if many}<span
+          class="ml-auto truncate max-w-[80px] text-xs font-normal text-neutral-400"
+          >{primaryName}</span
+        >{/if}
+    </button>
+  {/if}
 
   {#if !isDirectory}
     <button onclick={() => onaction?.("save-to")} class={ui.menuItem}>

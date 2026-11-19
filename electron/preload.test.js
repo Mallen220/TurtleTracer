@@ -66,6 +66,7 @@ describe("preload.js", () => {
       api.writeFile("file.txt", "content"),
       api.deleteFile("file.txt"),
       api.fileExists("file.txt"),
+      api.revealFile("file.txt"),
       api.resolvePath("base", "rel"),
       api.makeRelativePath("base", "tgt"),
       api.getDirectorySettings(),

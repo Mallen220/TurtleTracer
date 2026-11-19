@@ -1027,6 +1027,8 @@
         return duplicateFiles(targets, action);
       case "save-to":
         return saveCurrentToFile(primary);
+      case "reveal":
+        return void electronAPI?.revealFile?.(primary.path);
     }
     if (action.startsWith("export:")) {
       return many

@@ -1143,6 +1143,9 @@ export interface ElectronAPI {
   createDirectory?: (dirPath: string) => Promise<boolean>;
   getDirectoryStats?: (dirPath: string) => Promise<any>;
 
+  // Show a file or folder in Finder / File Explorer / the file manager
+  revealFile?: (filePath: string) => Promise<boolean>;
+
   // Rename operation
   renameFile?: (
     oldPath: string,

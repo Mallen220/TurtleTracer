@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { ipcMain, BrowserWindow, dialog } from "electron";
+import { ipcMain, BrowserWindow, dialog, shell } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { isProjectFilePath, validateArbitraryPath } from "../utils.js";
@@ -188,6 +188,11 @@ export function registerFileHandlers() {
       console.error("Error deleting file:", error);
       throw error;
     }
+  });
+
+  ipcMain.handle("file:reveal", (event, filePath) => {
+    shell.showItemInFolder(validateArbitraryPath(filePath));
+    return true;
   });
 
   ipcMain.handle("file:exists", async (event, filePath) => {
