@@ -41,6 +41,7 @@
     startTutorial,
     exportDialogState,
     exportSwap,
+    exportCycle,
     selectedPointId,
     selectedLineId,
     showFileManager,
@@ -87,7 +88,8 @@
   import { applyTheme, applyFontSize } from "./lib/appearance";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
-  import { endExportSwap } from "./utils/exportFromFile";
+  import { advanceExportCycle, endExportSwap } from "./utils/exportFromFile";
+  import BatchProgressDialog from "./lib/components/dialogs/BatchProgressDialog.svelte";
   import {
     chooseSaveFolder,
     saveProject,
@@ -608,7 +610,12 @@
       exportCodeOpen
     )
       exportShown = true;
-    else if (exportShown) endExportSwap();
+    else if (exportShown) {
+      exportShown = false;
+      // Several files: closing a dialog (Next, X, Escape) moves on to the next.
+      if ($exportCycle) advanceExportCycle();
+      else endExportSwap();
+    }
   });
 
   $effect(() => {
@@ -809,6 +816,7 @@
 />
 
 <DialogHost />
+<BatchProgressDialog />
 <FeedbackDialog />
 <RatingDialog />
 

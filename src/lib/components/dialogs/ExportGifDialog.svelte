@@ -20,9 +20,13 @@
   } from "../../../utils/animationExportPlan";
   import { CloseIcon, PhotoIcon } from "../icons";
   import { saveBlob } from "../../../utils/file";
+  import type { BatchOutput } from "../../../utils/batchExport";
   import type Two from "two.js";
   import type { AnimationController } from "../../../utils/animation";
   import type { Settings } from "../../../types";
+  import ExportCycleActions from "./ExportCycleActions.svelte";
+  import ExportFileLabel from "./ExportFileLabel.svelte";
+  import { exportCycle } from "../../../stores";
   import { ui } from "../../ui";
 
   let format: "gif" | "apng" = $state("gif");
@@ -183,6 +187,23 @@
     }
   }
 
+  /** For Run as Batch: the animation of the file that is open now. */
+  export async function exportForBatch(
+    signal: AbortSignal,
+    onProgress: (fraction: number) => void,
+  ): Promise<BatchOutput> {
+    duration = animationController.getDuration();
+    const options = { ...exportOptions(signal), onProgress };
+    const blob =
+      format === "gif"
+        ? await exportPathToGif(options)
+        : await exportPathToApng(options);
+    return {
+      suffix: `.${format === "gif" ? "gif" : "png"}`,
+      data: blob,
+    };
+  }
+
   async function downloadAnimation() {
     if (!previewBlob) {
       await generatePreview();
@@ -337,9 +358,10 @@
           class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Animation
+          <ExportFileLabel />
         </h2>
         <button
-          title="Close"
+          title={$exportCycle ? "Skip this file" : "Close"}
           class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           onclick={close}
           aria-label="Close"
@@ -530,23 +552,35 @@
 
       <!-- Footer -->
       <div class="{ui.dialogFooter} justify-end">
-        <button class={ui.btn.ghost} onclick={handleCancel}> Cancel </button>
+        {#if $exportCycle}
+          <ExportCycleActions
+            exporter={exportForBatch}
+            onclose={close}
+            onaction={downloadAnimation}
+            disabled={status === "generating"}
+            >{previewUrl
+              ? "Download / Save"
+              : "Generate & Save"}</ExportCycleActions
+          >
+        {:else}
+          <button class={ui.btn.ghost} onclick={handleCancel}> Cancel </button>
 
-        <button
-          class={ui.btn.secondary}
-          onclick={generatePreview}
-          disabled={status === "generating"}
-        >
-          {previewUrl ? "Regenerate Preview" : "Generate Preview"}
-        </button>
+          <button
+            class={ui.btn.secondary}
+            onclick={generatePreview}
+            disabled={status === "generating"}
+          >
+            {previewUrl ? "Regenerate Preview" : "Generate Preview"}
+          </button>
 
-        <button
-          class={ui.btn.primary}
-          onclick={downloadAnimation}
-          disabled={status === "generating"}
-        >
-          {previewUrl ? "Download / Save" : "Generate & Save"}
-        </button>
+          <button
+            class={ui.btn.primary}
+            onclick={downloadAnimation}
+            disabled={status === "generating"}
+          >
+            {previewUrl ? "Download / Save" : "Generate & Save"}
+          </button>
+        {/if}
       </div>
     </div>
   </div>

@@ -25,6 +25,9 @@
     isDirectory?: boolean;
     /** False hides Rename and Delete, for folders that can't be changed. */
     canChange?: boolean;
+    /** Above 1: the menu acts on that many files, with Open, Rename and Save Current on the primary. */
+    selectionCount?: number;
+    primaryName?: string;
     onclose?: () => void;
     onaction?: (
       action:
@@ -45,6 +48,8 @@
     fileName,
     isDirectory = false,
     canChange = true,
+    selectionCount = 1,
+    primaryName = "",
     onclose,
     onaction,
   }: Props = $props();
@@ -65,6 +70,9 @@
     ],
     $customExportersStore.map((e) => [`custom:${e.name}`, e.name]),
   ]);
+
+  const many = $derived(selectionCount > 1);
+  const all = $derived(many ? " All" : "");
 
   let exportOpen = $state(false);
   let exportButton: HTMLButtonElement | undefined = $state();
@@ -108,20 +116,28 @@
   tabindex="-1"
 >
   <div
-    class="px-3 py-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 mb-1 truncate max-w-[200px]"
+    class="px-3 py-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 mb-1 truncate max-w-[260px]"
   >
-    {fileName}
+    {many ? `${selectionCount} files · primary: ${primaryName}` : fileName}
   </div>
 
   <button onclick={() => onaction?.("open")} class={ui.menuItem}>
     <ArrowRightIcon className="size-4" />
     Open
+    {#if many}<span
+        class="ml-auto truncate max-w-[80px] text-xs font-normal text-neutral-400"
+        >{primaryName}</span
+      >{/if}
   </button>
 
   {#if !isDirectory}
     <button onclick={() => onaction?.("save-to")} class={ui.menuItem}>
       <ArrowDownTrayIcon className="size-4" />
       Save Current to File
+      {#if many}<span
+          class="ml-auto truncate max-w-[80px] text-xs font-normal text-neutral-400"
+          >{primaryName}</span
+        >{/if}
     </button>
   {/if}
   {#if canChange}
@@ -130,25 +146,29 @@
     <button onclick={() => onaction?.("rename")} class={ui.menuItem}>
       <PenIcon className="size-4" strokeWidth={1.5} />
       Rename
+      {#if many}<span
+          class="ml-auto truncate max-w-[80px] text-xs font-normal text-neutral-400"
+          >{primaryName}</span
+        >{/if}
     </button>
   {/if}
 
   {#if !isDirectory}
     <button onclick={() => onaction?.("duplicate")} class={ui.menuItem}>
       <DocumentIcon className="size-4" strokeWidth={1.5} />
-      Duplicate
+      Duplicate{all}
     </button>
 
     <button onclick={() => onaction?.("mirror")} class={ui.menuItem}>
       <!-- Need to flip vertically or similar for Mirror vs Reverse, we'll use ArrowCircleIcon or reverse its scale.
       <!-- Since ArrowCircleIcon is symmetrical, we'll just use it for both for now to replace SVG, or ArrowRightIcon -->
       <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
-      Mirror Copy
+      Mirror Copy{all}
     </button>
 
     <button onclick={() => onaction?.("reverse")} class={ui.menuItem}>
       <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
-      Reverse Copy
+      Reverse Copy{all}
     </button>
   {/if}
   {#if !isDirectory && isSupportedProjectFileName(fileName)}
@@ -169,7 +189,7 @@
         onkeydown={onExportKey}
       >
         <ArrowDownTrayIcon className="size-4" />
-        Export
+        Export{all}
         <ChevronRightIcon className="size-4 ml-auto" />
       </button>
       {#if exportOpen}
@@ -201,7 +221,7 @@
 
     <button onclick={() => onaction?.("delete")} class={ui.menuItemDanger}>
       <TrashIcon className="size-4" strokeWidth={1.5} />
-      Delete
+      Delete{all}
     </button>
   {/if}
 </div>

@@ -7,6 +7,8 @@ import type { Point, Line, SequenceItem, Settings } from "../../../types";
 
 // Mock the global stores used by StrategySheetPreview
 vi.mock("../../../stores", () => ({
+  exportSwap: { subscribe: (fn: (v: null) => void) => (fn(null), () => {}) },
+  exportCycle: { subscribe: (fn: (v: null) => void) => (fn(null), () => {}) },
   currentFilePath: {
     subscribe: vi.fn((fn) => {
       fn(String.raw`C:\test\my_project.turt`);

@@ -3,7 +3,7 @@
   import { tick } from "svelte";
   import type { Point, Line, SequenceItem, Settings } from "../../../types";
   import { fade, fly } from "svelte/transition";
-  import { currentFilePath } from "../../../stores";
+  import { currentFilePath, exportCycle } from "../../../stores";
   import { formatTime } from "../../../utils";
   import { DEFAULT_FIELD_MAP } from "../../../config";
   import {
@@ -12,7 +12,10 @@
   } from "../../../utils/coordinates";
   import { extraDataStore } from "../../projectStore";
   import { CloseIcon, DocumentIcon, ArrowDownTrayIcon } from "../icons";
+  import ExportCycleActions from "./ExportCycleActions.svelte";
+  import ExportFileLabel from "./ExportFileLabel.svelte";
   import { ui } from "../../ui";
+  import type { BatchOutput } from "../../../utils/batchExport";
 
   interface Props {
     isOpen?: boolean;
@@ -348,26 +351,51 @@
     globalThis.print();
   }
 
-  async function handleDownloadPdf() {
+  /** The printable sheet as a PDF. */
+  async function sheetPdf(): Promise<Blob | null> {
     // Dynamic import to avoid bundling issues
+    const html2pdf = (await import("html2pdf.js")).default;
+    const printableSheet = document.querySelector(
+      String.raw`.max-w-\[210mm\]`,
+    ) as HTMLElement;
+    if (!printableSheet) return null;
+    return html2pdf()
+      .set(pdfOptions)
+      .from(printableSheet)
+      .outputPdf("blob") as Promise<Blob>;
+  }
+
+  const pdfOptions = {
+    margin: 0,
+    filename: "strategy-sheet.pdf",
+    image: { type: "png", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { format: "a4", orientation: "portrait" },
+  } as any;
+
+  async function handleDownloadPdf() {
     const html2pdf = (await import("html2pdf.js")).default;
     const printableSheet = document.querySelector(
       String.raw`.max-w-\[210mm\]`,
     ) as HTMLElement;
     if (!printableSheet) return;
 
-    const opt = {
-      margin: 0,
-      filename: `${projectName}-strategy-sheet.pdf`,
-      image: { type: "png", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { format: "a4", orientation: "portrait" },
-    } as const;
-
-    html2pdf()
-      .set(opt as any)
+    await html2pdf()
+      .set({ ...pdfOptions, filename: `${projectName}-strategy-sheet.pdf` })
       .from(printableSheet)
       .save();
+    if ($exportCycle) handleClose();
+  }
+
+  /** For Run as Batch: the sheet of the file that is open now, with that file's own notes. */
+  export async function exportForBatch(): Promise<BatchOutput> {
+    await tick(); // the sheet's content follows the swapped-in file
+    renderField();
+    autoResizeTextarea();
+    await tick();
+    const blob = await sheetPdf();
+    if (!blob) throw new Error("The strategy sheet isn't showing");
+    return { suffix: "-strategy-sheet.pdf", data: blob };
   }
 
   function handleClose() {
@@ -480,18 +508,21 @@
           class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Strategy Sheet Preview
+          <ExportFileLabel />
         </h2>
         <div class="flex items-center gap-2">
-          <button onclick={handlePrint} class={ui.btn.secondary}>
-            <DocumentIcon className="size-4" />
-            Print
-          </button>
-          <button onclick={handleDownloadPdf} class={ui.btn.primary}>
-            <ArrowDownTrayIcon className="size-4" />
-            Download PDF
-          </button>
+          {#if !$exportCycle}
+            <button onclick={handlePrint} class={ui.btn.secondary}>
+              <DocumentIcon className="size-4" />
+              Print
+            </button>
+            <button onclick={handleDownloadPdf} class={ui.btn.primary}>
+              <ArrowDownTrayIcon className="size-4" />
+              Download PDF
+            </button>
+          {/if}
           <button
-            title="Close"
+            title={$exportCycle ? "Skip this file" : "Close"}
             onclick={handleClose}
             aria-label="Close"
             class={ui.iconBtn.neutral}
@@ -671,6 +702,16 @@
           </div>
         </div>
       </div>
+
+      {#if $exportCycle}
+        <div class="{ui.dialogFooter} justify-end print:hidden">
+          <ExportCycleActions
+            exporter={exportForBatch}
+            onclose={handleClose}
+            onaction={handleDownloadPdf}>Download PDF</ExportCycleActions
+          >
+        </div>
+      {/if}
     </div>
   </div>
 {/if}

@@ -25,7 +25,7 @@
     SuccessIcon,
     ClipboardIcon,
   } from "../icons/index";
-  import { currentFilePath, exportSwap, notification } from "../../../stores";
+  import { currentFilePath, exportCycle, notification } from "../../../stores";
   import {
     otherAlliance,
     projectAlliance,
@@ -50,12 +50,14 @@
   import { customExportersStore } from "../../pluginsStore";
   import {
     exportAsProjectFile,
-    fileNameOf,
     projectFileJson,
   } from "../../../utils/fileHandlers";
   import { triggerDownload } from "../../../utils/file";
+  import type { BatchOutput } from "../../../utils/batchExport";
   import { getElectronAPI } from "../../../utils/platform";
   import { extraDataStore, settingsStore } from "../../projectStore";
+  import ExportCycleActions from "./ExportCycleActions.svelte";
+  import ExportFileLabel from "./ExportFileLabel.svelte";
   import { ui } from "../../ui";
   import { highlightPoints } from "../../../utils/htmlHighlighter";
 
@@ -325,18 +327,38 @@
     }
   }
 
-  async function handleSaveFile() {
-    // Project data has its own "Download as .turt" button.
-    if (exportFormat === "json") return;
-
+  /** The file name the generated code is saved under, or for a batch a suffix to follow the project's name. */
+  function outputName(batch = false): Pick<BatchOutput, "name" | "suffix"> {
+    if (exportFormat === "json") return { suffix: ".turt" };
     const isJava = exportFormat === "java" || exportFormat === "sequential";
-    let fileName = "generated_code.txt";
     if (isJava) {
       const className = /class\s+(\w+)/.exec(exportedCode)?.[1] ?? "AutoPath";
-      fileName = `${className}.${writesKotlin ? "kt" : "java"}`;
-    } else if (exportFormat === "points") {
-      fileName = "points.txt";
+      return { name: `${className}.${writesKotlin ? "kt" : "java"}` };
     }
+    const file =
+      exportFormat === "points" ? "points.txt" : "generated_code.txt";
+    return batch ? { suffix: `_${file}` } : { name: file };
+  }
+
+  /** For Run as Batch: the code for the file that is open now, with its own class name. */
+  export async function exportForBatch(): Promise<BatchOutput> {
+    classNameTyped = false;
+    if ($currentFilePath) {
+      sequentialClassName =
+        classNameFor($currentFilePath) || sequentialClassName;
+    }
+    await tick(); // the bound project data catches up with the swapped-in file
+    await refreshCode();
+    return { ...outputName(true), data: exportedCode };
+  }
+
+  /** Returns whether the file was written or downloaded. */
+  async function handleSaveFile(): Promise<boolean> {
+    // Project data has its own "Download as .turt" button.
+    if (exportFormat === "json") return false;
+
+    const isJava = exportFormat === "java" || exportFormat === "sequential";
+    const fileName = outputName().name!;
 
     const electronAPI = getElectronAPI();
     if (
@@ -346,7 +368,7 @@
       !electronAPI.writeFile
     ) {
       triggerDownload(exportedCode, "text/plain", fileName);
-      return;
+      return true;
     }
 
     try {
@@ -359,11 +381,23 @@
             ? [{ name: "Java File", extensions: ["java"] }]
             : [{ name: "Text File", extensions: ["txt"] }],
       });
-      if (filePath) await electronAPI.writeFile(filePath, exportedCode);
+      if (!filePath) return false;
+      await electronAPI.writeFile(filePath, exportedCode);
+      return true;
     } catch (err) {
       console.error("Failed to save file:", err);
       alert("Failed to save file: " + (err as Error).message);
+      return false;
     }
+  }
+
+  /** Exporting several files: save this one, then on to the next. */
+  async function saveAndContinue() {
+    const saved =
+      exportFormat === "json"
+        ? await exportAsProjectFile()
+        : await handleSaveFile();
+    if (saved) isOpen = false;
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -669,10 +703,7 @@
             {:else if exportFormat === "custom"}{customExporterName ||
                 "Plugin Output"}
             {:else}Sequential Command{/if}
-            {#if $exportSwap}<span
-                class="font-normal text-neutral-500 dark:text-neutral-400"
-                >· {fileNameOf($currentFilePath ?? "")}</span
-              >{/if}
+            <ExportFileLabel />
           </h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">
             {#if exportFormat === "java"}
@@ -767,6 +798,7 @@
             onclick={() => (isOpen = false)}
             class={ui.iconBtn.neutral}
             aria-label="Close export dialog"
+            title={$exportCycle ? "Skip this file" : "Close"}
           >
             <CloseIcon strokeWidth={2} className="size-5" />
           </button>
@@ -1118,37 +1150,54 @@
           {lineCount} lines generated
         </div>
         <div class="flex gap-3">
-          <button class={ui.btn.ghost} onclick={() => (isOpen = false)}>
-            Close
-          </button>
-
-          {#if exportFormat !== "json"}
-            <button
-              class={ui.btn.secondary}
-              onclick={handleSaveFile}
-              title="Save the generated content to a file"
-              aria-label="Save the generated content to a file"
+          {#if $exportCycle}
+            <ExportCycleActions
+              exporter={exportForBatch}
+              onclose={() => (isOpen = false)}
+              onaction={saveAndContinue}
+              >{exportFormat === "json"
+                ? "Download as .turt"
+                : "Save to File"}</ExportCycleActions
             >
-              <DownloadIcon className="size-4" />
-              Save to File
+          {:else}
+            <button class={ui.btn.ghost} onclick={() => (isOpen = false)}>
+              Close
             </button>
-          {/if}
 
-          {#if exportFormat === "json"}
-            <button class={ui.btn.secondary} onclick={exportAsProjectFile}>
-              <DownloadIcon className="size-4" />
-              Download as .turt
+            {#if exportFormat !== "json"}
+              <button
+                class={ui.btn.secondary}
+                onclick={handleSaveFile}
+                title="Save the generated content to a file"
+                aria-label="Save the generated content to a file"
+              >
+                <DownloadIcon className="size-4" />
+                Save to File
+              </button>
+            {/if}
+
+            {#if exportFormat === "json"}
+              <button class={ui.btn.secondary} onclick={exportAsProjectFile}>
+                <DownloadIcon className="size-4" />
+                Download as .turt
+              </button>
+            {/if}
+            <button
+              class={ui.btn.primary}
+              onclick={handleCopy}
+              disabled={copied}
+            >
+              {#if copied}
+                <SuccessIcon
+                  className="size-4 animate-in zoom-in duration-200"
+                />
+                Copied!
+              {:else}
+                <ClipboardIcon className="size-4" />
+                Copy Code
+              {/if}
             </button>
           {/if}
-          <button class={ui.btn.primary} onclick={handleCopy} disabled={copied}>
-            {#if copied}
-              <SuccessIcon className="size-4 animate-in zoom-in duration-200" />
-              Copied!
-            {:else}
-              <ClipboardIcon className="size-4" />
-              Copy Code
-            {/if}
-          </button>
         </div>
       </div>
     </div>

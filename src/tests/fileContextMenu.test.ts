@@ -90,4 +90,39 @@ describe("FileContextMenu", () => {
       expect(onaction).toHaveBeenCalledWith("export:image");
     });
   });
+  describe("several files selected", () => {
+    const menu = (selectionCount: number) =>
+      render(FileContextMenu as any, {
+        x: 0,
+        y: 0,
+        fileName: "b.turt",
+        isDirectory: false,
+        selectionCount,
+        primaryName: "a.turt",
+      });
+
+    it("names the primary and pluralises the bulk actions", () => {
+      menu(3);
+      expect(screen.getByText("3 files · primary: a.turt")).toBeTruthy();
+      for (const label of [
+        "Duplicate All",
+        "Mirror Copy All",
+        "Reverse Copy All",
+        "Export All",
+        "Delete All",
+      ]) {
+        expect(screen.getByText(label)).toBeTruthy();
+      }
+      // Open, Save Current and Rename stay, aimed at the primary.
+      expect(screen.getAllByText("a.turt").length).toBe(3);
+    });
+
+    it("keeps the single-file labels for one file", () => {
+      menu(1);
+      expect(screen.getByText("Duplicate")).toBeTruthy();
+      expect(screen.getByText("Export")).toBeTruthy();
+      expect(screen.getByText("Delete")).toBeTruthy();
+      expect(screen.queryByText("Export All")).toBeNull();
+    });
+  });
 });

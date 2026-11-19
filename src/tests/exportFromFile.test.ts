@@ -5,9 +5,14 @@ import { get } from "svelte/store";
 const api = vi.hoisted(() => ({ readFile: vi.fn() }));
 vi.mock("../utils/platform", () => ({ getElectronAPI: () => api }));
 
-import { exportFile } from "../utils/exportFromFile";
+import {
+  advanceExportCycle,
+  exportFile,
+  exportFiles,
+} from "../utils/exportFromFile";
 import {
   currentFilePath,
+  exportCycle,
   exportDialogState,
   exportSwap,
   isUnsaved,
@@ -92,5 +97,85 @@ describe("exportFile", () => {
     expect(get(exportSwap)).toBeNull();
     expect(get(currentFilePath)).toBe("/mine.turt");
     expect(get(exportDialogState).isOpen).toBe(false);
+  });
+});
+
+describe("exportFiles (several files in turn)", () => {
+  const files = ["one", "two", "three"].map((n) => ({
+    name: `${n}.turt`,
+    path: `/${n}.turt`,
+  }));
+  const project = (x: number) =>
+    JSON.stringify({ ...other, startPoint: { ...other.startPoint, x } });
+
+  beforeEach(() => {
+    exportSwap.set(null);
+    exportCycle.set(null);
+    exportDialogState.set({ isOpen: false, format: "java" });
+    startPointStore.set({ x: 1, y: 2, heading: "tangential", reverse: false });
+    currentFilePath.set("/mine.turt");
+    isUnsaved.set(true);
+    api.readFile.mockReset();
+    api.readFile.mockImplementation(async (path: string) =>
+      project({ "/one.turt": 11, "/two.turt": 22, "/three.turt": 33 }[path]!),
+    );
+  });
+
+  it("shows each file in turn and restores the open project after the last", async () => {
+    await exportFiles(files, "points");
+    expect(get(exportCycle)).toMatchObject({ index: 0 });
+    expect(get(currentFilePath)).toBe("/one.turt");
+    expect(get(startPointStore).x).toBe(11);
+    expect(get(exportDialogState)).toMatchObject({
+      isOpen: true,
+      format: "points",
+    });
+
+    exportDialogState.set({ isOpen: false, format: "points" });
+    await advanceExportCycle();
+    expect(get(exportCycle)?.index).toBe(1);
+    expect(get(startPointStore).x).toBe(22);
+    expect(get(isUnsaved)).toBe(false);
+
+    await advanceExportCycle();
+    expect(get(startPointStore).x).toBe(33);
+
+    await advanceExportCycle(); // past the last
+    expect(get(exportCycle)).toBeNull();
+    expect(get(exportSwap)).toBeNull();
+    expect(get(currentFilePath)).toBe("/mine.turt");
+    expect(get(startPointStore).x).toBe(1);
+    expect(get(isUnsaved)).toBe(true);
+  });
+
+  it("exports the open file live, edits included, when it is one of them", async () => {
+    await exportFiles(
+      [files[0], { name: "mine.turt", path: "/mine.turt" }],
+      "java",
+    );
+    await advanceExportCycle();
+    expect(get(currentFilePath)).toBe("/mine.turt");
+    expect(get(startPointStore).x).toBe(1); // the live project, not a re-read
+    expect(get(isUnsaved)).toBe(true);
+    expect(api.readFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips a file that can't be read and carries on", async () => {
+    api.readFile.mockImplementation(async (path: string) => {
+      if (path === "/one.turt") throw new Error("gone");
+      return project(22);
+    });
+    await exportFiles(files, "java");
+    expect(get(notification)?.type).toBe("error");
+    expect(get(exportCycle)?.index).toBe(1);
+    expect(get(startPointStore).x).toBe(22);
+  });
+
+  it("cancelling restores everything", async () => {
+    await exportFiles(files, "java");
+    get(exportSwap)!();
+    expect(get(exportCycle)).toBeNull();
+    expect(get(currentFilePath)).toBe("/mine.turt");
+    expect(get(startPointStore).x).toBe(1);
   });
 });
