@@ -797,6 +797,35 @@ describe("searching the code", () => {
     expect(state.isOpen).toBe(false);
   });
 
+  it("counts every occurrence, not just every line", async () => {
+    await withCode("apple apple\nbanana\napple");
+    await fireEvent.click(screen.getByLabelText("Search code"));
+    await search("apple");
+    expect(await screen.findByText("1/3")).toBeInTheDocument();
+    await fireEvent.click(screen.getByLabelText("Next match"));
+    expect(screen.getByText("2/3")).toBeInTheDocument();
+  });
+
+  it("finds text on the very first line", async () => {
+    await withCode("// License header\npackage x;");
+    await fireEvent.click(screen.getByLabelText("Search code"));
+    await search("license");
+    expect(await screen.findByText("1/1")).toBeInTheDocument();
+  });
+
+  it("Ctrl+F while the box is open refocuses it and selects its text", async () => {
+    await withCode("apple");
+    await fireEvent.click(screen.getByLabelText("Search code"));
+    const box = (await search("app")) as HTMLInputElement;
+    box.blur();
+    await fireEvent.keyDown(win, { key: "f", ctrlKey: true });
+    // still open, with its text kept and selected
+    await waitFor(() => expect(document.activeElement).toBe(box));
+    expect(box.value).toBe("app");
+    expect(box.selectionStart).toBe(0);
+    expect(box.selectionEnd).toBe(3);
+  });
+
   it("clearing the box clears the matches", async () => {
     await withCode("apple\napple");
     await fireEvent.click(screen.getByLabelText("Search code"));
