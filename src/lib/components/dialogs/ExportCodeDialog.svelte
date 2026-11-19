@@ -56,6 +56,7 @@
   import { getElectronAPI } from "../../../utils/platform";
   import { extraDataStore, settingsStore } from "../../projectStore";
   import { ui } from "../../ui";
+  import { highlightPoints } from "../../../utils/htmlHighlighter";
 
   interface Props {
     isOpen?: boolean;
@@ -1089,11 +1090,20 @@
           </div>
 
           <!-- Actual Code Layer -->
-          <Highlight
-            language={currentLanguage}
-            code={exportedCode}
-            class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
-          />
+          {#if exportFormat === "points"}
+            <!-- Points get a color per pose, which hljs can't do. Same markup Highlight renders. -->
+            <pre
+              class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"><code
+                class="hljs"
+                >{@html highlightPoints(exportedCode).join("\n")}</code
+              ></pre>
+          {:else}
+            <Highlight
+              language={currentLanguage}
+              code={exportedCode}
+              class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
+            />
+          {/if}
         </div>
       </div>
 
