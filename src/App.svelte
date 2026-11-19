@@ -231,6 +231,12 @@
     if (next) restoreHistoryState(next);
   }
 
+  function restoreAction(id: string) {
+    if (get(followedJava)) return;
+    const state = history.restore(id);
+    if (state) restoreHistoryState(state);
+  }
+
   // Hide the control panel while following a Java file, and restore it when switching back.
   let wasFollowingJava = false;
   $effect(() => {
@@ -829,6 +835,7 @@
       <LeftSidebar
         {undoAction}
         {redoAction}
+        {restoreAction}
         {canUndo}
         {canRedo}
         {history}
