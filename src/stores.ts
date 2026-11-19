@@ -29,6 +29,8 @@ export const showPluginManager = writable(false);
 export const showTelemetryDialog = writable(false);
 export const isPresentationMode = writable(false);
 export const showWhatsNew = writable(false);
+/** Puts the open project back; set while an export from the file manager has borrowed the editor. */
+export const exportSwap = writable<(() => void) | null>(null);
 export const showExportGif = writable(false);
 export const showExportImage = writable(false);
 

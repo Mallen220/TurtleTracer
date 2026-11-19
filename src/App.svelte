@@ -40,6 +40,7 @@
     showShortcuts,
     startTutorial,
     exportDialogState,
+    exportSwap,
     selectedPointId,
     selectedLineId,
     showFileManager,
@@ -86,6 +87,7 @@
   import { applyTheme, applyFontSize } from "./lib/appearance";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
+  import { endExportSwap } from "./utils/exportFromFile";
   import {
     chooseSaveFolder,
     saveProject,
@@ -296,6 +298,8 @@
   }
 
   async function handleAppCloseRequested() {
+    // Closing mid-export must see the real project, not the borrowed file.
+    endExportSwap();
     try {
       await recordUsageTime();
     } catch (e) {
@@ -590,6 +594,22 @@
   // The field renderer's Two.js instance is needed by the export dialogs.
   let fieldRenderer: any = $state();
   let exportDialog: ExportCodeDialog | undefined = $state();
+  let exportCodeOpen = $state(false);
+
+  // An export started from a file in the file manager swaps that file in.
+  // Put the open project back once the export dialog has been shown and closed.
+  let exportShown = false;
+  $effect(() => {
+    if (!$exportSwap) exportShown = false;
+    else if (
+      $showExportGif ||
+      $showExportImage ||
+      $showStrategySheet ||
+      exportCodeOpen
+    )
+      exportShown = true;
+    else if (exportShown) endExportSwap();
+  });
 
   $effect(() => {
     if (!layout.effectiveShowSidebar && statsOpen) statsOpen = false;
@@ -781,6 +801,7 @@
 
 <ExportCodeDialog
   bind:this={exportDialog}
+  bind:isOpen={exportCodeOpen}
   bind:startPoint={$startPointStore}
   bind:lines={$linesStore}
   bind:sequence={$sequenceStore}

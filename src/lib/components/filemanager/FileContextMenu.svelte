@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileContextMenu.svelte -->
 <script lang="ts">
+  import { tick } from "svelte";
   import { fade } from "svelte/transition";
   import { menuNavigation } from "../../actions/menuNavigation";
   import { floatingMenu } from "../../actions/floatingMenu";
@@ -11,8 +12,11 @@
     DocumentIcon,
     ArrowCircleIcon,
     TrashIcon,
+    ChevronRightIcon,
   } from "../icons";
   import { ui } from "../../ui";
+  import { customExportersStore } from "../../pluginsStore";
+  import { isSupportedProjectFileName } from "../../../utils/fileExtensions";
 
   interface Props {
     x: number;
@@ -30,7 +34,8 @@
         | "duplicate"
         | "mirror"
         | "reverse"
-        | "save-to",
+        | "save-to"
+        | `export:${string}`,
     ) => void;
   }
 
@@ -43,6 +48,54 @@
     onclose,
     onaction,
   }: Props = $props();
+
+  // The same formats as the Export menu in the navbar.
+  const exportGroups = $derived([
+    [
+      ["java", "Java Code"],
+      ["kotlin", "Kotlin Code"],
+      ["points", "Points Array"],
+      ["sequential", "Sequential Command"],
+      ["json", ".turt File"],
+    ],
+    [
+      ["image", "Export as Image"],
+      ["gif", "Export Animated"],
+      ["strategy", "Strategy Sheet"],
+    ],
+    $customExportersStore.map((e) => [`custom:${e.name}`, e.name]),
+  ]);
+
+  let exportOpen = $state(false);
+  let exportButton: HTMLButtonElement | undefined = $state();
+  let flyout: HTMLElement | undefined = $state();
+
+  /** Opens to the right of the row, or to the left / higher up if it wouldn't fit. */
+  function keepFlyoutOnScreen(node: HTMLElement) {
+    const rect = node.getBoundingClientRect();
+    if (rect.right > window.innerWidth) {
+      node.style.left = "auto";
+      node.style.right = "100%";
+    }
+    if (rect.bottom > window.innerHeight) {
+      node.style.top = `${window.innerHeight - rect.bottom}px`;
+    }
+  }
+
+  async function onExportKey(e: KeyboardEvent) {
+    if (e.key !== "ArrowRight" && e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    exportOpen = true;
+    await tick();
+    flyout?.querySelector("button")?.focus();
+  }
+
+  function onFlyoutKey(e: KeyboardEvent) {
+    if (e.key !== "ArrowLeft") return;
+    e.stopPropagation();
+    exportOpen = false;
+    exportButton?.focus();
+  }
 </script>
 
 <div
@@ -97,6 +150,51 @@
       <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
       Reverse Copy
     </button>
+  {/if}
+  {#if !isDirectory && isSupportedProjectFileName(fileName)}
+    <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+
+    <div
+      class="relative"
+      role="none"
+      onmouseenter={() => (exportOpen = true)}
+      onmouseleave={() => (exportOpen = false)}
+    >
+      <button
+        bind:this={exportButton}
+        class={ui.menuItem}
+        aria-haspopup="menu"
+        aria-expanded={exportOpen}
+        onclick={() => (exportOpen = !exportOpen)}
+        onkeydown={onExportKey}
+      >
+        <ArrowDownTrayIcon className="size-4" />
+        Export
+        <ChevronRightIcon className="size-4 ml-auto" />
+      </button>
+      {#if exportOpen}
+        <div
+          bind:this={flyout}
+          use:keepFlyoutOnScreen
+          class="{ui.menu} absolute left-full top-0 w-52"
+          role="menu"
+          tabindex="-1"
+          onkeydown={onFlyoutKey}
+        >
+          {#each exportGroups.filter((g) => g.length) as group, i}
+            {#if i}
+              <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+            {/if}
+            {#each group as [id, label]}
+              <button
+                onclick={() => onaction?.(`export:${id}`)}
+                class={ui.menuItem}>{label}</button
+              >
+            {/each}
+          {/each}
+        </div>
+      {/if}
+    </div>
   {/if}
   {#if canChange}
     <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>

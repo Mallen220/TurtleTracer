@@ -9,6 +9,7 @@ vi.mock("../../../stores", async () => {
     notification: { show: vi.fn() },
     currentFilePath: svelteStore.writable(null),
     isUnsaved: svelteStore.writable(false),
+    exportSwap: svelteStore.writable(null),
   };
 });
 

@@ -25,7 +25,7 @@
     SuccessIcon,
     ClipboardIcon,
   } from "../icons/index";
-  import { currentFilePath, notification } from "../../../stores";
+  import { currentFilePath, exportSwap, notification } from "../../../stores";
   import {
     otherAlliance,
     projectAlliance,
@@ -50,6 +50,7 @@
   import { customExportersStore } from "../../pluginsStore";
   import {
     exportAsProjectFile,
+    fileNameOf,
     projectFileJson,
   } from "../../../utils/fileHandlers";
   import { triggerDownload } from "../../../utils/file";
@@ -668,6 +669,10 @@
             {:else if exportFormat === "custom"}{customExporterName ||
                 "Plugin Output"}
             {:else}Sequential Command{/if}
+            {#if $exportSwap}<span
+                class="font-normal text-neutral-500 dark:text-neutral-400"
+                >· {fileNameOf($currentFilePath ?? "")}</span
+              >{/if}
           </h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">
             {#if exportFormat === "java"}

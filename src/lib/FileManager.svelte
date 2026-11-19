@@ -22,6 +22,7 @@
     shapesStore,
     startPointStore,
   } from "./projectStore";
+  import { exportFile } from "../utils/exportFromFile";
   import { updateAllMacroReferences } from "./macroReferenceUpdater";
   import {
     autosaveBeforeLeaving,
@@ -835,6 +836,7 @@
       case "save-to":
         return saveCurrentToFile(file);
     }
+    if (action.startsWith("export:")) return exportFile(file, action.slice(7));
   }
 
   // --- Panel UI ---
