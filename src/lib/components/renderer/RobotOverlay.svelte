@@ -355,7 +355,7 @@
 <!-- Timeline Hover Ghost Robot -->
 {#if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && settings.robotImage !== "none" && settings.robotImage !== "turtle"}
   <div
-    class="field-element transition-all duration-[20ms] ease-linear pointer-events-none"
+    class="field-element pointer-events-none"
     style={`${footprint(hoverRobotXY, hoverRobotHeading, 21)} opacity: 0.5;`}
   >
     <img
@@ -385,7 +385,7 @@
   </div>
 {:else if hoverRobotXY && hoverRobotHeading !== null && hoverRobotHeading !== undefined && showRobot && (settings.robotImage === "none" || settings.robotImage === "turtle")}
   <div
-    class="field-element transition-all duration-[20ms] ease-linear pointer-events-none"
+    class="field-element pointer-events-none"
     style={`${footprint(hoverRobotXY, hoverRobotHeading, 21)} background-color: rgba(100, 116, 139, 0.3); border: 2px dashed #94a3b8; border-radius: 8px;`}
   >
     <!-- heading arrow indicator for no-image robot -->
