@@ -133,19 +133,17 @@
       >
         {#each features as feature}
           {#if feature.visible !== false}
-            {@const px = feature.x * snippetPpI}
-            {@const py = feature.y * snippetPpI}
-            {@const cx = baseWidth / 2 + px}
-            {@const cy = baseHeight / 2 + py}
+            {@const cx = baseWidth / 2 + feature.offsetY * snippetPpI}
+            {@const cy = baseHeight / 2 + feature.offsetX * snippetPpI}
             {@const fill = feature.filled ? feature.color : "transparent"}
             {@const stroke = feature.color}
 
             {#if feature.type === "rectangle"}
               <rect
-                x={cx - ((feature.width || 4) * snippetPpI) / 2}
-                y={cy - ((feature.height || 4) * snippetPpI) / 2}
-                width={(feature.width || 4) * snippetPpI}
-                height={(feature.height || 4) * snippetPpI}
+                x={cx - ((feature.length || 4) * snippetPpI) / 2}
+                y={cy - ((feature.width || 4) * snippetPpI) / 2}
+                width={(feature.length || 4) * snippetPpI}
+                height={(feature.width || 4) * snippetPpI}
                 {fill}
                 {stroke}
                 stroke-width={2}

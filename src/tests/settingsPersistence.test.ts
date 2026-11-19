@@ -234,6 +234,40 @@ describe("mergeSettings", () => {
     expect(merged.rWidth).toBe(13);
   });
 
+  it("converts old robot features (x was forward, y was right; height was across)", () => {
+    const merged = mergeSettings({
+      robotFeatures: [
+        { id: "a", type: "rectangle", x: 1, y: 2, width: 6, height: 4 },
+        { id: "b", type: "line", x: 3, y: -1, length: 5, angle: 90 },
+      ],
+    });
+    expect(merged.robotFeatures).toEqual([
+      {
+        id: "a",
+        type: "rectangle",
+        offsetX: 2,
+        offsetY: 1,
+        length: 6,
+        width: 4,
+      },
+      { id: "b", type: "line", offsetX: -1, offsetY: 3, length: 5, angle: 90 },
+    ]);
+  });
+
+  it("leaves converted robot features alone", () => {
+    const feature = {
+      id: "a",
+      type: "rectangle",
+      offsetX: 2,
+      offsetY: 1,
+      length: 6,
+      width: 4,
+    };
+    expect(mergeSettings({ robotFeatures: [feature] }).robotFeatures).toEqual([
+      feature,
+    ]);
+  });
+
   it("keeps the user's remapped keys and custom bindings, and adds new defaults", () => {
     const defaults = DEFAULT_SETTINGS.keyBindings!;
     const first = defaults[0];

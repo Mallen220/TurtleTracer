@@ -58,6 +58,28 @@ function migrateRobotSize(stored: StoredValues): StoredValues {
   return { ...rest, rLength: rWidth, rWidth: rHeight };
 }
 
+/**
+ * Robot features used to have x (forward) and y (right), and a rectangle had
+ * width (along the robot) and height (across it). Now offsetX is right,
+ * offsetY is forward, and a rectangle has width (across) and length (along).
+ */
+function migrateRobotFeature(feature: unknown): unknown {
+  if (!feature || typeof feature !== "object" || "offsetX" in feature) {
+    return feature;
+  }
+  const { x, y, width, height, ...rest } = feature as Record<string, unknown>;
+  const migrated: Record<string, unknown> = {
+    ...rest,
+    offsetX: y ?? 0,
+    offsetY: x ?? 0,
+  };
+  if (rest.type === "rectangle") {
+    migrated.length = width;
+    migrated.width = height;
+  }
+  return migrated;
+}
+
 /** The current built-in presets, plus the user's own. */
 function mergePresets(stored: unknown[]): ObstaclePreset[] {
   const defaults = DEFAULT_SETTINGS.obstaclePresets ?? [];
@@ -92,6 +114,9 @@ export function mergeSettings(source: unknown): Settings {
   if (!source || typeof source !== "object") return merged;
 
   const stored = migrateRobotSize({ ...(source as StoredValues) });
+  if (Array.isArray(stored.robotFeatures)) {
+    stored.robotFeatures = stored.robotFeatures.map(migrateRobotFeature);
+  }
   for (const [key, value] of Object.entries(stored)) {
     if (!(key in merged) || value === undefined || value === null) continue;
     const defaultValue = merged[key];

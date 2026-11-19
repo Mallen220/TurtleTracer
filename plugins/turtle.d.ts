@@ -399,17 +399,22 @@ interface Settings {
   sidebarIconSize?: number;
 }
 
+/**
+ * Something drawn on the robot. Offsets are from the robot's centre:
+ * offsetX is to its right, offsetY is forward. A rectangle is `width` across
+ * the robot (along X) and `length` along it (along Y). A line is `length`
+ * long, at `angle` degrees clockwise from forward.
+ */
 interface RobotFeature {
   id: string;
   name?: string;
   type: "rectangle" | "circle" | "line";
-  x: number;
-  y: number;
+  offsetX: number;
+  offsetY: number;
   color: string;
   width?: number;
-  height?: number;
-  radius?: number;
   length?: number;
+  radius?: number;
   angle?: number;
   thickness?: number;
   filled?: boolean;
