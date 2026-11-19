@@ -335,7 +335,6 @@ interface Settings {
   commandRegistrar?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
-  squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes
   showVelocityHeatmap?: boolean; // Show velocity heatmap overlay

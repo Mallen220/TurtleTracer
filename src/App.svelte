@@ -83,11 +83,7 @@
   import { themesStore } from "./lib/pluginsStore";
   import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
-  import {
-    applyTheme,
-    applyFontSize,
-    applySquaredCorners,
-  } from "./lib/appearance";
+  import { applyTheme, applyFontSize } from "./lib/appearance";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
   import {
@@ -573,7 +569,6 @@
     if (!settings) return;
     applyTheme(settings, $themesStore);
     applyFontSize(settings);
-    applySquaredCorners(settings);
   });
 
   function closeWhatsNew() {

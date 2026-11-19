@@ -760,3 +760,4 @@ src/utils/animation.test.ts
 src/tests/commandRegistrar.test.ts
 src/utils/codeSearch.test.ts
 src/utils/codeSearch.ts
+src/lib/appearance.ts

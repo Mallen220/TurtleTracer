@@ -75,12 +75,3 @@ export function applyTheme(settings: Settings, customThemes: CustomTheme[]) {
 export function applyFontSize(settings: Settings) {
   document.documentElement.style.fontSize = `${settings.programFontSize || 100}%`;
 }
-
-/**
- * Squares off every corner in the interface. The rules live in app.scss under
- * `html.squared-corners`. Potato mode keeps its own rounded look.
- */
-export function applySquaredCorners(settings: Settings) {
-  const squared = !!settings.squaredCorners && !isPotatoMode(settings);
-  document.documentElement.classList.toggle("squared-corners", squared);
-}

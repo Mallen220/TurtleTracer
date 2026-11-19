@@ -82,7 +82,6 @@ export const DEFAULT_SETTINGS: Settings = {
   commandRegistrar: "",
   theme: "auto",
   programFontSize: 100,
-  squaredCorners: false,
   autosaveMode: "never",
   autosaveInterval: 5,
   showVelocityHeatmap: false,
