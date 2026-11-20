@@ -2,19 +2,21 @@
 <!doctype html>
 <html class="h-full w-full" lang="en">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-K1JVSHJY5B"
-    ></script>
+    <!-- Google tag (gtag.js): the browser version only. The desktop app's window
+         has file system access, so no third-party script may run in it. -->
     <script>
-      globalThis.dataLayer = globalThis.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
+      if (!/Electron/i.test(navigator.userAgent)) {
+        globalThis.dataLayer = globalThis.dataLayer || [];
+        globalThis.gtag = function () {
+          globalThis.dataLayer.push(arguments);
+        };
+        gtag("js", new Date());
+        gtag("config", "G-K1JVSHJY5B");
+        const tag = document.createElement("script");
+        tag.async = true;
+        tag.src = "https://www.googletagmanager.com/gtag/js?id=G-K1JVSHJY5B";
+        document.head.append(tag);
       }
-      gtag("js", new Date());
-
-      gtag("config", "G-K1JVSHJY5B");
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

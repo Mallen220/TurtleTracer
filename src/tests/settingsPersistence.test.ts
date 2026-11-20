@@ -375,6 +375,7 @@ describe("loadSettings and saveSettings in the desktop app", () => {
     readFile: vi.fn(),
     writeFile: vi.fn(),
     fileExists: vi.fn(),
+    copyFile: vi.fn(),
   };
 
   beforeEach(() => {
@@ -411,6 +412,23 @@ describe("loadSettings and saveSettings in the desktop app", () => {
   it("uses the defaults if the settings file is corrupt", async () => {
     api.fileExists.mockResolvedValue(true);
     api.readFile.mockResolvedValue("{broken");
+    expect(await loadSettings()).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it("keeps a copy of a settings file it can't read, since the defaults replace it on the next save", async () => {
+    api.fileExists.mockResolvedValue(true);
+    api.readFile.mockResolvedValue("{broken");
+    await loadSettings();
+    expect(api.copyFile).toHaveBeenCalledWith(
+      "/data/turtle-tracer-settings.json",
+      "/data/turtle-tracer-settings.json.bad",
+    );
+  });
+
+  it("still uses the defaults if that copy can't be made", async () => {
+    api.fileExists.mockResolvedValue(true);
+    api.readFile.mockResolvedValue("{broken");
+    api.copyFile.mockRejectedValue(new Error("disk full"));
     expect(await loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
 

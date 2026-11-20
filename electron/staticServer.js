@@ -31,6 +31,14 @@ const CONTENT_TYPES = {
   ".wasm": "application/wasm",
 };
 
+/**
+ * No script from another site may run in the app window, which has file system
+ * access. Inline and eval'd script stay allowed: the page has inline scripts
+ * and plugins are compiled with `new Function`.
+ */
+const CONTENT_SECURITY_POLICY =
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'; object-src 'none'; base-uri 'self'";
+
 function reply(res, status, headers = {}) {
   res.writeHead(status, headers);
   res.end();
@@ -93,6 +101,7 @@ export function createStaticHandler(root) {
         // Always check with the server, which answers 304 when nothing changed.
         "Cache-Control": "no-cache",
         ETag: etag,
+        "Content-Security-Policy": CONTENT_SECURITY_POLICY,
         "Last-Modified": stats.mtime.toUTCString(),
       };
       if (req.headers["if-none-match"] === etag)

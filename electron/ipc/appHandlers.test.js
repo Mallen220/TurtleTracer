@@ -8,13 +8,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("electron", () => ({
   ipcMain: { handle: (channel, fn) => mocks.handlers.set(channel, fn) },
-  BrowserWindow: { fromWebContents: () => null, getFocusedWindow: () => null },
+  BrowserWindow: {
+    fromWebContents: (sender) => sender.win ?? null,
+    getFocusedWindow: () => null,
+  },
   shell: { openExternal: mocks.openExternal },
   app: { getPath: () => "/fake", getVersion: () => "9.9.9" },
 }));
 vi.mock("../updater.js", () => ({ default: class {} }));
 
-const { registerAppHandlers } = await import("./appHandlers.js");
+const { registerAppHandlers, openFileInWindow } =
+  await import("./appHandlers.js");
 
 const call = (channel, ...args) =>
   mocks.handlers.get(channel)({ sender: {} }, ...args);
@@ -69,5 +73,42 @@ describe("app info", () => {
   it("reports the version and data path", async () => {
     expect(await call("app:get-version")).toBe("9.9.9");
     expect(await call("app:get-app-data-path")).toBe("/fake");
+  });
+});
+
+describe("opening a file the OS asked for", () => {
+  const makeWindow = () => ({ webContents: { send: vi.fn() } });
+
+  it("holds the file until the window says it is ready, then delivers it once", async () => {
+    const win = makeWindow();
+    openFileInWindow(state, win, "/a.turt");
+    expect(win.webContents.send).not.toHaveBeenCalled();
+    expect(state.pendingFilePath).toBe("/a.turt");
+
+    await mocks.handlers.get("renderer-ready")({ sender: { win } });
+    expect(win.webContents.send).toHaveBeenCalledWith(
+      "open-file-path",
+      "/a.turt",
+    );
+    expect(state.pendingFilePath).toBeNull();
+  });
+
+  it("sends straight to a window that is ready, and keeps nothing for later windows", async () => {
+    const first = makeWindow();
+    await mocks.handlers.get("renderer-ready")({ sender: { win: first } });
+    openFileInWindow(state, first, "/b.turt");
+    expect(first.webContents.send).toHaveBeenCalledWith(
+      "open-file-path",
+      "/b.turt",
+    );
+
+    const later = makeWindow();
+    await mocks.handlers.get("renderer-ready")({ sender: { win: later } });
+    expect(later.webContents.send).not.toHaveBeenCalled();
+  });
+
+  it("holds the file when there is no window yet", () => {
+    openFileInWindow(state, undefined, "/c.turt");
+    expect(state.pendingFilePath).toBe("/c.turt");
   });
 });

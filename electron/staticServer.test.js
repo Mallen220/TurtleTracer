@@ -61,6 +61,14 @@ describe("static server", () => {
     expect(await res.text()).toBe("export {}");
   });
 
+  it("lets only the app's own scripts load from other addresses", async () => {
+    const csp = (await fetch(`${base}/`)).headers.get(
+      "content-security-policy",
+    );
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).not.toMatch(/script-src[^;]*https?:/);
+  });
+
   it("knows font types", async () => {
     const res = await fetch(`${base}/assets/font.woff2`);
     expect(res.headers.get("content-type")).toBe("font/woff2");

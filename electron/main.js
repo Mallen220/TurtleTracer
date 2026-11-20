@@ -9,6 +9,7 @@ import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
 import { createStaticHandler } from "./staticServer.js";
 import { syncDefaultPlugins } from "./defaultPlugins.js";
 import { registerIpcHandlers } from "./ipc/index.js";
+import { openFileInWindow } from "./ipc/appHandlers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -141,16 +142,11 @@ function handleOpenedFile(filePath) {
 
   // If windows, send to the focused one or the first one
   const win = BrowserWindow.getFocusedWindow() || windows.values().next().value;
+  openFileInWindow(ipcState, win, filePath);
   if (win) {
-    pendingFilePath = filePath;
-    win.webContents.send("open-file-path", filePath);
-
     // Focus the window
     if (win.isMinimized()) win.restore();
     win.focus();
-  } else {
-    // No window yet, store it
-    pendingFilePath = filePath;
   }
 }
 
@@ -246,7 +242,7 @@ const createWindow = async () => {
 
   // The preload script exposes file system access, so this window must only
   // ever show our own UI. Links to anywhere else open in the user's browser.
-  const appOrigin = `http://localhost:${serverPort}`;
+  const { appOrigin } = ipcState;
   newWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isWebUrl(url)) openInBrowser(url);
     return { action: "deny" };
@@ -562,8 +558,11 @@ app.on("will-quit", () => {
   }
 });
 
-registerIpcHandlers({
+const ipcState = {
   windows,
+  get appOrigin() {
+    return `http://localhost:${serverPort}`;
+  },
   get pendingFilePath() {
     return pendingFilePath;
   },
@@ -576,7 +575,8 @@ registerIpcHandlers({
   set appUpdater(val) {
     appUpdater = val;
   },
-});
+};
+registerIpcHandlers(ipcState);
 
 /** Keeps the bundled plugins in the user's plugins folder up to date. */
 async function ensureDefaultPlugins() {

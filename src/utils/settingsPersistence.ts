@@ -198,10 +198,19 @@ export async function loadSettings(): Promise<Settings> {
       return { ...DEFAULT_SETTINGS };
     }
 
-    const fileContent = await api.readFile(filePath);
-    const stored: StoredSettings = JSON.parse(fileContent);
-
-    return migrateSettings(stored);
+    try {
+      const stored: StoredSettings = JSON.parse(await api.readFile(filePath));
+      return migrateSettings(stored);
+    } catch (error) {
+      // The defaults returned below would replace this file on the next save,
+      // so keep what is there where the user can still get at it.
+      try {
+        await api.copyFile?.(filePath, `${filePath}.bad`);
+      } catch {
+        // Nothing more can be done.
+      }
+      throw error;
+    }
   } catch (error) {
     console.error("Error loading settings:", error);
     return { ...DEFAULT_SETTINGS };

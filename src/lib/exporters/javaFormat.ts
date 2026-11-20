@@ -393,11 +393,16 @@ export function groupChains<T>(lines: Line[], items: T[]): T[][] {
  * ["a", "a", "b"] -> ["a", "a_1", "b"].
  */
 export function uniqueNames(names: string[]): string[] {
-  const seen = new Map<string, number>();
+  const used = new Set<string>();
+  const repeats = new Map<string, number>();
   return names.map((name) => {
-    const count = seen.get(name);
-    seen.set(name, (count ?? 0) + 1);
-    return count === undefined ? name : `${name}_${count}`;
+    let candidate = name;
+    let n = repeats.get(name) ?? 0;
+    // A suffixed name can already be taken by a name that was given as it is.
+    while (used.has(candidate)) candidate = `${name}_${++n}`;
+    repeats.set(name, n);
+    used.add(candidate);
+    return candidate;
   });
 }
 
@@ -426,8 +431,20 @@ const isKotlinKeyword = (name: string) =>
   KOTLIN_KEYWORDS.has(name) || JAVA_KEYWORDS.has(name);
 
 /** A variable name for generated Kotlin, in backticks if it's a keyword there. */
-export function kotlinIdentifier(name: string): string {
+function kotlinIdentifier(name: string): string {
   return isKotlinKeyword(name) ? `\`${name}\`` : name;
+}
+
+/**
+ * A name from `identifierFor` as a variable in generated code. One that starts
+ * with a digit, or is a Java keyword, gets an underscore in front; Kotlin
+ * keywords go in backticks. Only for variables: the name in `pp.get()` stays
+ * as it is, because the library works it out the same way.
+ */
+export function asVariable(name: string, kotlin: boolean): string {
+  const needsPrefix = /^\d/.test(name) || (!kotlin && JAVA_KEYWORDS.has(name));
+  const safe = needsPrefix ? `_${name}` : name;
+  return kotlin ? kotlinIdentifier(safe) : safe;
 }
 
 /** A project file's name without its folder or extension ("" without one). */

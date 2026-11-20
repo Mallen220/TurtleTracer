@@ -773,3 +773,6 @@ electron/ipc/telemetryHandlers.test.js
 electron/staticServer.js
 electron/staticServer.test.js
 electron/writeFileAtomic.test.js
+electron/ipc/trustedSender.js
+electron/ipc/trustedSender.test.js
+src/tests/variableNames.test.ts
