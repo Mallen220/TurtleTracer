@@ -275,6 +275,37 @@ interface CustomSidebarItem {
   iconComponent?: Component;
 }
 
+/** What the strategy sheet shows and how it is laid out. Global, not per project. */
+interface StrategySheetOptions {
+  pageSize: "letter" | "a4";
+  landscape: boolean;
+  /** Scale the sheet down until it fits one page, instead of running onto a second. */
+  fitOnePage: boolean;
+  showField: boolean;
+  showStats: boolean;
+  showRobot: boolean;
+  showSequence: boolean;
+  showNotes: boolean;
+  colDetails: boolean;
+  colHeading: boolean;
+  colEvents: boolean;
+  colTime: boolean;
+  hideWaitsAndMacros: boolean;
+  /** Numbers the end of each path on the field, like its table row. */
+  numberPaths: boolean;
+  /** Fades the field and draws paths in black, for printing. */
+  inkSaver: boolean;
+  /** How much of the sheet's width the field takes, in percent. */
+  fieldSize: number;
+  /** Prints "Generated <date>" under the title. */
+  showDate: boolean;
+  teamName: string;
+  /** The team logo as a data URL. */
+  logo: string;
+  /** Export All writes one PDF instead of one per file. */
+  combinePdf: boolean;
+}
+
 interface Settings {
   fieldWidth?: number;
   fieldHeight?: number;
@@ -381,6 +412,7 @@ interface Settings {
    * drawn for, is saved with each project (see exporters/allianceMirroring).
    */
   exportMirrorAxes?: "BOTH" | "X" | "Y";
+  strategySheet?: StrategySheetOptions;
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   lockFieldView?: boolean;

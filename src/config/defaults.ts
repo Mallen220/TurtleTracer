@@ -1,5 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Point, Line, Shape, Settings } from "../types";
+import type {
+  Point,
+  Line,
+  Shape,
+  Settings,
+  StrategySheetOptions,
+} from "../types";
 import { DEFAULT_KEY_BINDINGS } from "./keybindings";
 import { makeId } from "../utils/nameGenerator";
 import { DEFAULT_FIELD_MAP } from "./fieldMaps";
@@ -10,6 +16,33 @@ export { DEFAULT_FIELD_MAP } from "./fieldMaps";
  * Default robot dimensions
  */
 export const DEFAULT_ROBOT_LENGTH = 16;
+
+/** Letter where the language says US, Canada or Mexico, else A4. */
+const usesLetter =
+  typeof navigator !== "undefined" && /-(US|CA|MX)$/i.test(navigator.language);
+
+export const DEFAULT_STRATEGY_SHEET: StrategySheetOptions = {
+  pageSize: usesLetter ? "letter" : "a4",
+  landscape: false,
+  fitOnePage: false,
+  showField: true,
+  showStats: true,
+  showRobot: true,
+  showSequence: true,
+  showNotes: true,
+  colDetails: true,
+  colHeading: false,
+  colEvents: true,
+  colTime: false,
+  hideWaitsAndMacros: false,
+  numberPaths: false,
+  inkSaver: false,
+  fieldSize: 50,
+  showDate: true,
+  teamName: "",
+  logo: "",
+  combinePdf: false,
+};
 export const DEFAULT_ROBOT_WIDTH = 16;
 
 /**
@@ -243,6 +276,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoExportFullClass: true,
   autoExportEmbedPoseData: true,
   exportMirrorAxes: "BOTH",
+  strategySheet: DEFAULT_STRATEGY_SHEET,
   telemetryImplementation: "Panels",
   followRobot: false,
   coordinateSystem: "Pedro",

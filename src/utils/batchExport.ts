@@ -73,12 +73,31 @@ async function save(folder: string, name: string, data: Blob | string) {
   }
 }
 
+/** One PDF out of several, pages in the order given. */
+export async function mergePdfs(pdfs: Blob[]): Promise<Blob> {
+  const { PDFDocument } = await import("@cantoo/pdf-lib");
+  const merged = await PDFDocument.create();
+  for (const pdf of pdfs) {
+    const source = await PDFDocument.load(await pdf.arrayBuffer());
+    for (const page of await merged.copyPages(source, source.getPageIndices()))
+      merged.addPage(page);
+  }
+  return new Blob([await merged.save()], { type: "application/pdf" });
+}
+
+const PACKET_NAME = "strategy-packet.pdf";
+
 /**
  * Exports the current file of the cycle and every one after it. Returns
  * without doing anything if no folder is chosen. `finished` closes the
- * dialog the batch was started from.
+ * dialog the batch was started from. With `combine`, the outputs (PDFs) are
+ * merged into one file instead of saved one by one.
  */
-export async function runBatch(exporter: BatchExporter, finished: () => void) {
+export async function runBatch(
+  exporter: BatchExporter,
+  finished: () => void,
+  combine = false,
+) {
   const cycle = get(exportCycle);
   if (!cycle) return;
 
@@ -93,6 +112,7 @@ export async function runBatch(exporter: BatchExporter, finished: () => void) {
   const todo = cycle.files.slice(cycle.index);
   const controller = (abort = new AbortController());
   const failed: string[] = [];
+  const parts: Blob[] = [];
   let exported = 0;
   for (const [i, file] of todo.entries()) {
     if (controller.signal.aborted) break;
@@ -108,14 +128,28 @@ export async function runBatch(exporter: BatchExporter, finished: () => void) {
       const out = await exporter(controller.signal, (fileProgress) =>
         batchProgress.update((b) => b && { ...b, fileProgress }),
       );
-      const name = out.name ?? projectBaseName() + out.suffix;
-      if (folder) await save(folder, name, out.data);
-      else download(name, out.data);
+      if (combine) parts.push(out.data as Blob);
+      else {
+        const name = out.name ?? projectBaseName() + out.suffix;
+        if (folder) await save(folder, name, out.data);
+        else download(name, out.data);
+      }
       exported++;
     } catch (e) {
       if (controller.signal.aborted) break;
       console.error("Batch export failed for", file.name, e);
       failed.push(file.name);
+    }
+  }
+
+  if (combine && parts.length) {
+    try {
+      const packet = await mergePdfs(parts);
+      if (folder) await save(folder, PACKET_NAME, packet);
+      else download(PACKET_NAME, packet);
+    } catch (e) {
+      console.error("Could not combine the PDFs", e);
+      failed.push(PACKET_NAME);
     }
   }
 
@@ -126,6 +160,7 @@ export async function runBatch(exporter: BatchExporter, finished: () => void) {
   notification.set({
     message:
       `Exported ${exported} of ${todo.length} file${todo.length === 1 ? "" : "s"}` +
+      (combine ? " into one PDF" : "") +
       (folder ? ` to ${fileNameOf(folder) || folder}` : "") +
       (controller.signal.aborted ? ". Cancelled" : "") +
       (failed.length ? `. Failed: ${failed.join(", ")}` : ""),

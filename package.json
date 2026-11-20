@@ -75,6 +75,7 @@
     "vitest": "2.1.9"
   },
   "dependencies": {
+    "@cantoo/pdf-lib": "^2.11.1",
     "@types/d3": "7.4.3",
     "@types/lodash": "4.17.24",
     "canvas": "3.2.1",

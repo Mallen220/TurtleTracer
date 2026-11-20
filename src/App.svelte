@@ -772,7 +772,7 @@
     startPoint={$startPointStore}
     lines={$linesStore}
     sequence={$sequenceStore}
-    settings={$settingsStore}
+    bind:settings={$settingsStore}
     timePrediction={playback.timePrediction}
   />
 {/if}
