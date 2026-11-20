@@ -1,3 +1,7 @@
+## 2.7.1 (2026-11-20)
+
+- Add multi-file selection and export. Add exports from file manager. Show in Finder option. Add configurable strategy sheets. Modernize animation export options. Instead of scale, use actual resolutions for images and add custom resolution for animated. Fix optimizer sometimes going through obstacles. Improve search functionality for clarity and completeness. Improve the points exporter to be more meaningful and readable. Fixed history so that it actually works without deleting paths. Fix timeline hover alignment and disable dragging img assets. Fix robot features properties having the wrong name. Update CodeTab to use the current file name. When users have a custom typed class name, update it when the file name changes. Fix Browser icon. Removed Squared Corners interface option.
+
 ## 2.7.0 (2026-11-04)
 
 - Add alliance mirroring support (Requires TurtleTracerLib 3.1.x+). This lets users remember alliance from Auto->TeleOp and use one OpMode for all their autos with an AutoChooser. Teams that already have a solution their happy with don't need to use this, it's totally optional but they should still upgrade. Add configurable command registrar export for OP Modes. Add control points and paths where the mouse is. Added the T value to the field page. Bump the node versions.
