@@ -10,7 +10,6 @@
     estimateGifSize,
   } from "../../../utils/exportAnimation";
   import {
-    SIZE_WIDTHS,
     GIF_FPS,
     APNG_FPS,
     MEMORY_WARN_BYTES,
@@ -28,6 +27,7 @@
   import ExportFileLabel from "./ExportFileLabel.svelte";
   import { exportCycle } from "../../../stores";
   import { ui } from "../../ui";
+  import ExportWidthSelect from "./ExportWidthSelect.svelte";
 
   let format: "gif" | "apng" = $state("gif");
   let fps = $state(15);
@@ -116,8 +116,7 @@
       animationController,
       durationSec: duration,
       fps,
-      // The exporter sizes frames as a multiple of the on-screen field view.
-      scale: fieldW ? outWidth / fieldW : 1,
+      width: outWidth,
       reduceColors,
       signal,
       backgroundImageSrc: settings.fieldMap
@@ -413,25 +412,12 @@
             </select>
           </div>
 
-          <!-- Output size -->
-          <div class="flex flex-col gap-2">
-            <label
-              for="gif-scale"
-              class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-            >
-              Size
-            </label>
-            <select
-              id="gif-scale"
-              bind:value={outWidth}
-              disabled={status === "generating"}
-              class="{ui.input} block w-full"
-            >
-              {#each SIZE_WIDTHS as w (w)}
-                <option value={w}>{w} × {Math.round(w * aspect)}</option>
-              {/each}
-            </select>
-          </div>
+          <ExportWidthSelect
+            id="gif-scale"
+            bind:value={outWidth}
+            {aspect}
+            disabled={status === "generating"}
+          />
 
           <!-- Colors (APNG only; a GIF always has 256) -->
           {#if format === "apng"}

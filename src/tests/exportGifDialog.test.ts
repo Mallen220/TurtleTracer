@@ -146,6 +146,23 @@ describe("ExportGifDialog", () => {
     expect(screen.getByText("Generate & Save")).toBeEnabled();
   });
 
+  it("exports at a custom width", async () => {
+    render(ExportGifDialogWrapper, { props: { props } });
+    await fireEvent.change(await screen.findByLabelText("Size"), {
+      target: { value: "custom" },
+    });
+    const input = screen.getByLabelText("Custom width in pixels");
+    await fireEvent.input(input, { target: { value: "500" } });
+    await fireEvent.blur(input);
+    expect(screen.getByTestId("custom-size")).toHaveTextContent("× 375 px");
+    await fireEvent.click(screen.getByText("Generate Preview"));
+    await waitFor(() =>
+      expect(exporter.exportPathToGif).toHaveBeenLastCalledWith(
+        expect.objectContaining({ width: 500 }),
+      ),
+    );
+  });
+
   it("shows an estimated size", async () => {
     render(ExportGifDialogWrapper, { props: { props } });
     await screen.findByLabelText("Size");

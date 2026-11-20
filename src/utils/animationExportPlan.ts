@@ -2,6 +2,16 @@
 // Sizes, frame rates and memory limits offered by the animation export dialog.
 
 export const SIZE_WIDTHS = [360, 480, 720, 1080, 2160];
+// Safari's canvas limit: 16384 px per side (its 268M px area limit is the same square).
+export const MIN_WIDTH = 16;
+const MAX_SIDE = 16384;
+
+/** Nearest allowed export width. `aspect` is height / width. */
+export function clampWidth(width: number, aspect: number): number {
+  const max = Math.floor(MAX_SIDE / Math.max(1, aspect));
+  return Math.min(max, Math.max(MIN_WIDTH, Math.round(width)));
+}
+
 export const GIF_FPS = [10, 15, 24, 30, 50]; // GIF delays are whole 1/100 s; above 50 fps browsers slow playback
 export const APNG_FPS = [...GIF_FPS, 60];
 

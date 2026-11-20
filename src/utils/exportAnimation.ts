@@ -18,6 +18,7 @@ export interface ExportAnimationOptions {
   durationSec: number; // total duration in seconds
   fps?: number; // frames per second
   scale?: number; // resolution scale (0.1 to 1.0+)
+  width?: number; // exact output width in px; wins over scale
   reduceColors?: boolean; // APNG only: 256 colors instead of lossless
   filename?: string; // suggested filename
   onProgress?: (progress: number, stage?: string) => void; // 0..1, and what is being done
@@ -40,6 +41,7 @@ export interface ExportImageOptions {
   two: Two;
   format: "png" | "jpeg" | "svg";
   scale?: number; // resolution scale
+  width?: number; // exact output width in px; wins over scale
   quality?: number; // for jpeg (0.1 - 1.0)
   backgroundImageSrc?: string;
   robotImageSrc?: string;
@@ -241,16 +243,14 @@ async function urlToDataUri(url: string): Promise<string> {
 export async function exportPathToImage(
   options: ExportImageOptions,
 ): Promise<Blob> {
-  const { two, format, scale = 1, quality = 0.9 } = options;
+  const { two, format, quality = 0.9 } = options;
 
   // 1. Prepare Resources (Field, Robot)
   const { backgroundImage, robotImage } = await prepareResources(options);
 
   // Get SVG dimensions
   const svgEl = getSvgElement(two);
-  const rect = svgEl.getBoundingClientRect();
-  const width = Math.round(rect.width * scale);
-  const height = Math.round(rect.height * scale);
+  const { width, height, scale } = outputSize(options, svgEl);
 
   // SVG Export
   if (format === "svg") {
@@ -378,12 +378,22 @@ function getFrameCount({ durationSec, fps = 15 }: ExportAnimationOptions) {
   return frameCountFor(durationSec, fps);
 }
 
-function getCanvasSize({ two, scale = 1 }: ExportAnimationOptions) {
-  const rect = getSvgElement(two).getBoundingClientRect();
+/** Output pixels, and the scale from the on-screen field view that gives them. */
+function outputSize(
+  { width, scale = 1 }: { width?: number; scale?: number },
+  svgEl: SVGElement,
+) {
+  const rect = svgEl.getBoundingClientRect();
+  if (width && rect.width) scale = width / rect.width;
   return {
-    width: Math.round(rect.width * scale),
+    width: width ?? Math.round(rect.width * scale),
     height: Math.round(rect.height * scale),
+    scale,
   };
+}
+
+function getCanvasSize(options: ExportAnimationOptions) {
+  return outputSize(options, getSvgElement(options.two));
 }
 
 function getSvgElement(two: Two): SVGElement {
@@ -434,14 +444,14 @@ async function captureFrames(
   percents?: number[],
   stage = "Capturing frames",
 ): Promise<void> {
-  const { two, animationController, scale = 1, onProgress, signal } = options;
+  const { two, animationController, onProgress, signal } = options;
   const frameCount = getFrameCount(options);
   const steps =
     percents ??
     Array.from({ length: frameCount }, (_, i) => (i / (frameCount - 1)) * 100);
 
   const svgEl = getSvgElement(two);
-  const { width, height } = getCanvasSize(options);
+  const { width, height, scale } = getCanvasSize(options);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;

@@ -6,12 +6,22 @@ import {
   formatBytes,
   GIF_FPS,
   APNG_FPS,
+  clampWidth,
 } from "./animationExportPlan";
 
 describe("animationExportPlan", () => {
   it("counts frames, never fewer than 2", () => {
     expect(frameCountFor(10, 15)).toBe(150);
     expect(frameCountFor(0, 15)).toBe(2);
+  });
+
+  it("clamps widths to the canvas limits", () => {
+    expect(clampWidth(1, 1)).toBe(16);
+    expect(clampWidth(1080, 1)).toBe(1080);
+    expect(clampWidth(99999, 1)).toBe(16384);
+    // Tall field: the height hits 16384 first
+    expect(clampWidth(99999, 2)).toBe(8192);
+    expect(clampWidth(99999, 0.5)).toBe(16384);
   });
 
   it("estimates raw RGBA memory", () => {

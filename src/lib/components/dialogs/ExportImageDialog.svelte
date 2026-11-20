@@ -17,6 +17,7 @@
   import ExportFileLabel from "./ExportFileLabel.svelte";
   import { exportCycle } from "../../../stores";
   import { ui } from "../../ui";
+  import ExportWidthSelect from "./ExportWidthSelect.svelte";
 
   interface Props {
     show?: boolean;
@@ -44,7 +45,8 @@
   }: Props = $props();
 
   let format: "png" | "jpeg" | "svg" = $state("png");
-  let resolutionScale = $state(1);
+  let outWidth = $state(1080); // exported width in pixels
+  let aspect = $state(1); // height / width of the field view, measured on mount
   let quality = $state(0.9); // 0.1 - 1.0 for JPEG
 
   let status = $state("idle"); // idle, generating, done, error
@@ -105,7 +107,7 @@
       return await exportPathToImage({
         two: twoInstance,
         format,
-        scale: resolutionScale,
+        width: format === "svg" ? undefined : outWidth,
         quality,
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
@@ -175,6 +177,11 @@
   }
 
   onMount(() => {
+    const rect = (
+      twoInstance.renderer.domElement as unknown as SVGElement
+    ).getBoundingClientRect();
+    if (rect.width) aspect = rect.height / rect.width;
+
     // Save current view state
     savedZoom = get(fieldZoom);
     savedPan = get(fieldPan);
@@ -258,27 +265,15 @@
             </select>
           </div>
 
-          <!-- Scale -->
-          <div class="flex flex-col gap-2">
-            <label
-              for="img-scale"
-              class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-            >
-              Scale: {Math.round(resolutionScale * 100)}%
-            </label>
-            <select
+          <!-- Size (a vector SVG has no pixel size) -->
+          {#if format !== "svg"}
+            <ExportWidthSelect
               id="img-scale"
-              bind:value={resolutionScale}
+              bind:value={outWidth}
+              {aspect}
               onchange={generatePreview}
-              class="{ui.input} block w-full"
-            >
-              <option value={0.25}>25%</option>
-              <option value={0.5}>50%</option>
-              <option value={1}>100%</option>
-              <option value={2}>200%</option>
-              <option value={4}>400%</option>
-            </select>
-          </div>
+            />
+          {/if}
 
           <!-- Quality (JPEG Only) -->
           {#if format === "jpeg"}
