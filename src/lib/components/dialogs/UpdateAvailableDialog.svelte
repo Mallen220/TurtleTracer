@@ -110,7 +110,7 @@
     if (api && updateData) {
       if (api.downloadUpdate) {
         // Pass version and url
-        api.downloadUpdate(updateData.version, updateData.url);
+        api.downloadUpdate(updateData.version);
       } else if (api.openExternal) {
         // Fallback
         api.openExternal(updateData.url);

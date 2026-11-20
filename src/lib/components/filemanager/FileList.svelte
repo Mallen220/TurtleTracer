@@ -27,6 +27,7 @@
     type FileBrowserProps,
   } from "./fileBrowser.svelte";
   import { ui } from "../../ui";
+  import { rubberBand } from "../../actions/rubberBand";
 
   type Props = FileBrowserProps;
 
@@ -34,10 +35,12 @@
     fieldImage = null,
     files = [],
     selectedFilePath = null,
+    selectedPaths = [],
     sortMode = "name",
     renamingFile = null,
     showGitStatus = true,
     onselect,
+    onrubber,
     onopen,
     onrenameStart,
     onrenameSave,
@@ -52,6 +55,7 @@
 
   const browser = new FileBrowserState(() => ({
     renamingFile,
+    selectedPaths,
     onselect,
     onrenameStart,
     onmenuAction,
@@ -82,7 +86,8 @@
 </script>
 
 <div
-  class="flex-1 overflow-y-auto pb-4"
+  class="relative flex-1 overflow-y-auto pb-4 select-none"
+  use:rubberBand={{ onselect: (p, add, first) => onrubber?.(p, add, first) }}
   onclick={browser.closeMenu}
   role="presentation"
 >
@@ -101,18 +106,22 @@
         <div
           use:loadPreviewWhenVisible={file}
           class="group flex items-center p-2 rounded-md cursor-pointer transition-colors border border-transparent
-          {selectedFilePath === file.path
+          {selectedPaths.includes(file.path) || selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
             : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}
+          {selectedPaths.length > 1 && selectedFilePath === file.path
+            ? 'ring-2 ring-blue-500'
+            : ''}
           {browser.dragOverTarget === file.path
             ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
             : ''}"
-          onclick={() => onselect?.(file)}
+          onclick={(e) => onselect?.(file, e)}
           ondblclick={() => onopen?.(file)}
           oncontextmenu={(e) => browser.handleContextMenu(e, file)}
           role="button"
           tabindex="0"
           aria-label={file.name}
+          data-path={file.path}
           draggable="true"
           ondragstart={(e) => handleDragStart(e, file)}
           ondragover={(e) => browser.handleDragOver(e, file)}
@@ -240,6 +249,8 @@
   <FileBrowserMenu
     menu={browser.contextMenu}
     {lockFolders}
+    {selectedPaths}
+    primaryPath={selectedFilePath}
     onclose={browser.closeMenu}
     onaction={browser.handleMenuAction}
   />

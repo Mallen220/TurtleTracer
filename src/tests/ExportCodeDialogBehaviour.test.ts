@@ -266,6 +266,24 @@ describe("the sequential command class name", () => {
     await waitFor(() => expect(classInput().value).toBe("MyAuto"));
   });
 
+  it("names the plain Java export after the current project, not an earlier one", async () => {
+    const exporter = javaExporter();
+    exporterRegistry.register({
+      id: "java",
+      name: "Java",
+      description: "",
+      exportCode: exporter,
+    });
+    const { open } = mount();
+    currentFilePath.set("/p/first.turt");
+    await open("java");
+    expect((exporter.mock.calls.at(-1) as any[])[1].fileName).toBe("first");
+
+    currentFilePath.set("/p/second.turt");
+    await open("java");
+    expect((exporter.mock.calls.at(-1) as any[])[1].fileName).toBe("second");
+  });
+
   it("switches library and regenerates", async () => {
     const exporter = sequential();
     const { open } = mount();
@@ -777,6 +795,35 @@ describe("searching the code", () => {
     expect(state.isOpen).toBe(true);
     await fireEvent.keyDown(win, { key: "Escape" });
     expect(state.isOpen).toBe(false);
+  });
+
+  it("counts every occurrence, not just every line", async () => {
+    await withCode("apple apple\nbanana\napple");
+    await fireEvent.click(screen.getByLabelText("Search code"));
+    await search("apple");
+    expect(await screen.findByText("1/3")).toBeInTheDocument();
+    await fireEvent.click(screen.getByLabelText("Next match"));
+    expect(screen.getByText("2/3")).toBeInTheDocument();
+  });
+
+  it("finds text on the very first line", async () => {
+    await withCode("// License header\npackage x;");
+    await fireEvent.click(screen.getByLabelText("Search code"));
+    await search("license");
+    expect(await screen.findByText("1/1")).toBeInTheDocument();
+  });
+
+  it("Ctrl+F while the box is open refocuses it and selects its text", async () => {
+    await withCode("apple");
+    await fireEvent.click(screen.getByLabelText("Search code"));
+    const box = (await search("app")) as HTMLInputElement;
+    box.blur();
+    await fireEvent.keyDown(win, { key: "f", ctrlKey: true });
+    // still open, with its text kept and selected
+    await waitFor(() => expect(document.activeElement).toBe(box));
+    expect(box.value).toBe("app");
+    expect(box.selectionStart).toBe(0);
+    expect(box.selectionEnd).toBe(3);
   });
 
   it("clearing the box clears the matches", async () => {

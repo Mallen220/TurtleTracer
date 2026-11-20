@@ -1,7 +1,9 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Keeps the GitHub token in the main process and makes GitHub requests for
-// the page, so the page (and any plugin running in it) never holds the
-// token. A remembered token is encrypted with the system keychain.
+// the page, so the page never holds the token and can't leak it. It can still
+// have requests made with it, and so can any enabled plugin (plugins run in the
+// page with its full access), within the requests allowed below. A remembered
+// token is encrypted with the system keychain.
 import { app, ipcMain, safeStorage } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";

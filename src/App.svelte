@@ -40,6 +40,8 @@
     showShortcuts,
     startTutorial,
     exportDialogState,
+    exportSwap,
+    exportCycle,
     selectedPointId,
     selectedLineId,
     showFileManager,
@@ -83,13 +85,11 @@
   import { themesStore } from "./lib/pluginsStore";
   import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
-  import {
-    applyTheme,
-    applyFontSize,
-    applySquaredCorners,
-  } from "./lib/appearance";
+  import { applyTheme, applyFontSize } from "./lib/appearance";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
+  import { advanceExportCycle, endExportSwap } from "./utils/exportFromFile";
+  import BatchProgressDialog from "./lib/components/dialogs/BatchProgressDialog.svelte";
   import {
     chooseSaveFolder,
     saveProject,
@@ -235,6 +235,12 @@
     if (next) restoreHistoryState(next);
   }
 
+  function restoreAction(id: string) {
+    if (get(followedJava)) return;
+    const state = history.restore(id);
+    if (state) restoreHistoryState(state);
+  }
+
   // Hide the control panel while following a Java file, and restore it when switching back.
   let wasFollowingJava = false;
   $effect(() => {
@@ -294,6 +300,8 @@
   }
 
   async function handleAppCloseRequested() {
+    // Closing mid-export must see the real project, not the borrowed file.
+    endExportSwap();
     try {
       await recordUsageTime();
     } catch (e) {
@@ -573,7 +581,6 @@
     if (!settings) return;
     applyTheme(settings, $themesStore);
     applyFontSize(settings);
-    applySquaredCorners(settings);
   });
 
   function closeWhatsNew() {
@@ -589,6 +596,27 @@
   // The field renderer's Two.js instance is needed by the export dialogs.
   let fieldRenderer: any = $state();
   let exportDialog: ExportCodeDialog | undefined = $state();
+  let exportCodeOpen = $state(false);
+
+  // An export started from a file in the file manager swaps that file in.
+  // Put the open project back once the export dialog has been shown and closed.
+  let exportShown = false;
+  $effect(() => {
+    if (!$exportSwap) exportShown = false;
+    else if (
+      $showExportGif ||
+      $showExportImage ||
+      $showStrategySheet ||
+      exportCodeOpen
+    )
+      exportShown = true;
+    else if (exportShown) {
+      exportShown = false;
+      // Several files: closing a dialog (Next, X, Escape) moves on to the next.
+      if ($exportCycle) advanceExportCycle();
+      else endExportSwap();
+    }
+  });
 
   $effect(() => {
     if (!layout.effectiveShowSidebar && statsOpen) statsOpen = false;
@@ -744,7 +772,7 @@
     startPoint={$startPointStore}
     lines={$linesStore}
     sequence={$sequenceStore}
-    settings={$settingsStore}
+    bind:settings={$settingsStore}
     timePrediction={playback.timePrediction}
   />
 {/if}
@@ -780,6 +808,7 @@
 
 <ExportCodeDialog
   bind:this={exportDialog}
+  bind:isOpen={exportCodeOpen}
   bind:startPoint={$startPointStore}
   bind:lines={$linesStore}
   bind:sequence={$sequenceStore}
@@ -787,6 +816,7 @@
 />
 
 <DialogHost />
+<BatchProgressDialog />
 <FeedbackDialog />
 <RatingDialog />
 
@@ -834,6 +864,7 @@
       <LeftSidebar
         {undoAction}
         {redoAction}
+        {restoreAction}
         {canUndo}
         {canRedo}
         {history}

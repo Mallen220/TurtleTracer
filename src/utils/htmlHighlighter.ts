@@ -66,3 +66,25 @@ export function highlightAndSplit(
 
   return lines;
 }
+
+// Theme classes whose colors differ the most; each pose line cycles through them.
+const POSE_CLASSES = [
+  "hljs-keyword",
+  "hljs-string",
+  "hljs-number",
+  "hljs-type",
+];
+
+/** One HTML string per line of a points export, each pose line in the next color. */
+export function highlightPoints(code: string): string[] {
+  let pose = 0;
+  return code.split("\n").map((raw) => {
+    // Escaped because the Code tab can pass other formats' code through here.
+    const line = raw
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    if (!line.trim().startsWith("(")) return line;
+    return `<span class="${POSE_CLASSES[pose++ % POSE_CLASSES.length]}">${line}</span>`;
+  });
+}

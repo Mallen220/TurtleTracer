@@ -1,10 +1,11 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import { fade } from "svelte/transition";
   import { get } from "svelte/store";
   import type { FileInfo, Settings } from "../types/index";
   import {
+    fileManagerKeys,
     currentFilePath,
     isUnsaved,
     notification,
@@ -22,6 +23,7 @@
     shapesStore,
     startPointStore,
   } from "./projectStore";
+  import { exportFile, exportFiles } from "../utils/exportFromFile";
   import { updateAllMacroReferences } from "./macroReferenceUpdater";
   import {
     autosaveBeforeLeaving,
@@ -71,8 +73,17 @@
   import { importJavaProject } from "../utils/javaImporter";
   import {
     filePreviews,
+    fileSections,
     type FileBrowserProps,
   } from "./components/filemanager/fileBrowser.svelte";
+  import {
+    clickSelect,
+    pruneSelection,
+    rubberSelect,
+    selectAllIn,
+    type Selection,
+    selectedFiles,
+  } from "./components/filemanager/fileSelection";
   import {
     FolderIcon,
     CloudArrowDownIcon,
@@ -113,7 +124,12 @@
   let files: FileInfo[] = $state([]);
   let loading = $state(false);
   let errorMessage = $state("");
+  /** The primary selection: the first file clicked. */
   let selectedFile: FileInfo | null = $state(null);
+  /** The selection when the current rubber-band drag started. */
+  let rubberBase: Selection = { primary: null, others: [] };
+  /** Paths added to the selection with Shift or Ctrl/Cmd. */
+  let otherSelected: string[] = $state([]);
   let renamingFile: FileInfo | null = $state(null);
 
   let creatingNewFile = $state(false);
@@ -149,22 +165,99 @@
       });
   });
 
+  // While open, Select All and Escape work on the files. Escape steps down
+  // from several files to the primary; two Escape bindings fire in the same
+  // tick, so the second one must not also close the panel.
+  let justCleared = false;
+  $effect(() => {
+    if (!isOpen) return;
+    fileManagerKeys.set({
+      selectAll: () => {
+        const next = selectAllIn(
+          { primary: selectedFile, others: otherSelected },
+          displayOrder,
+        );
+        selectedFile = next.primary;
+        otherSelected = next.others;
+      },
+      clear: () => {
+        if (justCleared) return true;
+        if (selectedList.length < 2) return false;
+        otherSelected = [];
+        justCleared = true;
+        setTimeout(() => (justCleared = false));
+        return true;
+      },
+    });
+    return () => fileManagerKeys.set(null);
+  });
+
+  /** Every file in the order the view shows it, for Shift-click ranges. */
+  let displayOrder = $derived(
+    fileSections(visibleFiles, sortMode).flatMap((g) => g.files),
+  );
+  /** The primary first, then the rest in display order. */
+  let selectedList = $derived(
+    selectedFiles(
+      { primary: selectedFile, others: otherSelected },
+      displayOrder,
+    ),
+  );
+
+  // Files that disappear drop out of the selection, and a new folder starts
+  // a new one.
+  $effect(() => {
+    const kept = pruneSelection(
+      { primary: null, others: untrack(() => otherSelected) },
+      files,
+    ).others;
+    if (kept.length !== untrack(() => otherSelected).length)
+      otherSelected = kept;
+  });
+  $effect(() => {
+    void currentDirectory;
+    otherSelected = [];
+  });
+
   /** What the list and grid views show and tell us about. */
   let fileBrowserProps = $derived.by(
     (): FileBrowserProps => ({
       files: visibleFiles,
       selectedFilePath: selectedFile?.path ?? null,
+      selectedPaths: selectedList.map((f) => f.path),
       sortMode,
       fieldImage: settings.fieldMap,
       showGitStatus: settings.gitIntegration || !!repo,
       renamingFile,
-      onselect: (file) => (selectedFile = file),
+      onrubber: (paths, additive, first) => {
+        if (first)
+          rubberBase = { primary: selectedFile, others: otherSelected };
+        const hit = displayOrder.filter((f) => paths.includes(f.path));
+        const next = rubberSelect(rubberBase, hit, additive);
+        selectedFile = next.primary;
+        otherSelected = next.others;
+      },
+      onselect: (file, e) => {
+        const next = clickSelect(
+          { primary: selectedFile, others: otherSelected },
+          file,
+          displayOrder,
+          { shift: e?.shiftKey, toggle: e?.ctrlKey || e?.metaKey },
+        );
+        selectedFile = next.primary;
+        otherSelected = next.others;
+      },
       onopen: (file) => handleOpen(file),
-      onrenameStart: (file) => (renamingFile = file),
+      onrenameStart: (file) =>
+        (renamingFile =
+          selectedList.length > 1 &&
+          selectedList.some((f) => f.path === file.path)
+            ? selectedList[0]
+            : file),
       onrenameSave: (name) => renamingFile && renameFile(renamingFile, name),
       onrenameCancel: () => (renamingFile = null),
       onmenuAction: handleMenuAction,
-      onmoveFile: moveFile,
+      onmoveFile: moveFiles,
       lockFolders: !!repo,
     }),
   );
@@ -664,40 +757,71 @@
     },
   };
 
-  async function duplicateFile(
+  /** Writes a transformed copy of `file` beside it and returns where it went. */
+  async function duplicateOne(
     file: FileInfo,
+    mode: keyof typeof DUPLICATE_MODES,
+  ): Promise<FileInfo> {
+    const { suffix, transform } = DUPLICATE_MODES[mode];
+    const content = await electronAPI!.readFile(file.path);
+    if (!content) throw new Error("File is empty or could not be read");
+    const data = transform(JSON.parse(content));
+
+    // name_copy.turt, then name_copy1.turt, name_copy2.turt, ...
+    const base = stripProjectExtension(file.name) + suffix;
+    let newName = base + DEFAULT_PROJECT_EXTENSION;
+    for (
+      let n = 1;
+      await electronAPI!.fileExists?.(joinPath(currentDirectory, newName));
+      n++
+    ) {
+      newName = `${base}${n}${DEFAULT_PROJECT_EXTENSION}`;
+    }
+
+    await hookRegistry.run("onSave", data);
+    const newPath = joinPath(currentDirectory, newName);
+    await electronAPI!.writeFile(newPath, JSON.stringify(data, null, 2));
+    filePreviews.reload(newPath);
+    return { ...file, name: newName, path: newPath };
+  }
+
+  /** Makes a copy of each file; one that fails doesn't stop the rest. */
+  async function duplicateFiles(
+    list: FileInfo[],
     mode: keyof typeof DUPLICATE_MODES,
   ) {
     if (!electronAPI?.readFile || !electronAPI.writeFile) {
       notify("File operations are not supported in this environment", "error");
       return;
     }
-    const { suffix, label, transform } = DUPLICATE_MODES[mode];
-    try {
-      const content = await electronAPI.readFile(file.path);
-      if (!content) throw new Error("File is empty or could not be read");
-      const data = transform(JSON.parse(content));
-
-      // name_copy.turt, then name_copy1.turt, name_copy2.turt, ...
-      const base = stripProjectExtension(file.name) + suffix;
-      let newName = base + DEFAULT_PROJECT_EXTENSION;
-      for (
-        let n = 1;
-        await electronAPI.fileExists?.(joinPath(currentDirectory, newName));
-        n++
-      ) {
-        newName = `${base}${n}${DEFAULT_PROJECT_EXTENSION}`;
+    const made: FileInfo[] = [];
+    const failed: string[] = [];
+    let lastError = "";
+    for (const file of list) {
+      try {
+        made.push(await duplicateOne(file, mode));
+      } catch (error) {
+        failed.push(file.name);
+        lastError = errorText(error);
       }
-
-      await hookRegistry.run("onSave", data);
-      const newPath = joinPath(currentDirectory, newName);
-      await electronAPI.writeFile(newPath, JSON.stringify(data, null, 2));
-      await refreshDirectory();
-      notify(`${label}: ${newName}`, "success");
-      filePreviews.reload(newPath);
-    } catch (error) {
-      notify(`Failed to duplicate: ${errorText(error)}`, "error");
     }
+    await refreshDirectory();
+
+    if (list.length === 1) {
+      return failed.length
+        ? notify(`Failed to duplicate: ${lastError}`, "error")
+        : notify(`${DUPLICATE_MODES[mode].label}: ${made[0].name}`, "success");
+    }
+    // Select the copies, the first one as primary.
+    if (made.length) {
+      selectedFile = files.find((f) => f.path === made[0].path) ?? null;
+      otherSelected = made.slice(1).map((f) => f.path);
+    }
+    notify(
+      `${DUPLICATE_MODES[mode].label} ${made.length} file${made.length === 1 ? "" : "s"}` +
+        (failed.length ? `. Failed: ${failed.join(", ")}` : ""),
+      failed.length ? "error" : "success",
+    );
   }
 
   // --- Renaming, moving and deleting ---
@@ -797,19 +921,82 @@
     }
   }
 
-  async function deleteFile(file: FileInfo) {
-    if (!confirm(`Are you sure you want to delete "${file.name}"?`)) return;
-    try {
-      await electronAPI?.deleteFile?.(file.path);
-      if (selectedFile?.path === file.path) {
-        selectedFile = null;
-        currentFilePath.set(null);
+  /** Dragging one of several selected files moves them all. */
+  async function moveFiles(data: {
+    sourceFile: FileInfo;
+    targetDir: FileInfo;
+  }) {
+    const { sourceFile, targetDir } = data;
+    const group = selectedList.some((f) => f.path === sourceFile.path)
+      ? selectedList
+      : [sourceFile];
+    if (group.length < 2 || !targetDir.isDirectory) return moveFile(data);
+
+    const isParent = targetDir.name === "..";
+    const destination = isParent
+      ? directoryOf(currentDirectory)
+      : targetDir.path;
+    let moved = 0;
+    const failed: string[] = [];
+    for (const file of group) {
+      if (file.path === targetDir.path) continue;
+      try {
+        if (await relocate(file.path, joinPath(destination, file.name))) {
+          moved++;
+        }
+      } catch {
+        failed.push(file.name);
       }
-      await refreshDirectory();
-      notify(`Deleted: ${file.name}`, "success");
-    } catch (error) {
-      notify(`Failed to delete: ${errorText(error)}`, "error");
     }
+    await refreshDirectory();
+    notify(
+      `Moved ${moved} file${moved === 1 ? "" : "s"} to ${isParent ? "parent folder" : targetDir.name}` +
+        (failed.length ? `. Failed: ${failed.join(", ")}` : ""),
+      failed.length ? "error" : "success",
+    );
+  }
+
+  async function deleteFiles(list: FileInfo[]) {
+    const names = list.map((f) => `"${f.name}"`);
+    const what =
+      list.length === 1
+        ? names[0]
+        : `${list.length} files (${names.slice(0, 5).join(", ")}${list.length > 5 ? ", ..." : ""})`;
+    if (!confirm(`Are you sure you want to delete ${what}?`)) return;
+
+    const deleted: FileInfo[] = [];
+    const failed: string[] = [];
+    let lastError = "";
+    for (const file of list) {
+      try {
+        await electronAPI?.deleteFile?.(file.path);
+        deleted.push(file);
+      } catch (error) {
+        failed.push(file.name);
+        lastError = errorText(error);
+      }
+    }
+    const gone = new Set(deleted.map((f) => f.path));
+    if (
+      (selectedFile && gone.has(selectedFile.path)) ||
+      gone.has(get(currentFilePath) ?? "")
+    ) {
+      selectedFile = null;
+      currentFilePath.set(null);
+    }
+    otherSelected = otherSelected.filter((p) => !gone.has(p));
+    await refreshDirectory();
+
+    if (list.length === 1) {
+      return failed.length
+        ? notify(`Failed to delete: ${lastError}`, "error")
+        : notify(`Deleted: ${list[0].name}`, "success");
+    }
+    notify(
+      `Deleted ${deleted.length} file${deleted.length === 1 ? "" : "s"}` +
+        (failed.length ? `. Failed: ${failed.join(", ")}` : ""),
+      failed.length ? "error" : "success",
+    );
   }
 
   function handleMenuAction({
@@ -819,21 +1006,34 @@
     action: string;
     file: FileInfo;
   }) {
+    // With several files selected, Open, Rename and Save Current apply to the
+    // primary and everything else to the whole selection.
+    const many =
+      selectedList.length > 1 && selectedList.some((f) => f.path === file.path);
+    const primary = many ? selectedList[0] : file;
+    const targets = many ? selectedList : [file];
     switch (action) {
       case "open":
-        return handleOpen(file);
+        return handleOpen(primary);
       case "rename-start":
-        renamingFile = file;
+        renamingFile = primary;
         return;
       case "delete":
-        return deleteFile(file);
+        return deleteFiles(targets);
       case "duplicate":
-        return duplicateFile(file, "copy");
+        return duplicateFiles(targets, "copy");
       case "mirror":
       case "reverse":
-        return duplicateFile(file, action);
+        return duplicateFiles(targets, action);
       case "save-to":
-        return saveCurrentToFile(file);
+        return saveCurrentToFile(primary);
+      case "reveal":
+        return void electronAPI?.revealFile?.(primary.path);
+    }
+    if (action.startsWith("export:")) {
+      return many
+        ? exportFiles(targets, action.slice(7))
+        : exportFile(file, action.slice(7));
     }
   }
 
@@ -853,7 +1053,10 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen && !creatingNewFile && !renamingFile) {
-      isOpen = false;
+      // The shortcut system has already handled it when it prevented the default.
+      if (e.defaultPrevented) return;
+      if (selectedList.length > 1) otherSelected = [];
+      else isOpen = false;
     }
   }
 
@@ -1252,7 +1455,11 @@
             : "s"}</span
         >
       </div>
-      {#if selectedFile}
+      {#if selectedList.length > 1}
+        <span class="truncate max-w-[220px]"
+          >{selectedList.length} selected · primary: {selectedFile?.name}</span
+        >
+      {:else if selectedFile}
         <span class="truncate max-w-[150px]">{selectedFile.name}</span>
       {/if}
     </div>

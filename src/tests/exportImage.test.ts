@@ -74,6 +74,14 @@ describe("exportPathToImage", () => {
     );
   });
 
+  it("sizes the image to an exact width, whatever the on-screen size", async () => {
+    options.width = 333; // field view is 100 x 100 on screen
+    options.scale = 7; // width wins
+    await exportPathToImage(options);
+    expect(mockCanvas.width).toBe(333);
+    expect(mockCanvas.height).toBe(333);
+  });
+
   it("should export JPEG blob with quality", async () => {
     options.format = "jpeg";
     options.quality = 0.5;

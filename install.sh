@@ -71,7 +71,7 @@ FUSE_OK=1
 # Output
 # ---------------------------------------------------------------------------
 RED=""; GREEN=""; YELLOW=""; BLUE=""; CYAN=""; PURPLE=""; BOLD=""; NC=""
-if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+if [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" ]]; then
     RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[1;33m'
     BLUE=$'\033[0;34m'; CYAN=$'\033[0;36m'; PURPLE=$'\033[0;35m'
     BOLD=$'\033[1m'; NC=$'\033[0m'
@@ -188,17 +188,17 @@ die_usage() {
 cleanup() {
     local rc=$?
     trap - EXIT INT TERM
-    if [ -n "$MOUNT_POINT" ] && [ -d "$MOUNT_POINT" ]; then
+    if [[ -n "$MOUNT_POINT" ]] && [[ -d "$MOUNT_POINT" ]]; then
         hdiutil detach "$MOUNT_POINT" -quiet -force >/dev/null 2>&1 || true
     fi
-    if [ "$rc" -ne 0 ] && [ -n "$WORKDIR" ] && [ -s "$LOG_FILE" ]; then
+    if [[ "$rc" -ne 0 ]] && [[ -n "$WORKDIR" ]] && [[ -s "$LOG_FILE" ]]; then
         local saved="$HOME/turtle-tracer-install.log"
         if cp "$LOG_FILE" "$saved" 2>/dev/null; then
             printf '\n%s\n' "Nothing is left half-installed. A detailed log was saved to: $saved" >&2
             printf '%s\n' "If you need help, attach it to an issue at https://github.com/$REPO/issues" >&2
         fi
     fi
-    if [ -n "$WORKDIR" ]; then
+    if [[ -n "$WORKDIR" ]]; then
         rm -rf "$WORKDIR"
     fi
     exit "$rc"
@@ -224,9 +224,9 @@ setup_workdir() {
 detect_interactivity() {
     TTY_OK=0
     INTERACTIVE=0
-    if [ -z "${TT_NONINTERACTIVE:-}" ] && [ -r /dev/tty ] && { : </dev/tty; } 2>/dev/null; then
+    if [[ -z "${TT_NONINTERACTIVE:-}" ]] && [[ -r /dev/tty ]] && { : </dev/tty; } 2>/dev/null; then
         TTY_OK=1
-        if [ "$ASSUME_YES" -eq 0 ]; then
+        if [[ "$ASSUME_YES" -eq 0 ]]; then
             INTERACTIVE=1
         fi
     fi
@@ -241,7 +241,7 @@ prompt() {
 
 # confirm QUESTION - default yes. Non-interactive runs always answer yes.
 confirm() {
-    if [ "$INTERACTIVE" -ne 1 ]; then
+    if [[ "$INTERACTIVE" -ne 1 ]]; then
         return 0
     fi
     while :; do
@@ -264,7 +264,7 @@ has() { command -v "$1" >/dev/null 2>&1; }
 with_spinner() {
     local msg=$1 pid i=0 start rc=0 frames='|/-\'
     shift
-    if [ ! -t 1 ] || [ -n "${TT_NO_SPINNER:-}" ]; then
+    if [[ ! -t 1 ]] || [[ -n "${TT_NO_SPINNER:-}" ]]; then
         info "$msg"
         "$@" >>"$LOG_FILE" 2>&1 || rc=$?
         return "$rc"
@@ -279,18 +279,18 @@ with_spinner() {
     done
     wait "$pid" || rc=$?
     printf '\r\033[K'
-    if [ "$rc" -eq 0 ]; then ok "$msg ($((SECONDS - start))s)"; fi
+    if [[ "$rc" -eq 0 ]]; then ok "$msg ($((SECONDS - start))s)"; fi
     return "$rc"
 }
 
 # True when $1 is an older version than $2 (numeric x.y.z comparison; suffixes ignored).
 version_lt() {
     local a=${1%%[-+]*} b=${2%%[-+]*} first
-    if [ "$a" = "$b" ]; then
+    if [[ "$a" = "$b" ]]; then
         return 1
     fi
     first=$(printf '%s\n%s\n' "$a" "$b" | sort -t. -k1,1n -k2,2n -k3,3n | sed -n '1p')
-    [ "$first" = "$a" ]
+    [[ "$first" = "$a" ]]
 }
 
 format_bytes() {
@@ -298,7 +298,7 @@ format_bytes() {
     case "$n" in
         "" | *[!0-9]*) return 0 ;;
     esac
-    if [ "$n" -ge 1048576 ]; then
+    if [[ "$n" -ge 1048576 ]]; then
         printf '%s MB' "$((n / 1048576))"
     else
         printf '%s KB' "$(((n + 1023) / 1024))"
@@ -336,10 +336,10 @@ set_version_request() {
 }
 
 parse_args() {
-    while [ $# -gt 0 ]; do
+    while [[ $# -gt 0 ]]; do
         case "$1" in
             -v | --version)
-                [ $# -ge 2 ] || die_usage "$1 needs a value, e.g. --version 2.3.0"
+                [[ $# -ge 2 ]] || die_usage "$1 needs a value, e.g. --version 2.3.0"
                 set_version_request "$2" || die_usage "\"$2\" is not a version number (expected something like 2.3.0)."
                 shift 2
                 ;;
@@ -355,7 +355,7 @@ parse_args() {
             --require-checksum) REQUIRE_CHECKSUM=1; shift ;;
             --uninstall) ACTION="uninstall"; shift ;;
             --format)
-                [ $# -ge 2 ] || die_usage "--format needs a value: deb or appimage"
+                [[ $# -ge 2 ]] || die_usage "--format needs a value: deb or appimage"
                 FORMAT_REQ=$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')
                 shift 2
                 ;;
@@ -385,7 +385,7 @@ detect_platform() {
         Darwin) PLATFORM="macos" ;;
         Linux)
             PLATFORM="linux"
-            if [ -r /proc/version ] && grep -qi microsoft /proc/version 2>/dev/null && [ -z "${TT_ALLOW_WSL:-}" ]; then
+            if [[ -r /proc/version ]] && grep -qi microsoft /proc/version 2>/dev/null && [[ -z "${TT_ALLOW_WSL:-}" ]]; then
                 PLATFORM="wsl"
             fi
             ;;
@@ -400,8 +400,8 @@ detect_platform() {
     esac
 
     # An Intel shell running under Rosetta on an Apple Silicon Mac should still get the native build.
-    if [ "$PLATFORM" = "macos" ] && [ "$ARCH" = "x64" ]; then
-        if [ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ]; then
+    if [[ "$PLATFORM" = "macos" ]] && [[ "$ARCH" = "x64" ]]; then
+        if [[ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ]]; then
             ARCH="arm64"
         fi
     fi
@@ -410,12 +410,12 @@ detect_platform() {
         macos)
             local ver chip="Intel"
             ver=$(sw_vers -productVersion 2>/dev/null || echo "")
-            if [ "$ARCH" = "arm64" ]; then chip="Apple Silicon"; fi
+            if [[ "$ARCH" = "arm64" ]]; then chip="Apple Silicon"; fi
             SYSTEM_LABEL="macOS ${ver} · ${chip}"
             ;;
         linux)
             local distro="Linux"
-            if [ -r /etc/os-release ]; then
+            if [[ -r /etc/os-release ]]; then
                 # shellcheck disable=SC1091
                 distro=$( (. /etc/os-release; printf '%s' "${PRETTY_NAME:-Linux}") 2>/dev/null || echo Linux)
             fi
@@ -427,9 +427,9 @@ detect_platform() {
 
 windows_command() {
     local cmd="irm ${RAW_URL}/${REPO}/main/install.ps1 | iex"
-    if [ -n "$REQ_VERSION" ]; then
+    if [[ -n "$REQ_VERSION" ]]; then
         cmd="\$env:TT_VERSION='${REQ_VERSION}'; ${cmd}"
-    elif [ -n "$CHANNEL" ]; then
+    elif [[ -n "$CHANNEL" ]]; then
         cmd="\$env:TT_CHANNEL='${CHANNEL}'; ${cmd}"
     fi
     printf '%s' "$cmd"
@@ -445,7 +445,7 @@ handle_windows() {
     say "    $cmd"
     say ""
     say "Or install from the Microsoft Store: https://apps.microsoft.com/detail/9nk0b4fdj3zw"
-    if [ "$PLATFORM" = "windows" ] && has powershell.exe && [ "$INTERACTIVE" -eq 1 ]; then
+    if [[ "$PLATFORM" = "windows" ]] && has powershell.exe && [[ "$INTERACTIVE" -eq 1 ]]; then
         say ""
         if confirm "Run that PowerShell installer now?"; then
             exec powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$cmd"
@@ -481,7 +481,7 @@ fetch() {
     local url=$1 out=$2 proto
     proto=$(proto_flags "$url")
     : >"$WORKDIR/headers"
-    if [ "${SHOW_PROGRESS:-0}" = 1 ] && [ -t 2 ]; then
+    if [[ "${SHOW_PROGRESS:-0}" = 1 ]] && [[ -t 2 ]]; then
         # shellcheck disable=SC2086
         HTTP_CODE=$(curl $proto --progress-bar -L --retry 2 --retry-delay 1 --connect-timeout 15 \
             -D "$WORKDIR/headers" -o "$out" -w '%{http_code}' "$url") || HTTP_CODE="000"
@@ -498,7 +498,7 @@ fetch_api() {
     local url=$1 out=$2 proto
     proto=$(proto_flags "$url")
     : >"$WORKDIR/headers"
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
         # shellcheck disable=SC2086
         HTTP_CODE=$(curl $proto -sS --retry 2 --retry-delay 1 --connect-timeout 15 \
             -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -526,7 +526,7 @@ describe_failure() {
     case "$HTTP_CODE" in
         000) API_FAIL_REASON="couldn't reach GitHub (is the network, a proxy or a firewall blocking it?)" ;;
         403 | 429)
-            if [ "$(header_value x-ratelimit-remaining)" = "0" ]; then
+            if [[ "$(header_value x-ratelimit-remaining)" = "0" ]]; then
                 local reset
                 reset=$(header_value x-ratelimit-reset)
                 API_FAIL_REASON="GitHub's anonymous rate limit was reached (it resets around $(format_epoch "$reset"))."
@@ -558,7 +558,7 @@ parse_release_list() {
 load_release_list() {
     local file="$WORKDIR/releases.json" lines tag kind v
     fetch_api "$API_URL/repos/$REPO/releases?per_page=30" "$file"
-    if [ "$HTTP_CODE" != "200" ]; then
+    if [[ "$HTTP_CODE" != "200" ]]; then
         describe_failure
         return 1
     fi
@@ -566,17 +566,17 @@ load_release_list() {
     STABLE_VERSION=""
     PRE_VERSION=""
     while read -r tag kind; do
-        [ -n "$tag" ] || continue
+        [[ -n "$tag" ]] || continue
         v=${tag#v}
-        if [ "$kind" = "stable" ]; then
-            if [ -z "$STABLE_VERSION" ]; then STABLE_VERSION=$v; fi
-        elif [ -z "$STABLE_VERSION" ] && [ -z "$PRE_VERSION" ]; then
+        if [[ "$kind" = "stable" ]]; then
+            if [[ -z "$STABLE_VERSION" ]]; then STABLE_VERSION=$v; fi
+        elif [[ -z "$STABLE_VERSION" ]] && [[ -z "$PRE_VERSION" ]]; then
             PRE_VERSION=$v
         fi
     done <<LISTING
 $lines
 LISTING
-    if [ -z "$STABLE_VERSION" ] && [ -z "$PRE_VERSION" ]; then
+    if [[ -z "$STABLE_VERSION" ]] && [[ -z "$PRE_VERSION" ]]; then
         API_FAIL_REASON="GitHub's release list was empty or in an unexpected format."
         return 1
     fi
@@ -604,9 +604,9 @@ latest_from_redirect() {
 latest_from_atom() {
     local file="$WORKDIR/releases.atom" tag
     fetch "$GITHUB_URL/$REPO/releases.atom" "$file"
-    [ "$HTTP_CODE" = "200" ] || return 1
+    [[ "$HTTP_CODE" = "200" ]] || return 1
     tag=$(grep -oE '/releases/tag/[^"<]+' "$file" | sed -n '1p' | sed 's|.*/releases/tag/||') || tag=""
-    [ -n "$tag" ] || return 1
+    [[ -n "$tag" ]] || return 1
     ATOM_NEWEST=${tag#v}
     return 0
 }
@@ -632,7 +632,7 @@ gather_versions() {
 }
 
 explain_limited_lookup() {
-    if [ "$LOOKUP_EXPLAINED" -eq 1 ]; then return 0; fi
+    if [[ "$LOOKUP_EXPLAINED" -eq 1 ]]; then return 0; fi
     LOOKUP_EXPLAINED=1
     case "$LIST_SOURCE" in
         redirect) warn "Couldn't read GitHub's full release list: $API_FAIL_REASON" ; warn "Showing the latest stable release only; pre-releases can't be detected right now (use --version to pick one)." ;;
@@ -643,7 +643,7 @@ explain_limited_lookup() {
 # Sets INSTALLED_VERSION to what's installed now ("" if nothing or unknown).
 detect_installed_version() {
     INSTALLED_VERSION=""
-    if [ "$PLATFORM" = "macos" ]; then
+    if [[ "$PLATFORM" = "macos" ]]; then
         macos_installed || true
     elif has dpkg-query; then
         INSTALLED_VERSION=$(dpkg-query -W -f='${Version}' "$PKG_NAME" 2>/dev/null || true)
@@ -652,17 +652,17 @@ detect_installed_version() {
 
 ask_version() {
     local tries=0 stable_label="latest stable release"
-    if [ -n "$STABLE_VERSION" ]; then stable_label="latest stable release (v$STABLE_VERSION)"; fi
+    if [[ -n "$STABLE_VERSION" ]]; then stable_label="latest stable release (v$STABLE_VERSION)"; fi
     say ""
-    if [ -n "$INSTALLED_VERSION" ]; then
+    if [[ -n "$INSTALLED_VERSION" ]]; then
         say "Currently installed: v$INSTALLED_VERSION"
-        if [ -n "$STABLE_VERSION" ] && version_lt "$STABLE_VERSION" "$INSTALLED_VERSION"; then
+        if [[ -n "$STABLE_VERSION" ]] && version_lt "$STABLE_VERSION" "$INSTALLED_VERSION"; then
             warn "That is newer than the latest stable release (v$STABLE_VERSION), so choosing stable would be a downgrade."
         fi
     fi
     say "${BOLD}Which version would you like to install?${NC}"
     say "  Enter   the $stable_label  [recommended]"
-    if [ -n "$PRE_VERSION" ]; then
+    if [[ -n "$PRE_VERSION" ]]; then
         say "  p       the newest pre-release (v$PRE_VERSION)  [newer features, less tested]"
     fi
     say "  or type a version number, e.g. 2.2.1"
@@ -673,7 +673,7 @@ ask_version() {
         fi
         warn "\"$REPLY_TEXT\" isn't a version number. Press Enter for stable, p for pre-release, or type something like 2.3.0."
         tries=$((tries + 1))
-        if [ "$tries" -ge 3 ]; then
+        if [[ "$tries" -ge 3 ]]; then
             die "No valid version chosen." "Re-run with --version X.Y.Z, --stable or --prerelease."
         fi
     done
@@ -688,27 +688,27 @@ fail_no_version() {
 }
 
 choose_version() {
-    if [ -n "$REQ_VERSION" ]; then
+    if [[ -n "$REQ_VERSION" ]]; then
         VERSION=$REQ_VERSION
         VERSION_KIND="requested"
         return 0
     fi
 
-    if [ "$CHANNEL" = "prerelease" ]; then
-        if [ -n "$PRE_VERSION" ]; then
+    if [[ "$CHANNEL" = "prerelease" ]]; then
+        if [[ -n "$PRE_VERSION" ]]; then
             VERSION=$PRE_VERSION
             VERSION_KIND="newest pre-release"
-        elif [ "$LIST_SOURCE" = "api" ]; then
+        elif [[ "$LIST_SOURCE" = "api" ]]; then
             warn "There is no pre-release newer than the latest stable (v$STABLE_VERSION), so that's what will be installed."
             VERSION=$STABLE_VERSION
             VERSION_KIND="latest stable"
-        elif [ "$LIST_SOURCE" = "atom" ]; then
+        elif [[ "$LIST_SOURCE" = "atom" ]]; then
             explain_limited_lookup
             VERSION=$ATOM_NEWEST
             VERSION_KIND="newest published tag"
-        elif [ "$LIST_SOURCE" = "redirect" ]; then
+        elif [[ "$LIST_SOURCE" = "redirect" ]]; then
             explain_limited_lookup
-            if [ "$INTERACTIVE" -eq 1 ] && confirm "Install the latest stable release (v$STABLE_VERSION) instead?"; then
+            if [[ "$INTERACTIVE" -eq 1 ]] && confirm "Install the latest stable release (v$STABLE_VERSION) instead?"; then
                 VERSION=$STABLE_VERSION
                 VERSION_KIND="latest stable, because pre-releases can't be looked up"
             else
@@ -723,19 +723,19 @@ choose_version() {
     fi
 
     # stable (the default)
-    if [ -n "$STABLE_VERSION" ]; then
+    if [[ -n "$STABLE_VERSION" ]]; then
         VERSION=$STABLE_VERSION
         VERSION_KIND="latest stable"
-    elif [ "$LIST_SOURCE" = "atom" ]; then
+    elif [[ "$LIST_SOURCE" = "atom" ]]; then
         explain_limited_lookup
-        if [ "$INTERACTIVE" -eq 1 ] && confirm "Install v$ATOM_NEWEST (the newest published version)?"; then
+        if [[ "$INTERACTIVE" -eq 1 ]] && confirm "Install v$ATOM_NEWEST (the newest published version)?"; then
             VERSION=$ATOM_NEWEST
             VERSION_KIND="newest published tag"
         else
             fail "I couldn't confirm which release is the latest stable one." \
                 "The newest tag is v$ATOM_NEWEST. To install it anyway: re-run with --version $ATOM_NEWEST"
         fi
-    elif [ "$LIST_SOURCE" = "api" ]; then
+    elif [[ "$LIST_SOURCE" = "api" ]]; then
         # Only pre-releases exist.
         VERSION=$PRE_VERSION
         VERSION_KIND="newest pre-release (no stable release exists yet)"
@@ -786,21 +786,21 @@ probe_url() {
 fuzzy_asset_url() {
     local ext_re=$1 file="$WORKDIR/release.json" urls pos neg match=""
     fetch_api "$API_URL/repos/$REPO/releases/tags/v$VERSION" "$file"
-    if [ "$HTTP_CODE" != "200" ]; then
+    if [[ "$HTTP_CODE" != "200" ]]; then
         describe_failure
         return 1
     fi
     urls=$(grep -o '"browser_download_url": *"[^"]*"' "$file" | cut -d'"' -f4) || urls=""
-    if [ "$ARCH" = "arm64" ]; then
+    if [[ "$ARCH" = "arm64" ]]; then
         pos='arm64|aarch64'; neg='$^'
     else
         pos='x64|x86_64|amd64|x86-64|intel'; neg='arm|aarch'
     fi
     match=$(printf '%s\n' "$urls" | grep -Ei "$ext_re" | grep -Ei "$pos" | sed -n '1p') || match=""
-    if [ -z "$match" ]; then
+    if [[ -z "$match" ]]; then
         match=$(printf '%s\n' "$urls" | grep -Ei "$ext_re" | grep -Eiv "$neg" | sed -n '1p') || match=""
     fi
-    [ -n "$match" ] || return 1
+    [[ -n "$match" ]] || return 1
     ASSET_URL=$match
     ASSET_NAME=$(basename "$match")
     return 0
@@ -808,7 +808,7 @@ fuzzy_asset_url() {
 
 list_release_assets() {
     local file="$WORKDIR/release.json"
-    if [ -s "$file" ]; then
+    if [[ -s "$file" ]]; then
         grep -o '"browser_download_url": *"[^"]*"' "$file" | cut -d'"' -f4 | while read -r u; do printf '    - %s\n' "$(basename "$u")"; done
     fi
 }
@@ -817,9 +817,9 @@ list_release_assets() {
 recent_versions_line() {
     local file="$WORKDIR/recent.json" recent
     fetch_api "$API_URL/repos/$REPO/releases?per_page=8" "$file"
-    [ "$HTTP_CODE" = "200" ] || return 0
+    [[ "$HTTP_CODE" = "200" ]] || return 0
     recent=$(parse_release_list "$file" | awk '{printf "%s%s ", $1, ($2 == "pre" ? " (pre-release)" : "")}')
-    if [ -n "$recent" ]; then
+    if [[ -n "$recent" ]]; then
         printf 'Recent versions: %s' "$recent"
     fi
 }
@@ -830,8 +830,8 @@ resolve_asset() {
         macos) exts="dmg" ;;
         linux)
             choose_linux_format
-            if [ "$FORMAT" = "deb" ]; then exts="deb appimage"; else exts="appimage deb"; fi
-            if [ -n "$FORMAT_REQ" ]; then exts="$FORMAT"; fi
+            if [[ "$FORMAT" = "deb" ]]; then exts="deb appimage"; else exts="appimage deb"; fi
+            if [[ -n "$FORMAT_REQ" ]]; then exts="$FORMAT"; fi
             ;;
     esac
 
@@ -843,17 +843,17 @@ resolve_asset() {
             found=1
             break
         fi
-        if [ "$HTTP_CODE" != "404" ]; then
+        if [[ "$HTTP_CODE" != "404" ]]; then
             break
         fi
     done
 
-    if [ "$found" -eq 1 ]; then
+    if [[ "$found" -eq 1 ]]; then
         return 0
     fi
 
     # The expected name wasn't there. Say why, then try matching by what the release really contains.
-    if [ "$HTTP_CODE" = "000" ] || { [ "$HTTP_CODE" != "404" ] && [ "$HTTP_CODE" != "200" ]; }; then
+    if [[ "$HTTP_CODE" = "000" ]] || { [[ "$HTTP_CODE" != "404" ]] && [[ "$HTTP_CODE" != "200" ]]; }; then
         describe_failure
         fail "Couldn't reach the download for v$VERSION." "Reason: $API_FAIL_REASON" \
             "Check your connection and try again."
@@ -863,7 +863,7 @@ resolve_asset() {
     local ext_re
     case "$PLATFORM" in
         macos) ext_re='\.dmg$' ;;
-        linux) if [ "$FORMAT" = "deb" ]; then ext_re='\.deb$'; else ext_re='\.appimage$'; fi ;;
+        linux) if [[ "$FORMAT" = "deb" ]]; then ext_re='\.deb$'; else ext_re='\.appimage$'; fi ;;
     esac
     if fuzzy_asset_url "$ext_re" && probe_url "$ASSET_URL"; then
         ok "Found $ASSET_NAME"
@@ -871,27 +871,27 @@ resolve_asset() {
     fi
 
     local reason="Release v$VERSION has no build for this system ($SYSTEM_LABEL)."
-    if [ "$HTTP_CODE" = "404" ]; then
+    if [[ "$HTTP_CODE" = "404" ]]; then
         # Distinguish "no such release" from "release exists, wrong files".
         fetch_api "$API_URL/repos/$REPO/releases/tags/v$VERSION" "$WORKDIR/release.json"
-        if [ "$HTTP_CODE" = "404" ]; then
+        if [[ "$HTTP_CODE" = "404" ]]; then
             reason="There is no release called v$VERSION."
-        elif [ "$HTTP_CODE" != "200" ]; then
+        elif [[ "$HTTP_CODE" != "200" ]]; then
             describe_failure
             reason="Couldn't find a matching file for v$VERSION, and couldn't ask GitHub why: $API_FAIL_REASON"
         fi
     fi
     local details=() line recent
-    if [ "$HTTP_CODE" = "200" ] && [ -s "$WORKDIR/release.json" ]; then
+    if [[ "$HTTP_CODE" = "200" ]] && [[ -s "$WORKDIR/release.json" ]]; then
         details+=("Files attached to v$VERSION:")
         while IFS= read -r line; do
-            if [ -n "$line" ]; then details+=("$line"); fi
+            if [[ -n "$line" ]]; then details+=("$line"); fi
         done <<LISTING
 $(list_release_assets)
 LISTING
     else
         recent=$(recent_versions_line)
-        if [ -n "$recent" ]; then details+=("$recent"); fi
+        if [[ -n "$recent" ]]; then details+=("$recent"); fi
     fi
     fail "$reason" ${details[@]+"${details[@]}"}
 }
@@ -900,7 +900,7 @@ LISTING
 # Plan, privileges, download, verification
 # ---------------------------------------------------------------------------
 priv() {
-    if [ "$NEED_ADMIN" -eq 1 ] && [ "$(id -u)" -ne 0 ]; then
+    if [[ "$NEED_ADMIN" -eq 1 ]] && [[ "$(id -u)" -ne 0 ]]; then
         sudo "$@"
     else
         "$@"
@@ -908,14 +908,14 @@ priv() {
 }
 
 prepare_privileges() {
-    if [ "$NEED_ADMIN" -ne 1 ] || [ "$(id -u)" -eq 0 ]; then
+    if [[ "$NEED_ADMIN" -ne 1 ]] || [[ "$(id -u)" -eq 0 ]]; then
         return 0
     fi
     if ! has sudo; then
         fail "Administrator rights are needed ($ADMIN_REASON) but sudo isn't available." \
             "Run this installer as root, or on macOS add --user to install into your home folder."
     fi
-    if [ "$TTY_OK" -eq 1 ]; then
+    if [[ "$TTY_OK" -eq 1 ]]; then
         info "Your password is needed to $ADMIN_REASON. It is typed into sudo directly; this script never sees it."
         # shellcheck disable=SC2024  # sudo reads the password from /dev/tty itself
         sudo -v </dev/tty || die "Couldn't get administrator rights." "On macOS you can add --user to install into ~/Applications instead."
@@ -928,9 +928,9 @@ prepare_privileges() {
 download_asset() {
     step "Downloading $ASSET_NAME"
     DOWNLOAD_PATH="$WORKDIR/dl/$ASSET_NAME"
-    if [ -n "$ASSET_SIZE" ]; then info "$(format_bytes "$ASSET_SIZE") to download"; fi
+    if [[ -n "$ASSET_SIZE" ]]; then info "$(format_bytes "$ASSET_SIZE") to download"; fi
     SHOW_PROGRESS=1 fetch "$ASSET_URL" "$DOWNLOAD_PATH"
-    if [ "$HTTP_CODE" != "200" ] || [ ! -s "$DOWNLOAD_PATH" ]; then
+    if [[ "$HTTP_CODE" != "200" ]] || [[ ! -s "$DOWNLOAD_PATH" ]]; then
         describe_failure
         fail "The download failed." "Reason: $API_FAIL_REASON" "URL: $ASSET_URL"
     fi
@@ -954,13 +954,13 @@ verify_asset() {
     step "Verifying the download"
     local sums="$WORKDIR/SHA256SUMS" expected actual verified=0 why="" expected_gap=0
     fetch "$(release_download_url SHA256SUMS)" "$sums"
-    if [ "$HTTP_CODE" = "200" ]; then
+    if [[ "$HTTP_CODE" = "200" ]]; then
         expected=$(awk -v f="$ASSET_NAME" '{n=$2; sub(/^\*/, "", n); if (n == f) {print tolower($1); exit}}' "$sums") || expected=""
-        if [ -z "$expected" ]; then
+        if [[ -z "$expected" ]]; then
             why="the release's SHA256SUMS file doesn't list $ASSET_NAME"
         elif ! actual=$(sha256_of "$DOWNLOAD_PATH"); then
             why="no sha256 tool (sha256sum, shasum or openssl) is installed"
-        elif [ "$actual" = "$expected" ]; then
+        elif [[ "$actual" = "$expected" ]]; then
             ok "SHA-256 matches the checksum published with v$VERSION"
             verified=1
         else
@@ -968,7 +968,7 @@ verify_asset() {
                 "expected: $expected" "actual:   $actual" \
                 "Try again; if it keeps happening please report it at https://github.com/$REPO/issues"
         fi
-    elif [ "$HTTP_CODE" = "404" ]; then
+    elif [[ "$HTTP_CODE" = "404" ]]; then
         # Normal for releases made before checksums existed, so this isn't worth alarming anyone.
         expected_gap=1
         why="v$VERSION has no published checksum file (releases made before checksums were added don't)"
@@ -977,11 +977,11 @@ verify_asset() {
         why="the checksum file couldn't be fetched: $API_FAIL_REASON"
     fi
 
-    if [ "$verified" -eq 0 ]; then
-        if [ "$REQUIRE_CHECKSUM" -eq 1 ]; then
+    if [[ "$verified" -eq 0 ]]; then
+        if [[ "$REQUIRE_CHECKSUM" -eq 1 ]]; then
             die "Can't verify the download and --require-checksum was given." "Reason: $why"
         fi
-        if [ "$expected_gap" -eq 1 ]; then
+        if [[ "$expected_gap" -eq 1 ]]; then
             info "No checksum is published for v$VERSION, so I can't verify it (normal for releases before checksums were added). It came over HTTPS from github.com/$REPO."
         else
             warn "Couldn't verify the download: $why."
@@ -999,7 +999,7 @@ macos_installed() {
     INSTALLED_VERSION=""
     EXISTING_DIR=""
     for d in "$SYSTEM_APPS" "$HOME/Applications"; do
-        if [ -d "$d/$APP_NAME.app" ]; then
+        if [[ -d "$d/$APP_NAME.app" ]]; then
             EXISTING_DIR=$d
             INSTALLED_VERSION=$(defaults read "$d/$APP_NAME.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || true)
             return 0
@@ -1012,24 +1012,24 @@ plan_macos() {
     macos_installed || true
     local existing_dir=$EXISTING_DIR
 
-    if [ "$USER_INSTALL" -eq 1 ]; then
+    if [[ "$USER_INSTALL" -eq 1 ]]; then
         DEST_DIR="$HOME/Applications"
-    elif [ "$existing_dir" = "$HOME/Applications" ] && [ ! -d "$SYSTEM_APPS/$APP_NAME.app" ]; then
+    elif [[ "$existing_dir" = "$HOME/Applications" ]] && [[ ! -d "$SYSTEM_APPS/$APP_NAME.app" ]]; then
         DEST_DIR="$HOME/Applications"
     else
         DEST_DIR="$SYSTEM_APPS"
     fi
 
     NEED_ADMIN=0
-    if [ "$DEST_DIR" = "$SYSTEM_APPS" ]; then
-        if [ ! -w "$SYSTEM_APPS" ]; then
+    if [[ "$DEST_DIR" = "$SYSTEM_APPS" ]]; then
+        if [[ ! -w "$SYSTEM_APPS" ]]; then
             NEED_ADMIN=1
             ADMIN_REASON="write to $SYSTEM_APPS (your account can't modify it directly)"
-        elif [ -d "$SYSTEM_APPS/$APP_NAME.app" ] && [ "$(stat -f %Su "$SYSTEM_APPS/$APP_NAME.app" 2>/dev/null)" != "$(id -un)" ]; then
+        elif [[ -d "$SYSTEM_APPS/$APP_NAME.app" ]] && [[ "$(stat -f %Su "$SYSTEM_APPS/$APP_NAME.app" 2>/dev/null)" != "$(id -un)" ]]; then
             NEED_ADMIN=1
             ADMIN_REASON="replace the existing app, which is owned by another user"
         fi
-        if [ "$NEED_ADMIN" -eq 1 ] && [ "$TTY_OK" -eq 0 ] && [ "$(id -u)" -ne 0 ] && ! sudo -n true 2>/dev/null; then
+        if [[ "$NEED_ADMIN" -eq 1 ]] && [[ "$TTY_OK" -eq 0 ]] && [[ "$(id -u)" -ne 0 ]] && ! sudo -n true 2>/dev/null; then
             warn "Admin rights would be needed but there's no terminal to ask for a password; installing into ~/Applications instead."
             DEST_DIR="$HOME/Applications"
             NEED_ADMIN=0
@@ -1037,7 +1037,7 @@ plan_macos() {
     fi
     INSTALL_TARGET="$DEST_DIR/$APP_NAME.app"
     INSTALLED_VERSION=""
-    if [ -d "$INSTALL_TARGET" ]; then
+    if [[ -d "$INSTALL_TARGET" ]]; then
         INSTALLED_VERSION=$(defaults read "$INSTALL_TARGET/Contents/Info" CFBundleShortVersionString 2>/dev/null || true)
     fi
 }
@@ -1045,10 +1045,10 @@ plan_macos() {
 # Only touches a copy that is running from the exact place we're about to replace.
 quit_running_macos() {
     local target=$1 pattern="$1/Contents/MacOS"
-    if [ ! -d "$target" ] || ! pgrep -f "$pattern" >/dev/null 2>&1; then
+    if [[ ! -d "$target" ]] || ! pgrep -f "$pattern" >/dev/null 2>&1; then
         return 0
     fi
-    if [ "$INTERACTIVE" -eq 1 ]; then
+    if [[ "$INTERACTIVE" -eq 1 ]]; then
         if ! confirm "$APP_NAME is running. Quit it so it can be replaced?"; then
             warn "Leaving it running; restart $APP_NAME afterwards to use the new version."
             return 0
@@ -1057,7 +1057,7 @@ quit_running_macos() {
     info "Quitting $APP_NAME..."
     osascript -e "tell application \"$target\" to quit" >/dev/null 2>&1 || true
     local i=0
-    while [ "$i" -lt 10 ] && pgrep -f "$pattern" >/dev/null 2>&1; do
+    while [[ "$i" -lt 10 ]] && pgrep -f "$pattern" >/dev/null 2>&1; do
         sleep 1
         i=$((i + 1))
     done
@@ -1076,7 +1076,7 @@ install_macos() {
     MOUNT_POINT=$mnt
 
     app=$(find "$mnt" -maxdepth 2 -name '*.app' -type d | sed -n '1p')
-    if [ -z "$app" ]; then
+    if [[ -z "$app" ]]; then
         fail "The disk image doesn't contain an app, so nothing was installed."
     fi
     name=$(basename "$app")
@@ -1096,11 +1096,11 @@ install_macos() {
     fi
 
     # Swap in the new copy; keep the old one until the swap has worked.
-    if [ -d "$INSTALL_TARGET" ]; then
+    if [[ -d "$INSTALL_TARGET" ]]; then
         priv mv "$INSTALL_TARGET" "$backup"
     fi
     if ! priv mv "$stage" "$INSTALL_TARGET"; then
-        if [ -d "$backup" ]; then priv mv "$backup" "$INSTALL_TARGET" || true; fi
+        if [[ -d "$backup" ]]; then priv mv "$backup" "$INSTALL_TARGET" || true; fi
         fail "Couldn't put the new app in place. Your previous version was restored."
     fi
     priv rm -rf "$backup"
@@ -1121,31 +1121,31 @@ install_macos() {
 uninstall_macos() {
     local d found="" scope="$SYSTEM_APPS or $HOME/Applications"
     # With --user, only touch the home-folder copy.
-    if [ "$USER_INSTALL" -eq 1 ]; then scope="$HOME/Applications"; fi
+    if [[ "$USER_INSTALL" -eq 1 ]]; then scope="$HOME/Applications"; fi
     for d in "$SYSTEM_APPS" "$HOME/Applications"; do
-        if [ "$USER_INSTALL" -eq 1 ] && [ "$d" = "$SYSTEM_APPS" ]; then continue; fi
-        if [ -d "$d/$APP_NAME.app" ]; then found="$found$d/$APP_NAME.app"$'\n'; fi
+        if [[ "$USER_INSTALL" -eq 1 ]] && [[ "$d" = "$SYSTEM_APPS" ]]; then continue; fi
+        if [[ -d "$d/$APP_NAME.app" ]]; then found="$found$d/$APP_NAME.app"$'\n'; fi
     done
-    if [ -z "$found" ]; then
+    if [[ -z "$found" ]]; then
         info "$APP_NAME isn't installed in $scope. Nothing to remove."
         return 0
     fi
     say ""
     say "This will remove:"
     while IFS= read -r d; do
-        if [ -n "$d" ]; then say "  $d"; fi
+        if [[ -n "$d" ]]; then say "  $d"; fi
     done <<LISTING
 $found
 LISTING
     say "Your projects and settings (~/Library/Application Support/$APP_NAME) are kept."
-    if [ "$DRY_RUN" -eq 1 ]; then say "Dry run: nothing was removed."; return 0; fi
-    if [ "$INTERACTIVE" -ne 1 ] && [ "$ASSUME_YES" -ne 1 ]; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then say "Dry run: nothing was removed."; return 0; fi
+    if [[ "$INTERACTIVE" -ne 1 ]] && [[ "$ASSUME_YES" -ne 1 ]]; then
         die "Not removing anything without a confirmation." "Add --yes to uninstall without being asked."
     fi
     confirm "Remove it?" || { say "Cancelled. Nothing was changed."; return 0; }
     while IFS= read -r d; do
-        [ -n "$d" ] || continue
-        if [ -w "$(dirname "$d")" ]; then
+        [[ -n "$d" ]] || continue
+        if [[ -w "$(dirname "$d")" ]]; then
             rm -rf "$d"
         else
             NEED_ADMIN=1; ADMIN_REASON="remove the app from $(dirname "$d")"
@@ -1162,13 +1162,13 @@ LISTING
 # Linux
 # ---------------------------------------------------------------------------
 can_get_root() {
-    [ "$(id -u)" -eq 0 ] || has sudo
+    [[ "$(id -u)" -eq 0 ]] || has sudo
 }
 
 choose_linux_format() {
-    if [ -n "$FORMAT_REQ" ]; then
+    if [[ -n "$FORMAT_REQ" ]]; then
         FORMAT=$FORMAT_REQ
-        if [ "$FORMAT" = "deb" ] && { ! has apt-get || ! has dpkg; }; then
+        if [[ "$FORMAT" = "deb" ]] && { ! has apt-get || ! has dpkg; }; then
             fail "--format deb needs a Debian/Ubuntu-style system (apt-get and dpkg), and this one doesn't have them." \
                 "Use --format appimage instead."
         fi
@@ -1190,19 +1190,19 @@ choose_linux_format() {
 # launcher we write, and only when this check says the sandbox cannot work.
 userns_ok() {
     local v
-    if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+    if [[ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
         v=$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)
-        if [ "$v" = "1" ]; then return 1; fi
+        if [[ "$v" = "1" ]]; then return 1; fi
     fi
-    if [ -r /proc/sys/user/max_user_namespaces ]; then
+    if [[ -r /proc/sys/user/max_user_namespaces ]]; then
         v=$(cat /proc/sys/user/max_user_namespaces 2>/dev/null || echo 0)
-        if [ "$v" = "0" ]; then return 1; fi
+        if [[ "$v" = "0" ]]; then return 1; fi
     else
         return 1
     fi
-    if [ -r /proc/sys/kernel/unprivileged_userns_clone ]; then
+    if [[ -r /proc/sys/kernel/unprivileged_userns_clone ]]; then
         v=$(cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null || echo 1)
-        if [ "$v" = "0" ]; then return 1; fi
+        if [[ "$v" = "0" ]]; then return 1; fi
     fi
     if has unshare; then
         if ! unshare -Ur true >/dev/null 2>&1; then return 1; fi
@@ -1213,10 +1213,10 @@ userns_ok() {
 # True when the installed chrome-sandbox is root-owned, setuid, and not on a nosuid mount.
 sandbox_helper_works() {
     local f=$1 owner mode opts=""
-    [ -f "$f" ] || return 1
+    [[ -f "$f" ]] || return 1
     owner=$(stat -c '%u' "$f" 2>/dev/null || echo "")
     mode=$(stat -c '%a' "$f" 2>/dev/null || echo "")
-    [ "$owner" = "0" ] || return 1
+    [[ "$owner" = "0" ]] || return 1
     case "$mode" in 4*) ;; *) return 1 ;; esac
     if has findmnt; then
         opts=$(findmnt -no OPTIONS -T "$f" 2>/dev/null || true)
@@ -1226,12 +1226,12 @@ sandbox_helper_works() {
 }
 
 has_fuse2() {
-    [ -e /dev/fuse ] || return 1
+    [[ -e /dev/fuse ]] || return 1
     local lc=ldconfig out=""
     if ! has ldconfig; then lc=/sbin/ldconfig; fi
     out=$("$lc" -p 2>/dev/null || true)
     case "$out" in *libfuse.so.2*) return 0 ;; esac
-    [ -e /usr/lib/libfuse.so.2 ] || [ -e /usr/lib64/libfuse.so.2 ] || ls /usr/lib/*/libfuse.so.2 >/dev/null 2>&1
+    [[ -e /usr/lib/libfuse.so.2 ]] || [[ -e /usr/lib64/libfuse.so.2 ]] || ls /usr/lib/*/libfuse.so.2 >/dev/null 2>&1
 }
 
 xdg_data_home() {
@@ -1249,11 +1249,11 @@ plan_linux() {
     NO_SANDBOX_FLAG=0
     # An AppImage can't use the setuid helper (its mount is nosuid), so it needs user
     # namespaces. The .deb installs the helper setuid, which is checked after installing.
-    if [ "$FORMAT" = "appimage" ] && ! userns_ok; then
+    if [[ "$FORMAT" = "appimage" ]] && ! userns_ok; then
         NO_SANDBOX_FLAG=1
     fi
-    if [ "$FORMAT" = "deb" ]; then
-        if [ "$(id -u)" -ne 0 ]; then
+    if [[ "$FORMAT" = "deb" ]]; then
+        if [[ "$(id -u)" -ne 0 ]]; then
             NEED_ADMIN=1
             ADMIN_REASON="install the package with apt"
         fi
@@ -1281,10 +1281,10 @@ install_icon() {
     mkdir -p "$dir"
     url="$RAW_URL/$REPO/v$VERSION/build/icon.png"
     fetch "$url" "$icon"
-    if [ "$HTTP_CODE" != "200" ]; then
+    if [[ "$HTTP_CODE" != "200" ]]; then
         fetch "$RAW_URL/$REPO/main/build/icon.png" "$icon"
     fi
-    if [ "$HTTP_CODE" = "200" ] && [ -s "$icon" ]; then
+    if [[ "$HTTP_CODE" = "200" ]] && [[ -s "$icon" ]]; then
         if has gtk-update-icon-cache; then
             gtk-update-icon-cache -f -t "$(xdg_data_home)/icons/hicolor" >/dev/null 2>&1 || true
         fi
@@ -1307,7 +1307,7 @@ install_appimage() {
 
     # Remove AppImages from earlier installs so there's exactly one.
     for f in "$dir"/Turtle-Tracer*.AppImage "$dir"/turtle-tracer*.AppImage "$dir"/turtle-tracer*.appimage; do
-        if [ -f "$f" ] && [ "$f" != "$dest" ]; then
+        if [[ -f "$f" ]] && [[ "$f" != "$dest" ]]; then
             rm -f "$f"
             info "Removed older AppImage $(basename "$f")"
         fi
@@ -1318,10 +1318,10 @@ install_appimage() {
     desktop="$apps_dir/$PKG_NAME.desktop"
     if desktop_safe "$dest"; then
         exec_line="\"$dest\""
-        if [ "$FUSE_OK" -eq 0 ]; then
+        if [[ "$FUSE_OK" -eq 0 ]]; then
             exec_line="env APPIMAGE_EXTRACT_AND_RUN=1 $exec_line"
         fi
-        if [ "$NO_SANDBOX_FLAG" -eq 1 ]; then
+        if [[ "$NO_SANDBOX_FLAG" -eq 1 ]]; then
             exec_line="$exec_line --no-sandbox"
         fi
         mkdir -p "$apps_dir"
@@ -1345,7 +1345,7 @@ EOF
         warn "Your home path contains characters that menu entries can't hold, so no menu entry was created."
     fi
 
-    if [ "$FUSE_OK" -eq 0 ]; then
+    if [[ "$FUSE_OK" -eq 0 ]]; then
         warn "FUSE 2 (libfuse2) isn't installed, so the AppImage can't mount itself."
         warn "I set the launcher to unpack on start instead (works, but starts slower)."
         warn "To make it fast, install libfuse2 with your package manager (e.g. 'sudo apt install libfuse2' or 'sudo dnf install fuse-libs')."
@@ -1354,7 +1354,7 @@ EOF
         old=""
     fi
     LAUNCH_HINT="${old}\"$dest\""
-    if [ "$NO_SANDBOX_FLAG" -eq 1 ]; then
+    if [[ "$NO_SANDBOX_FLAG" -eq 1 ]]; then
         LAUNCH_HINT="$LAUNCH_HINT --no-sandbox"
         warn "Your system blocks unprivileged user namespaces (Ubuntu 23.10+ does this by default), so an AppImage"
         warn "can't use Chromium's sandbox and would crash on start. I added --no-sandbox to the menu entry."
@@ -1380,7 +1380,7 @@ install_deb() {
     # A user-level menu entry from an old AppImage install would hide the system one (same file name).
     local user_entry
     user_entry="$(xdg_data_home)/applications/$PKG_NAME.desktop"
-    if [ -f "$user_entry" ] && grep -q 'AppImage' "$user_entry" 2>/dev/null; then
+    if [[ -f "$user_entry" ]] && grep -q 'AppImage' "$user_entry" 2>/dev/null; then
         rm -f "$user_entry"
         rm -f "$(appimage_dir)"/Turtle-Tracer*.AppImage 2>/dev/null || true
         info "Removed your older AppImage install; the system package replaces it."
@@ -1392,7 +1392,7 @@ install_deb() {
     local helper="/opt/$APP_NAME/chrome-sandbox" sys_desktop="/usr/share/applications/$PKG_NAME.desktop"
     if sandbox_helper_works "$helper"; then
         ok "Chromium's sandbox helper is set up correctly (setuid root); no sandbox flag needed"
-    elif ! userns_ok && [ -f "$sys_desktop" ] && ! grep -q -- '--no-sandbox' "$sys_desktop"; then
+    elif ! userns_ok && [[ -f "$sys_desktop" ]] && ! grep -q -- '--no-sandbox' "$sys_desktop"; then
         if grep -q '^Exec=.* %U$' "$sys_desktop"; then
             priv sed -i 's|^\(Exec=.*\) %U$|\1 --no-sandbox %U|' "$sys_desktop"
         else
@@ -1410,29 +1410,29 @@ uninstall_linux() {
         deb=1
     fi
     for f in "$(appimage_dir)"/Turtle-Tracer*.AppImage "$(appimage_dir)"/turtle-tracer*.AppImage; do
-        if [ -f "$f" ]; then appimages="$appimages $f"; fi
+        if [[ -f "$f" ]]; then appimages="$appimages $f"; fi
     done
     entry="$(xdg_data_home)/applications/$PKG_NAME.desktop"
-    if [ "$deb" -eq 0 ] && [ -z "$appimages" ] && [ ! -f "$entry" ]; then
+    if [[ "$deb" -eq 0 ]] && [[ -z "$appimages" ]] && [[ ! -f "$entry" ]]; then
         info "$APP_NAME doesn't appear to be installed. Nothing to remove."
         return 0
     fi
     say ""
     say "This will remove:"
-    if [ "$deb" -eq 1 ]; then say "  the $PKG_NAME system package (needs sudo)"; fi
+    if [[ "$deb" -eq 1 ]]; then say "  the $PKG_NAME system package (needs sudo)"; fi
     for f in $appimages; do say "  $f"; done
-    if [ -f "$entry" ]; then say "  $entry"; fi
+    if [[ -f "$entry" ]]; then say "  $entry"; fi
     say "Your projects and settings (~/.config/$APP_NAME) are kept."
-    if [ "$DRY_RUN" -eq 1 ]; then say "Dry run: nothing was removed."; return 0; fi
+    if [[ "$DRY_RUN" -eq 1 ]]; then say "Dry run: nothing was removed."; return 0; fi
     confirm "Remove it?" || { say "Cancelled. Nothing was changed."; return 0; }
-    if [ "$deb" -eq 1 ]; then
+    if [[ "$deb" -eq 1 ]]; then
         NEED_ADMIN=1; ADMIN_REASON="remove the system package"
         prepare_privileges
         priv apt-get remove -y "$PKG_NAME"
         ok "Removed the system package"
     fi
     for f in $appimages; do rm -f "$f"; ok "Removed $f"; done
-    if [ -f "$entry" ]; then rm -f "$entry"; fi
+    if [[ -f "$entry" ]]; then rm -f "$entry"; fi
     rm -f "$(xdg_data_home)/icons/hicolor/1024x1024/apps/$PKG_NAME.png" "$(xdg_data_home)/icons/hicolor/512x512/apps/$PKG_NAME.png"
     if has update-desktop-database; then update-desktop-database "$(xdg_data_home)/applications" >/dev/null 2>&1 || true; fi
 }
@@ -1448,8 +1448,8 @@ print_plan() {
     kv "System:" "$SYSTEM_LABEL"
     kv "Version:" "v$VERSION ($VERSION_KIND)"
     kv "Download:" "$ASSET_NAME${size:+ ($size)} from ${GITHUB_URL#*://}/$REPO"
-    if [ -n "$INSTALLED_VERSION" ]; then
-        if [ "$INSTALLED_VERSION" = "$VERSION" ]; then
+    if [[ -n "$INSTALLED_VERSION" ]]; then
+        if [[ "$INSTALLED_VERSION" = "$VERSION" ]]; then
             kv "Install to:" "$INSTALL_TARGET (v$VERSION is already installed; it will be reinstalled)"
         elif version_lt "$VERSION" "$INSTALLED_VERSION"; then
             kv "Install to:" "$INSTALL_TARGET"
@@ -1460,15 +1460,15 @@ print_plan() {
     else
         kv "Install to:" "$INSTALL_TARGET"
     fi
-    if [ "$NEED_ADMIN" -eq 1 ]; then
+    if [[ "$NEED_ADMIN" -eq 1 ]]; then
         kv "Admin rights:" "yes - to $ADMIN_REASON"
     else
         kv "Admin rights:" "not needed"
     fi
-    if [ "$PLATFORM" = "linux" ] && [ "$FORMAT" = "appimage" ] && [ "$FUSE_OK" -eq 0 ]; then
+    if [[ "$PLATFORM" = "linux" ]] && [[ "$FORMAT" = "appimage" ]] && [[ "$FUSE_OK" -eq 0 ]]; then
         kv "Note:" "libfuse2 is missing; the launcher will unpack the app on start"
     fi
-    if [ "$PLATFORM" = "linux" ] && [ "$NO_SANDBOX_FLAG" -eq 1 ]; then
+    if [[ "$PLATFORM" = "linux" ]] && [[ "$NO_SANDBOX_FLAG" -eq 1 ]]; then
         kv "Note:" "your system blocks user namespaces, so the AppImage launcher will get --no-sandbox"
     fi
     say ""
@@ -1481,7 +1481,7 @@ finish_message() {
         macos) say "Open it from your Applications folder, Launchpad or Spotlight." ;;
         linux)
             say "Open it from your applications menu, or run:  $LAUNCH_HINT"
-            if [ "$FORMAT" = "appimage" ]; then
+            if [[ "$FORMAT" = "appimage" ]]; then
                 say "(If the menu entry doesn't show up right away, log out and back in.)"
             fi
             ;;
@@ -1493,10 +1493,10 @@ finish_message() {
 # Main
 # ---------------------------------------------------------------------------
 main() {
-    if [ -n "${TT_VERSION:-}" ]; then
+    if [[ -n "${TT_VERSION:-}" ]]; then
         set_version_request "$TT_VERSION" || die_usage "TT_VERSION=\"$TT_VERSION\" is not a version number."
     fi
-    if [ -n "${TT_CHANNEL:-}" ]; then
+    if [[ -n "${TT_CHANNEL:-}" ]]; then
         set_version_request "$TT_CHANNEL" || die_usage "TT_CHANNEL must be \"stable\" or \"prerelease\"."
     fi
     parse_args "$@"
@@ -1520,11 +1520,11 @@ main() {
                 "Supported: macOS, Linux (x86_64/arm64) and Windows (see install.ps1)."
             ;;
     esac
-    if [ -z "$ARCH" ]; then
+    if [[ -z "$ARCH" ]]; then
         fail "This computer's processor ($(uname -m)) isn't supported." \
             "Builds exist for 64-bit Intel/AMD (x86_64) and ARM (arm64/aarch64) only."
     fi
-    if [ "$PLATFORM" = "linux" ] && ls /lib/ld-musl-* >/dev/null 2>&1; then
+    if [[ "$PLATFORM" = "linux" ]] && ls /lib/ld-musl-* >/dev/null 2>&1; then
         fail "This looks like a musl-based Linux (e.g. Alpine). Turtle Tracer needs glibc." \
             "Use a glibc distribution such as Debian, Ubuntu, Fedora or Arch."
     fi
@@ -1532,23 +1532,23 @@ main() {
     say ""
     say "Detected: $SYSTEM_LABEL"
 
-    if [ "$ACTION" = "uninstall" ]; then
-        if [ "$PLATFORM" = "macos" ]; then uninstall_macos; else uninstall_linux; fi
+    if [[ "$ACTION" = "uninstall" ]]; then
+        if [[ "$PLATFORM" = "macos" ]]; then uninstall_macos; else uninstall_linux; fi
         return 0
     fi
 
     # Which version?
     detect_installed_version
-    if [ -z "$REQ_VERSION" ]; then
+    if [[ -z "$REQ_VERSION" ]]; then
         if ! gather_versions; then
-            if [ "$INTERACTIVE" -eq 1 ]; then
+            if [[ "$INTERACTIVE" -eq 1 ]]; then
                 warn "Couldn't look up versions: ${API_FAIL_REASON:-GitHub could not be reached.}"
                 say "You can still type a version number yourself."
             fi
-        elif [ "$LIST_SOURCE" != "api" ] && [ "$INTERACTIVE" -eq 1 ]; then
+        elif [[ "$LIST_SOURCE" != "api" ]] && [[ "$INTERACTIVE" -eq 1 ]]; then
             explain_limited_lookup
         fi
-        if [ -z "$CHANNEL" ] && [ "$INTERACTIVE" -eq 1 ]; then
+        if [[ -z "$CHANNEL" ]] && [[ "$INTERACTIVE" -eq 1 ]]; then
             ask_version
         fi
     fi
@@ -1556,14 +1556,14 @@ main() {
 
     resolve_asset
 
-    if [ "$PLATFORM" = "macos" ]; then
+    if [[ "$PLATFORM" = "macos" ]]; then
         plan_macos
     else
         plan_linux
     fi
     print_plan
 
-    if [ "$DRY_RUN" -eq 1 ]; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
         say "Dry run: nothing was downloaded or installed."
         return 0
     fi
@@ -1574,9 +1574,9 @@ main() {
 
     download_asset
     verify_asset
-    if [ "$PLATFORM" = "macos" ]; then
+    if [[ "$PLATFORM" = "macos" ]]; then
         install_macos
-    elif [ "$FORMAT" = "deb" ]; then
+    elif [[ "$FORMAT" = "deb" ]]; then
         install_deb
     else
         install_appimage

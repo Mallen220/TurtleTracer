@@ -24,8 +24,8 @@
       id: makeId("feature"),
       name: `New ${type}`,
       type,
-      x: 0,
-      y: 0,
+      offsetX: 0,
+      offsetY: 0,
       color: "#3b82f6",
       filled: true,
       visible: true,
@@ -33,7 +33,7 @@
 
     if (type === "rectangle") {
       newFeature.width = 4;
-      newFeature.height = 4;
+      newFeature.length = 4;
     } else if (type === "circle") {
       newFeature.radius = 2;
     } else if (type === "line") {
@@ -74,7 +74,7 @@
 
   let isDragging = false;
   let dragStartMouse = { x: 0, y: 0 };
-  let dragStartFeature = { x: 0, y: 0 };
+  let dragStartFeature = { offsetX: 0, offsetY: 0 };
   let activeDragId: string | null = null;
 
   function handlePointerDown(e: PointerEvent, feature: RobotFeature) {
@@ -86,7 +86,7 @@
     isDragging = true;
     activeDragId = feature.id;
     dragStartMouse = { x: e.clientX, y: e.clientY };
-    dragStartFeature = { x: feature.x, y: feature.y };
+    dragStartFeature = { offsetX: feature.offsetX, offsetY: feature.offsetY };
   }
 
   function handlePointerMove(e: PointerEvent) {
@@ -95,14 +95,14 @@
     const dy = e.clientY - dragStartMouse.y;
 
     // The entire preview group is rotated -90 degrees (facing up).
-    // Screen up (-dy) maps to local +X (forward). Screen right (+dx) maps to local +Y (left/right).
-    const inchX = dragStartFeature.x - dy / scale;
-    const inchY = dragStartFeature.y + dx / scale;
+    // Screen up (-dy) is forward (+offsetY). Screen right (+dx) is the robot's right (+offsetX).
+    const inchX = dragStartFeature.offsetX + dx / scale;
+    const inchY = dragStartFeature.offsetY - dy / scale;
 
     const snap = e.shiftKey ? 0.5 : 0.01;
     updateFeature(activeDragId, {
-      x: Math.round(Math.round(inchX / snap) * snap * 100) / 100,
-      y: Math.round(Math.round(inchY / snap) * snap * 100) / 100,
+      offsetX: Math.round(Math.round(inchX / snap) * snap * 100) / 100,
+      offsetY: Math.round(Math.round(inchY / snap) * snap * 100) / 100,
     });
   }
 
@@ -164,7 +164,7 @@
             {/if}
 
             <!-- Robot Base Boundary -->
-            <!-- X is length, Y is width -->
+            <!-- Drawn facing right: the length runs across the box, the width down it. -->
             <rect
               x={centerX - ((settings.rLength || 18) * scale) / 2}
               y={centerY - ((settings.rWidth || 18) * scale) / 2}
@@ -199,9 +199,9 @@
               {#each settings.robotFeatures as feature (feature.id)}
                 {@const isSelected = selectedFeatureId === feature.id}
                 {@const isVisible = feature.visible !== false}
-                <!-- X is forward/back, Y is left/right -->
-                {@const fx = centerX + feature.x * scale}
-                {@const fy = centerY + feature.y * scale}
+                <!-- offsetY is forward (across the box here), offsetX is right (down it) -->
+                {@const fx = centerX + feature.offsetY * scale}
+                {@const fy = centerY + feature.offsetX * scale}
                 {@const strokeColor = isSelected ? "#ef4444" : feature.color}
                 {@const strokeWidth = isSelected ? 3 : 1}
                 {@const fill = feature.filled ? feature.color : "transparent"}
@@ -226,10 +226,10 @@
                   >
                     {#if feature.type === "rectangle"}
                       <rect
-                        x={fx - ((feature.width || 4) * scale) / 2}
-                        y={fy - ((feature.height || 4) * scale) / 2}
-                        width={(feature.width || 4) * scale}
-                        height={(feature.height || 4) * scale}
+                        x={fx - ((feature.length || 4) * scale) / 2}
+                        y={fy - ((feature.width || 4) * scale) / 2}
+                        width={(feature.length || 4) * scale}
+                        height={(feature.width || 4) * scale}
                         {fill}
                         stroke={strokeColor}
                         stroke-width={strokeWidth}
@@ -392,15 +392,15 @@
                 <label
                   for="feature-{feature.id}-x"
                   class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
-                  >X Offset (in)</label
+                  >X Offset</label
                 >
                 <input
                   id="feature-{feature.id}-x"
                   type="number"
-                  value={feature.x}
+                  value={feature.offsetX}
                   oninput={(e) =>
                     updateFeature(feature.id, {
-                      x: Number.parseFloat(e.currentTarget.value) || 0,
+                      offsetX: Number.parseFloat(e.currentTarget.value) || 0,
                     })}
                   step="0.01"
                   class="{ui.inputXs} w-full"
@@ -410,15 +410,15 @@
                 <label
                   for="feature-{feature.id}-y"
                   class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
-                  >Y Offset (in)</label
+                  >Y Offset</label
                 >
                 <input
                   id="feature-{feature.id}-y"
                   type="number"
-                  value={feature.y}
+                  value={feature.offsetY}
                   oninput={(e) =>
                     updateFeature(feature.id, {
-                      y: Number.parseFloat(e.currentTarget.value) || 0,
+                      offsetY: Number.parseFloat(e.currentTarget.value) || 0,
                     })}
                   step="0.01"
                   class="{ui.inputXs} w-full"
@@ -427,6 +427,28 @@
 
               <!-- Shape-specific Properties -->
               {#if feature.type === "rectangle"}
+                <div class="flex flex-col">
+                  <label
+                    for="feature-{feature.id}-length"
+                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
+                    >Length (in)</label
+                  >
+                  <input
+                    id="feature-{feature.id}-length"
+                    type="number"
+                    value={feature.length}
+                    oninput={(e) =>
+                      updateFeature(feature.id, {
+                        length: Math.max(
+                          0.1,
+                          Number.parseFloat(e.currentTarget.value) || 4,
+                        ),
+                      })}
+                    min="0.1"
+                    step="0.01"
+                    class="{ui.inputXs} w-full"
+                  />
+                </div>
                 <div class="flex flex-col">
                   <label
                     for="feature-{feature.id}-width"
@@ -440,28 +462,6 @@
                     oninput={(e) =>
                       updateFeature(feature.id, {
                         width: Math.max(
-                          0.1,
-                          Number.parseFloat(e.currentTarget.value) || 4,
-                        ),
-                      })}
-                    min="0.1"
-                    step="0.01"
-                    class="{ui.inputXs} w-full"
-                  />
-                </div>
-                <div class="flex flex-col">
-                  <label
-                    for="feature-{feature.id}-height"
-                    class="text-[10px] text-neutral-500 dark:text-neutral-400 uppercase"
-                    >Height (in)</label
-                  >
-                  <input
-                    id="feature-{feature.id}-height"
-                    type="number"
-                    value={feature.height}
-                    oninput={(e) =>
-                      updateFeature(feature.id, {
-                        height: Math.max(
                           0.1,
                           Number.parseFloat(e.currentTarget.value) || 4,
                         ),

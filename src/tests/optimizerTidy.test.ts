@@ -314,25 +314,6 @@ describe("the optimizer only changes what pays for itself", () => {
     return sum / 10;
   };
   const byName = (name: string) => lines.findIndex((l) => l.name === name);
-  /** How much (radians) path `i` of `ls` turns along its length. */
-  const turning = (ls: Line[], i: number) => {
-    const from = i === 0 ? start : lines[i - 1].endPoint;
-    const curve = [from, ...ls[i].controlPoints, ls[i].endPoint];
-    let total = 0;
-    let prev: number | null = null;
-    for (let j = 1; j <= 40; j++) {
-      const a = getCurvePoint((j - 1) / 40, curve);
-      const b = getCurvePoint(j / 40, curve);
-      const angle = Math.atan2(b.y - a.y, b.x - a.x);
-      if (prev !== null) {
-        total += Math.abs(
-          Math.atan2(Math.sin(angle - prev), Math.cos(angle - prev)),
-        );
-      }
-      prev = angle;
-    }
-    return total;
-  };
 
   it.each([1, 2, 3])(
     "fixes the bend that costs seconds and leaves the rest as it was (seed %i)",

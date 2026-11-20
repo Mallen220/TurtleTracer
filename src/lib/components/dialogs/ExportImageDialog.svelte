@@ -6,13 +6,18 @@
   import { scale } from "svelte/transition";
   import { exportPathToImage } from "../../../utils/exportAnimation";
   import { saveBlob } from "../../../utils/file";
+  import type { BatchOutput } from "../../../utils/batchExport";
   import type Two from "two.js";
   import type { Group } from "two.js/src/group";
   import type { Settings } from "../../../types";
   import { FIELD_SIZE, DEFAULT_FIELD_MAP } from "../../../config";
   import { fieldZoom, fieldPan } from "../../../stores";
   import { CloseIcon, SpinnerIcon, ArrowDownTrayIcon } from "../icons";
+  import ExportCycleActions from "./ExportCycleActions.svelte";
+  import ExportFileLabel from "./ExportFileLabel.svelte";
+  import { exportCycle } from "../../../stores";
   import { ui } from "../../ui";
+  import ExportWidthSelect from "./ExportWidthSelect.svelte";
 
   interface Props {
     show?: boolean;
@@ -40,7 +45,8 @@
   }: Props = $props();
 
   let format: "png" | "jpeg" | "svg" = $state("png");
-  let resolutionScale = $state(1);
+  let outWidth = $state(1080); // exported width in pixels
+  let aspect = $state(1); // height / width of the field view, measured on mount
   let quality = $state(0.9); // 0.1 - 1.0 for JPEG
 
   let status = $state("idle"); // idle, generating, done, error
@@ -76,17 +82,11 @@
     }
   }
 
-  async function generatePreview() {
-    status = "generating";
-    statusMessage = "Capturing...";
-    previewBlob = null;
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
-
+  /** Draws the field as it is now, with the dialog's format, scale and quality. */
+  async function renderBlob(): Promise<Blob> {
+    // Collision markers and snap guides don't belong in the picture.
+    toggleValidationVisibility(false);
     try {
-      // Hide warnings before capture
-      toggleValidationVisibility(false);
-
       // Force Two.js update to ensure latest state (and visibility) is rendered
       twoInstance.update();
 
@@ -104,10 +104,10 @@
         heading: robotState.heading,
       };
 
-      const blob = await exportPathToImage({
+      return await exportPathToImage({
         two: twoInstance,
         format,
-        scale: resolutionScale,
+        width: format === "svg" ? undefined : outWidth,
         quality,
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
@@ -121,21 +121,36 @@
         backgroundBounds: bgBounds,
         robotScreenState: robotScreenState,
       });
-
-      // Restore warnings
+    } finally {
       toggleValidationVisibility(true);
-      twoInstance.update(); // Update again to show them back in UI if needed (though not strictly necessary as render loop runs)
+      twoInstance.update();
+    }
+  }
 
+  /** For Run as Batch: the picture of the file that is open now. */
+  export async function exportForBatch(): Promise<BatchOutput> {
+    const blob = await renderBlob();
+    return {
+      suffix: `.${format === "jpeg" ? "jpg" : format}`,
+      data: blob,
+    };
+  }
+
+  async function generatePreview() {
+    status = "generating";
+    statusMessage = "Capturing...";
+    previewBlob = null;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+
+    try {
+      const blob = await renderBlob();
       previewBlob = blob;
       previewUrl = URL.createObjectURL(blob);
       status = "done";
       statusMessage = "Preview ready!";
     } catch (err: any) {
       console.error(err);
-      // Ensure visibility restored even on error
-      toggleValidationVisibility(true);
-      twoInstance.update();
-
       status = "error";
       statusMessage = "Error: " + err;
     }
@@ -162,6 +177,11 @@
   }
 
   onMount(() => {
+    const rect = (
+      twoInstance.renderer.domElement as unknown as SVGElement
+    ).getBoundingClientRect();
+    if (rect.width) aspect = rect.height / rect.width;
+
     // Save current view state
     savedZoom = get(fieldZoom);
     savedPan = get(fieldPan);
@@ -209,9 +229,10 @@
           class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Image
+          <ExportFileLabel />
         </h2>
         <button
-          title="Close"
+          title={$exportCycle ? "Skip this file" : "Close"}
           class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           onclick={close}
           aria-label="Close"
@@ -244,27 +265,15 @@
             </select>
           </div>
 
-          <!-- Scale -->
-          <div class="flex flex-col gap-2">
-            <label
-              for="img-scale"
-              class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-            >
-              Scale: {Math.round(resolutionScale * 100)}%
-            </label>
-            <select
+          <!-- Size (a vector SVG has no pixel size) -->
+          {#if format !== "svg"}
+            <ExportWidthSelect
               id="img-scale"
-              bind:value={resolutionScale}
+              bind:value={outWidth}
+              {aspect}
               onchange={generatePreview}
-              class="{ui.input} block w-full"
-            >
-              <option value={0.25}>25%</option>
-              <option value={0.5}>50%</option>
-              <option value={1}>100%</option>
-              <option value={2}>200%</option>
-              <option value={4}>400%</option>
-            </select>
-          </div>
+            />
+          {/if}
 
           <!-- Quality (JPEG Only) -->
           {#if format === "jpeg"}
@@ -341,16 +350,26 @@
 
       <!-- Footer -->
       <div class="{ui.dialogFooter} justify-end">
-        <button class={ui.btn.ghost} onclick={close}> Cancel </button>
+        {#if $exportCycle}
+          <ExportCycleActions
+            exporter={exportForBatch}
+            onclose={close}
+            onaction={downloadImage}
+            disabled={status === "generating" || !previewUrl}
+            >Download / Save</ExportCycleActions
+          >
+        {:else}
+          <button class={ui.btn.ghost} onclick={close}> Cancel </button>
 
-        <button
-          class={ui.btn.primary}
-          onclick={downloadImage}
-          disabled={status === "generating" || !previewUrl}
-        >
-          <ArrowDownTrayIcon className="w-4 h-4" strokeWidth={1.5} />
-          Download / Save
-        </button>
+          <button
+            class={ui.btn.primary}
+            onclick={downloadImage}
+            disabled={status === "generating" || !previewUrl}
+          >
+            <ArrowDownTrayIcon className="w-4 h-4" strokeWidth={1.5} />
+            Download / Save
+          </button>
+        {/if}
       </div>
     </div>
   </div>

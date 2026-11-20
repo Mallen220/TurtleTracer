@@ -24,6 +24,7 @@
 
   let searchQuery = $state("");
   let pluginToDelete: PluginInfo | null = $state(null);
+  let pluginToEnable: PluginInfo | null = $state(null);
 
   // Derived status for better UI
   let filteredPlugins = $derived(
@@ -41,9 +42,32 @@
     }
   }
 
+  /**
+   * Turning a plugin off is immediate. Turning one on asks first: a plugin is
+   * a program with the same access to files and accounts as the app itself.
+   */
+  function requestToggle(plugin: PluginInfo, input: HTMLInputElement) {
+    if (input.checked) {
+      // Stays off until the user confirms.
+      input.checked = false;
+      pluginToEnable = plugin;
+    } else {
+      PluginManager.togglePlugin(plugin.name, false);
+    }
+  }
+
+  function confirmEnable() {
+    if (pluginToEnable) {
+      PluginManager.togglePlugin(pluginToEnable.name, true);
+      pluginToEnable = null;
+    }
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen) {
-      if (pluginToDelete) {
+      if (pluginToEnable) {
+        pluginToEnable = null;
+      } else if (pluginToDelete) {
         pluginToDelete = null;
       } else {
         isOpen = false;
@@ -237,11 +261,7 @@
                       <input
                         type="checkbox"
                         checked={plugin.enabled}
-                        onchange={(e) =>
-                          PluginManager.togglePlugin(
-                            plugin.name,
-                            e.currentTarget.checked,
-                          )}
+                        onchange={(e) => requestToggle(plugin, e.currentTarget)}
                         class="sr-only peer"
                       />
                       <div
@@ -336,6 +356,56 @@
           Done
         </button>
       </div>
+
+      <!-- Enable Confirmation Dialog -->
+      {#if pluginToEnable}
+        <div
+          transition:fade={{ duration: 150 }}
+          class="absolute inset-0 bg-white/60 dark:bg-neutral-900/60 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="enable-plugin-title"
+        >
+          <div
+            transition:scale={{ duration: 200, start: 0.95 }}
+            class="{ui.dialog} p-6 max-w-sm w-full text-center"
+          >
+            <div
+              class="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4"
+            >
+              <TriangleWarningIcon
+                className="size-6 text-amber-600 dark:text-amber-400"
+              />
+            </div>
+            <h3
+              id="enable-plugin-title"
+              class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-2"
+            >
+              Enable Plugin?
+            </h3>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-3">
+              <span class="font-semibold text-neutral-900 dark:text-neutral-100"
+                >{pluginToEnable.name}</span
+              > is a program, not just a setting. Once enabled it can read, change
+              and delete any file you can, and it can use your saved GitHub sign-in.
+            </p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
+              Only enable plugins from people you trust.
+            </p>
+            <div class="flex gap-3">
+              <button
+                onclick={() => (pluginToEnable = null)}
+                class="{ui.btn.outline} flex-1"
+              >
+                Cancel
+              </button>
+              <button onclick={confirmEnable} class="{ui.btn.primary} flex-1">
+                Enable
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <!-- Delete Confirmation Dialog -->
       {#if pluginToDelete}

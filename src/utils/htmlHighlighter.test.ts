@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { highlightAndSplit } from "./htmlHighlighter";
+import { highlightAndSplit, highlightPoints } from "./htmlHighlighter";
 
 describe("highlightAndSplit", () => {
   it("should handle simple single line code", () => {
@@ -44,5 +44,23 @@ describe("highlightAndSplit", () => {
   it("should handle empty input", () => {
     const lines = highlightAndSplit("");
     expect(lines).toEqual([]);
+  });
+});
+
+describe("highlightPoints", () => {
+  it("colors each pose line, cycling every 4, and leaves the brackets alone", () => {
+    const code = "[\n" + "  (1.0, 1.0, 0.0),\n".repeat(5) + "]";
+    const lines = highlightPoints(code);
+    expect(lines[0]).toBe("[");
+    expect(lines[6]).toBe("]");
+    const cls = (i: number) => lines[i].match(/class="([^"]+)"/)?.[1];
+    expect(new Set([1, 2, 3, 4].map(cls)).size).toBe(4);
+    expect(cls(5)).toBe(cls(1));
+  });
+
+  it("escapes HTML in lines from other formats", () => {
+    expect(highlightPoints("List<Path> a & b")[0]).toBe(
+      "List&lt;Path&gt; a &amp; b",
+    );
   });
 });

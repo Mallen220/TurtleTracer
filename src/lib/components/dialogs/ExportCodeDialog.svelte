@@ -25,7 +25,7 @@
     SuccessIcon,
     ClipboardIcon,
   } from "../icons/index";
-  import { currentFilePath, notification } from "../../../stores";
+  import { currentFilePath, exportCycle, notification } from "../../../stores";
   import {
     otherAlliance,
     projectAlliance,
@@ -40,6 +40,11 @@
     getCommandLibrary,
   } from "../../exporters/commandLibraries";
   import { tick } from "svelte";
+  import {
+    findMatches,
+    lineStartOffsets,
+    lowerBound,
+  } from "../../../utils/codeSearch";
   import { get } from "svelte/store";
 
   import { customExportersStore } from "../../pluginsStore";
@@ -48,9 +53,13 @@
     projectFileJson,
   } from "../../../utils/fileHandlers";
   import { triggerDownload } from "../../../utils/file";
+  import type { BatchOutput } from "../../../utils/batchExport";
   import { getElectronAPI } from "../../../utils/platform";
   import { extraDataStore, settingsStore } from "../../projectStore";
+  import ExportCycleActions from "./ExportCycleActions.svelte";
+  import ExportFileLabel from "./ExportFileLabel.svelte";
   import { ui } from "../../ui";
+  import { highlightPoints } from "../../../utils/htmlHighlighter";
 
   interface Props {
     isOpen?: boolean;
@@ -132,6 +141,10 @@
       ring: "focus-visible:ring-emerald-500",
     },
   };
+  // The Find box's previous/next buttons sit on a grey strip, so they get a
+  // filled background of their own, and dim (but stay readable) when disabled.
+  const findStepBtn =
+    "inline-flex items-center justify-center rounded-md p-1 min-h-6 min-w-6 transition-colors bg-neutral-300 text-neutral-900 hover:bg-neutral-400 dark:bg-neutral-600 dark:text-neutral-50 dark:hover:bg-neutral-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:focus-visible:ring-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-neutral-300 dark:disabled:hover:bg-neutral-600";
   const DEFAULT_PACKAGE =
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
 
@@ -148,9 +161,43 @@
   // Search State
   let showSearch = $state(false);
   let searchQuery = $state("");
-  let searchMatches: number[] = $state([]); // Array of line numbers (0-indexed)
+  let searchMatches: number[] = $state.raw([]); // where each match starts in exportedCode
+  let matchesCapped = $state(false);
   let currentMatchIndex = $state(-1);
   let searchInputRef: HTMLInputElement | undefined = $state();
+
+  // Highlights are drawn from the real position of the rendered text, so they
+  // can't drift off the right line. Only matches near the visible area are
+  // drawn (a search for "a" can match thousands), the rest are just counted.
+  interface HighlightBox {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    current: boolean;
+  }
+  interface LineStripe {
+    y: number;
+    h: number;
+    current: boolean;
+  }
+  const MAX_DRAWN_MATCHES = 300;
+  const LINES_DRAWN_OFFSCREEN = 20;
+  let highlightBoxes: HighlightBox[] = $state.raw([]);
+  let lineStripes: LineStripe[] = $state.raw([]);
+  let overlayWidth = $state(0);
+  let drawFrame = 0;
+
+  /** The rendered code's text nodes, in order, with where each one starts. */
+  interface TextMap {
+    codeEl: Element;
+    code: string;
+    nodes: Text[];
+    starts: number[];
+    lineStarts: number[];
+    ok: boolean;
+  }
+  let textMap: TextMap | null = null;
 
   /** A Java class name based on the project's file name. */
   function classNameFor(filePath: string): string {
@@ -159,16 +206,14 @@
       .replaceAll(/[^a-zA-Z0-9]/g, "_");
   }
 
-  // Follow the file name, unless the user has typed their own class name.
+  // Follow the open project's file name, unless the user has typed their own
+  // class name. (Following only while the name was still the default left the
+  // previous project's name in place after switching projects.)
+  let classNameTyped = false;
   $effect(() => {
-    if (!$currentFilePath) return;
+    if (classNameTyped || !$currentFilePath) return;
     const baseName = classNameFor($currentFilePath);
-    if (
-      baseName &&
-      (sequentialClassName === "AutoPath" || sequentialClassName === baseName)
-    ) {
-      sequentialClassName = baseName;
-    }
+    if (baseName) sequentialClassName = baseName;
   });
 
   async function handlePackageKeydown(event: KeyboardEvent) {
@@ -233,7 +278,7 @@
         "// Error refreshing code. Please check the console for details.";
       currentLanguage = plaintext;
     }
-    if (searchQuery) performSearch();
+    if (searchQuery) performSearch(true);
   }
 
   export async function openWithFormat(
@@ -245,12 +290,12 @@
       customExporterName = exporterName;
     }
     copied = false;
-    showSearch = false;
-    searchQuery = "";
-    searchMatches = [];
-    currentMatchIndex = -1;
+    closeSearch();
 
-    if (format === "sequential" && $currentFilePath) {
+    // Every format names its class after the project, so start from it each
+    // time the dialog opens.
+    classNameTyped = false;
+    if ($currentFilePath) {
       sequentialClassName =
         classNameFor($currentFilePath) || sequentialClassName;
     }
@@ -282,18 +327,38 @@
     }
   }
 
-  async function handleSaveFile() {
-    // Project data has its own "Download as .turt" button.
-    if (exportFormat === "json") return;
-
+  /** The file name the generated code is saved under, or for a batch a suffix to follow the project's name. */
+  function outputName(batch = false): Pick<BatchOutput, "name" | "suffix"> {
+    if (exportFormat === "json") return { suffix: ".turt" };
     const isJava = exportFormat === "java" || exportFormat === "sequential";
-    let fileName = "generated_code.txt";
     if (isJava) {
       const className = /class\s+(\w+)/.exec(exportedCode)?.[1] ?? "AutoPath";
-      fileName = `${className}.${writesKotlin ? "kt" : "java"}`;
-    } else if (exportFormat === "points") {
-      fileName = "points.txt";
+      return { name: `${className}.${writesKotlin ? "kt" : "java"}` };
     }
+    const file =
+      exportFormat === "points" ? "points.txt" : "generated_code.txt";
+    return batch ? { suffix: `_${file}` } : { name: file };
+  }
+
+  /** For Run as Batch: the code for the file that is open now, with its own class name. */
+  export async function exportForBatch(): Promise<BatchOutput> {
+    classNameTyped = false;
+    if ($currentFilePath) {
+      sequentialClassName =
+        classNameFor($currentFilePath) || sequentialClassName;
+    }
+    await tick(); // the bound project data catches up with the swapped-in file
+    await refreshCode();
+    return { ...outputName(true), data: exportedCode };
+  }
+
+  /** Returns whether the file was written or downloaded. */
+  async function handleSaveFile(): Promise<boolean> {
+    // Project data has its own "Download as .turt" button.
+    if (exportFormat === "json") return false;
+
+    const isJava = exportFormat === "java" || exportFormat === "sequential";
+    const fileName = outputName().name!;
 
     const electronAPI = getElectronAPI();
     if (
@@ -303,7 +368,7 @@
       !electronAPI.writeFile
     ) {
       triggerDownload(exportedCode, "text/plain", fileName);
-      return;
+      return true;
     }
 
     try {
@@ -316,84 +381,281 @@
             ? [{ name: "Java File", extensions: ["java"] }]
             : [{ name: "Text File", extensions: ["txt"] }],
       });
-      if (filePath) await electronAPI.writeFile(filePath, exportedCode);
+      if (!filePath) return false;
+      await electronAPI.writeFile(filePath, exportedCode);
+      return true;
     } catch (err) {
       console.error("Failed to save file:", err);
       alert("Failed to save file: " + (err as Error).message);
+      return false;
     }
+  }
+
+  /** Exporting several files: save this one, then on to the next. */
+  async function saveAndContinue() {
+    const saved =
+      exportFormat === "json"
+        ? await exportAsProjectFile()
+        : await handleSaveFile();
+    if (saved) isOpen = false;
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       if (showSearch) {
-        showSearch = false;
-        searchQuery = "";
-        searchMatches = [];
+        closeSearch();
         dialogRef?.focus();
       } else {
         isOpen = false;
       }
     }
-    // Ctrl+F or Cmd+F to toggle search
+    // Ctrl+F or Cmd+F opens search, or refocuses it and selects what's there
     if ((e.ctrlKey || e.metaKey) && e.key === "f" && isOpen) {
       e.preventDefault();
-      showSearch = true;
-      tick().then(() => searchInputRef?.focus());
+      focusSearch();
     }
   }
 
-  function performSearch() {
-    if (!searchQuery) {
-      searchMatches = [];
+  function focusSearch() {
+    showSearch = true;
+    tick().then(() => {
+      searchInputRef?.focus();
+      searchInputRef?.select();
+    });
+  }
+
+  function closeSearch() {
+    showSearch = false;
+    searchQuery = "";
+    searchMatches = [];
+    matchesCapped = false;
+    currentMatchIndex = -1;
+    highlightBoxes = [];
+    lineStripes = [];
+  }
+
+  /**
+   * Finds every match. When the code was regenerated underneath an open
+   * search, `keepPosition` stays on the same match number if it still exists.
+   */
+  function performSearch(keepPosition = false) {
+    const previous = keepPosition ? currentMatchIndex : -1;
+    const result = findMatches(exportedCode, searchQuery);
+    searchMatches = result.offsets;
+    matchesCapped = result.capped;
+    if (result.offsets.length === 0) {
       currentMatchIndex = -1;
       return;
     }
-
-    const lines = exportedCode.split("\n");
-    const matches: number[] = [];
-    const query = searchQuery.toLowerCase();
-
-    lines.forEach((line, index) => {
-      if (line.toLowerCase().includes(query)) {
-        matches.push(index);
-      }
-    });
-
-    searchMatches = matches;
-    if (matches.length > 0) {
-      currentMatchIndex = 0;
-      scrollToMatch(matches[0]);
-    } else {
-      currentMatchIndex = -1;
-    }
+    currentMatchIndex =
+      previous >= 0 && previous < result.offsets.length ? previous : 0;
+    if (!keepPosition) revealCurrentMatch();
   }
 
   function nextMatch() {
     if (searchMatches.length === 0) return;
     currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
-    scrollToMatch(searchMatches[currentMatchIndex]);
+    revealCurrentMatch();
   }
 
   function prevMatch() {
     if (searchMatches.length === 0) return;
     currentMatchIndex =
       (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
-    scrollToMatch(searchMatches[currentMatchIndex]);
+    revealCurrentMatch();
   }
 
-  function scrollToMatch(lineIndex: number) {
-    if (scrollContainer) {
-      const el = scrollContainer.querySelector(
-        `[data-line-index="${lineIndex}"]`,
-      );
-      if (el) {
-        // Only call scrollIntoView if supported (jsdom in tests doesn't implement it)
-        if (typeof el.scrollIntoView === "function") {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
+  /** Maps the rendered text back to offsets in the code string. */
+  function getTextMap(): TextMap | null {
+    const codeEl = scrollContainer?.querySelector("code");
+    if (!codeEl) return null;
+    if (
+      textMap &&
+      textMap.codeEl === codeEl &&
+      textMap.code === exportedCode &&
+      (textMap.nodes.length === 0 || textMap.nodes.at(-1)?.isConnected)
+    ) {
+      return textMap.ok ? textMap : null;
+    }
+    const nodes: Text[] = [];
+    const starts: number[] = [];
+    let length = 0;
+    const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      nodes.push(n as Text);
+      starts.push(length);
+      length += (n as Text).data.length;
+    }
+    textMap = {
+      codeEl,
+      code: exportedCode,
+      nodes,
+      starts,
+      lineStarts: lineStartOffsets(exportedCode),
+      // If the page text isn't the code (it should be), skip highlighting
+      // rather than draw in the wrong place.
+      ok: length === exportedCode.length,
+    };
+    return textMap.ok ? textMap : null;
+  }
+
+  /** The text node holding `offset`, and the offset within it. */
+  function locate(map: TextMap, offset: number, preferEnd: boolean) {
+    let index = lowerBound(map.starts, offset + 1) - 1;
+    if (index < 0) index = 0;
+    if (preferEnd && offset === map.starts[index] && index > 0) index -= 1;
+    return { node: map.nodes[index], at: offset - map.starts[index] };
+  }
+
+  /** On-screen rectangles of one match. */
+  function matchRects(map: TextMap, matchIndex: number): DOMRect[] {
+    const start = searchMatches[matchIndex];
+    const end = start + searchQuery.length;
+    if (map.nodes.length === 0 || end > map.code.length) return [];
+    const range = document.createRange();
+    try {
+      const from = locate(map, start, false);
+      const to = locate(map, end, true);
+      range.setStart(from.node, from.at);
+      range.setEnd(to.node, to.at);
+    } catch {
+      return [];
+    }
+    // jsdom has no layout, so there's nothing to measure there
+    if (typeof range.getClientRects !== "function") return [];
+    return [...range.getClientRects()].filter((r) => r.width > 0);
+  }
+
+  function lineHeightOf(el: Element): number {
+    const style = getComputedStyle(el);
+    const height = Number.parseFloat(style.lineHeight);
+    if (Number.isFinite(height) && height > 0) return height;
+    return (Number.parseFloat(style.fontSize) || 14) * 1.625;
+  }
+
+  function scheduleDraw() {
+    if (drawFrame || typeof requestAnimationFrame !== "function") return;
+    drawFrame = requestAnimationFrame(drawHighlights);
+  }
+
+  function drawHighlights() {
+    drawFrame = 0;
+    const container = scrollContainer;
+    const map = showSearch && searchMatches.length > 0 ? getTextMap() : null;
+    if (!container || !map) {
+      if (highlightBoxes.length > 0) highlightBoxes = [];
+      if (lineStripes.length > 0) lineStripes = [];
+      return;
+    }
+
+    const lineHeight = lineHeightOf(map.codeEl);
+    const box = container.getBoundingClientRect();
+    // Used only to decide which matches are worth measuring. Where they are
+    // drawn always comes from the measured text.
+    const codeTop =
+      map.codeEl.getBoundingClientRect().top - box.top + container.scrollTop;
+    const firstLine = Math.max(
+      0,
+      Math.floor((container.scrollTop - codeTop) / lineHeight) -
+        LINES_DRAWN_OFFSCREEN,
+    );
+    const lastLine =
+      Math.ceil(
+        (container.scrollTop + container.clientHeight - codeTop) / lineHeight,
+      ) + LINES_DRAWN_OFFSCREEN;
+    const from = lowerBound(
+      searchMatches,
+      map.lineStarts[Math.min(firstLine, map.lineStarts.length - 1)],
+    );
+    const to =
+      lastLine + 1 >= map.lineStarts.length
+        ? searchMatches.length
+        : lowerBound(searchMatches, map.lineStarts[lastLine + 1]);
+
+    const indices: number[] = [];
+    for (let i = from; i < to && indices.length < MAX_DRAWN_MATCHES; i++) {
+      indices.push(i);
+    }
+    if (currentMatchIndex >= 0 && !indices.includes(currentMatchIndex)) {
+      indices.push(currentMatchIndex);
+    }
+
+    const boxes: HighlightBox[] = [];
+    const stripes = new Map<number, LineStripe>();
+    for (const i of indices) {
+      const current = i === currentMatchIndex;
+      for (const r of matchRects(map, i)) {
+        const y = r.top - box.top + container.scrollTop;
+        boxes.push({
+          x: r.left - box.left + container.scrollLeft,
+          y,
+          w: r.width,
+          h: r.height,
+          current,
+        });
+        const stripeY = Math.round(y + r.height / 2 - lineHeight / 2);
+        const existing = stripes.get(stripeY);
+        if (existing) {
+          existing.current ||= current;
+        } else {
+          stripes.set(stripeY, { y: stripeY, h: lineHeight, current });
         }
       }
     }
+    highlightBoxes = boxes;
+    lineStripes = [...stripes.values()];
+    overlayWidth = container.scrollWidth;
   }
+
+  /** Scrolls so the current match is on screen, centred vertically. */
+  async function revealCurrentMatch() {
+    await tick();
+    const container = scrollContainer;
+    const map = getTextMap();
+    if (!container || !map || currentMatchIndex < 0) return;
+    const rect = matchRects(map, currentMatchIndex)[0];
+    if (!rect || typeof container.scrollTo !== "function") return;
+
+    const box = container.getBoundingClientRect();
+    const top = rect.top - box.top + container.scrollTop;
+    const left = rect.left - box.left + container.scrollLeft;
+    const margin = 24;
+    const offLeft = left < container.scrollLeft + margin;
+    const offRight =
+      left + rect.width > container.scrollLeft + container.clientWidth - margin;
+    container.scrollTo({
+      top: Math.max(0, top - container.clientHeight / 2 + rect.height / 2),
+      left:
+        offLeft || offRight
+          ? Math.max(0, left - container.clientWidth / 3)
+          : container.scrollLeft,
+      behavior: "smooth",
+    });
+  }
+
+  // Redraw when anything the highlights depend on changes
+  $effect(() => {
+    void exportedCode;
+    void currentLanguage;
+    void searchMatches;
+    void currentMatchIndex;
+    void showSearch;
+    tick().then(scheduleDraw);
+  });
+
+  // ...or when the dialog is resized
+  $effect(() => {
+    if (!scrollContainer || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(scheduleDraw);
+    observer.observe(scrollContainer);
+    return () => observer.disconnect();
+  });
+
+  $effect(() => () => {
+    if (drawFrame && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(drawFrame);
+    }
+  });
 
   // Count lines for display
   let lineCount = $derived(exportedCode.split("\n").length);
@@ -441,6 +703,7 @@
             {:else if exportFormat === "custom"}{customExporterName ||
                 "Plugin Output"}
             {:else}Sequential Command{/if}
+            <ExportFileLabel />
           </h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">
             {#if exportFormat === "java"}
@@ -461,10 +724,7 @@
           <!-- Search Toggle -->
           {#if !showSearch}
             <button
-              onclick={() => {
-                showSearch = true;
-                tick().then(() => searchInputRef?.focus());
-              }}
+              onclick={focusSearch}
               class={ui.iconBtn.neutral}
               aria-label="Search code"
               title="Search (Ctrl+F)"
@@ -481,7 +741,7 @@
                 type="text"
                 placeholder="Find..."
                 bind:value={searchQuery}
-                oninput={performSearch}
+                oninput={() => performSearch()}
                 onkeydown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -498,35 +758,33 @@
                 class="text-xs text-neutral-500 dark:text-neutral-400 min-w-[3rem] text-center"
               >
                 {#if searchMatches.length > 0}
-                  {currentMatchIndex + 1}/{searchMatches.length}
+                  {currentMatchIndex + 1}/{searchMatches.length}{matchesCapped
+                    ? "+"
+                    : ""}
                 {:else if searchQuery}
                   0/0
                 {/if}
               </span>
               <button
-                title="Previous match"
+                title="Previous match (Shift+Enter)"
                 onclick={prevMatch}
                 disabled={searchMatches.length === 0}
-                class={ui.iconBtnSm.neutral}
+                class={findStepBtn}
                 aria-label="Previous match"
               >
                 <ChevronUpIcon strokeWidth={2} className="size-4" />
               </button>
               <button
-                title="Next match"
+                title="Next match (Enter)"
                 onclick={nextMatch}
                 disabled={searchMatches.length === 0}
-                class={ui.iconBtnSm.neutral}
+                class={findStepBtn}
                 aria-label="Next match"
               >
                 <ChevronDownIcon strokeWidth={2} className="size-4" />
               </button>
               <button
-                onclick={() => {
-                  showSearch = false;
-                  searchQuery = "";
-                  searchMatches = [];
-                }}
+                onclick={closeSearch}
                 class={ui.iconBtnSm.danger}
                 aria-label="Close search"
               >
@@ -540,6 +798,7 @@
             onclick={() => (isOpen = false)}
             class={ui.iconBtn.neutral}
             aria-label="Close export dialog"
+            title={$exportCycle ? "Skip this file" : "Close"}
           >
             <CloseIcon strokeWidth={2} className="size-5" />
           </button>
@@ -622,7 +881,10 @@
                   id="class-name-input"
                   type="text"
                   bind:value={sequentialClassName}
-                  oninput={refreshCode}
+                  oninput={() => {
+                    classNameTyped = true;
+                    refreshCode();
+                  }}
                   class="{ui.inputSm} min-w-[150px]"
                   placeholder="AutoPath"
                 />
@@ -836,31 +1098,52 @@
       <div class="relative flex-1 min-h-0 bg-[#282b2e] overflow-hidden group">
         <div
           bind:this={scrollContainer}
+          onscroll={scheduleDraw}
           class="absolute inset-0 overflow-auto custom-scrollbar p-4 pb-20"
         >
-          <!-- Highlight Layer for Search Results -->
-          <!-- render invisible text that matches layout, but with highlighted backgrounds -->
+          <!-- Highlight layer for search results: drawn behind the code at the
+               measured position of each match -->
           <div
-            class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed"
+            class="absolute left-0 top-0 h-0 pointer-events-none select-none"
+            style="width: {overlayWidth}px;"
             aria-hidden="true"
-            style="transform: translateY(1.0em);"
           >
-            {#each searchMatches as matchIndex (matchIndex)}
-              <!-- Data attribute used for scrolling to this line -->
+            {#each lineStripes as stripe (stripe.y)}
               <div
-                data-line-index={matchIndex}
-                class="absolute left-0 right-0 bg-yellow-500/30"
-                style="top: calc({matchIndex} * 1.625em); height: 1.625em;"
+                class="absolute left-0 right-0 {stripe.current
+                  ? 'bg-yellow-400/25'
+                  : 'bg-yellow-400/10'}"
+                style="top: {stripe.y}px; height: {stripe.h}px;"
+              ></div>
+            {/each}
+            {#each highlightBoxes as match}
+              <div
+                class="absolute rounded-sm {match.current
+                  ? 'bg-orange-500/60 outline outline-2 outline-orange-300'
+                  : 'bg-yellow-400/40'}"
+                style="left: {match.x}px; top: {match.y}px; width: {match.w}px; height: {match.h}px;"
               ></div>
             {/each}
           </div>
 
           <!-- Actual Code Layer -->
-          <Highlight
-            language={currentLanguage}
-            code={exportedCode}
-            class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
-          />
+          {#if exportFormat === "points"}
+            <!-- Points get a color per pose, which hljs can't do. Same markup Highlight renders. -->
+            <!-- highlightPoints escapes the code before wrapping it. -->
+            <!-- eslint-disable svelte/no-at-html-tags -->
+            <pre
+              class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"><code
+                class="hljs"
+                >{@html highlightPoints(exportedCode).join("\n")}</code
+              ></pre>
+            <!-- eslint-enable svelte/no-at-html-tags -->
+          {:else}
+            <Highlight
+              language={currentLanguage}
+              code={exportedCode}
+              class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
+            />
+          {/if}
         </div>
       </div>
 
@@ -870,37 +1153,54 @@
           {lineCount} lines generated
         </div>
         <div class="flex gap-3">
-          <button class={ui.btn.ghost} onclick={() => (isOpen = false)}>
-            Close
-          </button>
-
-          {#if exportFormat !== "json"}
-            <button
-              class={ui.btn.secondary}
-              onclick={handleSaveFile}
-              title="Save the generated content to a file"
-              aria-label="Save the generated content to a file"
+          {#if $exportCycle}
+            <ExportCycleActions
+              exporter={exportForBatch}
+              onclose={() => (isOpen = false)}
+              onaction={saveAndContinue}
+              >{exportFormat === "json"
+                ? "Download as .turt"
+                : "Save to File"}</ExportCycleActions
             >
-              <DownloadIcon className="size-4" />
-              Save to File
+          {:else}
+            <button class={ui.btn.ghost} onclick={() => (isOpen = false)}>
+              Close
             </button>
-          {/if}
 
-          {#if exportFormat === "json"}
-            <button class={ui.btn.secondary} onclick={exportAsProjectFile}>
-              <DownloadIcon className="size-4" />
-              Download as .turt
+            {#if exportFormat !== "json"}
+              <button
+                class={ui.btn.secondary}
+                onclick={handleSaveFile}
+                title="Save the generated content to a file"
+                aria-label="Save the generated content to a file"
+              >
+                <DownloadIcon className="size-4" />
+                Save to File
+              </button>
+            {/if}
+
+            {#if exportFormat === "json"}
+              <button class={ui.btn.secondary} onclick={exportAsProjectFile}>
+                <DownloadIcon className="size-4" />
+                Download as .turt
+              </button>
+            {/if}
+            <button
+              class={ui.btn.primary}
+              onclick={handleCopy}
+              disabled={copied}
+            >
+              {#if copied}
+                <SuccessIcon
+                  className="size-4 animate-in zoom-in duration-200"
+                />
+                Copied!
+              {:else}
+                <ClipboardIcon className="size-4" />
+                Copy Code
+              {/if}
             </button>
           {/if}
-          <button class={ui.btn.primary} onclick={handleCopy} disabled={copied}>
-            {#if copied}
-              <SuccessIcon className="size-4 animate-in zoom-in duration-200" />
-              Copied!
-            {:else}
-              <ClipboardIcon className="size-4" />
-              Copy Code
-            {/if}
-          </button>
         </div>
       </div>
     </div>
@@ -931,6 +1231,9 @@
   }
 
   :global(.highlight-wrapper code) {
+    /* The theme paints its own background on the code element, which hid the
+       search highlights drawn behind it. */
+    background: transparent !important;
     overflow: visible !important;
     font-family:
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",

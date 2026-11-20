@@ -75,23 +75,47 @@ describe("codeExporter", () => {
   };
 
   describe("generatePointsArray", () => {
-    it("should generate a correct string representation of points", () => {
-      const lines = [line1, line2];
-      const result = generatePointsArray(startPoint, lines);
-      // start: (10.0, 10.0)
-      // line1 (no cp): end (20.0, 20.0)
-      // line2 (cp 25,15): cp (25.0, 15.0), end (30.0, 10.0)
+    it("writes (x, y, heading) per pose with control points nested", () => {
+      const result = generatePointsArray(startPoint, [line1, line2]);
       expect(result).toBe(
-        "[(10.0, 10.0), (20.0, 20.0), (25.0, 15.0), (30.0, 10.0)]",
+        "[\n  (10.0, 10.0, 90.0),\n  (20.0, 20.0, 90.0),\n  (30.0, 10.0, 180.0, [(25.0, 15.0)]),\n]",
       );
     });
 
-    it("should handle integer coordinates correctly", () => {
+    it("handles integer coordinates correctly", () => {
       const result = generatePointsArray(
         { x: 10, y: 10, heading: "constant", degrees: 0 },
         [],
       );
-      expect(result).toBe("[(10.0, 10.0)]");
+      expect(result).toBe("[\n  (10.0, 10.0, 0.0),\n]");
+    });
+
+    it("calculates headings the path works out, wrapped to [-180, 180)", () => {
+      const down: Line = {
+        id: "d",
+        controlPoints: [],
+        endPoint: { x: 10, y: 0, heading: "tangential" },
+        color: "#000000",
+      };
+      const reversed: Line = {
+        ...down,
+        id: "r",
+        endPoint: { x: 10, y: -10, heading: "tangential", reverse: true },
+      };
+      // Travelling -y is -90; reversed that is 90.
+      expect(generatePointsArray(startPoint, [down, reversed])).toContain(
+        "(10.0, 0.0, -90.0),\n  (10.0, -10.0, 90.0),",
+      );
+    });
+
+    it("leaves typed headings as typed and converts metric to cm", () => {
+      const spun: Line = {
+        ...line1,
+        endPoint: { x: 20, y: 20, heading: "constant", degrees: 270 },
+      };
+      expect(generatePointsArray(startPoint, [spun], "metric")).toBe(
+        "[\n  (25.400, 25.400, -90.0),\n  (50.800, 50.800, 270.0),\n]",
+      );
     });
   });
 

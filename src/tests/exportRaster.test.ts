@@ -177,6 +177,18 @@ describe("PNG and JPEG export", () => {
       expect(env.ctx.lineTo).toHaveBeenCalled(); // the arrow
     });
 
+    it("draws the arrow stroke in its own units, so the scale applies once", async () => {
+      // The context scale already multiplies the line width. Scaling the
+      // width as well made the arrow lopsided at anything but 1x.
+      const env = setup();
+      await run(env, {
+        scale: 3,
+        robotScreenState: { x: 0, y: 0, heading: 0 },
+      });
+      expect(env.ctx.scale).toHaveBeenCalledWith(3, 3);
+      expect(env.ctx.lineWidth).toBe(3);
+    });
+
     it("falls back to a plain rectangle where rounded ones aren't supported", async () => {
       const env = setup({ roundRect: false });
       await run(env, { robotScreenState: { x: 0, y: 0, heading: 0 } });

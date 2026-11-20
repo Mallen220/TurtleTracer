@@ -1,9 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/svelte";
+import { describe, it, expect, vi } from "vitest";
+import { render, fireEvent } from "@testing-library/svelte";
 import LeftSidebar from "../../lib/components/LeftSidebar.svelte";
 
 import { settingsStore } from "../../lib/projectStore";
+import { showHistory } from "../../stores";
+import { createHistory } from "../../utils/history";
 
 describe("LeftSidebar", () => {
   it("renders correctly", () => {
@@ -51,5 +53,32 @@ describe("LeftSidebar", () => {
       "https://github.com/Mallen220/TurtleTracer",
     );
     expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("applies the chosen history entry through restoreAction", async () => {
+    const history = createHistory();
+    history.record({ lines: [] } as any, "First");
+    history.record({ lines: [1] } as any, "Second");
+    const restoreAction = vi.fn();
+    showHistory.set(true);
+
+    const { getAllByRole } = render(LeftSidebar, {
+      props: {
+        history,
+        restoreAction,
+        settings: {
+          sidebarItems: ["history"],
+          customSidebarItems: [],
+          sidebarExpanded: true,
+          sidebarWidth: 240,
+        } as any,
+      } as any,
+    });
+
+    const items = getAllByRole("menuitem");
+    await fireEvent.click(items.at(-1)!);
+    expect(restoreAction).toHaveBeenCalledTimes(1);
+    expect(restoreAction.mock.calls[0][0]).toEqual(expect.any(String));
+    showHistory.set(false);
   });
 });

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("file:write", filePath, content),
   deleteFile: (filePath) => ipcRenderer.invoke("file:delete", filePath),
   fileExists: (filePath) => ipcRenderer.invoke("file:exists", filePath),
+  revealFile: (filePath) => ipcRenderer.invoke("file:reveal", filePath),
   // Files under a folder whose names end with one of `endings`.
   findFiles: (root, endings, options) =>
     ipcRenderer.invoke("project:find-files", root, endings, options),
@@ -133,8 +134,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update-available", (_event, data) => callback(data)),
   onStoreUpdateAvailable: (callback) =>
     ipcRenderer.on("store-update-available", (_event, data) => callback(data)),
-  downloadUpdate: (version, url) =>
-    ipcRenderer.invoke("update:download", version, url),
+  downloadUpdate: (version) => ipcRenderer.invoke("update:download", version),
   skipUpdate: (version) => ipcRenderer.invoke("update:skip", version),
   checkForUpdates: () => ipcRenderer.invoke("update:check"),
 });

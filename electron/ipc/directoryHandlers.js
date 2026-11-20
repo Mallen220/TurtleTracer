@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { ipcMain, BrowserWindow, dialog } from "electron";
+import { app, ipcMain, BrowserWindow, dialog } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -25,7 +25,7 @@ export function registerDirectoryHandlers() {
         );
       }
     }
-    const defaultDir = path.join(process.env.HOME, "Documents", "AutoPaths");
+    const defaultDir = path.join(app.getPath("documents"), "AutoPaths");
     try {
       await fs.access(defaultDir);
       return defaultDir;

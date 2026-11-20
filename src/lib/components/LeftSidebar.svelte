@@ -70,6 +70,7 @@
   interface Props {
     undoAction: () => any;
     redoAction: () => any;
+    restoreAction: (id: string) => any;
     canUndo: boolean;
     canRedo: boolean;
     history: ReturnType<typeof createHistory>;
@@ -80,6 +81,7 @@
   let {
     undoAction,
     redoAction,
+    restoreAction,
     canUndo,
     canRedo,
     history,
@@ -574,7 +576,7 @@
                   <button
                     role="menuitem"
                     onclick={() => {
-                      history.restore(entry.item.id);
+                      restoreAction(entry.item.id);
                       showHistory.set(false);
                     }}
                     class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future

@@ -7,21 +7,45 @@
   import {
     exportPathToGif,
     exportPathToApng,
+    estimateGifSize,
   } from "../../../utils/exportAnimation";
+  import {
+    GIF_FPS,
+    APNG_FPS,
+    MEMORY_WARN_BYTES,
+    frameCountFor,
+    frameMemoryBytes,
+    formatBytes,
+  } from "../../../utils/animationExportPlan";
   import { CloseIcon, PhotoIcon } from "../icons";
   import { saveBlob } from "../../../utils/file";
+  import type { BatchOutput } from "../../../utils/batchExport";
   import type Two from "two.js";
   import type { AnimationController } from "../../../utils/animation";
   import type { Settings } from "../../../types";
+  import ExportCycleActions from "./ExportCycleActions.svelte";
+  import ExportFileLabel from "./ExportFileLabel.svelte";
+  import { exportCycle } from "../../../stores";
   import { ui } from "../../ui";
+  import ExportWidthSelect from "./ExportWidthSelect.svelte";
 
   let format: "gif" | "apng" = $state("gif");
   let fps = $state(15);
-  let resolutionScale = $state(0.5); // Default 50%
-  let quality = $state(10); // 1-30, default 10 (good balance)
-  // UI slider is reversed (left=Draft, right=Best). Keep internal semantics (1=best),
-  // and bind the visible slider to `sliderQuality` which maps to `quality = 31 - sliderQuality`.
-  let sliderQuality = $state(21); // Default 31 - 10
+  let outWidth = $state(720); // exported width in pixels
+  let reduceColors = $state(false); // APNG only
+  // The field view as it is on screen, measured when the dialog opens. The
+  // export keeps its aspect ratio.
+  let fieldW = $state(0);
+  let fieldH = $state(0);
+  let duration = $state(0);
+
+  let aspect = $derived(fieldW ? fieldH / fieldW : 1);
+  let outHeight = $derived(Math.round(outWidth * aspect));
+  let frames = $derived(frameCountFor(duration, fps));
+  let memoryBytes = $derived(frameMemoryBytes(outWidth, outHeight, frames));
+  let fpsOptions = $derived.by(() => (format === "apng" ? APNG_FPS : GIF_FPS));
+  let estimateBytes: number | null = $state(null);
+  let estimating = $state(false);
 
   function invalidatePreview() {
     if (status === "generating") {
@@ -42,7 +66,7 @@
   let status = $state("idle"); // idle, generating, done, error
   let progress = $state(0);
   let statusMessage = $state("");
-  let previewBlob: Blob | null = null;
+  let previewBlob: Blob | null = $state(null);
   let previewUrl: string | null = $state(null);
 
   let abortController: AbortController | null = null;
@@ -86,6 +110,29 @@
     close();
   }
 
+  function exportOptions(signal: AbortSignal) {
+    return {
+      two: twoInstance,
+      animationController,
+      durationSec: duration,
+      fps,
+      width: outWidth,
+      reduceColors,
+      signal,
+      backgroundImageSrc: settings.fieldMap
+        ? `/fields/${settings.fieldMap}`
+        : `/fields/${DEFAULT_FIELD_MAP}`,
+      robotImageSrc:
+        settings.robotImage && settings.robotImage !== "none"
+          ? settings.robotImage
+          : undefined,
+      // note: choosing 'none' in settings yields the green square robot instead
+      robotLengthPx,
+      robotWidthPx,
+      getRobotState: robotStateFunction,
+    };
+  }
+
   async function generatePreview() {
     if (status === "generating") return;
     // Start a new AbortController for this generation session
@@ -102,30 +149,10 @@
       // reminder: if robotImage = "none", the export routines will render the
       // green square with wheel-direction arrows rather than load an external image
       const options = {
-        two: twoInstance,
-        animationController,
-        durationSec: animationController.getDuration(),
-        fps: fps,
-        scale: resolutionScale,
-        quality: quality,
-        signal: abortController.signal,
-        backgroundImageSrc: settings.fieldMap
-          ? `/fields/${settings.fieldMap}`
-          : `/fields/${DEFAULT_FIELD_MAP}`,
-        robotImageSrc:
-          settings.robotImage && settings.robotImage !== "none"
-            ? settings.robotImage
-            : undefined,
-        // note: choosing 'none' in settings yields the green square robot instead
-        robotLengthPx: robotLengthPx,
-        robotWidthPx: robotWidthPx,
-        getRobotState: robotStateFunction,
-        onProgress: (p: number) => {
+        ...exportOptions(abortController.signal),
+        onProgress: (p: number, stage?: string) => {
           progress = p;
-          if (p < 0.5)
-            statusMessage = `Capturing frames... ${Math.round(p * 200)}%`;
-          else
-            statusMessage = `Encoding ${format.toUpperCase()}... ${Math.round((p - 0.5) * 200)}%`;
+          statusMessage = `${stage ?? "Working"}... ${Math.round(p * 100)}%`;
         },
       };
 
@@ -149,11 +176,31 @@
         progress = 0;
       } else {
         status = "error";
-        statusMessage = "Error: " + err;
+        statusMessage =
+          err instanceof RangeError
+            ? `Not enough memory for this size (${err.message}). Try a smaller size or a lower frame rate.`
+            : "Error: " + err;
       }
     } finally {
       abortController = null;
     }
+  }
+
+  /** For Run as Batch: the animation of the file that is open now. */
+  export async function exportForBatch(
+    signal: AbortSignal,
+    onProgress: (fraction: number) => void,
+  ): Promise<BatchOutput> {
+    duration = animationController.getDuration();
+    const options = { ...exportOptions(signal), onProgress };
+    const blob =
+      format === "gif"
+        ? await exportPathToGif(options)
+        : await exportPathToApng(options);
+    return {
+      suffix: `.${format === "gif" ? "gif" : "png"}`,
+      data: blob,
+    };
   }
 
   async function downloadAnimation() {
@@ -204,9 +251,61 @@
     onclose,
   }: Props = $props();
 
-  // One-way reactive sync: when sliderQuality changes, update internal `quality`.
+  // GIF can't do the higher frame rates, so fall back to its fastest.
   $effect(() => {
-    quality = 31 - sliderQuality;
+    const fastest = GIF_FPS.at(-1)!;
+    if (format === "gif" && fps > fastest) {
+      fps = fastest;
+    }
+  });
+
+  // Measure the field view and animation each time the dialog opens.
+  $effect(() => {
+    if (!show) return;
+    const rect = (
+      twoInstance.renderer.domElement as unknown as SVGElement
+    ).getBoundingClientRect();
+    fieldW = rect.width;
+    fieldH = rect.height;
+    duration = animationController.getDuration();
+  });
+
+  // Rough GIF size, from encoding a sample frame. An APNG has no estimate:
+  // its size depends on how much changes between frames. Waits a moment after
+  // the last change and is cancelled if the settings change again or a
+  // preview starts.
+  $effect(() => {
+    estimateBytes = null;
+    estimating = false;
+    // Read here, not in the timer below, so a change to any restarts this.
+    fps;
+    outWidth;
+    duration;
+    if (
+      !show ||
+      !fieldW ||
+      format !== "gif" ||
+      status === "generating" ||
+      previewBlob
+    )
+      return;
+    const ctrl = new AbortController();
+    estimating = true;
+    const timer = setTimeout(async () => {
+      try {
+        const bytes = await estimateGifSize(exportOptions(ctrl.signal));
+        if (!ctrl.signal.aborted) estimateBytes = bytes;
+      } catch (e) {
+        // The estimate is a nicety; an aborted or failed one just goes away.
+        console.warn("Size estimate failed", e);
+      } finally {
+        if (!ctrl.signal.aborted) estimating = false;
+      }
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
   });
 
   $effect(() => {
@@ -214,8 +313,8 @@
       // Create a dependency on these variables to invalidate preview when they change
       format;
       fps;
-      resolutionScale;
-      sliderQuality;
+      outWidth;
+      reduceColors;
 
       untrack(() => {
         // Only invalidate if we aren't currently generating.
@@ -226,9 +325,14 @@
       });
     }
   });
-  let iconSize = $derived(
-    Math.max(0, Math.floor(Math.min(containerW || 0, containerH || 0))),
-  );
+  // Largest box of the export's aspect ratio that fits the preview area.
+  let previewFit = $derived.by(() => {
+    const k = Math.min(containerW / outWidth, containerH / outHeight);
+    return {
+      w: Math.max(0, Math.floor(outWidth * k)),
+      h: Math.max(0, Math.floor(outHeight * k)),
+    };
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -254,9 +358,10 @@
           class="text-xl font-semibold text-neutral-900 dark:text-neutral-100"
         >
           Export Animation
+          <ExportFileLabel />
         </h2>
         <button
-          title="Close"
+          title={$exportCycle ? "Skip this file" : "Close"}
           class="text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
           onclick={close}
           aria-label="Close"
@@ -294,75 +399,77 @@
               for="gif-fps"
               class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
             >
-              Frame Rate: {fps} FPS
-            </label>
-            <input
-              id="gif-fps"
-              type="range"
-              min="5"
-              max="60"
-              step="1"
-              bind:value={fps}
-              disabled={status === "generating"}
-              class="w-full accent-emerald-600"
-            />
-          </div>
-
-          <!-- Resolution Scale -->
-          <div class="flex flex-col gap-2">
-            <label
-              for="gif-scale"
-              class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-            >
-              Scale: {Math.round(resolutionScale * 100)}%
+              Frame Rate
             </label>
             <select
-              id="gif-scale"
-              bind:value={resolutionScale}
+              id="gif-fps"
+              bind:value={fps}
               disabled={status === "generating"}
               class="{ui.input} block w-full"
             >
-              <option value={0.25}>25% (Smallest)</option>
-              <option value={0.5}>50% (Recommended)</option>
-              <option value={0.75}>75%</option>
-              <option value={1}>100% (Original)</option>
-              <option value={1.5}>150% (High Res)</option>
+              {#each fpsOptions as option (option)}
+                <option value={option}>{option} FPS</option>
+              {/each}
             </select>
           </div>
 
-          <!-- Quality -->
-          <div class="flex flex-col gap-2">
-            <label
-              for="gif-quality"
-              class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-            >
-              Quality: {quality <= 5
-                ? "Best (Lossless)"
-                : quality <= 15
-                  ? "Good"
-                  : "Draft"}
-            </label>
-            <input
-              id="gif-quality"
-              type="range"
-              min="1"
-              max="30"
-              step="1"
-              bind:value={sliderQuality}
-              disabled={status === "generating"}
-              class="w-full accent-emerald-600"
-              title={format === "gif"
-                ? "Right is better quality"
-                : "Left: 256 Colors, Right: Lossless"}
-            />
-            <div
-              class="text-xs text-neutral-500 dark:text-neutral-400 flex justify-between"
-            >
-              <span>Draft</span>
-              <span>Best</span>
+          <ExportWidthSelect
+            id="gif-scale"
+            bind:value={outWidth}
+            {aspect}
+            disabled={status === "generating"}
+          />
+
+          <!-- Colors (APNG only; a GIF always has 256) -->
+          {#if format === "apng"}
+            <div class="flex flex-col gap-2">
+              <span
+                class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+              >
+                Colors
+              </span>
+              <label
+                class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300"
+              >
+                <input
+                  id="apng-reduce-colors"
+                  type="checkbox"
+                  bind:checked={reduceColors}
+                  disabled={status === "generating"}
+                  class="accent-emerald-600"
+                />
+                Reduce to 256 colors (smaller file)
+              </label>
             </div>
+          {/if}
+        </div>
+
+        <!-- Summary -->
+        <div class="text-sm text-neutral-600 dark:text-neutral-400">
+          <div data-testid="export-summary">
+            {outWidth} × {outHeight} px · {fps} fps · {duration.toFixed(1)} s ·
+            {frames} frames
+          </div>
+          <div data-testid="export-size">
+            {#if previewBlob}
+              Preview size: {formatBytes(previewBlob.size)}
+            {:else if estimateBytes !== null}
+              Estimated file size: ~{formatBytes(estimateBytes)}
+            {:else if estimating}
+              Estimating file size…
+            {:else if format === "apng"}
+              Exact file size is shown once the preview is made.
+            {/if}
           </div>
         </div>
+
+        {#if format === "apng" && memoryBytes >= MEMORY_WARN_BYTES}
+          <div class={ui.alert.warning} role="alert">
+            Building this needs about {formatBytes(memoryBytes)} of your computer's
+            memory while it runs, so it may be slow or fail. The finished file is
+            far smaller.
+          </div>
+        {/if}
 
         <!-- Info Blurb -->
         {#if format === "apng"}
@@ -417,7 +524,7 @@
               src={previewUrl}
               alt="Animation Preview"
               class="shadow-sm"
-              style="width: {iconSize}px; height: {iconSize}px; object-fit: contain;"
+              style="width: {previewFit.w}px; height: {previewFit.h}px; object-fit: contain;"
             />
           {:else}
             <div
@@ -432,23 +539,35 @@
 
       <!-- Footer -->
       <div class="{ui.dialogFooter} justify-end">
-        <button class={ui.btn.ghost} onclick={handleCancel}> Cancel </button>
+        {#if $exportCycle}
+          <ExportCycleActions
+            exporter={exportForBatch}
+            onclose={close}
+            onaction={downloadAnimation}
+            disabled={status === "generating"}
+            >{previewUrl
+              ? "Download / Save"
+              : "Generate & Save"}</ExportCycleActions
+          >
+        {:else}
+          <button class={ui.btn.ghost} onclick={handleCancel}> Cancel </button>
 
-        <button
-          class={ui.btn.secondary}
-          onclick={generatePreview}
-          disabled={status === "generating"}
-        >
-          {previewUrl ? "Regenerate Preview" : "Generate Preview"}
-        </button>
+          <button
+            class={ui.btn.secondary}
+            onclick={generatePreview}
+            disabled={status === "generating"}
+          >
+            {previewUrl ? "Regenerate Preview" : "Generate Preview"}
+          </button>
 
-        <button
-          class={ui.btn.primary}
-          onclick={downloadAnimation}
-          disabled={status === "generating"}
-        >
-          {previewUrl ? "Download / Save" : "Generate & Save"}
-        </button>
+          <button
+            class={ui.btn.primary}
+            onclick={downloadAnimation}
+            disabled={status === "generating"}
+          >
+            {previewUrl ? "Download / Save" : "Generate & Save"}
+          </button>
+        {/if}
       </div>
     </div>
   </div>

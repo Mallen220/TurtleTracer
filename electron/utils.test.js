@@ -21,6 +21,9 @@ vi.mock("node:fs/promises", () => ({
   default: {
     readFile: vi.fn(),
     writeFile: vi.fn(),
+    realpath: vi.fn((p) => Promise.reject(new Error("missing " + p))),
+    rename: vi.fn(),
+    rm: vi.fn(),
   },
 }));
 
@@ -58,8 +61,18 @@ describe("utils.js", () => {
       expect(() => validateArbitraryPath("/test/\0/path")).toThrow(Error);
     });
 
-    it("throws on traversal sequences", () => {
-      expect(() => validateArbitraryPath("/test/../path")).toThrow(Error);
+    it("resolves traversal sequences in an absolute path", () => {
+      expect(validateArbitraryPath("/test/../path")).toBe("/path");
+    });
+
+    it("keeps a file name that contains two dots", () => {
+      expect(validateArbitraryPath("/paths/Red..v2.turt")).toBe(
+        "/paths/Red..v2.turt",
+      );
+    });
+
+    it("throws on a relative path that climbs out", () => {
+      expect(() => validateArbitraryPath("../path")).toThrow(Error);
     });
 
     it("throws if not absolute", () => {

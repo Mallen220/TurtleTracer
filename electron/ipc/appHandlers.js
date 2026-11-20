@@ -2,9 +2,25 @@
 import { ipcMain, BrowserWindow, shell, app } from "electron";
 import AppUpdater from "../updater.js";
 
+/**
+ * Gives a file the OS asked us to open to `win`. A window that hasn't loaded
+ * yet isn't listening, so the file waits in `state.pendingFilePath` for the
+ * first window to say it is ready. One already sent is not kept, or every
+ * window opened later would open it too.
+ */
+export function openFileInWindow(state, win, filePath) {
+  if (win?.rendererReady) {
+    win.webContents.send("open-file-path", filePath);
+  } else {
+    state.pendingFilePath = filePath;
+  }
+}
+
 export function registerAppHandlers(state) {
   ipcMain.handle("renderer-ready", async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return true;
+    win.rendererReady = true;
     const pendingFilePath = state.pendingFilePath;
     if (pendingFilePath) {
       win.webContents.send("open-file-path", pendingFilePath);
@@ -51,9 +67,9 @@ export function registerAppHandlers(state) {
     return process.windowsStore || false;
   });
 
-  ipcMain.handle("update:download", (event, version, url) => {
+  ipcMain.handle("update:download", (event, version) => {
     if (state.appUpdater) {
-      state.appUpdater.handleDownloadAndInstall(version, url);
+      state.appUpdater.handleDownloadAndInstall(version);
     }
   });
 

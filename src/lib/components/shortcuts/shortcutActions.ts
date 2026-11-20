@@ -16,6 +16,7 @@ import {
   focusRequest,
   exportDialogState,
   showFileManager,
+  fileManagerKeys,
   showPluginManager,
   showRuler,
   settingsActiveTab,
@@ -340,8 +341,13 @@ export function buildActionHandlers(
         focusRequest.set({ field: "x", timestamp: Date.now(), id: sel });
       }
     },
-    selectAll: () => selectAll(),
+    selectAll: () => {
+      const files = get(fileManagerKeys);
+      if (files) files.selectAll();
+      else selectAll();
+    },
     deselectAll: () => {
+      if (get(fileManagerKeys)?.clear()) return;
       if (dismissOpenDialog()) return;
       if (ctx.isCommandPaletteOpen()) {
         ctx.closeCommandPalette();

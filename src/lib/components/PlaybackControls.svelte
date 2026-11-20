@@ -153,12 +153,17 @@
     handleSeek(newPercent);
   }
 
+  /** Half the slider thumb's width (app.scss): a range input maps 0–100% onto the track minus this at each end. */
+  const THUMB_HALF = 10;
+
   function handleSliderMouseMove(e: MouseEvent) {
     if (draggingMarkerIndex !== null) return;
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    const p = (x / rect.width) * 100;
+    const raw = ((x - THUMB_HALF) / (rect.width - 2 * THUMB_HALF)) * 100;
+    // The same percent a click here would seek to, so the ghost lands where the robot will.
+    const p = snapPercent(Math.max(0, Math.min(100, raw)));
     hoverX = x;
     hoverPercentRaw = p;
     hoverPercentStore.set(p);
@@ -187,14 +192,9 @@
     return best;
   }
 
-  function handleSeekInput(e: Event) {
-    if (draggingMarkerIndex !== null) return;
-    const value = Number.parseFloat((e.target as HTMLInputElement).value);
-    if (shiftHeld) {
-      handleSeek(value);
-      return;
-    }
-    // Snap to the ends, markers, and the start and end of waits (within 1%).
+  /** Snaps to the ends, markers, and the start and end of waits (within 1%), unless Shift is held. */
+  function snapPercent(value: number) {
+    if (shiftHeld) return value;
     const targets = [0, 100];
     for (const item of timelineItems) {
       targets.push(item.percent);
@@ -202,7 +202,17 @@
         targets.push(item.percent + item.durationPercent);
       }
     }
-    handleSeek(snap(value, targets, 1));
+    return snap(value, targets, 1);
+  }
+
+  function handleSeekInput(e: Event) {
+    if (draggingMarkerIndex !== null) return;
+    const p = snapPercent(
+      Number.parseFloat((e.target as HTMLInputElement).value),
+    );
+    handleSeek(p);
+    // Move the ghost in the same tick as the robot, so a drag never shows them apart.
+    if (hoverPercentRaw !== null) hoverPercentStore.set(p);
   }
 
   function handleSliderKeydown(e: KeyboardEvent) {
@@ -379,7 +389,9 @@
   <!-- Timeline (Top Row) -->
   <div
     bind:this={timelineContainer}
-    class="w-full relative h-10 flex items-center group/timeline"
+    class="w-full relative h-10 flex items-center group/timeline select-none [-webkit-user-drag:none]"
+    role="presentation"
+    ondragstart={(e) => e.preventDefault()}
   >
     <!-- Timeline Track & Highlights -->
     <div
@@ -489,7 +501,7 @@
     {#if hoverX !== null && hoverPercentRaw !== null && draggingMarkerIndex === null}
       <div
         class="absolute z-30 bottom-full mb-2 -ml-6 w-12 text-center pointer-events-none"
-        style="left: {hoverPercentRaw}%;"
+        style="left: {hoverX}px;"
       >
         <div
           class="px-2 py-1 bg-neutral-800 dark:bg-neutral-200 text-neutral-100 dark:text-neutral-800 text-[10px] font-mono rounded shadow-lg"

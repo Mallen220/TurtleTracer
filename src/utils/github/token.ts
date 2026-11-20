@@ -4,8 +4,8 @@
 // In a browser the token is kept for this session, or remembered on this
 // device for REMEMBER_DAYS if the user asks. The desktop app keeps it in its
 // main process (encrypted with the system keychain when remembered) and adds
-// it to GitHub requests itself, so the page, and any plugin running in it,
-// never holds it.
+// it to GitHub requests itself, so the page never holds it. (An enabled
+// plugin can still ask the app to make requests with it.)
 import { writable } from "svelte/store";
 
 const STORAGE_KEY = "turtle-tracer-github-token";

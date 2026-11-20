@@ -218,13 +218,18 @@ function getDraggedFile(e: DragEvent): FileInfo | null {
 /** What the file manager gives the grid and list views. */
 export interface FileBrowserProps {
   files?: FileInfo[];
+  /** The primary selection. */
   selectedFilePath?: string | null;
+  /** Everything selected, the primary included. */
+  selectedPaths?: string[];
   sortMode?: "name" | "date";
   renamingFile?: FileInfo | null;
   fieldImage?: string | null;
   showGitStatus?: boolean;
-  onselect?: (file: FileInfo) => void;
+  onselect?: (file: FileInfo, event?: MouseEvent) => void;
   onopen?: (file: FileInfo) => void;
+  /** A rubber-band drag over `paths`; see the rubberBand action. */
+  onrubber?: (paths: string[], additive: boolean, first: boolean) => void;
   onrenameStart?: (file: FileInfo) => void;
   onrenameSave?: (name: string) => void;
   onrenameCancel?: () => void;
@@ -278,7 +283,10 @@ export class FileBrowserState {
   /** Opens the menu for `file` at a point on screen, selecting it. */
   openMenuAt(x: number, y: number, file: FileInfo) {
     this.contextMenu = { x, y, file };
-    this.#props().onselect?.(file);
+    // Right-clicking part of a multi-selection keeps it.
+    if (!this.#props().selectedPaths?.includes(file.path)) {
+      this.#props().onselect?.(file);
+    }
   }
 
   handleContextMenu = (event: MouseEvent, file: FileInfo) => {

@@ -30,7 +30,10 @@
   import json from "highlight.js/lib/languages/json";
   import plaintext from "highlight.js/lib/languages/plaintext";
   import { slide } from "svelte/transition";
-  import { highlightAndSplit } from "../../../utils/htmlHighlighter";
+  import {
+    highlightAndSplit,
+    highlightPoints,
+  } from "../../../utils/htmlHighlighter";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
   import pkg from "../../../../package.json";
   import { customExportersStore } from "../../pluginsStore";
@@ -84,6 +87,10 @@
 
     return cloned;
   }
+
+  // Points exports cycle colors per pose; everything else is syntax-highlighted.
+  const highlight = (src: string, lang: string) =>
+    format === "points" ? highlightPoints(src) : highlightAndSplit(src, lang);
 
   let code = $state("");
   let previousCode = "";
@@ -160,7 +167,7 @@
         if (exporter) {
           const settingsObj = {
             ...settings,
-            fileName: null,
+            fileName: get(currentFilePath),
             exportFullCode: settings.autoExportFullClass ?? true,
             packageName: settings.javaPackageName,
             telemetryImpl: settings.telemetryImplementation,
@@ -190,8 +197,8 @@
       // If first run, just set it
       if (code) {
         // Highlight old and new code using context-aware highlighter
-        const oldLinesHL = highlightAndSplit(previousCode, codeLanguage);
-        const newLinesHL = highlightAndSplit(newCode, codeLanguage);
+        const oldLinesHL = highlight(previousCode, codeLanguage);
+        const newLinesHL = highlight(newCode, codeLanguage);
 
         // Diff against previous state
         const diffs = diffLines(previousCode, newCode);
@@ -256,7 +263,7 @@
       } else {
         code = newCode;
         previousCode = newCode;
-        const hlLines = highlightAndSplit(newCode, codeLanguage);
+        const hlLines = highlight(newCode, codeLanguage);
         displayLines = hlLines.map((content, i) => ({
           content,
           type: "unchanged",
@@ -281,6 +288,7 @@
     $state.snapshot(settings);
     // The project's alliance mirroring is kept in its extraData.
     $extraDataStore;
+    $currentFilePath;
     format;
     targetLibrary;
 

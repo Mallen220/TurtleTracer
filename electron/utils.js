@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import path from "node:path";
 import fs from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { app } from "electron";
 
 /**
@@ -41,14 +42,43 @@ export function validateArbitraryPath(inputPath) {
   if (inputPath.includes("\0")) {
     throw new Error("Invalid path: contains null bytes");
   }
-  if (inputPath.includes("..")) {
-    throw new Error("Invalid path: contains traversal sequences");
-  }
+  // normalize() resolves any ".." segments, so a name like "a..b.turt" is fine.
   const normalized = path.normalize(inputPath);
   if (!path.isAbsolute(normalized)) {
     throw new Error("Invalid path: must be absolute");
   }
   return normalized;
+}
+
+/**
+ * Writes a file so a crash, a full disk or a killed app can't leave it empty
+ * or half-written: the data goes to a temporary file next to it, which then
+ * replaces the original in one step. A symlink is written through, not
+ * replaced.
+ * @param {string} filePath
+ * @param {string | Buffer} data
+ * @param {BufferEncoding} [encoding] For string data.
+ */
+export async function writeFileAtomic(filePath, data, encoding) {
+  const target = await fs.realpath(filePath).catch(() => filePath);
+  const temp = `${target}.${randomBytes(4).toString("hex")}.tmp`;
+  try {
+    await fs.writeFile(temp, data, encoding);
+    try {
+      await fs.rename(temp, target);
+    } catch (error) {
+      // Windows can refuse to replace a file another program (a sync client,
+      // a virus scanner) has open, and a rename can't cross drives. Writing
+      // in place is the old behaviour, which is better than failing.
+      const { code } = /** @type {NodeJS.ErrnoException} */ (error);
+      if (!["EPERM", "EBUSY", "EXDEV"].includes(code ?? "")) throw error;
+      await fs.writeFile(target, data, encoding);
+      await fs.rm(temp, { force: true });
+    }
+  } catch (error) {
+    await fs.rm(temp, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 const PROJECT_EXTENSIONS = [".turt", ".pp"];
@@ -95,7 +125,7 @@ export const loadDirectorySettings = async () => {
 export const saveDirectorySettings = async (settings) => {
   const settingsPath = getDirectorySettingsPath();
   try {
-    await fs.writeFile(
+    await writeFileAtomic(
       settingsPath,
       JSON.stringify(settings, null, 2),
       "utf-8",

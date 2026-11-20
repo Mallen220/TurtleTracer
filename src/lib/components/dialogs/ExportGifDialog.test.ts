@@ -8,6 +8,8 @@ import { DEFAULT_SETTINGS } from "../../../config/defaults";
 
 vi.mock("../../../utils/exportAnimation", () => ({
   exportPathToGif: vi.fn(),
+  exportPathToApng: vi.fn(),
+  estimateGifSize: vi.fn(async () => 2 * 1024 * 1024),
 }));
 
 const props = () => ({
