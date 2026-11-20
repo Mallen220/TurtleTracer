@@ -51,9 +51,9 @@ export function registerAppHandlers(state) {
     return process.windowsStore || false;
   });
 
-  ipcMain.handle("update:download", (event, version, url) => {
+  ipcMain.handle("update:download", (event, version) => {
     if (state.appUpdater) {
-      state.appUpdater.handleDownloadAndInstall(version, url);
+      state.appUpdater.handleDownloadAndInstall(version);
     }
   });
 

@@ -1,7 +1,9 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-const VERSION = "v2";
+// Bumped so caches that hold the app page under /assets/index.js are dropped.
+const VERSION = "v3";
 const CACHE_NAME = `turtle-tracer-${VERSION}`;
 
+// Build output has hashed names, so it is cached as it is fetched (see below).
 const APP_STATIC_RESOURCES = [
   "/",
   "/favicon.ico",
@@ -10,8 +12,6 @@ const APP_STATIC_RESOURCES = [
   "/fields/decode.webp",
   "/fields/biobuzz.webp",
   "/robot.png",
-  "/assets/index.js",
-  "/assets/index.css",
   "/fonts/Poppins-Regular.ttf",
   "/fonts/Poppins-SemiBold.ttf",
   "/fonts/Poppins-Light.ttf",

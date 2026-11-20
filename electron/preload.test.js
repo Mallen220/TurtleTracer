@@ -93,7 +93,7 @@ describe("preload.js", () => {
       api.transpilePlugin("code"),
       api.telemetry.connect("ip", "port", "proto"),
       api.telemetry.disconnect(),
-      api.downloadUpdate("version", "url"),
+      api.downloadUpdate("version"),
       api.skipUpdate("version"),
       api.checkForUpdates(),
     ]);

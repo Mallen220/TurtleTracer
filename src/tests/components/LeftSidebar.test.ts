@@ -76,7 +76,7 @@ describe("LeftSidebar", () => {
     });
 
     const items = getAllByRole("menuitem");
-    await fireEvent.click(items.at(-1));
+    await fireEvent.click(items.at(-1)!);
     expect(restoreAction).toHaveBeenCalledTimes(1);
     expect(restoreAction.mock.calls[0][0]).toEqual(expect.any(String));
     showHistory.set(false);

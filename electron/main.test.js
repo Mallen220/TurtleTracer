@@ -35,20 +35,6 @@ vi.mock("electron", () => ({
   safeStorage: { isEncryptionAvailable: vi.fn(() => false) },
 }));
 
-vi.mock("express", () => {
-  const expressFn = vi.fn(() => ({
-    use: vi.fn(),
-    get: vi.fn(),
-  }));
-  expressFn.static = vi.fn();
-  expressFn.json = vi.fn();
-  return { default: expressFn };
-});
-
-vi.mock("express-rate-limit", () => ({
-  default: vi.fn(),
-}));
-
 vi.mock("node:http", () => ({
   default: {
     createServer: vi.fn(() => ({

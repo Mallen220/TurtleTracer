@@ -1,21 +1,23 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { app, BrowserWindow, Menu, shell } from "electron";
+import { app, BrowserWindow, Menu, dialog, shell } from "electron";
 import path from "node:path";
-import express from "express";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs/promises";
 import fsSync from "node:fs";
-import rateLimit from "express-rate-limit";
 import AppUpdater from "./updater.js";
 import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
+import { createStaticHandler } from "./staticServer.js";
+import { syncDefaultPlugins } from "./defaultPlugins.js";
 import { registerIpcHandlers } from "./ipc/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const windows = new Set();
 let server;
-let serverPort = 17218;
+// The page keeps settings and robot profiles in localStorage, which belongs to
+// one address, so the same port every time keeps them in one place.
+const PREFERRED_PORT = 17218;
+let serverPort = PREFERRED_PORT;
 let appUpdater;
 
 // Keep menus referenced globally; otherwise they can be garbage collected on
@@ -108,6 +110,7 @@ if (gotTheLock) {
 
     await startServer();
     openWindow();
+    if (serverPort !== PREFERRED_PORT) warnPortInUse();
     createMenu();
     updateDockMenu();
     updateJumpList();
@@ -156,21 +159,7 @@ function handleOpenedFile(filePath) {
  * tries the following ports until one is free.
  */
 const startServer = async () => {
-  const expressApp = express();
-  const distPath = path.join(__dirname, "../dist");
-
-  expressApp.use(express.static(distPath));
-
-  // Everything else gets the single-page app.
-  const limiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  expressApp.get("*", limiter, (req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  const handler = createStaticHandler(path.join(__dirname, "../dist"));
 
   const maxAttempts = 100;
   await new Promise((resolve, reject) => {
@@ -180,7 +169,7 @@ const startServer = async () => {
     const tryListen = () => {
       attempt += 1;
       // Use a fresh server for each attempt so a failed listen doesn't linger.
-      const candidate = http.createServer(expressApp);
+      const candidate = http.createServer(handler);
       candidate.once("error", (err) => {
         if (err?.code === "EADDRINUSE" && attempt < maxAttempts) {
           port += 1;
@@ -200,6 +189,24 @@ const startServer = async () => {
     tryListen();
   });
 };
+
+/**
+ * Tells the user the app is on a different address than usual. Settings and
+ * robot profiles belong to the address, so they'd seem to have vanished.
+ */
+function warnPortInUse() {
+  dialog
+    .showMessageBox({
+      type: "warning",
+      message: "Turtle Tracer couldn't use its usual address",
+      detail:
+        `Another program is using port ${PREFERRED_PORT}, so this session runs on port ${serverPort}. ` +
+        "Your project files are fine, but settings and robot profiles are kept per address, so they will look empty here, " +
+        "and anything you change is saved under this temporary address. " +
+        "Close the other program and restart Turtle Tracer to get back to your usual settings.",
+    })
+    .catch((err) => console.warn("Couldn't show the port warning:", err));
+}
 
 const isWebUrl = (url) => {
   try {
@@ -571,40 +578,13 @@ registerIpcHandlers({
   },
 });
 
-/** Copies the bundled plugins into the user's plugins folder if missing. */
+/** Keeps the bundled plugins in the user's plugins folder up to date. */
 async function ensureDefaultPlugins() {
-  const pluginsDir = getPluginsDirectory();
   try {
-    await fs.mkdir(pluginsDir, { recursive: true });
-
-    const sourcePluginsDir = path.join(__dirname, "../plugins");
-
-    try {
-      const files = await fs.readdir(sourcePluginsDir);
-      for (const file of files) {
-        if (
-          !file.endsWith(".js") &&
-          !file.endsWith(".ts") &&
-          !file.endsWith(".d.ts")
-        )
-          continue;
-
-        const srcFile = path.join(sourcePluginsDir, file);
-        const destFile = path.join(pluginsDir, file);
-
-        try {
-          await fs.access(destFile);
-        } catch {
-          await fs.copyFile(srcFile, destFile);
-        }
-      }
-    } catch (err) {
-      console.error(
-        "Failed to read source plugins directory:",
-        sourcePluginsDir,
-        err,
-      );
-    }
+    await syncDefaultPlugins(
+      path.join(__dirname, "../plugins"),
+      getPluginsDirectory(),
+    );
   } catch (err) {
     console.error("Failed to ensure default plugins", err);
   }

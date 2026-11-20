@@ -762,3 +762,14 @@ src/utils/codeSearch.test.ts
 src/utils/codeSearch.ts
 src/lib/appearance.ts
 src/utils/strategySheetField.ts
+electron/defaultPlugins.js
+electron/defaultPlugins.test.js
+electron/ipc/appHandlers.test.js
+electron/ipc/directoryHandlers.test.js
+electron/ipc/fileHandlers.test.js
+electron/ipc/gitHandlers.test.js
+electron/ipc/pluginHandlers.test.js
+electron/ipc/telemetryHandlers.test.js
+electron/staticServer.js
+electron/staticServer.test.js
+electron/writeFileAtomic.test.js

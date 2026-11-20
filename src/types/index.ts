@@ -1261,7 +1261,7 @@ export interface ElectronAPI {
   // Updater
   onUpdateAvailable?: (callback: (data: any) => void) => void;
   onStoreUpdateAvailable?: (callback: (data: any) => void) => void;
-  downloadUpdate?: (version: string, url: string) => void;
+  downloadUpdate?: (version: string) => void;
   skipUpdate?: (version: string) => void;
   checkForUpdates?: () => Promise<any>;
 

@@ -509,7 +509,10 @@ export class PluginManager {
       },
     };
 
-    // Execute safely-ish by shadowing sensitive globals and enforcing strict mode
+    // Shadowing these globals only stops a plugin using them by accident. It is
+    // not a security boundary: a plugin can reach the real global another way
+    // (for example through a function's constructor), so an enabled plugin has
+    // the full access of the app. The plugin manager says so before enabling.
     try {
       const shadowGlobals = [
         "window",

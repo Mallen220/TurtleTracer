@@ -225,7 +225,7 @@ describe("updater.js", () => {
   describe("buildInstallCommand", () => {
     it("passes the announced version to the installer", () => {
       expect(buildInstallCommand("2.4.1")).toBe(
-        "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash -s -- --version 2.4.1",
+        "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/v2.4.1/install.sh | /bin/bash -s -- --version 2.4.1",
       );
       expect(buildInstallCommand("2.5.0-beta.1")).toContain(
         "--version 2.5.0-beta.1",
@@ -242,6 +242,8 @@ describe("updater.js", () => {
     ])("never puts an unsafe version (%j) into the command", (version) => {
       const command = buildInstallCommand(version);
       expect(command).not.toContain("--version");
+      // No usable version: the installer on main asks which one.
+      expect(command).toContain("/main/install.sh");
       expect(command).toMatch(/\| \/bin\/bash -s --$/);
     });
   });
@@ -262,7 +264,7 @@ describe("updater.js", () => {
 
     it("handles win32", () => {
       Object.defineProperty(process, "platform", { value: "win32" });
-      updater.handleDownloadAndInstall("1.0.0", "url");
+      updater.handleDownloadAndInstall("1.0.0");
       expect(shell.openExternal).toHaveBeenCalledWith(
         "https://github.com/Mallen220/TurtleTracer/releases/download/v1.0.0/Turtle-Tracer-Setup-1.0.0.exe",
       );
@@ -270,7 +272,7 @@ describe("updater.js", () => {
 
     it("handles darwin", () => {
       Object.defineProperty(process, "platform", { value: "darwin" });
-      updater.handleDownloadAndInstall("1.0.0", "url");
+      updater.handleDownloadAndInstall("1.0.0");
       expect(mockSpawn).toHaveBeenCalledTimes(2);
       expect(mockSpawn.mock.calls[0][0]).toBe("/usr/bin/osascript");
       // The version the user was told about is the one the installer fetches.
@@ -281,22 +283,26 @@ describe("updater.js", () => {
       Object.defineProperty(process, "platform", { value: "linux" });
       updater.openTerminalLinux = vi.fn().mockReturnValue(false);
 
-      updater.handleDownloadAndInstall("1.0.0", "fallback_url");
-      expect(shell.openExternal).toHaveBeenCalledWith("fallback_url");
+      updater.handleDownloadAndInstall("1.0.0");
+      expect(shell.openExternal).toHaveBeenCalledWith(
+        "https://github.com/Mallen220/TurtleTracer/releases",
+      );
     });
 
     it("handles linux success", () => {
       Object.defineProperty(process, "platform", { value: "linux" });
       updater.openTerminalLinux = vi.fn().mockReturnValue(true);
 
-      updater.handleDownloadAndInstall("1.0.0", "fallback_url");
+      updater.handleDownloadAndInstall("1.0.0");
       expect(updater.openTerminalLinux).toHaveBeenCalled();
     });
 
     it("handles unknown OS", () => {
       Object.defineProperty(process, "platform", { value: "unknown" });
-      updater.handleDownloadAndInstall("1.0.0", "fallback_url");
-      expect(shell.openExternal).toHaveBeenCalledWith("fallback_url");
+      updater.handleDownloadAndInstall("1.0.0");
+      expect(shell.openExternal).toHaveBeenCalledWith(
+        "https://github.com/Mallen220/TurtleTracer/releases",
+      );
     });
 
     it("handles exception during download", () => {
@@ -305,8 +311,10 @@ describe("updater.js", () => {
         throw new Error("err");
       });
 
-      updater.handleDownloadAndInstall("1.0.0", "fallback_url");
-      expect(shell.openExternal).toHaveBeenCalledWith("fallback_url");
+      updater.handleDownloadAndInstall("1.0.0");
+      expect(shell.openExternal).toHaveBeenCalledWith(
+        "https://github.com/Mallen220/TurtleTracer/releases",
+      );
     });
 
     it("logs a link that can't be opened instead of throwing", async () => {
@@ -316,9 +324,7 @@ describe("updater.js", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      expect(() =>
-        updater.handleDownloadAndInstall("1.0.0", "fallback_url"),
-      ).not.toThrow();
+      expect(() => updater.handleDownloadAndInstall("1.0.0")).not.toThrow();
       await vi.waitFor(() =>
         expect(consoleSpy).toHaveBeenCalledWith(
           "Failed to open link:",
