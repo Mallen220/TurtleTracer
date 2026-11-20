@@ -1129,11 +1129,14 @@
           <!-- Actual Code Layer -->
           {#if exportFormat === "points"}
             <!-- Points get a color per pose, which hljs can't do. Same markup Highlight renders. -->
+            <!-- highlightPoints escapes the code before wrapping it. -->
+            <!-- eslint-disable svelte/no-at-html-tags -->
             <pre
               class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"><code
                 class="hljs"
                 >{@html highlightPoints(exportedCode).join("\n")}</code
               ></pre>
+            <!-- eslint-enable svelte/no-at-html-tags -->
           {:else}
             <Highlight
               language={currentLanguage}

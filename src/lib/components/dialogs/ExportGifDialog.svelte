@@ -253,8 +253,8 @@
 
   // GIF can't do the higher frame rates, so fall back to its fastest.
   $effect(() => {
-    if (format === "gif" && fps > GIF_FPS[GIF_FPS.length - 1]) {
-      fps = GIF_FPS[GIF_FPS.length - 1];
+    if (format === "gif" && fps > GIF_FPS.at(-1)) {
+      fps = GIF_FPS.at(-1);
     }
   });
 

@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 /**
