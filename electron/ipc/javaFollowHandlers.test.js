@@ -73,8 +73,9 @@ describe("following a Java file", () => {
     expect(() => follower.follow(sender, "Auto.java")).toThrow(
       "must be absolute",
     );
+    // "..": resolved to /etc/x.java, which was never offered.
     expect(() => follower.follow(sender, "/team/../etc/x.java")).toThrow(
-      "traversal",
+      "Only a file chosen in the file dialog",
     );
     expect(watched.size).toBe(0);
   });

@@ -42,16 +42,28 @@ export function setupCanvasMocks() {
       return originalCreateElement(tag);
     });
 
+  // A real SVG element (with an obstacle group), so it can be cloned.
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const shapeGroup = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
+  shapeGroup.id = "shape-group";
+  svg.appendChild(shapeGroup);
+  const cornerHandle = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
+  cornerHandle.id = "obstacle-0-1"; // an obstacle's numbered corner
+  svg.appendChild(cornerHandle);
+  svg.getBoundingClientRect = vi.fn().mockReturnValue({
+    width: 100,
+    height: 100,
+  });
+
   const mockTwo = {
     update: vi.fn(),
-    renderer: {
-      domElement: {
-        getBoundingClientRect: vi.fn().mockReturnValue({
-          width: 100,
-          height: 100,
-        }),
-      },
-    },
+    renderer: { domElement: svg },
   };
 
   return { mockCtx, mockCanvas, mockTwo, createElementSpy };

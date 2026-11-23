@@ -75,6 +75,43 @@ const scoreAndPark = () => [
 ];
 
 describe("generateSequentialCommandCode", () => {
+  describe("path names that aren't valid variable names", () => {
+    const awkward = () => [
+      line("a", "new", { x: 20, y: 20, heading: "constant", degrees: 90 }),
+      line("b", "1st Shot", { x: 40, y: 20, heading: "constant", degrees: 0 }),
+      line("c", "Park", { x: 60, y: 20, heading: "constant", degrees: 0 }),
+    ];
+
+    it("adds an underscore to the variable but not to the name the library looks up", async () => {
+      const code = await generate(awkward());
+      expect(code).toContain("private Pose _new;");
+      expect(code).toContain("private Pose _1stShot;");
+      expect(code).toContain('_new = pp.get("new");');
+      expect(code).toContain('_1stShot = pp.get("1stShot");');
+      // Paths are named after the poses they join, so one can start with a digit too.
+      expect(code).toContain("private Path _1stShotTOPark;");
+      expect(code).not.toMatch(/private (Pose|Path) (new|1stShot)\b/);
+    });
+
+    it("does the same for Kotlin, where only a digit needs the underscore", async () => {
+      const code = await generateSequentialCommandCode(
+        start,
+        awkward(),
+        "Auto.turt",
+        undefined,
+        "SolversLib",
+        "org.team.Commands",
+        false,
+        "Pedro",
+        "imperial",
+        "kotlin",
+      );
+      expect(code).toContain("`new`");
+      expect(code).toContain("_1stShot");
+      expect(code).toContain('pp.get("1stShot")');
+    });
+  });
+
   describe("class and file names", () => {
     it("names the class after the file with unsafe characters replaced", async () => {
       const code = await generate(scoreAndPark(), {

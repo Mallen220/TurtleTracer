@@ -494,6 +494,7 @@ export function saveFileAs() {
 }
 
 /** Writes a copy of the project somewhere else without switching to it. */
+/** Returns false if the user cancelled the save dialog. */
 export async function exportAsProjectFile() {
   const electronAPI = getElectronAPI();
   const defaultName = `${currentFileBaseName()}${DEFAULT_PROJECT_EXTENSION}`;
@@ -504,10 +505,10 @@ export async function exportAsProjectFile() {
       defaultPath: defaultName,
       filters: [{ name: "Turtle Tracer Project", extensions: ["turt"] }],
     });
-    if (!chosen) return;
+    if (!chosen) return false;
 
     await writeProjectCopy(ensureDefaultProjectExtension(chosen));
-    return;
+    return true;
   }
 
   downloadTrajectory(
@@ -518,6 +519,7 @@ export async function exportAsProjectFile() {
     get(extraDataStore),
     defaultName,
   );
+  return true;
 }
 
 const isInsideDirectory = (filePath: string, dir: string) => {

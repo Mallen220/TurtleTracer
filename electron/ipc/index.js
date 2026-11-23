@@ -1,4 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { ipcMain } from "electron";
+import { registerOnlyForApp } from "./trustedSender.js";
 import { registerAppHandlers } from "./appHandlers.js";
 import { registerDirectoryHandlers } from "./directoryHandlers.js";
 import { registerFileHandlers } from "./fileHandlers.js";
@@ -10,13 +12,19 @@ import { registerProjectHandlers } from "./projectHandlers.js";
 import { registerTelemetryHandlers } from "./telemetryHandlers.js";
 
 export function registerIpcHandlers(state) {
-  registerAppHandlers(state);
-  registerDirectoryHandlers();
-  registerFileHandlers();
-  registerGitHandlers();
-  registerGitHubHandlers();
-  registerJavaFollowHandlers();
-  registerPluginHandlers();
-  registerProjectHandlers();
-  registerTelemetryHandlers();
+  registerOnlyForApp(
+    ipcMain,
+    () => state.appOrigin,
+    () => {
+      registerAppHandlers(state);
+      registerDirectoryHandlers();
+      registerFileHandlers();
+      registerGitHandlers();
+      registerGitHubHandlers();
+      registerJavaFollowHandlers();
+      registerPluginHandlers();
+      registerProjectHandlers();
+      registerTelemetryHandlers();
+    },
+  );
 }

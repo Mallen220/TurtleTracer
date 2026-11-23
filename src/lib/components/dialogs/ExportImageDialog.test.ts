@@ -34,6 +34,28 @@ describe("ExportImageDialog", () => {
     expect(formatSelect).toHaveValue("jpeg");
   });
 
+  it("takes a custom width, clamps it, and hides size for SVG", async () => {
+    const { getByLabelText, queryByLabelText } = render(
+      ExportImageDialog,
+      props(),
+    );
+    await fireEvent.change(getByLabelText("Size"), {
+      target: { value: "custom" },
+    });
+    const input = getByLabelText("Custom width in pixels");
+    expect(input).toHaveValue(1080);
+    await fireEvent.input(input, { target: { value: "5" } });
+    await fireEvent.blur(input);
+    expect(input).toHaveValue(16);
+    await fireEvent.input(input, { target: { value: "99999" } });
+    await fireEvent.blur(input);
+    expect(input).toHaveValue(16384);
+    await fireEvent.change(getByLabelText("Format"), {
+      target: { value: "svg" },
+    });
+    expect(queryByLabelText("Size")).toBeNull();
+  });
+
   it("offers to download or save", () => {
     const { getByRole } = render(ExportImageDialog, props());
     expect(

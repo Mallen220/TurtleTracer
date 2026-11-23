@@ -21,7 +21,7 @@ import { formatKotlin } from "./kotlinFormat";
 import { kotlinImports } from "./commandLibraries/kotlinClassSections";
 import {
   formatJava,
-  kotlinIdentifier,
+  asVariable,
   stateCase,
   flattenMacros,
   poseCode,
@@ -66,7 +66,7 @@ export function opModeAlliance(
 function uniqueVariableNames(lines: Line[], language?: CodeLanguage): string[] {
   return uniqueNames(
     lines.map((line, idx) => identifierFor(line.name, `line${idx + 1}`)),
-  ).map((name) => (language === "kotlin" ? kotlinIdentifier(name) : name));
+  ).map((name) => asVariable(name, language === "kotlin"));
 }
 
 /** Interpolator arguments with every angle and target written out. */

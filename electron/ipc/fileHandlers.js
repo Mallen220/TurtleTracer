@@ -1,8 +1,12 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { ipcMain, BrowserWindow, dialog } from "electron";
+import { ipcMain, BrowserWindow, dialog, shell } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isProjectFilePath, validateArbitraryPath } from "../utils.js";
+import {
+  isProjectFilePath,
+  validateArbitraryPath,
+  writeFileAtomic,
+} from "../utils.js";
 import { getGitStatuses } from "./gitHandlers.js";
 import { isCodeFilePath, offerJavaFile } from "./offeredJavaFiles.js";
 
@@ -81,20 +85,27 @@ export function registerFileHandlers() {
           // The page may follow a code file it was shown here.
           offerJavaFile(filePath);
 
-          const stats = await fs.stat(filePath);
-          const resolvedPath = await fs.realpath(filePath);
-          return {
-            name: dirent.name,
-            path: filePath,
-            size: dirent.isDirectory() ? 0 : stats.size,
-            modified: stats.mtime,
-            gitStatus: gitStatuses[resolvedPath] || "clean",
-            isDirectory: dirent.isDirectory(),
-          };
+          // One unreadable entry (a broken link, a file deleted mid-scan)
+          // is left out; it must not hide the rest of the folder.
+          try {
+            const stats = await fs.stat(filePath);
+            const resolvedPath = await fs.realpath(filePath);
+            return {
+              name: dirent.name,
+              path: filePath,
+              size: dirent.isDirectory() ? 0 : stats.size,
+              modified: stats.mtime,
+              gitStatus: gitStatuses[resolvedPath] || "clean",
+              isDirectory: dirent.isDirectory(),
+            };
+          } catch (error) {
+            console.warn("Skipping unreadable entry:", filePath, error?.code);
+            return null;
+          }
         }),
       );
 
-      return fileDetails;
+      return fileDetails.filter(Boolean);
     } catch (error) {
       console.error("Error reading directory:", directory, error);
       return [];
@@ -115,7 +126,7 @@ export function registerFileHandlers() {
   ipcMain.handle("file:write", async (event, filePath, content) => {
     const resolvedPath = validateArbitraryPath(filePath);
     try {
-      await fs.writeFile(resolvedPath, content, "utf-8");
+      await writeFileAtomic(resolvedPath, content, "utf-8");
       return true;
     } catch (error) {
       console.error("Error writing file:", error);
@@ -141,7 +152,7 @@ export function registerFileHandlers() {
       const resolvedPath = validateArbitraryPath(filePath);
       try {
         const buffer = Buffer.from(base64Content, "base64");
-        await fs.writeFile(resolvedPath, buffer);
+        await writeFileAtomic(resolvedPath, buffer);
         return true;
       } catch (error) {
         console.error("Error writing base64 file:", error);
@@ -165,7 +176,7 @@ export function registerFileHandlers() {
         const result = await dialog.showSaveDialog(win, options);
         if (result.canceled || !result.filePath) return null;
         const resolvedPath = validateArbitraryPath(result.filePath);
-        await fs.writeFile(resolvedPath, content, "utf-8");
+        await writeFileAtomic(resolvedPath, content, "utf-8");
         return result.filePath;
       } catch (error) {
         console.error("Error exporting legacy .pp file:", error);
@@ -188,6 +199,11 @@ export function registerFileHandlers() {
       console.error("Error deleting file:", error);
       throw error;
     }
+  });
+
+  ipcMain.handle("file:reveal", (event, filePath) => {
+    shell.showItemInFolder(validateArbitraryPath(filePath));
+    return true;
   });
 
   ipcMain.handle("file:exists", async (event, filePath) => {

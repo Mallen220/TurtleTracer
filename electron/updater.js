@@ -13,17 +13,24 @@ const openInBrowser = (url) => {
   });
 };
 
-const INSTALL_SCRIPT_URL =
-  "https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh";
+const RELEASES_URL = "https://github.com/Mallen220/TurtleTracer/releases";
+const RAW_URL = "https://raw.githubusercontent.com/Mallen220/TurtleTracer";
 
 // Only version strings that are safe to put in a shell command (and inside an
 // AppleScript string) are passed on; anything else falls back to the
 // installer's own "which version?" question.
 const SAFE_VERSION = /^\d+\.\d+\.\d+(?:[-+.][0-9A-Za-z.+-]*)?$/;
 
+/**
+ * The command that installs `version`. The installer is the copy tagged with
+ * that release, so a later change to main can't break (or hijack) an update.
+ * Without a usable version it falls back to main's installer, which asks.
+ */
 export function buildInstallCommand(version) {
-  const versionArg = SAFE_VERSION.test(version) ? ` --version ${version}` : "";
-  return `/usr/bin/curl -fsSL ${INSTALL_SCRIPT_URL} | /bin/bash -s --${versionArg}`;
+  const safe = SAFE_VERSION.test(version);
+  const script = `${RAW_URL}/${safe ? `v${version}` : "main"}/install.sh`;
+  const versionArg = safe ? ` --version ${version}` : "";
+  return `/usr/bin/curl -fsSL ${script} | /bin/bash -s --${versionArg}`;
 }
 
 class AppUpdater {
@@ -51,7 +58,7 @@ class AppUpdater {
       }
 
       const releaseData = await response.json();
-      const latestVersion = releaseData.tag_name.replaceAll("v", "");
+      const latestVersion = releaseData.tag_name.replace(/^v/, "");
 
       console.log(`Current: ${this.currentVersion}, Latest: ${latestVersion}`);
 
@@ -138,7 +145,7 @@ class AppUpdater {
   showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
-      const version = releaseData.tag_name.replaceAll("v", "");
+      const version = releaseData.tag_name.replace(/^v/, "");
       if (this?.mainWindow?.webContents) {
         this.mainWindow.webContents.send("update-available", {
           version: version,
@@ -158,7 +165,12 @@ class AppUpdater {
     }
   }
 
-  handleDownloadAndInstall(version, releasesUrl) {
+  /**
+   * Starts the update to `version`. The page only says which version; the
+   * addresses opened here are never taken from it.
+   */
+  handleDownloadAndInstall(version) {
+    const releasesUrl = RELEASES_URL;
     try {
       if (process.platform === "win32") {
         const downloadUrl = `https://github.com/Mallen220/TurtleTracer/releases/download/v${version}/Turtle-Tracer-Setup-${version}.exe`;

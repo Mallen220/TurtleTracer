@@ -66,6 +66,7 @@ describe("preload.js", () => {
       api.writeFile("file.txt", "content"),
       api.deleteFile("file.txt"),
       api.fileExists("file.txt"),
+      api.revealFile("file.txt"),
       api.resolvePath("base", "rel"),
       api.makeRelativePath("base", "tgt"),
       api.getDirectorySettings(),
@@ -92,7 +93,7 @@ describe("preload.js", () => {
       api.transpilePlugin("code"),
       api.telemetry.connect("ip", "port", "proto"),
       api.telemetry.disconnect(),
-      api.downloadUpdate("version", "url"),
+      api.downloadUpdate("version"),
       api.skipUpdate("version"),
       api.checkForUpdates(),
     ]);

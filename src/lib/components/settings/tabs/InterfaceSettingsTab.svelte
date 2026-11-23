@@ -159,23 +159,6 @@
   </SettingsItem>
 
   <SettingsItem
-    label="Square Corners"
-    {...resettable("squaredCorners")}
-    description="Draw buttons, dialogs, and panels with square corners instead of rounded ones"
-    {searchQuery}
-    layout="row"
-    forId="squared-corners-checkbox"
-  >
-    <input
-      id="squared-corners-checkbox"
-      type="checkbox"
-      checked={settings.squaredCorners}
-      onchange={(e) => set("squaredCorners", e.currentTarget.checked)}
-      class={ui.checkbox}
-    />
-  </SettingsItem>
-
-  <SettingsItem
     label="Field Map"
     {...resettable("fieldMap")}
     description="Select the competition field"

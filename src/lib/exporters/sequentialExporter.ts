@@ -35,7 +35,7 @@ import {
   annotationMirrorArgs,
   formatJava,
   doubleCode,
-  kotlinIdentifier,
+  asVariable,
   flattenMacros,
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
   poseCode,
@@ -82,8 +82,8 @@ export async function generateSequentialCommandCode(
   const poseDeclarations: string[] = [];
   const poseInitializations: string[] = [];
   const opts: FormatOptions = { coordinateSystem, codeUnits, language, mirror };
-  // A pose's name in pp.get(), and as a variable.
-  const variable = (name: string) => (kotlin ? kotlinIdentifier(name) : name);
+  // A pose as a variable. In pp.get() it keeps its plain name: the library derives that the same way.
+  const variable = (name: string) => asVariable(name, kotlin);
   const poseName = (idx: number) => variable(poseNameOf(lines, idx));
   // Kotlin fields the init block sets are vals; paths are built later.
   const field = (name: string, type: string, setInInit = true) =>
@@ -118,8 +118,8 @@ export async function generateSequentialCommandCode(
 
   // Paths are named after their start and end poses, e.g. startPointTOShoot.
   const pathChainVariables = uniqueNames(
-    lines.map(
-      (_, idx) => `${poseNameOf(lines, idx - 1)}TO${poseNameOf(lines, idx)}`,
+    lines.map((_, idx) =>
+      variable(`${poseNameOf(lines, idx - 1)}TO${poseNameOf(lines, idx)}`),
     ),
   );
   // A chained line is part of the path before it, so it has no variable.

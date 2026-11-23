@@ -268,25 +268,25 @@ describe("robot features", () => {
         robotFeatures: [
           {
             type: "rectangle",
-            x: 1,
-            y: 2,
-            width: 6,
-            height: 4,
+            offsetX: 2,
+            offsetY: 1,
+            width: 4,
+            length: 6,
             color: "#111111",
             filled: true,
           },
           {
             type: "circle",
-            x: 0,
-            y: 0,
+            offsetX: 0,
+            offsetY: 0,
             radius: 3,
             color: "#222222",
             filled: false,
           },
           {
             type: "line",
-            x: 0,
-            y: 0,
+            offsetX: 0,
+            offsetY: 0,
             angle: 0,
             length: 5,
             thickness: 2,
@@ -300,7 +300,8 @@ describe("robot features", () => {
     const rect = svg.querySelector("rect")!;
     expect(rect.getAttribute("width")).toBe("12");
     expect(rect.getAttribute("height")).toBe("8");
-    expect(rect.getAttribute("x")).toBe(String(16 + 2 - 6));
+    expect(rect.getAttribute("x")).toBe(String(16 + 2 - 6)); // 1 in forward
+    expect(rect.getAttribute("y")).toBe(String(10 + 4 - 4)); // 2 in to the right
     expect(rect.getAttribute("fill")).toBe("#111111");
 
     const circle = svg.querySelector("circle")!;
@@ -319,9 +320,21 @@ describe("robot features", () => {
       {},
       {
         robotFeatures: [
-          { type: "rectangle", x: 0, y: 0, color: "#000", filled: true },
-          { type: "circle", x: 0, y: 0, color: "#000", filled: true },
-          { type: "line", x: 0, y: 0, color: "#000" },
+          {
+            type: "rectangle",
+            offsetX: 0,
+            offsetY: 0,
+            color: "#000",
+            filled: true,
+          },
+          {
+            type: "circle",
+            offsetX: 0,
+            offsetY: 0,
+            color: "#000",
+            filled: true,
+          },
+          { type: "line", offsetX: 0, offsetY: 0, color: "#000" },
         ] as any,
       },
     );
@@ -341,13 +354,13 @@ describe("robot features", () => {
         robotFeatures: [
           {
             type: "circle",
-            x: 0,
-            y: 0,
+            offsetX: 0,
+            offsetY: 0,
             radius: 1,
             color: "#000",
             visible: false,
           },
-          { type: "circle", x: 0, y: 0, radius: 1, color: "#000" },
+          { type: "circle", offsetX: 0, offsetY: 0, radius: 1, color: "#000" },
         ] as any,
       },
     );
@@ -360,7 +373,7 @@ describe("robot features", () => {
       {
         robotImage: "/mine.png",
         robotFeatures: [
-          { type: "circle", x: 0, y: 0, radius: 1, color: "#000" },
+          { type: "circle", offsetX: 0, offsetY: 0, radius: 1, color: "#000" },
         ] as any,
       },
     );

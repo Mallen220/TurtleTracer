@@ -275,6 +275,37 @@ interface CustomSidebarItem {
   iconComponent?: Component;
 }
 
+/** What the strategy sheet shows and how it is laid out. Global, not per project. */
+interface StrategySheetOptions {
+  pageSize: "letter" | "a4";
+  landscape: boolean;
+  /** Scale the sheet down until it fits one page, instead of running onto a second. */
+  fitOnePage: boolean;
+  showField: boolean;
+  showStats: boolean;
+  showRobot: boolean;
+  showSequence: boolean;
+  showNotes: boolean;
+  colDetails: boolean;
+  colHeading: boolean;
+  colEvents: boolean;
+  colTime: boolean;
+  hideWaitsAndMacros: boolean;
+  /** Numbers the end of each path on the field, like its table row. */
+  numberPaths: boolean;
+  /** Fades the field and draws paths in black, for printing. */
+  inkSaver: boolean;
+  /** How much of the sheet's width the field takes, in percent. */
+  fieldSize: number;
+  /** Prints "Generated <date>" under the title. */
+  showDate: boolean;
+  teamName: string;
+  /** The team logo as a data URL. */
+  logo: string;
+  /** Export All writes one PDF instead of one per file. */
+  combinePdf: boolean;
+}
+
 interface Settings {
   fieldWidth?: number;
   fieldHeight?: number;
@@ -335,7 +366,6 @@ interface Settings {
   commandRegistrar?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
-  squaredCorners?: boolean; // Draw the interface with square corners instead of rounded ones
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes
   showVelocityHeatmap?: boolean; // Show velocity heatmap overlay
@@ -382,6 +412,7 @@ interface Settings {
    * drawn for, is saved with each project (see exporters/allianceMirroring).
    */
   exportMirrorAxes?: "BOTH" | "X" | "Y";
+  strategySheet?: StrategySheetOptions;
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   lockFieldView?: boolean;
@@ -400,17 +431,22 @@ interface Settings {
   sidebarIconSize?: number;
 }
 
+/**
+ * Something drawn on the robot. Offsets are from the robot's centre:
+ * offsetX is to its right, offsetY is forward. A rectangle is `width` across
+ * the robot (along X) and `length` along it (along Y). A line is `length`
+ * long, at `angle` degrees clockwise from forward.
+ */
 interface RobotFeature {
   id: string;
   name?: string;
   type: "rectangle" | "circle" | "line";
-  x: number;
-  y: number;
+  offsetX: number;
+  offsetY: number;
   color: string;
   width?: number;
-  height?: number;
-  radius?: number;
   length?: number;
+  radius?: number;
   angle?: number;
   thickness?: number;
   filled?: boolean;
@@ -1146,6 +1182,9 @@ interface ElectronAPI {
   createDirectory?: (dirPath: string) => Promise<boolean>;
   getDirectoryStats?: (dirPath: string) => Promise<any>;
 
+  // Show a file or folder in Finder / File Explorer / the file manager
+  revealFile?: (filePath: string) => Promise<boolean>;
+
   // Rename operation
   renameFile?: (
     oldPath: string,
@@ -1229,7 +1268,7 @@ interface ElectronAPI {
   // Updater
   onUpdateAvailable?: (callback: (data: any) => void) => void;
   onStoreUpdateAvailable?: (callback: (data: any) => void) => void;
-  downloadUpdate?: (version: string, url: string) => void;
+  downloadUpdate?: (version: string) => void;
   skipUpdate?: (version: string) => void;
   checkForUpdates?: () => Promise<any>;
 

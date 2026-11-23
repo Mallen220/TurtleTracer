@@ -241,9 +241,17 @@ describe("the sheet's text", () => {
 
   it("names unnamed steps, lists events with where they fire, and skips paths that don't exist", () => {
     mount({ renderer: { domElement: svgWith(1) } }, {}, { lines, sequence });
-    const rows = [...document.querySelectorAll("tbody tr")].map((r) =>
-      [...r.querySelectorAll("td")].map((c) => c.textContent!.trim()),
-    );
+    // Each row: the badge, the step's name and details, then its events.
+    const rows = [...document.querySelectorAll("tbody tr")].map((r) => {
+      const [badge, step, events] = r.querySelectorAll("td");
+      const [name, details] = step.querySelectorAll("div");
+      return [
+        badge.textContent!.trim(),
+        name.firstChild!.textContent!.trim(),
+        details?.textContent!.trim(),
+        events.textContent!.trim(),
+      ];
+    });
     expect(rows.map((r) => r[1])).toEqual([
       "Start",
       "Path 1",
@@ -258,7 +266,7 @@ describe("the sheet's text", () => {
     expect(rows[3][2]).toBe("45°");
     expect(rows[3][3]).toBe("Spin up @ 50%");
     expect(rows[4][2]).toBe("Macro");
-    expect(rows.map((r) => r[0])).toEqual(["0", "1", "2", "3", "4", "5"]);
+    expect(rows.map((r) => r[0])).toEqual(["S", "1", "2", "3", "4", "5"]);
   });
 
   it("shows Untitled Project until the project has a file, then its name without the extension", async () => {

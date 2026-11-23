@@ -223,9 +223,9 @@ describe("PlaybackControls interaction", () => {
           bottom: 10,
         }) as DOMRect;
 
-      await fireEvent.mouseMove(input, { clientX: 150 });
-      expect(get(hoverPercentStore)).toBe(25);
-      expect(screen.getByText("5.000s")).toBeInTheDocument();
+      await fireEvent.mouseMove(input, { clientX: 200 });
+      expect(get(hoverPercentStore)).toBe(50);
+      expect(screen.getByText("10.000s")).toBeInTheDocument();
 
       // Past either end it stays on the track.
       await fireEvent.mouseMove(input, { clientX: 900 });

@@ -27,17 +27,20 @@
     type FileBrowserProps,
   } from "./fileBrowser.svelte";
   import { ui } from "../../ui";
+  import { rubberBand } from "../../actions/rubberBand";
 
   type Props = FileBrowserProps;
 
   let {
     files = [],
     selectedFilePath = null,
+    selectedPaths = [],
     sortMode = "name",
     renamingFile = null,
     fieldImage = null,
     showGitStatus = true,
     onselect,
+    onrubber,
     onopen,
     onrenameStart,
     onrenameSave,
@@ -52,6 +55,7 @@
 
   const browser = new FileBrowserState(() => ({
     renamingFile,
+    selectedPaths,
     onselect,
     onrenameStart,
     onmenuAction,
@@ -112,7 +116,8 @@
 </script>
 
 <div
-  class="flex-1 overflow-y-auto pb-4"
+  class="relative flex-1 overflow-y-auto pb-4 select-none"
+  use:rubberBand={{ onselect: (p, add, first) => onrubber?.(p, add, first) }}
   onclick={browser.closeMenu}
   role="button"
   tabindex="0"
@@ -135,18 +140,22 @@
       {#each group.files as file (file.path)}
         <div
           class="group flex flex-col items-center p-2 rounded-md cursor-pointer transition-all border relative
-          {selectedFilePath === file.path
+          {selectedPaths.includes(file.path) || selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 ring-1 ring-blue-300 dark:ring-blue-700'
             : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm'}
+          {selectedPaths.length > 1 && selectedFilePath === file.path
+            ? 'ring-2 ring-blue-500'
+            : ''}
           {browser.dragOverTarget === file.path
             ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
             : ''}"
-          onclick={() => onselect?.(file)}
+          onclick={(e) => onselect?.(file, e)}
           ondblclick={() => onopen?.(file)}
           oncontextmenu={(e) => browser.handleContextMenu(e, file)}
           role="button"
           tabindex="0"
           aria-label={file.name}
+          data-path={file.path}
           use:loadPreviewWhenVisible={file}
           draggable="true"
           ondragstart={(e) => handleDragStart(e, file)}
@@ -278,6 +287,8 @@
   <FileBrowserMenu
     menu={browser.contextMenu}
     {lockFolders}
+    {selectedPaths}
+    primaryPath={selectedFilePath}
     onclose={browser.closeMenu}
     onaction={browser.handleMenuAction}
   />

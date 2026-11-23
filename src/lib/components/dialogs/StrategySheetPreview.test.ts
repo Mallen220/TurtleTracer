@@ -7,6 +7,8 @@ import type { Point, Line, SequenceItem, Settings } from "../../../types";
 
 // Mock the global stores used by StrategySheetPreview
 vi.mock("../../../stores", () => ({
+  exportSwap: { subscribe: (fn: (v: null) => void) => (fn(null), () => {}) },
+  exportCycle: { subscribe: (fn: (v: null) => void) => (fn(null), () => {}) },
   currentFilePath: {
     subscribe: vi.fn((fn) => {
       fn(String.raw`C:\test\my_project.turt`);
@@ -199,6 +201,83 @@ describe("StrategySheetPreview Component", () => {
       expect(mockFrom).toHaveBeenCalled();
       expect(mockSave).toHaveBeenCalled();
     });
+  });
+
+  const props = (
+    over: Partial<Settings> = {},
+    timePrediction: any = mockTimePrediction,
+  ) => ({
+    isOpen: true,
+    startPoint: mockStartPoint,
+    lines: mockLines,
+    sequence: mockSequence,
+    settings: { ...mockSettings, ...over },
+    timePrediction,
+  });
+
+  it("starts a file with the seeded notes blocks", () => {
+    render(StrategySheetPreview, props());
+    for (const name of ["Setup", "Scored", "Tolerances"])
+      expect(screen.getByDisplayValue(name)).toBeInTheDocument();
+  });
+
+  it("shows the team name and, with Time on, each step's time", () => {
+    render(
+      StrategySheetPreview,
+      props(
+        { strategySheet: { teamName: "Team 1234", colTime: true } as any },
+        {
+          ...mockTimePrediction,
+          timeline: [
+            { type: "travel", line: mockLines[0], duration: 2.4, endTime: 2.4 },
+            { type: "wait", waitId: "w1", duration: 1.5, endTime: 3.9 },
+          ],
+        },
+      ),
+    );
+    expect(screen.getByText("Team 1234")).toBeInTheDocument();
+    expect(screen.getByText("ends 2.4 s")).toBeInTheDocument();
+    expect(screen.getByText("1.5 s")).toBeInTheDocument();
+    expect(screen.getByText("ends 3.9 s")).toBeInTheDocument();
+    // The rotate has no event on this timeline.
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("leaves the date and the table's options out when told to", () => {
+    render(
+      StrategySheetPreview,
+      props({ strategySheet: { showDate: false, showSequence: false } as any }),
+    );
+    expect(screen.queryByText(/Generated/)).toBeNull();
+    expect(screen.queryByText("Path Sequence")).toBeNull();
+    expect(screen.queryByLabelText("Heading")).toBeNull();
+    expect(screen.getByLabelText("Field size")).toBeInTheDocument();
+  });
+
+  it("folds the options panel to its button", async () => {
+    render(StrategySheetPreview, props());
+    await fireEvent.click(screen.getByLabelText("Hide options"));
+    expect(screen.queryByLabelText("Landscape")).toBeNull();
+    await fireEvent.click(screen.getByLabelText("Show options"));
+    expect(screen.getByLabelText("Landscape")).toBeInTheDocument();
+  });
+
+  it("hides sections and columns the options turn off", () => {
+    render(
+      StrategySheetPreview,
+      props({
+        strategySheet: { showRobot: false, colEvents: false } as any,
+      }),
+    );
+    expect(screen.queryByText("Robot Profile")).toBeNull();
+    expect(screen.queryByText("Drop Marker @ 50%")).toBeNull();
+  });
+
+  it("the options panel changes the sheet", async () => {
+    render(StrategySheetPreview, props());
+    expect(screen.getByText("Short Wait")).toBeInTheDocument();
+    await fireEvent.click(screen.getByLabelText("Hide waits and macros"));
+    expect(screen.queryByText("Short Wait")).toBeNull();
   });
 
   it("closes the dialog when the close button is clicked", async () => {

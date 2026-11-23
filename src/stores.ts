@@ -29,6 +29,20 @@ export const showPluginManager = writable(false);
 export const showTelemetryDialog = writable(false);
 export const isPresentationMode = writable(false);
 export const showWhatsNew = writable(false);
+/** Puts the open project back; set while an export from the file manager has borrowed the editor. */
+export const exportSwap = writable<(() => void) | null>(null);
+/** Exporting several files one after another: which one is showing. */
+export const exportCycle = writable<{
+  files: { name: string; path: string }[];
+  index: number;
+} | null>(null);
+/** A batch export in progress, for the progress dialog. */
+export const batchProgress = writable<{
+  done: number;
+  total: number;
+  name: string;
+  fileProgress: number;
+} | null>(null);
 export const showExportGif = writable(false);
 export const showExportImage = writable(false);
 
@@ -69,6 +83,14 @@ if (typeof globalThis.window !== globalThis.undefined) {
 
 // File Manager Stores
 export const showFileManager = writable(false);
+/**
+ * Set by the file manager while it is open, so Select All and Escape act on
+ * its files. `clear` returns whether it used the key.
+ */
+export const fileManagerKeys = writable<{
+  selectAll: () => void;
+  clear: () => boolean;
+} | null>(null);
 export const fileManagerNewFileMode = writable(false);
 
 // Consolidated Dialog Stores Map
