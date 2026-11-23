@@ -184,11 +184,11 @@
       <div class="relative p-8 flex flex-col gap-6">
         <!-- Top Section -->
         <div class="text-center space-y-2">
-          <div
+          <!-- <div
             class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mb-2 shadow-sm ring-1 ring-emerald-100 dark:ring-emerald-900/50"
           >
             <RocketIcon className="w-8 h-8" />
-          </div>
+          </div> -->
           <h2
             id="update-title"
             class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight"
@@ -248,7 +248,7 @@
           <div
             class="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100"
           >
-            <ListIcon className="w-4 h-4 text-emerald-500" />
+            <!-- <ListIcon className="w-4 h-4 text-emerald-500" /> -->
             Release Notes
           </div>
           <div
